@@ -44,7 +44,7 @@ namespace CSharpImageLibrary
             {
                 img = UsefulThings.WPF.Images.CreateWPFBitmap(ImageFileData);
             }
-            catch (NotSupportedException e) when (e.Message.Contains("codec", StringComparison.OrdinalIgnoreCase))
+            catch (NotSupportedException e) when (e.Message.Contains("decoded", StringComparison.OrdinalIgnoreCase))
             {
                 img = null;
             }
@@ -59,11 +59,14 @@ namespace CSharpImageLibrary
             {
                 img = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath);
             }
-            catch (NotSupportedException e) when (e.Message.Contains("codec", StringComparison.OrdinalIgnoreCase))
+            catch (FileFormatException fileformatexception)
             {
-                img = null;
+                Debug.WriteLine(fileformatexception);
             }
-
+            catch(NotSupportedException notsupportedexception)
+            {
+                Debug.WriteLine(notsupportedexception);
+            }
             return img;
         }
 
@@ -73,9 +76,10 @@ namespace CSharpImageLibrary
         }
 
         public static MemoryTributary LoadImage(BitmapImage bmp, out double Width, out double Height, out Format Format, string extension)
-        {
+        { 
             if (!WindowsCodecsAvailable)
             {
+                // KFreon: Not on Windows 8+ or something like that
                 Width = 0;
                 Height = 0;
                 Format = new Format();
@@ -109,25 +113,87 @@ namespace CSharpImageLibrary
             return pixelData;
         }
 
+        public static MemoryTributary LoadV8U8(string imagePath, out double Width, out double Height)
+        {
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                return LoadV8U8(fs, out Width, out Height);
+        }
+
+        public static MemoryTributary LoadV8U8(Stream stream, out double Width, out double Height)
+        {
+            DDS_HEADER header = null;
+            Format format = ParseDDSFormat(stream, out header);
+
+            Width = header.dwWidth;
+            Height = header.dwHeight;
+
+            int mipMapBytes = (int)(Width * Height * 2);  // KFreon: 2 bytes per pixel
+            MemoryTributary imgData = new MemoryTributary();
+
+            using (BinaryWriter writer = new BinaryWriter(imgData, Encoding.Default, true))
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    for (int x = 0; x < Width; x++)
+                    {
+                        sbyte red = (sbyte)stream.ReadByte();
+                        sbyte green = (sbyte)stream.ReadByte();
+                        byte blue = 0xFF;
+
+                        int fCol = blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
+                        writer.Write(fCol);
+                    }
+                }
+            }
+                
+
+            return imgData;
+        }
+
         public static MemoryTributary LoadImage(string imagePath, out double Width, out double Height, out Format Format)
         {
+            Width = 0;
+            Height = 0;
+            Format = new Format();
+
+
             if (!WindowsCodecsAvailable)
-            {
-                Width = 0;
-                Height = 0;
-                Format = new Format();
                 return null;
-            }
 
             BitmapImage bmp = AttemptUsingWindowsCodecs(imagePath);
 
             if (bmp == null)
             {
                 // KFreon: Unsupported by Windows Codecs
+                // e.g. V8U8, 3Dc, G8/L8
 
+                Format test = ParseDDSFormat(imagePath);
+
+                switch (test.InternalFormat)
+                {
+                    case ImageEngineFormat.DDS_V8U8:
+                        Format = new Format(ImageEngineFormat.DDS_V8U8);
+                        return LoadV8U8(imagePath, out Width, out Height);
+                    case ImageEngineFormat.DDS_G8_L8:
+                        break;
+                    case ImageEngineFormat.DDS_ATI1N_BC4:
+                        break;
+                    case ImageEngineFormat.DDS_ATI2_3Dc:
+                        break;
+                    // TODO: RBGA?
+                }
+
+
+
+
+
+                Console.WriteLine();
+                return null;  // TODO: Temporary return
             }
-
-            return LoadImage(bmp, out Width, out Height, out Format, Path.GetExtension(imagePath));
+            else
+            {
+                return LoadImage(bmp, out Width, out Height, out Format, Path.GetExtension(imagePath));
+            }
         }
 
         /// <summary>
@@ -182,7 +248,8 @@ namespace CSharpImageLibrary
                 case SupportedExtensions.BMP:
                     return new Format(ImageEngineFormat.BMP);
                 case SupportedExtensions.DDS:
-                    return ParseDDSFormat(imgData);
+                    DDS_HEADER header;
+                    return ParseDDSFormat(imgData, out header);
                 case SupportedExtensions.JPEG:
                 case SupportedExtensions.JPG:
                     return new Format(ImageEngineFormat.JPG);
@@ -196,22 +263,27 @@ namespace CSharpImageLibrary
 
         private static Format ParseDDSFormat(string imagePath)
         {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open))
-                return ParseDDSFormat(fs);
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                DDS_HEADER header;
+                return ParseDDSFormat(fs, out header);
+            }
         }
 
-        private static Format ParseDDSFormat(Stream stream)
+        private static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
         {
             Format format = new Format();
 
             stream.Seek(0, SeekOrigin.Begin);
             using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, true))
             {
+                header = null;
+
                 int Magic = reader.ReadInt32();
                 if (Magic != 0x20534444)
                     return new Format();  // KFreon: Not a DDS
 
-                DDS_HEADER header = new DDS_HEADER();
+                header = new DDS_HEADER();
                 Read_DDS_HEADER(header, reader);
 
                 if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))

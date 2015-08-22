@@ -58,7 +58,24 @@ namespace CSharpImageLibrary
             JpegBitmapEncoder encoder = new JpegBitmapEncoder();
 
             // KFreon: NOTE: Seems to ignore alpha - pretty much ultra useful since premultiplying alpha often removes most of the image
-            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create((int)Width, (int)Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256, PixelData.ToArray(), 4 * (int)Width));
+            byte[] data = PixelData.ToArray();
+
+            int stride = 4 * (int)Width;
+            BitmapPalette palette = BitmapPalettes.Halftone256;
+            PixelFormat pixelformat = PixelFormats.Bgra32;
+
+            // KFreon: V8U8 needs some different settings
+            if (Format.InternalFormat == ImageEngineFormat.DDS_V8U8)
+            {
+                stride = ((int)Width * 32 + 7) / 8;
+                palette = BitmapPalettes.Halftone125;
+                pixelformat = PixelFormats.Bgr32;
+            }
+
+
+            // KFreon: Create a bitmap from raw pixel data
+            BitmapSource source = BitmapFrame.Create((int)Width, (int)Height, 96, 96, pixelformat, palette, data, stride);
+            BitmapFrame frame = BitmapFrame.Create(source);
             encoder.Frames.Add(frame);
 
             MemoryTributary stream = new MemoryTributary();

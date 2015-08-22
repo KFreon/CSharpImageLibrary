@@ -36,7 +36,14 @@ namespace CSharpImageLibrary
             OpenFileDialog ofd = new OpenFileDialog();
             if (ofd.ShowDialog() == true)
             {
-                OrigImage.Source = UsefulThings.WPF.Images.CreateWPFBitmap(ofd.FileName);
+                try
+                {
+                    OrigImage.Source = UsefulThings.WPF.Images.CreateWPFBitmap(ofd.FileName);
+                }
+                catch
+                {
+                    OrigImage.Source = null;
+                }
                 vm.LoadImage(ofd.FileName);
             }
         }

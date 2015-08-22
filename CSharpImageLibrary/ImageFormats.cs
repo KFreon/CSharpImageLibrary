@@ -25,6 +25,7 @@ namespace CSharpImageLibrary
         DDS_ATI2_3Dc = 0x32495441  // ATI2 backwards
     }
 
+    [DebuggerDisplay("{ToString()}")]
     public struct Format
     {
         public ImageEngineFormat InternalFormat;
