@@ -14,14 +14,17 @@ namespace CSharpImageLibrary
 
     public enum ImageEngineFormat
     {
-        Unknown, JPG, PNG, BMP,
+        Unknown = 1,
+        JPG = 2,
+        PNG = 3,
+        BMP = 4,
         DDS_DXT1 = 0x31545844,  // 1TXD i.e. DXT1 backwards
         DDS_DXT3 = 0x33545844,
         DDS_DXT5 = 0x35545844,
-        DDS_ARGB = 6,
+        DDS_ARGB = 6,  // No specific value apparently
         DDS_ATI1N_BC4 = 0x55344342,  // BC4U backwards
-        DDS_V8U8 = 117,
-        DDS_G8_L8 = 7,
+        DDS_V8U8 = 117,  // Doesn't seem like this value is used much - but it's in the programming guide for DDS by Microsoft
+        DDS_G8_L8 = 7,  // No specific value it seems
         DDS_ATI2_3Dc = 0x32495441  // ATI2 backwards
     }
 
@@ -55,7 +58,7 @@ namespace CSharpImageLibrary
             Format format = new Format();
 
             if (!Enum.IsDefined(typeof(ImageEngineFormat), FourCC))
-                format.InternalFormat = ImageEngineFormat.Unknown;  // KFreon: NEEDS TO SEE if its JPG etc
+                format.InternalFormat = ImageEngineFormat.DDS_ARGB;  // KFreon: NEEDS TO SEE if its JPG etc
             else
                 format.InternalFormat = (ImageEngineFormat)FourCC;
 

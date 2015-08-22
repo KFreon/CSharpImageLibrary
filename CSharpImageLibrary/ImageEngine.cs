@@ -86,8 +86,8 @@ namespace CSharpImageLibrary
                 return null;
             }
 
-            Height = bmp.Height;
-            Width = bmp.Width;
+            Height = Math.Ceiling(bmp.Height);
+            Width = Math.Ceiling(bmp.Width);
 
             // KFreon: Get format, choosing data source based on how BitmapImage was created.
             if (bmp.UriSource != null)
@@ -175,19 +175,16 @@ namespace CSharpImageLibrary
                         Format = new Format(ImageEngineFormat.DDS_V8U8);
                         return LoadV8U8(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_G8_L8:
-                        break;
+                        throw new NotImplementedException();
                     case ImageEngineFormat.DDS_ATI1N_BC4:
-                        break;
+                        throw new NotImplementedException();
                     case ImageEngineFormat.DDS_ATI2_3Dc:
-                        break;
-                    // TODO: RBGA?
+                        throw new NotImplementedException();
+                    case ImageEngineFormat.DDS_ARGB:
+                        Format = new Format(ImageEngineFormat.DDS_ARGB);
+                        return LoadRGBA(imagePath, out Width, out Height);
                 }
 
-
-
-
-
-                Console.WriteLine();
                 return null;  // TODO: Temporary return
             }
             else
@@ -195,6 +192,27 @@ namespace CSharpImageLibrary
                 return LoadImage(bmp, out Width, out Height, out Format, Path.GetExtension(imagePath));
             }
         }
+
+        private static MemoryTributary LoadRGBA(string imagePath, out double Width, out double Height)
+        {
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                return LoadRGBA(fs, out Width, out Height);
+        }
+
+        private static MemoryTributary LoadRGBA(Stream stream, out double Width, out double Height)
+        {
+            DDS_HEADER header = null;
+            Format format = ParseDDSFormat(stream, out header);
+
+            Width = header.dwWidth;
+            Height = header.dwHeight;
+
+            MemoryTributary imgData = new MemoryTributary();
+            imgData.ReadFrom(stream, stream.Length - stream.Position);
+
+            return imgData;
+        }
+
 
         /// <summary>
         /// Builds mips for image. Note, doesn't keep the topmost as it's stored in the PixelData array of the main image.
@@ -272,7 +290,7 @@ namespace CSharpImageLibrary
 
         private static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
         {
-            Format format = new Format();
+            Format format = new Format(ImageEngineFormat.DDS_ARGB);
 
             stream.Seek(0, SeekOrigin.Begin);
             using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, true))
