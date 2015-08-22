@@ -39,14 +39,14 @@ namespace CSharpImageLibrary
             Format = format;
         }
 
-        public ImageEngineImage(BitmapImage img)
+        public ImageEngineImage(BitmapImage img, string extension)
         {
             double width = 0;
             double height = 0;
             Format format = new Format();
 
 
-            PixelData = ImageEngine.LoadImage(img, out width, out height, out format);
+            PixelData = ImageEngine.LoadImage(img, out width, out height, out format, extension);
 
             Width = width;
             Height = height;

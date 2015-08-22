@@ -13,7 +13,7 @@ namespace CSharpImageLibrary
 {
     public static class ImageEngine
     {
-        public static bool UsingWindowsCodecs
+        public static bool WindowsCodecsAvailable
         {
             get; private set;
         }
@@ -21,29 +21,60 @@ namespace CSharpImageLibrary
         public static bool WindowsCodecsPresent()
         {
             byte[] testData = Resources.DXT1_CodecTest;
+
             try
             {
-                BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(testData);
+                BitmapImage bmp = AttemptUsingWindowsCodecs(testData);
+
                 if (bmp == null)
-                    return false;
+                    return false;  // KFreon: Decoding failed. PROBABLY due to no decoding available
             }
-            catch (NotSupportedException e) when (e.Message.Contains("codec", StringComparison.OrdinalIgnoreCase))
+            catch(Exception e)
             {
-                // KFreon: No suitable codecs found - still might actually have a codec, but something else weird could have happened...
-                return false;
+                return false;  // KFreon: Non decoding related error - Who knows...
             }
 
             return true;
         }
 
-        static ImageEngine()
+        private static BitmapImage AttemptUsingWindowsCodecs(byte[] ImageFileData)
         {
-            UsingWindowsCodecs = WindowsCodecsPresent();
+            BitmapImage img = null;
+            try
+            {
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(ImageFileData);
+            }
+            catch (NotSupportedException e) when (e.Message.Contains("codec", StringComparison.OrdinalIgnoreCase))
+            {
+                img = null;
+            }
+
+            return img;
         }
 
-        public static MemoryTributary LoadImage(BitmapImage bmp, out double Width, out double Height, out Format Format)
+        private static BitmapImage AttemptUsingWindowsCodecs(string imagePath)
         {
-            if (!UsingWindowsCodecs)
+            BitmapImage img = null;
+            try
+            {
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath);
+            }
+            catch (NotSupportedException e) when (e.Message.Contains("codec", StringComparison.OrdinalIgnoreCase))
+            {
+                img = null;
+            }
+
+            return img;
+        }
+
+        static ImageEngine()
+        {
+            WindowsCodecsAvailable = WindowsCodecsPresent();
+        }
+
+        public static MemoryTributary LoadImage(BitmapImage bmp, out double Width, out double Height, out Format Format, string extension)
+        {
+            if (!WindowsCodecsAvailable)
             {
                 Width = 0;
                 Height = 0;
@@ -56,9 +87,9 @@ namespace CSharpImageLibrary
 
             // KFreon: Get format, choosing data source based on how BitmapImage was created.
             if (bmp.UriSource != null)
-                Format = ParseDDSFormat(bmp.UriSource.OriginalString);
+                Format = ParseFormat(bmp.UriSource.OriginalString);
             else if (bmp.StreamSource != null)
-                Format = ParseDDSFormat(bmp.StreamSource);
+                Format = ParseFormat(bmp.StreamSource, ParseExtension(extension));
             else
                 throw new InvalidDataException("Bitmap doesn't seem to have a suitable source.");
 
@@ -80,7 +111,7 @@ namespace CSharpImageLibrary
 
         public static MemoryTributary LoadImage(string imagePath, out double Width, out double Height, out Format Format)
         {
-            if (!UsingWindowsCodecs)
+            if (!WindowsCodecsAvailable)
             {
                 Width = 0;
                 Height = 0;
@@ -88,9 +119,15 @@ namespace CSharpImageLibrary
                 return null;
             }
 
+            BitmapImage bmp = AttemptUsingWindowsCodecs(imagePath);
 
-            BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath);
-            return LoadImage(bmp, out Width, out Height, out Format);
+            if (bmp == null)
+            {
+                // KFreon: Unsupported by Windows Codecs
+
+            }
+
+            return LoadImage(bmp, out Width, out Height, out Format, Path.GetExtension(imagePath));
         }
 
         /// <summary>
@@ -98,7 +135,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="bmp">Image to build mips for.</param>
         /// <returns></returns>
-        private static List<ImageEngineImage> BuildMipMaps(BitmapImage bmp)
+        private static List<ImageEngineImage> BuildMipMaps(BitmapImage bmp, string extension)
         {
             // KFreon: Smallest dimension so mipping stops at say 2x1 instead of trying to go 1x0.5
             double determiningDimension = bmp.Width > bmp.Height ? bmp.Height : bmp.Width;
@@ -106,18 +143,56 @@ namespace CSharpImageLibrary
 
             List<ImageEngineImage> MipMaps = new List<ImageEngineImage>();
 
-            if (UsingWindowsCodecs)
+            if (WindowsCodecsAvailable)
             {
                 while (determiningDimension > 1)
                 {
                     workingImage = UsefulThings.WPF.Images.ScaleImage(workingImage, 0.5);
-                    MipMaps.Add(new ImageEngineImage(workingImage));
+                    MipMaps.Add(new ImageEngineImage(workingImage, extension));
                     determiningDimension /= 2;
                 }
             }
 
             return MipMaps;
         }
+
+
+        private static SupportedExtensions ParseExtension(string extension)
+        {
+            SupportedExtensions ext = SupportedExtensions.DDS;
+            string tempext = Path.GetExtension(extension).Replace(".", "");
+            if (!Enum.TryParse(tempext, true, out ext))
+                return SupportedExtensions.UNKNOWN;
+
+            return ext;
+        }
+
+        private static Format ParseFormat(string imagePath)
+        {
+            SupportedExtensions ext = ParseExtension(imagePath);
+
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open))
+                return ParseFormat(fs, ext);
+        }
+
+        private static Format ParseFormat(Stream imgData, SupportedExtensions ext)
+        {
+            switch (ext)
+            {
+                case SupportedExtensions.BMP:
+                    return new Format(ImageEngineFormat.BMP);
+                case SupportedExtensions.DDS:
+                    return ParseDDSFormat(imgData);
+                case SupportedExtensions.JPEG:
+                case SupportedExtensions.JPG:
+                    return new Format(ImageEngineFormat.JPG);
+                case SupportedExtensions.PNG:
+                    return new Format(ImageEngineFormat.PNG);
+            }
+
+            return new Format();
+        }
+
 
         private static Format ParseDDSFormat(string imagePath)
         {

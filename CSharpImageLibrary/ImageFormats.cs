@@ -7,6 +7,11 @@ using System.Threading.Tasks;
 
 namespace CSharpImageLibrary
 {
+    public enum SupportedExtensions
+    {
+        UNKNOWN, JPG, JPEG, BMP, PNG, DDS
+    }
+
     public enum ImageEngineFormat
     {
         Unknown, JPG, PNG, BMP,
