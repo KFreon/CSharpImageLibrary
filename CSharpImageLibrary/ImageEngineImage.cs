@@ -56,7 +56,9 @@ namespace CSharpImageLibrary
         public BitmapImage GeneratePreview()
         {
             JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create((int)Width, (int)Height, 96, 96, PixelFormats.Pbgra32, BitmapPalettes.Halftone256, PixelData.ToArray(), 4 * (int)Width));
+
+            // KFreon: NOTE: Seems to ignore alpha - pretty much ultra useful since premultiplying alpha often removes most of the image
+            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create((int)Width, (int)Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256, PixelData.ToArray(), 4 * (int)Width));
             encoder.Frames.Add(frame);
 
             MemoryTributary stream = new MemoryTributary();
