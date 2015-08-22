@@ -1,0 +1,28 @@
+﻿<Window x:Class="CSharpImageLibrary.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CSharpImageLibrary"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="384.202" Width="748.453">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="283*"/>
+            <RowDefinition Height="47*"/>
+            <RowDefinition Height="23*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="260*"/>
+            <ColumnDefinition Width="257*"/>
+        </Grid.ColumnDefinitions>
+        <Image x:Name="OrigImage" Grid.Column="0" Grid.Row="0"/>
+        <Image x:Name="NewImage" Source="{Binding Preview}"  Grid.Column="1" Grid.Row="0"/>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.ColumnSpan="2">
+            <TextBlock Text="{Binding Format, StringFormat=Format: {0}}"/>
+            <TextBlock Margin="20,0,0,0" Text="{Binding ImagePath, StringFormat=Image Path: {0}}"/>
+        </StackPanel>
+        <Button Click="Button_Click" Content="Load Image" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="2" Height="20" Width="66"/>
+    </Grid>
+</Window>
