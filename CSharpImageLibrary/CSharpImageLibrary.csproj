@@ -61,6 +61,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="ATI1.cs" />
+    <Compile Include="ATI2_3Dc.cs" />
     <Compile Include="DDSGeneral.cs" />
     <Compile Include="G8_L8.cs" />
     <Compile Include="ImageEngineImage.cs" />

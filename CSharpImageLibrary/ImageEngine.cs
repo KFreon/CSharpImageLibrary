@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
 
@@ -124,7 +125,8 @@ namespace CSharpImageLibrary
                         Format = new Format(ImageEngineFormat.DDS_ATI1);
                         return ATI1.Load(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_ATI2_3Dc:
-                        throw new NotImplementedException();
+                        Format = new Format(ImageEngineFormat.DDS_ATI2_3Dc);
+                        return ATI2_3Dc.Load(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_ARGB:
                         Format = new Format(ImageEngineFormat.DDS_ARGB);
                         return RGBA.Load(imagePath, out Width, out Height);

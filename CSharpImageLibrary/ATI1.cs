@@ -14,6 +14,7 @@ namespace CSharpImageLibrary
 {
     /// <summary>
     /// Provides ATI1 format functionality.
+    /// This is a single channel, 8 bit image.
     /// </summary>
     public static class ATI1
     {
@@ -53,6 +54,7 @@ namespace CSharpImageLibrary
         /// <returns>RGBA Pixel Data as stream.</returns>
         public static MemoryTributary Load(Stream stream, out double Width, out double Height)
         {
+            broken
             // KFreon: Necessary to move stream position along to pixel data.
             DDS_HEADER header = null;
             Format format = ImageFormats.ParseDDSFormat(stream, out header);
@@ -68,6 +70,8 @@ namespace CSharpImageLibrary
             uint bitmask = 0;
             int t2 = 0;
             int[] Colours = new int[8];
+
+            int BPS = (int)Width;
 
             for (int h = 0; h < Height; h+=4)
             {
@@ -123,12 +127,14 @@ namespace CSharpImageLibrary
                                     }
                                     bitmask >>= 3;
                                 }
-                                CurrentOffset += 4;
+                                CurrentOffset += BPS;
                             }
                         }
                     }
                 }
             }
+
+            arraywrite(test, (int)Width, (int)Height);
 
             return imgData;
         }
