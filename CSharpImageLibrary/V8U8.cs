@@ -10,7 +10,7 @@ using static CSharpImageLibrary.DDSGeneral;
 namespace CSharpImageLibrary
 {
     /// <summary>
-    /// Provides V8U8 format functionality
+    /// Provides V8U8 format functionality.
     /// </summary>
     public static class V8U8
     {
@@ -20,8 +20,8 @@ namespace CSharpImageLibrary
         /// <param name="imagePath">Path to V8U8 image file.</param>
         /// <param name="Width">Detected Width.</param>
         /// <param name="Height">Detected Height.</param>
-        /// <returns>Raw pixel data as stream.</returns>
-        private static MemoryTributary Load(string imagePath, out double Width, out double Height)
+        /// <returns>RGBA Pixel data as stream.</returns>
+        public static MemoryTributary Load(string imagePath, out double Width, out double Height)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return Load(fs, out Width, out Height);
@@ -34,38 +34,20 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire V8U8 image. Not just Pixels.</param>
         /// <param name="Width">Detected Width.</param>
         /// <param name="Height">Detected Height.</param>
-        /// <returns>Raw pixel data as stream.</returns>
-        private static MemoryTributary Load(Stream stream, out double Width, out double Height)
+        /// <returns>RGBA Pixel data as stream.</returns>
+        public static MemoryTributary Load(Stream stream, out double Width, out double Height)
         {
-            // KFreon: Necessary to move stream position along to pixel data.
-            DDS_HEADER header = null;
-            Format format = ParseDDSFormat(stream, out header);
-
-            Width = header.dwWidth;
-            Height = header.dwHeight;
-
-            int mipMapBytes = (int)(Width * Height * 2);  // KFreon: 2 bytes per pixel
-            MemoryTributary imgData = new MemoryTributary();
-
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
-            using (BinaryWriter writer = new BinaryWriter(imgData, Encoding.Default, true))
+            Func<Stream, int> PixelReader = fileData =>
             {
-                for (int y = 0; y < Height; y++)
-                {
-                    for (int x = 0; x < Width; x++)
-                    {
-                        sbyte red = (sbyte)stream.ReadByte();
-                        sbyte green = (sbyte)stream.ReadByte();
-                        byte blue = 0xFF;
+                sbyte red = (sbyte)fileData.ReadByte();
+                sbyte green = (sbyte)fileData.ReadByte();
+                byte blue = 0xFF;
 
-                        int fCol = blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
-                        writer.Write(fCol);
-                    }
-                }
-            }
+                return blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
+            };
 
-
-            return imgData;
+            return DDSGeneral.LoadUncompressed(stream, 2, out Width, out Height, PixelReader);
         }
     }
 }

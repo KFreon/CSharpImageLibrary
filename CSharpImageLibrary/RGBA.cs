@@ -10,7 +10,7 @@ using static CSharpImageLibrary.DDSGeneral;
 namespace CSharpImageLibrary
 {
     /// <summary>
-    /// Provides RGBA (DDS) format functionality
+    /// Provides RGBA (DDS) format functionality.
     /// </summary>
     public static class RGBA
     {
@@ -20,8 +20,8 @@ namespace CSharpImageLibrary
         /// <param name="imagePath">Path to RGBA DDS file.</param>
         /// <param name="Width">Detected Width.</param>
         /// <param name="Height">Detected Height.</param>
-        /// <returns>Raw pixel data as stream.</returns>
-        private static MemoryTributary Load(string imagePath, out double Width, out double Height)
+        /// <returns>RGBA Pixel data as stream.</returns>
+        public static MemoryTributary Load(string imagePath, out double Width, out double Height)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return Load(fs, out Width, out Height);
@@ -29,16 +29,16 @@ namespace CSharpImageLibrary
 
 
         /// <summary>
-        /// 
+        /// Loads useful information from RGBA DDS image stream.
         /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="Width"></param>
-        /// <param name="Height"></param>
-        /// <returns></returns>
-        private static MemoryTributary Load(Stream stream, out double Width, out double Height)
+        /// <param name="stream">Stream containing entire image file. NOT just pixels.</param>
+        /// <param name="Width">Detected Width.</param>
+        /// <param name="Height">Detected Height.</param>
+        /// <returns>RGBA Pixel data as stream.</returns>
+        public static MemoryTributary Load(Stream stream, out double Width, out double Height)
         {
             DDS_HEADER header = null;
-            Format format = ParseDDSFormat(stream, out header);
+            Format format = ImageFormats.ParseDDSFormat(stream, out header);
 
             Width = header.dwWidth;
             Height = header.dwHeight;

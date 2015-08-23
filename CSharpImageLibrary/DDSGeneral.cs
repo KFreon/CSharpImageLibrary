@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulThings;
 
 namespace CSharpImageLibrary
 {
@@ -99,55 +100,53 @@ namespace CSharpImageLibrary
 
 
         /// <summary>
-        /// 
+        /// Reads uncompressed image data using a format specific Pixel Reader.
         /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="header"></param>
-        /// <returns></returns>
-        public static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
+        /// <param name="fileData">Stream of entire image. NOT just pixels.</param>
+        /// <param name="PixelData">RGBA Pixel Data as read in this function.</param>
+        /// <param name="Width">Detected Width.</param>
+        /// <param name="Height">Detected Height.</param>
+        /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, RGBA)</param>
+        private static void ReadUncompressed(Stream fileData, MemoryTributary PixelData, double Width, double Height, Func<Stream, int> PixelReader)
         {
-            Format format = new Format(ImageEngineFormat.DDS_ARGB);
-
-            stream.Seek(0, SeekOrigin.Begin);
-            using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, true))
+            using (BinaryWriter writer = new BinaryWriter(PixelData, Encoding.Default, true))
             {
-                header = null;
-
-                int Magic = reader.ReadInt32();
-                if (Magic != 0x20534444)
-                    return new Format();  // KFreon: Not a DDS
-
-                header = new DDS_HEADER();
-                Read_DDS_HEADER(header, reader);
-
-                if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))
-                    throw new Exception("DX10 not supported yet!");
-
-                format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
-
-                if (header.ddspf.dwRGBBitCount == 0x10 &&
-                           header.ddspf.dwRBitMask == 0xFF &&
-                           header.ddspf.dwGBitMask == 0xFF00 &&
-                           header.ddspf.dwBBitMask == 0x00 &&
-                           header.ddspf.dwABitMask == 0x00)
-                    format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
+                for (int y = 0; y < Height; y++)
+                {
+                    for (int x = 0; x < Width; x++)
+                    {
+                        int fCol = PixelReader(fileData);  // KFreon: Reads pixel using a method specific to the format as provided
+                        writer.Write(fCol);
+                    }
+                }
             }
-
-            return format;
         }
 
+
         /// <summary>
-        /// 
+        /// Loads an uncompressed DDS image given format specific Pixel Reader
         /// </summary>
-        /// <param name="imagePath"></param>
+        /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
+        /// <param name="NumChannels">Number of colour channels in image. (RGBA = 4)</param>
+        /// <param name="Width">Detected Width.</param>
+        /// <param name="Height">Detected Height.</param>
+        /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, RGBA)</param>
         /// <returns></returns>
-        public static Format ParseDDSFormat(string imagePath)
+        public static MemoryTributary LoadUncompressed(Stream stream, int NumChannels, out double Width, out double Height, Func<Stream, int> PixelReader)
         {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                DDS_HEADER header;
-                return ParseDDSFormat(fs, out header);
-            }
+            // KFreon: Necessary to move stream position along to pixel data.
+            DDS_HEADER header = null;
+            Format format = ImageFormats.ParseDDSFormat(stream, out header);
+
+            Width = header.dwWidth;
+            Height = header.dwHeight;
+
+            int mipMapBytes = (int)(Width * Height * NumChannels);  // KFreon: 2 bytes per pixel
+            MemoryTributary imgData = new MemoryTributary();
+
+            DDSGeneral.ReadUncompressed(stream, imgData, Width, Height, PixelReader);
+
+            return imgData;
         }
     }
 }

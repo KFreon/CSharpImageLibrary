@@ -17,7 +17,7 @@
             <ColumnDefinition Width="257*"/>
         </Grid.ColumnDefinitions>
         <Image x:Name="OrigImage" Grid.Column="0" Grid.Row="0"/>
-        <Image x:Name="NewImage" Source="{Binding Preview}"  Grid.Column="1" Grid.Row="0"/>
+        <Image x:Name="NewImage" Source="{Binding Preview}"  Grid.Column="1" Grid.Row="0" MouseWheel="NewImage_MouseWheel"/>
 
         <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.ColumnSpan="2">
             <TextBlock Text="{Binding Format, StringFormat=Format: {0}}"/>

@@ -62,9 +62,9 @@ namespace CSharpImageLibrary
 
             // KFreon: Get format, choosing data source based on how BitmapImage was created.
             if (bmp.UriSource != null)
-                Format = ParseFormat(bmp.UriSource.OriginalString);
+                Format = ImageFormats.ParseFormat(bmp.UriSource.OriginalString);
             else if (bmp.StreamSource != null)
-                Format = ParseFormat(bmp.StreamSource, ParseExtension(extension));
+                Format = ImageFormats.ParseFormat(bmp.StreamSource, ImageFormats.ParseExtension(extension));
             else
                 throw new InvalidDataException("Bitmap doesn't seem to have a suitable source.");
 
@@ -111,16 +111,18 @@ namespace CSharpImageLibrary
                 // KFreon: Unsupported by Windows Codecs
                 // e.g. V8U8, 3Dc, G8/L8
 
-                Format test = ParseDDSFormat(imagePath);
+                Format test = ImageFormats.ParseDDSFormat(imagePath);
                 switch (test.InternalFormat)
                 {
                     case ImageEngineFormat.DDS_V8U8:
                         Format = new Format(ImageEngineFormat.DDS_V8U8);
                         return V8U8.Load(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_G8_L8:
-                        throw new NotImplementedException();
+                        Format = new Format(ImageEngineFormat.DDS_G8_L8);
+                        return G8_L8.Load(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_ATI1:
-                        throw new NotImplementedException();
+                        Format = new Format(ImageEngineFormat.DDS_ATI1);
+                        return ATI1.Load(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_ATI2_3Dc:
                         throw new NotImplementedException();
                     case ImageEngineFormat.DDS_ARGB:

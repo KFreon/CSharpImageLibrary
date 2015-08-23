@@ -47,6 +47,11 @@ namespace CSharpImageLibrary
                 vm.LoadImage(ofd.FileName);
             }
         }
+
+        private void NewImage_MouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            
+        }
     }
 
     public class VM : ViewModelBase
@@ -103,6 +108,8 @@ namespace CSharpImageLibrary
 
             Format = img.Format.InternalFormat.ToString();
             ImagePath = path;
+
+            //ATI1.TestWrite(img.PixelData, @"R:\test.jpg", (int)img.Width, (int)img.Height);
         }
     }
 }

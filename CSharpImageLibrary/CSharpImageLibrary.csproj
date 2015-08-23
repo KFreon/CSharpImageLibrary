@@ -62,6 +62,7 @@
     </ApplicationDefinition>
     <Compile Include="ATI1.cs" />
     <Compile Include="DDSGeneral.cs" />
+    <Compile Include="G8_L8.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="RGBA.cs" />
     <Compile Include="V8U8.cs" />

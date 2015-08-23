@@ -14,7 +14,12 @@ namespace CSharpImageLibrary
     /// </summary>
     public enum SupportedExtensions
     {
-        UNKNOWN, JPG, JPEG, BMP, PNG, DDS
+        UNKNOWN,
+        JPG,
+        JPEG,
+        BMP,
+        PNG,
+        DDS
     }
 
 
@@ -88,7 +93,7 @@ namespace CSharpImageLibrary
         /// Converts a DDS FourCC to a Format.
         /// </summary>
         /// <param name="FourCC">DDS FourCC to check.</param>
-        /// <returns></returns>
+        /// <returns>Format specified by FourCC. Otherwise ARGB.</returns>
         public static Format ParseFourCC(int FourCC)
         {
             Format format = new Format();
@@ -102,6 +107,12 @@ namespace CSharpImageLibrary
         }
 
 
+        /// <summary>
+        /// Gets image format from stream containing image file, along with extension of image file.
+        /// </summary>
+        /// <param name="imgData">Stream containing entire image file. NOT just pixels.</param>
+        /// <param name="ext">File extension of image.</param>
+        /// <returns>Format of image.</returns>
         public static Format ParseFormat(Stream imgData, SupportedExtensions ext)
         {
             switch (ext)
@@ -121,6 +132,12 @@ namespace CSharpImageLibrary
             return new Format();
         }
 
+
+        /// <summary>
+        /// Gets file extension from string of extension.
+        /// </summary>
+        /// <param name="extension">String containing file extension.</param>
+        /// <returns>SupportedExtension of extension.</returns>
         public static SupportedExtensions ParseExtension(string extension)
         {
             SupportedExtensions ext = SupportedExtensions.DDS;
@@ -131,12 +148,84 @@ namespace CSharpImageLibrary
             return ext;
         }
 
+
+        /// <summary>
+        /// Gets image format of image file.
+        /// </summary>
+        /// <param name="imagePath">Path to image file.</param>
+        /// <returns>Format of image.</returns>
         public static Format ParseFormat(string imagePath)
         {
             SupportedExtensions ext = ParseExtension(imagePath);
 
             using (FileStream fs = new FileStream(imagePath, FileMode.Open))
                 return ParseFormat(fs, ext);
+        }
+
+        /// <summary>
+        /// Reads DDS format from DDS Header. 
+        /// Not guaranteed to work. Format 'optional' in header.
+        /// </summary>
+        /// <param name="stream">Stream containing full image file. NOT just pixels.</param>
+        /// <param name="header">DDS Header information.</param>
+        /// <returns>Format of DDS.</returns>
+        public static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
+        {
+            Format format = new Format(ImageEngineFormat.DDS_ARGB);
+
+            stream.Seek(0, SeekOrigin.Begin);
+            using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, true))
+            {
+                header = null;
+
+                // KFreon: Check image is a DDS
+                int Magic = reader.ReadInt32();
+                if (Magic != 0x20534444)
+                    return new Format();  // KFreon: Not a DDS
+
+                header = new DDS_HEADER();
+                Read_DDS_HEADER(header, reader);
+
+                if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))
+                    throw new Exception("DX10 not supported yet!");
+
+                format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
+
+                // KFreon: Apparently all these flags mean it's a V8U8 image...
+                if (header.ddspf.dwRGBBitCount == 0x10 &&
+                           header.ddspf.dwRBitMask == 0xFF &&
+                           header.ddspf.dwGBitMask == 0xFF00 &&
+                           header.ddspf.dwBBitMask == 0x00 &&
+                           header.ddspf.dwABitMask == 0x00)
+                    format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
+
+
+                // KFreon: Test for L8/G8
+                if (header.ddspf.dwABitMask == 0 &&
+                        header.ddspf.dwBBitMask == 0 &&
+                        header.ddspf.dwGBitMask == 0 &&
+                        header.ddspf.dwRBitMask == 255 &&
+                        header.ddspf.dwFlags == 131072 &&
+                        header.ddspf.dwSize == 32 &&
+                        header.ddspf.dwRGBBitCount == 8)
+                    format = new Format(ImageEngineFormat.DDS_G8_L8);
+            }
+
+            return format;
+        }
+
+        /// <summary>
+        /// Reads DDS format from header given a filename.
+        /// </summary>
+        /// <param name="imagePath">Image filename.</param>
+        /// <returns>Format of image.</returns>
+        public static Format ParseDDSFormat(string imagePath)
+        {
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                DDS_HEADER header;
+                return ParseDDSFormat(fs, out header);
+            }
         }
     }
 }
