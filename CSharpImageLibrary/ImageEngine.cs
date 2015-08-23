@@ -11,70 +11,40 @@ using UsefulThings;
 
 namespace CSharpImageLibrary
 {
+    /// <summary>
+    /// Provides main image functions
+    /// </summary>
     public static class ImageEngine
     {
+        /// <summary>
+        /// True = Windows WIC Codecs are present (8+)
+        /// </summary>
         public static bool WindowsCodecsAvailable
         {
             get; private set;
         }
 
-        public static bool WindowsCodecsPresent()
-        {
-            byte[] testData = Resources.DXT1_CodecTest;
+        
 
-            try
-            {
-                BitmapImage bmp = AttemptUsingWindowsCodecs(testData);
-
-                if (bmp == null)
-                    return false;  // KFreon: Decoding failed. PROBABLY due to no decoding available
-            }
-            catch(Exception e)
-            {
-                return false;  // KFreon: Non decoding related error - Who knows...
-            }
-
-            return true;
-        }
-
-        private static BitmapImage AttemptUsingWindowsCodecs(byte[] ImageFileData)
-        {
-            BitmapImage img = null;
-            try
-            {
-                img = UsefulThings.WPF.Images.CreateWPFBitmap(ImageFileData);
-            }
-            catch (NotSupportedException e) when (e.Message.Contains("decoded", StringComparison.OrdinalIgnoreCase))
-            {
-                img = null;
-            }
-
-            return img;
-        }
-
-        private static BitmapImage AttemptUsingWindowsCodecs(string imagePath)
-        {
-            BitmapImage img = null;
-            try
-            {
-                img = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath);
-            }
-            catch (FileFormatException fileformatexception)
-            {
-                Debug.WriteLine(fileformatexception);
-            }
-            catch(NotSupportedException notsupportedexception)
-            {
-                Debug.WriteLine(notsupportedexception);
-            }
-            return img;
-        }
-
+        /// <summary>
+        /// Constructor. Checks WIC status before any other operation.
+        /// </summary>
         static ImageEngine()
         {
             WindowsCodecsAvailable = WindowsCodecsPresent();
         }
 
+
+        #region Loading
+        /// <summary>
+        /// Loads useful information from a WIC Image.
+        /// </summary>
+        /// <param name="bmp">Image to load.</param>
+        /// <param name="Width">Detected Width.</param>
+        /// <param name="Height">Detected Height.</param>
+        /// <param name="Format">Detected image format.</param>
+        /// <param name="extension">Image file extension - needed for format checks.</param>
+        /// <returns>Raw pixel data as stream.</returns>
         public static MemoryTributary LoadImage(BitmapImage bmp, out double Width, out double Height, out Format Format, string extension)
         { 
             if (!WindowsCodecsAvailable)
@@ -86,6 +56,7 @@ namespace CSharpImageLibrary
                 return null;
             }
 
+            // KFreon: Round up - some weird bug where bmp's would be 1023.4 or something.
             Height = Math.Ceiling(bmp.Height);
             Width = Math.Ceiling(bmp.Width);
 
@@ -102,6 +73,7 @@ namespace CSharpImageLibrary
                 Console.WriteLine();
 
 
+            // KFreon: Read pixel data from image.
             MemoryTributary pixelData = new MemoryTributary();
 
             int size = (int)(4 * Width * Height);
@@ -113,76 +85,47 @@ namespace CSharpImageLibrary
             return pixelData;
         }
 
-        public static MemoryTributary LoadV8U8(string imagePath, out double Width, out double Height)
-        {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadV8U8(fs, out Width, out Height);
-        }
 
-        public static MemoryTributary LoadV8U8(Stream stream, out double Width, out double Height)
-        {
-            DDS_HEADER header = null;
-            Format format = ParseDDSFormat(stream, out header);
-
-            Width = header.dwWidth;
-            Height = header.dwHeight;
-
-            int mipMapBytes = (int)(Width * Height * 2);  // KFreon: 2 bytes per pixel
-            MemoryTributary imgData = new MemoryTributary();
-
-            using (BinaryWriter writer = new BinaryWriter(imgData, Encoding.Default, true))
-            {
-                for (int y = 0; y < Height; y++)
-                {
-                    for (int x = 0; x < Width; x++)
-                    {
-                        sbyte red = (sbyte)stream.ReadByte();
-                        sbyte green = (sbyte)stream.ReadByte();
-                        byte blue = 0xFF;
-
-                        int fCol = blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
-                        writer.Write(fCol);
-                    }
-                }
-            }
-                
-
-            return imgData;
-        }
-
+        /// <summary>
+        /// Loads useful information from an image file.
+        /// </summary>
+        /// <param name="imagePath">Path to image file.</param>
+        /// <param name="Width">Detected Width.</param>
+        /// <param name="Height">Detected Height.</param>
+        /// <param name="Format">Detected image format.</param>
+        /// <returns>Raw pixel data as stream.</returns>
         public static MemoryTributary LoadImage(string imagePath, out double Width, out double Height, out Format Format)
         {
             Width = 0;
             Height = 0;
             Format = new Format();
 
-
+            // KFreon: Don't want to even try without WIC Codecs - wouldn't be able to load most images. Only the custom ones (V8U8, 3Dc, etc), no DXT1, 3, 5, JPG, etc
             if (!WindowsCodecsAvailable)
                 return null;
 
+            // KFreon: See if this image is supported by WIC and decode accordingly
             BitmapImage bmp = AttemptUsingWindowsCodecs(imagePath);
-
             if (bmp == null)
             {
                 // KFreon: Unsupported by Windows Codecs
                 // e.g. V8U8, 3Dc, G8/L8
 
                 Format test = ParseDDSFormat(imagePath);
-
                 switch (test.InternalFormat)
                 {
                     case ImageEngineFormat.DDS_V8U8:
                         Format = new Format(ImageEngineFormat.DDS_V8U8);
-                        return LoadV8U8(imagePath, out Width, out Height);
+                        return V8U8.Load(imagePath, out Width, out Height);
                     case ImageEngineFormat.DDS_G8_L8:
                         throw new NotImplementedException();
-                    case ImageEngineFormat.DDS_ATI1N_BC4:
+                    case ImageEngineFormat.DDS_ATI1:
                         throw new NotImplementedException();
                     case ImageEngineFormat.DDS_ATI2_3Dc:
                         throw new NotImplementedException();
                     case ImageEngineFormat.DDS_ARGB:
                         Format = new Format(ImageEngineFormat.DDS_ARGB);
-                        return LoadRGBA(imagePath, out Width, out Height);
+                        return RGBA.Load(imagePath, out Width, out Height);
                 }
 
                 return null;  // TODO: Temporary return
@@ -192,26 +135,7 @@ namespace CSharpImageLibrary
                 return LoadImage(bmp, out Width, out Height, out Format, Path.GetExtension(imagePath));
             }
         }
-
-        private static MemoryTributary LoadRGBA(string imagePath, out double Width, out double Height)
-        {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadRGBA(fs, out Width, out Height);
-        }
-
-        private static MemoryTributary LoadRGBA(Stream stream, out double Width, out double Height)
-        {
-            DDS_HEADER header = null;
-            Format format = ParseDDSFormat(stream, out header);
-
-            Width = header.dwWidth;
-            Height = header.dwHeight;
-
-            MemoryTributary imgData = new MemoryTributary();
-            imgData.ReadFrom(stream, stream.Length - stream.Position);
-
-            return imgData;
-        }
+        #endregion Loading
 
 
         /// <summary>
@@ -240,164 +164,78 @@ namespace CSharpImageLibrary
             return MipMaps;
         }
 
-
-        private static SupportedExtensions ParseExtension(string extension)
-        {
-            SupportedExtensions ext = SupportedExtensions.DDS;
-            string tempext = Path.GetExtension(extension).Replace(".", "");
-            if (!Enum.TryParse(tempext, true, out ext))
-                return SupportedExtensions.UNKNOWN;
-
-            return ext;
-        }
-
-        private static Format ParseFormat(string imagePath)
-        {
-            SupportedExtensions ext = ParseExtension(imagePath);
-
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open))
-                return ParseFormat(fs, ext);
-        }
-
-        private static Format ParseFormat(Stream imgData, SupportedExtensions ext)
-        {
-            switch (ext)
-            {
-                case SupportedExtensions.BMP:
-                    return new Format(ImageEngineFormat.BMP);
-                case SupportedExtensions.DDS:
-                    DDS_HEADER header;
-                    return ParseDDSFormat(imgData, out header);
-                case SupportedExtensions.JPEG:
-                case SupportedExtensions.JPG:
-                    return new Format(ImageEngineFormat.JPG);
-                case SupportedExtensions.PNG:
-                    return new Format(ImageEngineFormat.PNG);
-            }
-
-            return new Format();
-        }
-
-
-        private static Format ParseDDSFormat(string imagePath)
-        {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                DDS_HEADER header;
-                return ParseDDSFormat(fs, out header);
-            }
-        }
-
-        private static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
-        {
-            Format format = new Format(ImageEngineFormat.DDS_ARGB);
-
-            stream.Seek(0, SeekOrigin.Begin);
-            using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, true))
-            {
-                header = null;
-
-                int Magic = reader.ReadInt32();
-                if (Magic != 0x20534444)
-                    return new Format();  // KFreon: Not a DDS
-
-                header = new DDS_HEADER();
-                Read_DDS_HEADER(header, reader);
-
-                if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))
-                    throw new Exception("DX10 not supported yet!");
-
-                format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
-
-                if (header.ddspf.dwRGBBitCount == 0x10 &&
-                           header.ddspf.dwRBitMask == 0xFF &&
-                           header.ddspf.dwGBitMask == 0xFF00 &&
-                           header.ddspf.dwBBitMask == 0x00 &&
-                           header.ddspf.dwABitMask == 0x00)
-                    format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
-            }
-
-            return format;
-        }
-
-        #region DDS Header Stuff
+        #region Windows WIC Codec tests
         /// <summary>
-        /// Reads DDS header from file.
+        /// Tests whether Windows WIC Codecs are present.
         /// </summary>
-        /// <param name="h">Header struct.</param>
-        /// <param name="r">File reader.</param>
-        public static void Read_DDS_HEADER(DDS_HEADER h, BinaryReader r)
+        /// <returns>True if WIC Codecs available</returns>
+        public static bool WindowsCodecsPresent()
         {
-            h.dwSize = r.ReadInt32();
-            h.dwFlags = r.ReadInt32();
-            h.dwHeight = r.ReadInt32();
-            h.dwWidth = r.ReadInt32();
-            h.dwPitchOrLinearSize = r.ReadInt32();
-            h.dwDepth = r.ReadInt32();
-            h.dwMipMapCount = r.ReadInt32();
-            for (int i = 0; i < 11; ++i)
+            byte[] testData = Resources.DXT1_CodecTest;  // KFreon: Tiny test image in resources
+
+            try
             {
-                h.dwReserved1[i] = r.ReadInt32();
+                BitmapImage bmp = AttemptUsingWindowsCodecs(testData);
+
+                if (bmp == null)
+                    return false;  // KFreon: Decoding failed. PROBABLY due to no decoding available
             }
-            Read_DDS_PIXELFORMAT(h.ddspf, r);
-            h.dwCaps = r.ReadInt32();
-            h.dwCaps2 = r.ReadInt32();
-            h.dwCaps3 = r.ReadInt32();
-            h.dwCaps4 = r.ReadInt32();
-            h.dwReserved2 = r.ReadInt32();
+            catch (Exception e)
+            {
+                return false;  // KFreon: Non decoding related error - Who knows...
+            }
+
+            return true;
         }
 
         /// <summary>
-        /// Reads DDS pixel format.
+        /// Attempts to read image using WIC Codecs.
+        /// Returns null if unable to.
         /// </summary>
-        /// <param name="p">Pixel format struct.</param>
-        /// <param name="r">File reader.</param>
-        private static void Read_DDS_PIXELFORMAT(DDS_PIXELFORMAT p, BinaryReader r)
+        /// <param name="ImageFileData">Entire image file. NOT raw pixel data.</param>
+        /// <returns></returns>
+        private static BitmapImage AttemptUsingWindowsCodecs(byte[] ImageFileData)
         {
-            p.dwSize = r.ReadInt32();
-            p.dwFlags = r.ReadInt32();
-            p.dwFourCC = r.ReadInt32();
-            p.dwRGBBitCount = r.ReadInt32();
-            p.dwRBitMask = r.ReadInt32();
-            p.dwGBitMask = r.ReadInt32();
-            p.dwBBitMask = r.ReadInt32();
-            p.dwABitMask = r.ReadInt32();
-        }
-
-        public class DDS_HEADER
-        {
-            public int dwSize;
-            public int dwFlags;
-            public int dwHeight;
-            public int dwWidth;
-            public int dwPitchOrLinearSize;
-            public int dwDepth;
-            public int dwMipMapCount;
-            public int[] dwReserved1 = new int[11];
-            public DDS_PIXELFORMAT ddspf = new DDS_PIXELFORMAT();
-            public int dwCaps;
-            public int dwCaps2;
-            public int dwCaps3;
-            public int dwCaps4;
-            public int dwReserved2;
-        }
-
-        public class DDS_PIXELFORMAT
-        {
-            public int dwSize;
-            public int dwFlags;
-            public int dwFourCC;
-            public int dwRGBBitCount;
-            public int dwRBitMask;
-            public int dwGBitMask;
-            public int dwBBitMask;
-            public int dwABitMask;
-
-            public DDS_PIXELFORMAT()
+            BitmapImage img = null;
+            try
             {
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(ImageFileData);
             }
+            catch (FileFormatException fileformatexception)
+            {
+                Debug.WriteLine(fileformatexception);
+            }
+            catch (NotSupportedException notsupportedexception)
+            {
+                Debug.WriteLine(notsupportedexception);
+            }
+
+            return img;
         }
 
-        #endregion DDS Header Stuff
+        /// <summary>
+        /// Attempts to read image using WIC Codecs.
+        /// Returns null if unable to.
+        /// </summary>
+        /// <param name="imagePath">Path to image file.</param>
+        /// <returns></returns>
+        private static BitmapImage AttemptUsingWindowsCodecs(string imagePath)
+        {
+            BitmapImage img = null;
+            try
+            {
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath);
+            }
+            catch (FileFormatException fileformatexception)
+            {
+                Debug.WriteLine(fileformatexception);
+            }
+            catch (NotSupportedException notsupportedexception)
+            {
+                Debug.WriteLine(notsupportedexception);
+            }
+            return img;
+        }
+        #endregion Windows WIC Codec tests
     }
 }
