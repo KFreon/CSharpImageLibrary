@@ -61,7 +61,6 @@ namespace CSharpImageLibrary
             Height = header.dwHeight;
 
             MemoryTributary imgData = new MemoryTributary(4 * (int)Width * (int)Height);
-            byte[] test = new byte[(int)Width * (int)Height];
 
             // KFreon: h is a row so it should increment by number of pixels in a row
             for (int h = 0;h<Width * Height; h += (int)Width * 4)  // Skip 4 rows as they'll be decoded as texel units
@@ -76,20 +75,35 @@ namespace CSharpImageLibrary
                     for(int i = 0; i < 16; i++)
                     {
                         // KFreon: Update offset
-                        if (i % 4 == 0)
-                            outputOffset = 4 * (w + (int)Width + h);
+                        if (i != 0 && i % 4 == 0)
+                        {
+                            outputOffset += 4 * (w + (int)Width + h);
+                            imgData.Seek(outputOffset, SeekOrigin.Begin);
+                            //Debug.Write($"                offset: {outputOffset}");
+                           // Debug.WriteLine("");
+                        }
 
                         // KFreon: Seek to offset and write pixel
-                        test[h + w + i] = decompressed[i];
-                        imgData.Seek(outputOffset, SeekOrigin.Begin);
                         imgData.WriteByte(decompressed[i]);  // KFreon: x3 cos it's a single channel texture represented in RGBA so it'll be grayscale.
                         imgData.WriteByte(decompressed[i]);
                         imgData.WriteByte(decompressed[i]);
+                        imgData.Position++;  // KFreon: Skip alpha
+                        //Debug.Write(decompressed[i] + " ");
                     }
                 }
+                //Debug.WriteLine("");
             }
 
-            arraywrite(test, (int)Width, (int)Height);
+            //arraywrite(test, (int)Width, (int)Height);
+
+            /*imgData.Seek(0, SeekOrigin.Begin);
+            Debug.WriteLine("");
+            Debug.WriteLine("BEGINNING");
+            for (int i=0;i< (int)Width * (int)Height; i++)
+            {
+                Debug.WriteLine($"--- i = {i} ---");
+                Debug.WriteLine($"{imgData.ReadByte()} {imgData.ReadByte()} {imgData.ReadByte()} {imgData.ReadByte()}");
+            }*/
 
             return imgData;
         }
@@ -124,8 +138,8 @@ namespace CSharpImageLibrary
 
 
             // KFreon: Decompress pixels
-            ulong bitmask = (uint)compressed.ReadByte() << 0 | (uint)compressed.ReadByte() << 8 | (uint)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single value
-                (uint)compressed.ReadByte() << 24 | (uint)compressed.ReadByte() << 32 | (uint)compressed.ReadByte() << 40;
+            ulong bitmask = (ulong)compressed.ReadByte() << 0 | (ulong)compressed.ReadByte() << 8 | (ulong)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single value
+                (ulong)compressed.ReadByte() << 24 | (ulong)compressed.ReadByte() << 32 | (ulong)compressed.ReadByte() << 40;
 
             // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
             for (int i = 0; i < 16; i++)
