@@ -63,47 +63,33 @@ namespace CSharpImageLibrary
             MemoryTributary imgData = new MemoryTributary(4 * (int)Width * (int)Height);
 
             // KFreon: h is a row so it should increment by number of pixels in a row
+            int row = 0;
             for (int h = 0;h<Width * Height; h += (int)Width * 4)  // Skip 4 rows as they'll be decoded as texel units
             {
-                for (int w = 0; w < Width; w+=4)  // Skip 4 pixels as they'll be decoded as a texel unit
+                for (int w = 0; w < Width; w += 4 * 4)  // Skip 4 pixels as they'll be decoded as a texel unit
                 {
                     // KFreon: Decompress current texel
                     byte[] decompressed = DecompressBlock(stream);
 
                     // KFreon: Write to output. NOTE: Texel is 4x4 block, so not contiguous write.
-                    long outputOffset = (w + h) * 4; // x4 cos imgData is RGBA
-                    for(int i = 0; i < 16; i++)
-                    {
-                        // KFreon: Update offset
-                        if (i != 0 && i % 4 == 0)
-                        {
-                            outputOffset += 4 * (w + (int)Width + h);
-                            imgData.Seek(outputOffset, SeekOrigin.Begin);
-                            //Debug.Write($"                offset: {outputOffset}");
-                           // Debug.WriteLine("");
-                        }
 
-                        // KFreon: Seek to offset and write pixel
-                        imgData.WriteByte(decompressed[i]);  // KFreon: x3 cos it's a single channel texture represented in RGBA so it'll be grayscale.
-                        imgData.WriteByte(decompressed[i]);
-                        imgData.WriteByte(decompressed[i]);
-                        imgData.Position++;  // KFreon: Skip alpha
-                        //Debug.Write(decompressed[i] + " ");
+                    int count = 0;
+                    for (int i = h; i < 4*4*(int)Width; i += (int)Width*4)
+                    {
+                        for (int j = w; j < 4 * 4; j += 4)
+                        {
+                            // KFreon: Seek to offset and write pixel
+                            imgData.Seek(i + j, SeekOrigin.Begin);
+                            imgData.WriteByte(decompressed[count]);  // KFreon: x3 cos it's a single channel texture represented in RGBA so it'll be grayscale.
+                            imgData.WriteByte(decompressed[count]);
+                            imgData.WriteByte(decompressed[count]);
+                            imgData.Position++;  // KFreon: Skip alpha
+                            count++;
+                        }
                     }
                 }
-                //Debug.WriteLine("");
+                row++;
             }
-
-            //arraywrite(test, (int)Width, (int)Height);
-
-            /*imgData.Seek(0, SeekOrigin.Begin);
-            Debug.WriteLine("");
-            Debug.WriteLine("BEGINNING");
-            for (int i=0;i< (int)Width * (int)Height; i++)
-            {
-                Debug.WriteLine($"--- i = {i} ---");
-                Debug.WriteLine($"{imgData.ReadByte()} {imgData.ReadByte()} {imgData.ReadByte()} {imgData.ReadByte()}");
-            }*/
 
             return imgData;
         }
@@ -114,36 +100,48 @@ namespace CSharpImageLibrary
             byte[] DecompressedBlock = new byte[16];
 
             // KFreon: Read colour range and build palette
-            int[] Colours = new int[8];
-
+            ushort[] Colours = new ushort[8];
+            
             // KFreon: Read min and max colours (not necessarily in that order)
-            Colours[0] = compressed.ReadByte();
-            Colours[1] = compressed.ReadByte();
+            Colours[0] = (byte)compressed.ReadByte();
+            Colours[1] = (byte)compressed.ReadByte();
 
             // KFreon: Choose which type of interpolation required.
             if (Colours[0] > Colours[1])
             {
                 // KFreon: Interpolate other colours
-                for (int i = 2; i > 8; i++)
-                    Colours[i] = (int)(((8 - i) * Colours[0] + (i - 1) * Colours[1]) / 7.0);
+                for (int i = 2; i < 8; i++)
+                {
+                    int firstbit = (8 - i);
+                    int secondbit = (i - 1);
+                    double test = (firstbit * Colours[0] + secondbit * Colours[1]) / 7.0f;
+                    Colours[i] = (ushort)test;
+                }
             }
             else
             {
                 // KFreon: Interpolate other colours and add OPACITY
-                for (int i = 2; i > 6; i++)
-                    Colours[i] = (int)(((6 - i) * Colours[0] + (i - 1) * Colours[1]) / 5.0);
+                for (int i = 2; i < 6; i++)
+                    Colours[i] = (ushort)(((6 - i) * Colours[0] + (i - 1) * Colours[1]) / 5.0);
                 Colours[6] = 0;
                 Colours[7] = 255;
             }
 
 
             // KFreon: Decompress pixels
-            ulong bitmask = (ulong)compressed.ReadByte() << 0 | (ulong)compressed.ReadByte() << 8 | (ulong)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single value
+            ulong bitmask = (ulong)compressed.ReadByte() << 0 | (ulong)compressed.ReadByte() << 8 | (ulong)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single 
                 (ulong)compressed.ReadByte() << 24 | (ulong)compressed.ReadByte() << 32 | (ulong)compressed.ReadByte() << 40;
+
 
             // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
             for (int i = 0; i < 16; i++)
-                DecompressedBlock[i] = (byte)Colours[bitmask >> (i * 3) & 0x07];
+            {
+                if (i % 4 == 0)
+                    Debug.WriteLine("");
+                Debug.Write($"{bitmask >> (i * 3) & 0x7} ");
+                DecompressedBlock[i] = (byte)Colours[bitmask >> (i * 3) & 0x7];
+            }
+            Debug.WriteLine("");
 
             return DecompressedBlock;
         }
