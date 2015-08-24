@@ -20,7 +20,6 @@ namespace CSharpImageLibrary
 
         public static MemoryTributary Load(Stream stream, out double Width, out double Height)
         {
-            broken
             DDS_HEADER header = null;
             Format format = ImageFormats.ParseDDSFormat(stream, out header);
 

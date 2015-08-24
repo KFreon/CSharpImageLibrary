@@ -54,82 +54,37 @@ namespace CSharpImageLibrary
         /// <returns>RGBA Pixel Data as stream.</returns>
         public static MemoryTributary Load(Stream stream, out double Width, out double Height)
         {
-            broken
-            // KFreon: Necessary to move stream position along to pixel data.
-            DDS_HEADER header = null;
+            DDS_HEADER header;
             Format format = ImageFormats.ParseDDSFormat(stream, out header);
 
             Width = header.dwWidth;
             Height = header.dwHeight;
 
-            int mipMapBytes = (int)(Width * Height * 3);  // KFreon: 2 bytes per pixel
-            MemoryTributary imgData = new MemoryTributary((int)(4 * Width * Height));
-            byte[] test = new byte[(int)(Width * Height)];
+            MemoryTributary imgData = new MemoryTributary(4 * (int)Width * (int)Height);
+            byte[] test = new byte[(int)Width * (int)Height];
 
-            int t1 = 0;
-            uint bitmask = 0;
-            int t2 = 0;
-            int[] Colours = new int[8];
-
-            int BPS = (int)Width;
-
-            for (int h = 0; h < Height; h+=4)
+            // KFreon: h is a row so it should increment by number of pixels in a row
+            for (int h = 0;h<Width * Height; h += (int)Width * 4)  // Skip 4 rows as they'll be decoded as texel units
             {
-                for (int w = 0; w < Width; w+=4)
+                for (int w = 0; w < Width; w+=4)  // Skip 4 pixels as they'll be decoded as a texel unit
                 {
-                    // Read palette
-                    t1 = Colours[0] = stream.ReadByte(); 
-                    t2 = Colours[1] = stream.ReadByte();
+                    // KFreon: Decompress current texel
+                    byte[] decompressed = DecompressBlock(stream);
 
-                    if (t1 > t2)
+                    // KFreon: Write to output. NOTE: Texel is 4x4 block, so not contiguous write.
+                    long outputOffset = (w + h) * 4; // x4 cos imgData is RGBA
+                    for(int i = 0; i < 16; i++)
                     {
-                        for (int i = 2; i < 8; ++i)
-                            Colours[i] = t1 + ((t2 - t1) * (i - 1)) / 7;
-                    }
-                    else
-                    {
-                        for (int i = 2; i < 6; ++i)
-                            Colours[i] = t1 + ((t2 - t1) * (i - 1)) / 5;
-                        Colours[6] = 0;
-                        Colours[7] = 255;
-                    }
+                        // KFreon: Update offset
+                        if (i % 4 == 0)
+                            outputOffset = 4 * (w + (int)Width + h);
 
-                    // KFreon: Decompress pixel data
-                    int CurrentOffset = 0;
-                    for (int k = 0; k < 4;  k += 2)
-                    {
-                        // KFreon: First 3 bytes
-                        byte[] first3 = new byte[3];
-                        stream.Read(first3, 0, 3);
-                        bitmask = (uint)(first3[0] << 0) | (uint)(first3[1] << 8) | (uint)(first3[2] << 16);
-
-                        for (int j = 0; j < 2; j++)
-                        {
-                            // KFreon: Only put pixels out < height - I have no idea what this means...
-                            if ((h + k + j) < Height)
-                            {
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    // KFreon: Only put pixels out < width - Again...what is this?
-                                    if ((w + i) < Width)
-                                    {
-                                        t1 = CurrentOffset + w + i;
-
-                                        // KFreon: Set value
-                                        imgData.Seek(t1 * 4, SeekOrigin.Begin);
-                                        byte colour = (byte)Colours[bitmask & 0x07];
-                                        test[t1] = colour;
-
-                                        // KFreon: Write same value in all 3 channels - white
-                                        imgData.WriteByte(colour);
-                                        imgData.WriteByte(colour);
-                                        imgData.WriteByte(colour);
-                                    }
-                                    bitmask >>= 3;
-                                }
-                                CurrentOffset += BPS;
-                            }
-                        }
+                        // KFreon: Seek to offset and write pixel
+                        test[h + w + i] = decompressed[i];
+                        imgData.Seek(outputOffset, SeekOrigin.Begin);
+                        imgData.WriteByte(decompressed[i]);  // KFreon: x3 cos it's a single channel texture represented in RGBA so it'll be grayscale.
+                        imgData.WriteByte(decompressed[i]);
+                        imgData.WriteByte(decompressed[i]);
                     }
                 }
             }
@@ -138,6 +93,47 @@ namespace CSharpImageLibrary
 
             return imgData;
         }
+
+
+        private static byte[] DecompressBlock(Stream compressed)
+        {
+            byte[] DecompressedBlock = new byte[16];
+
+            // KFreon: Read colour range and build palette
+            int[] Colours = new int[8];
+
+            // KFreon: Read min and max colours (not necessarily in that order)
+            Colours[0] = compressed.ReadByte();
+            Colours[1] = compressed.ReadByte();
+
+            // KFreon: Choose which type of interpolation required.
+            if (Colours[0] > Colours[1])
+            {
+                // KFreon: Interpolate other colours
+                for (int i = 2; i > 8; i++)
+                    Colours[i] = (int)(((8 - i) * Colours[0] + (i - 1) * Colours[1]) / 7.0);
+            }
+            else
+            {
+                // KFreon: Interpolate other colours and add OPACITY
+                for (int i = 2; i > 6; i++)
+                    Colours[i] = (int)(((6 - i) * Colours[0] + (i - 1) * Colours[1]) / 5.0);
+                Colours[6] = 0;
+                Colours[7] = 255;
+            }
+
+
+            // KFreon: Decompress pixels
+            ulong bitmask = (uint)compressed.ReadByte() << 0 | (uint)compressed.ReadByte() << 8 | (uint)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single value
+                (uint)compressed.ReadByte() << 24 | (uint)compressed.ReadByte() << 32 | (uint)compressed.ReadByte() << 40;
+
+            // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
+            for (int i = 0; i < 16; i++)
+                DecompressedBlock[i] = (byte)Colours[bitmask >> (i * 3) & 0x07];
+
+            return DecompressedBlock;
+        }
+
 
         private static void arraywrite(byte[] data, int width, int height)
         {
