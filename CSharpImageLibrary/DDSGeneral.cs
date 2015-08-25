@@ -99,30 +99,7 @@ namespace CSharpImageLibrary
         #endregion Header Stuff
 
 
-        /// <summary>
-        /// Reads uncompressed image data using a format specific Pixel Reader.
-        /// </summary>
-        /// <param name="fileData">Stream of entire image. NOT just pixels.</param>
-        /// <param name="PixelData">RGBA Pixel Data as read in this function.</param>
-        /// <param name="Width">Detected Width.</param>
-        /// <param name="Height">Detected Height.</param>
-        /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, RGBA)</param>
-        private static void ReadUncompressed(Stream fileData, MemoryTributary PixelData, double Width, double Height, Func<Stream, int> PixelReader)
-        {
-            using (BinaryWriter writer = new BinaryWriter(PixelData, Encoding.Default, true))
-            {
-                for (int y = 0; y < Height; y++)
-                {
-                    for (int x = 0; x < Width; x++)
-                    {
-                        int fCol = PixelReader(fileData);  // KFreon: Reads pixel using a method specific to the format as provided
-                        writer.Write(fCol);
-                    }
-                }
-            }
-        }
-
-
+        #region Loading
         /// <summary>
         /// Loads an uncompressed DDS image given format specific Pixel Reader
         /// </summary>
@@ -144,9 +121,156 @@ namespace CSharpImageLibrary
             int mipMapBytes = (int)(Width * Height * NumChannels);  // KFreon: 2 bytes per pixel
             MemoryTributary imgData = new MemoryTributary();
 
-            DDSGeneral.ReadUncompressed(stream, imgData, Width, Height, PixelReader);
+            // KFreon: Read data
+            using (BinaryWriter writer = new BinaryWriter(imgData, Encoding.Default, true))
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    for (int x = 0; x < Width; x++)
+                    {
+                        int fCol = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
+                        writer.Write(fCol);
+                    }
+                }
+            }
 
             return imgData;
         }
+
+
+        public static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out double Width, out double Height, Func<Stream, List<byte[]>> DecompressBlock)
+        {
+            DDS_HEADER header;
+            Format format = ImageFormats.ParseDDSFormat(compressed, out header);
+
+            Width = header.dwWidth;
+            Height = header.dwHeight;
+
+            int bitsPerPixel = 4;
+            MemoryTributary imgData = new MemoryTributary(bitsPerPixel * (int)Width * (int)Height);
+
+
+            // Loop over rows and columns NOT pixels
+
+            int bitsPerScanline = bitsPerPixel * (int)Width;
+            for (int row = 0; row < Height; row += 4)
+            {
+                for (int column = 0; column < Width; column += 4)
+                {
+                    // decompress 
+                    List<byte[]> decompressed = DecompressBlock(compressed);
+
+                    // Write texel
+                    int TopLeft = column * bitsPerPixel + row * bitsPerScanline;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
+                    imgData.Seek(TopLeft, SeekOrigin.Begin);
+                    for (int i = 0; i < 16; i += 4)
+                    {
+                        for (int j = 0; j < 4; j++)
+                        {
+                            // RGBA
+                            imgData.WriteByte(decompressed[0][i + j]);
+                            imgData.WriteByte(decompressed[1][i + j]);
+                            imgData.WriteByte(decompressed[2][i + j]);
+                            imgData.WriteByte(decompressed[3][i + j]);
+                        }
+                        // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
+                        imgData.Seek(bitsPerScanline - bitsPerPixel * 4, SeekOrigin.Current);
+                    }
+                }
+            }
+            return imgData;
+        }
+        #endregion Loading
+
+
+        #region Block Decompression
+        public static byte[] Decompress8BitBlock(Stream compressed)
+        {
+            byte[] DecompressedBlock = new byte[16];
+
+            // KFreon: Read colour range and build palette
+            ushort[] Colours = new ushort[8];
+
+            // KFreon: Read min and max colours (not necessarily in that order)
+            Colours[0] = (byte)compressed.ReadByte();
+            Colours[1] = (byte)compressed.ReadByte();
+
+            // KFreon: Choose which type of interpolation required.
+            if (Colours[0] > Colours[1])
+            {
+                // KFreon: Interpolate other colours
+                for (int i = 2; i < 8; i++)
+                {
+                    int firstbit = (8 - i);
+                    int secondbit = (i - 1);
+                    double test = (firstbit * Colours[0] + secondbit * Colours[1]) / 7.0f;
+                    Colours[i] = (ushort)test;
+                }
+            }
+            else
+            {
+                // KFreon: Interpolate other colours and add OPACITY
+                for (int i = 2; i < 6; i++)
+                    Colours[i] = (ushort)(((6 - i) * Colours[0] + (i - 1) * Colours[1]) / 5.0);
+                Colours[6] = 0;
+                Colours[7] = 255;
+            }
+
+
+            // KFreon: Decompress pixels
+            ulong bitmask = (ulong)compressed.ReadByte() << 0 | (ulong)compressed.ReadByte() << 8 | (ulong)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single 
+                (ulong)compressed.ReadByte() << 24 | (ulong)compressed.ReadByte() << 32 | (ulong)compressed.ReadByte() << 40;
+
+
+            // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
+            for (int i = 0; i < 16; i++)
+                DecompressedBlock[i] = (byte)Colours[bitmask >> (i * 3) & 0x7];
+
+            return DecompressedBlock;
+        }
+
+        public static List<byte[]> DecompressRGBBlock(Stream compressed)
+        {
+            int[] DecompressedBlock = new int[16];
+            int[] Colours = new int[4];
+
+            // Read min max colours
+            Colours[0] = compressed.ReadByte() << 0 | compressed.ReadByte() << 8;
+            Colours[1] = compressed.ReadByte() << 0 | compressed.ReadByte() << 8;
+
+            // Interpolate other 2 colours
+            Colours[2] = 2 / 3 * Colours[0] + 1 / 3 * Colours[1];
+            Colours[3] = 1 / 3 * Colours[0] + 2 / 3 * Colours[1];
+
+            // Decompress pixels
+            byte bitmask = (byte)compressed.ReadByte();
+
+            for (int i = 0; i < 16; i++)
+            {
+                DecompressedBlock[i] = Colours[bitmask >> (2 * i) & 0x3];
+            }
+
+
+            List<byte[]> DecompressedChannels = new List<byte[]>();
+            byte[] red = new byte[16];
+            byte[] green = new byte[16];
+            byte[] blue = new byte[16];
+            byte[] alpha = new byte[16];
+
+            for (int i = 0; i < 16; i++)
+            {
+                int colour = DecompressedBlock[i];
+                if (colour == 0)
+                    alpha[i] = 255;
+                else
+                {
+                    red[i] = (byte)(colour >> 11 & 31); // Top 5 bits
+                    green[i] = (byte)(colour >> 5 & 63);   // Middle 6 bits
+                    blue[i] = (byte)(colour & 31);  // Low 5 bits
+                }
+            }
+            return DecompressedChannels;
+        }
+        #endregion
     }
 }
