@@ -12,16 +12,16 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides V8U8 format functionality.
     /// </summary>
-    public static class V8U8
+    internal static class V8U8
     {
         /// <summary>
         /// Loads useful information from V8U8 image.
         /// </summary>
         /// <param name="imagePath">Path to V8U8 image file.</param>
-        /// <param name="Width">Detected Width.</param>
-        /// <param name="Height">Detected Height.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
-        public static MemoryTributary Load(string imagePath, out double Width, out double Height)
+        internal static MemoryTributary Load(string imagePath, out double Width, out double Height)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return Load(fs, out Width, out Height);
@@ -32,10 +32,10 @@ namespace CSharpImageLibrary
         /// Loads useful information from V8U8 image stream.
         /// </summary>
         /// <param name="stream">Stream containing entire V8U8 image. Not just Pixels.</param>
-        /// <param name="Width">Detected Width.</param>
-        /// <param name="Height">Detected Height.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
-        public static MemoryTributary Load(Stream stream, out double Width, out double Height)
+        internal static MemoryTributary Load(Stream stream, out double Width, out double Height)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
             Func<Stream, int> PixelReader = fileData =>

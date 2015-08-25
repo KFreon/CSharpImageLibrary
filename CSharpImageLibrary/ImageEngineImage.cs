@@ -10,8 +10,12 @@ using UsefulThings;
 
 namespace CSharpImageLibrary
 {
+    /// <summary>
+    /// Represents an image. Can use Windows codecs if available.
+    /// </summary>
     public class ImageEngineImage
     {
+        #region Properties
         /// <summary>
         /// Width of image.
         /// </summary>
@@ -36,7 +40,7 @@ namespace CSharpImageLibrary
         /// Path to file. Null if no file e.g. thumbnail from memory.
         /// </summary>
         public string FilePath { get; private set; }
-
+        #endregion Properties
 
         /// <summary>
         /// Creates a new ImageEngineImage from file.
@@ -61,24 +65,23 @@ namespace CSharpImageLibrary
 
 
         /// <summary>
-        /// Creates new ImageEngineImage from WIC BitmapImage.
+        /// Creates new ImageEngineImage from stream.
         /// </summary>
-        /// <param name="img">Image to load.</param>
+        /// <param name="stream">Image to load.</param>
         /// <param name="extension">Extension of original file.</param>
-        public ImageEngineImage(BitmapImage img, string extension)
+        public ImageEngineImage(Stream stream, string extension)
         {
             double width = 0;
             double height = 0;
             Format format = new Format();
 
             // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
-            PixelData = ImageEngine.LoadImage(img, out width, out height, out format, extension);
+            PixelData = ImageEngine.LoadImage(stream, out width, out height, out format, extension);
 
             Width = width;
             Height = height;
             Format = format;
         }
-
 
         /// <summary>
         /// TEMPORARY. Gets a preview.

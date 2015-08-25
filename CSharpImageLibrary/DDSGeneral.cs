@@ -11,7 +11,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides general functions specific to DDS format
     /// </summary>
-    public static class DDSGeneral
+    internal static class DDSGeneral
     {
         #region Header Stuff
         /// <summary>
@@ -19,7 +19,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="h">Header struct.</param>
         /// <param name="r">File reader.</param>
-        public static void Read_DDS_HEADER(DDS_HEADER h, BinaryReader r)
+        internal static void Read_DDS_HEADER(DDS_HEADER h, BinaryReader r)
         {
             h.dwSize = r.ReadInt32();
             h.dwFlags = r.ReadInt32();
@@ -60,7 +60,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Contains information about DDS Headers. 
         /// </summary>
-        public class DDS_HEADER
+        internal class DDS_HEADER
         {
             public int dwSize;
             public int dwFlags;
@@ -81,7 +81,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Contains information about DDS Pixel Format.
         /// </summary>
-        public class DDS_PIXELFORMAT
+        internal class DDS_PIXELFORMAT
         {
             public int dwSize;
             public int dwFlags;
@@ -105,11 +105,11 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
         /// <param name="NumChannels">Number of colour channels in image. (RGBA = 4)</param>
-        /// <param name="Width">Detected Width.</param>
-        /// <param name="Height">Detected Height.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
         /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, RGBA)</param>
         /// <returns></returns>
-        public static MemoryTributary LoadUncompressed(Stream stream, int NumChannels, out double Width, out double Height, Func<Stream, int> PixelReader)
+        internal static MemoryTributary LoadUncompressed(Stream stream, int NumChannels, out double Width, out double Height, Func<Stream, int> PixelReader)
         {
             // KFreon: Necessary to move stream position along to pixel data.
             DDS_HEADER header = null;
@@ -138,7 +138,15 @@ namespace CSharpImageLibrary
         }
 
 
-        public static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out double Width, out double Height, Func<Stream, List<byte[]>> DecompressBlock)
+        /// <summary>
+        /// Loads a block compressed (BCx) texture.
+        /// </summary>
+        /// <param name="compressed">Compressed image data.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <param name="DecompressBlock">Format specific block decompressor.</param>
+        /// <returns>16 pixel RGBA channels.</returns>
+        internal static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out double Width, out double Height, Func<Stream, List<byte[]>> DecompressBlock)
         {
             DDS_HEADER header;
             Format format = ImageFormats.ParseDDSFormat(compressed, out header);
@@ -149,9 +157,7 @@ namespace CSharpImageLibrary
             int bitsPerPixel = 4;
             MemoryTributary imgData = new MemoryTributary(bitsPerPixel * (int)Width * (int)Height);
 
-
             // Loop over rows and columns NOT pixels
-
             int bitsPerScanline = bitsPerPixel * (int)Width;
             for (int row = 0; row < Height; row += 4)
             {
@@ -184,7 +190,12 @@ namespace CSharpImageLibrary
 
 
         #region Block Decompression
-        public static byte[] Decompress8BitBlock(Stream compressed)
+        /// <summary>
+        /// Decompresses an 8 bit channel.
+        /// </summary>
+        /// <param name="compressed">Compressed image data.</param>
+        /// <returns>Single channel decompressed (16 bits).</returns>
+        internal static byte[] Decompress8BitBlock(Stream compressed)
         {
             byte[] DecompressedBlock = new byte[16];
 
@@ -229,7 +240,13 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        public static List<byte[]> DecompressRGBBlock(Stream compressed)
+
+        /// <summary>
+        /// Decompresses a 3 channel (RGB) block.
+        /// </summary>
+        /// <param name="compressed">Compressed image data.</param>
+        /// <returns>16 pixel RGBA channels.</returns>
+        internal static List<byte[]> DecompressRGBBlock(Stream compressed)
         {
             int[] DecompressedBlock = new int[16];
             int[] Colours = new int[4];
@@ -244,13 +261,10 @@ namespace CSharpImageLibrary
 
             // Decompress pixels
             byte bitmask = (byte)compressed.ReadByte();
-
             for (int i = 0; i < 16; i++)
-            {
-                DecompressedBlock[i] = Colours[bitmask >> (2 * i) & 0x3];
-            }
+                DecompressedBlock[i] = Colours[bitmask >> (2 * i) & 0x03];
 
-
+            // KFreon: Decode into RGBA
             List<byte[]> DecompressedChannels = new List<byte[]>();
             byte[] red = new byte[16];
             byte[] green = new byte[16];
@@ -264,9 +278,13 @@ namespace CSharpImageLibrary
                     alpha[i] = 255;
                 else
                 {
-                    red[i] = (byte)(colour >> 11 & 31); // Top 5 bits
+                    /*red[i] = (byte)(colour >> 11 & 31); // Top 5 bits
                     green[i] = (byte)(colour >> 5 & 63);   // Middle 6 bits
-                    blue[i] = (byte)(colour & 31);  // Low 5 bits
+                    blue[i] = (byte)(colour & 31);  // Low 5 bits*/
+
+                    red[i] = (byte)(colour >> 11 & 0x1F); // Top 5 bits
+                    green[i] = (byte)(colour >> 5 & 0x3F);   // Middle 6 bits
+                    blue[i] = (byte)(colour & 0x1F);  // Low 5 bits
                 }
             }
             return DecompressedChannels;

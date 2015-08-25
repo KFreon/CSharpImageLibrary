@@ -10,20 +10,6 @@ using static CSharpImageLibrary.DDSGeneral;
 namespace CSharpImageLibrary
 {
     /// <summary>
-    /// File extensions supported. Used to get initial format.
-    /// </summary>
-    public enum SupportedExtensions
-    {
-        UNKNOWN,
-        JPG,
-        JPEG,
-        BMP,
-        PNG,
-        DDS
-    }
-
-
-    /// <summary>
     /// Indicates image format.
     /// Use FORMAT struct.
     /// </summary>
@@ -34,7 +20,9 @@ namespace CSharpImageLibrary
         PNG = 3,
         BMP = 4,
         DDS_DXT1 = 0x31545844,  // 1TXD i.e. DXT1 backwards
+        DDS_DXT2 = 0x32545844,
         DDS_DXT3 = 0x33545844,
+        DDS_DXT4 = 0x34545844,
         DDS_DXT5 = 0x35545844,
         DDS_ARGB = 6,  // No specific value apparently
         DDS_ATI1 = 0x31495441,  // ATI1 backwards
@@ -87,14 +75,27 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides format functionality
     /// </summary>
-    public static class ImageFormats
+    internal static class ImageFormats
     {
+        /// <summary>
+        /// File extensions supported. Used to get initial format.
+        /// </summary>
+        enum SupportedExtensions
+        {
+            UNKNOWN,
+            JPG,
+            BMP,
+            PNG,
+            DDS
+        }
+
+
         /// <summary>
         /// Converts a DDS FourCC to a Format.
         /// </summary>
         /// <param name="FourCC">DDS FourCC to check.</param>
         /// <returns>Format specified by FourCC. Otherwise ARGB.</returns>
-        public static Format ParseFourCC(int FourCC)
+        private static Format ParseFourCC(int FourCC)
         {
             Format format = new Format();
 
@@ -111,18 +112,68 @@ namespace CSharpImageLibrary
         /// Gets image format from stream containing image file, along with extension of image file.
         /// </summary>
         /// <param name="imgData">Stream containing entire image file. NOT just pixels.</param>
-        /// <param name="ext">File extension of image.</param>
+        /// <param name="extension">Extension of image file.</param>
         /// <returns>Format of image.</returns>
-        public static Format ParseFormat(Stream imgData, SupportedExtensions ext)
+        internal static Format ParseFormat(Stream imgData, string extension)
         {
-            switch (ext)
+            SupportedExtensions ext = SupportedExtensions.UNKNOWN;
+
+            // KFreon: Attempt to determine from data
+            if (extension == null)
+            {
+                // KFreon: Save position and go back to start
+                long originalPos = imgData.Position;
+                imgData.Seek(0, SeekOrigin.Begin);
+
+                char l1 = (char)imgData.ReadByte();
+                char l2 = (char)imgData.ReadByte();
+                char l3 = (char)imgData.ReadByte();
+                char l4 = (char)imgData.ReadByte();
+
+                // BMP
+                if (l1 == 'B' && l2 == 'M') 
+                    ext = SupportedExtensions.BMP;
+
+                // PNG
+                if (l1 == '%' && l2 == 'P' && l3 == 'N' && l4 == 'G')  
+                    ext = SupportedExtensions.PNG;
+
+                // JPG
+                if (l1 == 0xFF && l2 == 0xD8 && l3 == 0xFF)
+                    ext = SupportedExtensions.JPG;
+
+                // DDS
+                if (l1 == 'D' && l2 == 'D' && l3 == 'S')
+                    ext = SupportedExtensions.DDS;
+
+                // KFreon: Reset stream position
+                imgData.Seek(originalPos, SeekOrigin.Begin);
+            }
+            else
+                ext = ParseExtension(extension);
+
+            if (ext == SupportedExtensions.UNKNOWN)
+                return new Format();
+
+            return ParseFormat(imgData, ext);
+        }
+
+
+        /// <summary>
+        /// Gets Format of image.
+        /// </summary>
+        /// <param name="imgData">Stream containing entire image. NOT just pixels.</param>
+        /// <param name="extension">Type of file.</param>
+        /// <returns>Format of image.</returns>
+        private static Format ParseFormat(Stream imgData, SupportedExtensions extension)
+        {
+            switch (extension)
             {
                 case SupportedExtensions.BMP:
                     return new Format(ImageEngineFormat.BMP);
                 case SupportedExtensions.DDS:
                     DDS_HEADER header;
                     return ParseDDSFormat(imgData, out header);
-                case SupportedExtensions.JPEG:
                 case SupportedExtensions.JPG:
                     return new Format(ImageEngineFormat.JPG);
                 case SupportedExtensions.PNG:
@@ -138,7 +189,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="extension">String containing file extension.</param>
         /// <returns>SupportedExtension of extension.</returns>
-        public static SupportedExtensions ParseExtension(string extension)
+        private static SupportedExtensions ParseExtension(string extension)
         {
             SupportedExtensions ext = SupportedExtensions.DDS;
             string tempext = Path.GetExtension(extension).Replace(".", "");
@@ -154,11 +205,11 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <returns>Format of image.</returns>
-        public static Format ParseFormat(string imagePath)
+        internal static Format ParseFormat(string imagePath)
         {
             SupportedExtensions ext = ParseExtension(imagePath);
 
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open))
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return ParseFormat(fs, ext);
         }
 
