@@ -73,19 +73,14 @@ namespace CSharpImageLibrary
             switch (test.InternalFormat)
             {
                 case ImageEngineFormat.DDS_V8U8:
-                    Format = new Format(ImageEngineFormat.DDS_V8U8);
                     return V8U8.Load(stream, out Width, out Height);
                 case ImageEngineFormat.DDS_G8_L8:
-                    Format = new Format(ImageEngineFormat.DDS_G8_L8);
                     return G8_L8.Load(stream, out Width, out Height);
                 case ImageEngineFormat.DDS_ATI1:
-                    Format = new Format(ImageEngineFormat.DDS_ATI1);
-                    return ATI1.Load(stream, out Width, out Height);
+                    return BC4_ATI1.Load(stream, out Width, out Height);
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                    Format = new Format(ImageEngineFormat.DDS_ATI2_3Dc);
-                    return ATI2_3Dc.Load(stream, out Width, out Height);
+                    return BC5_ATI2_3Dc.Load(stream, out Width, out Height);
                 case ImageEngineFormat.DDS_ARGB:
-                    Format = new Format(ImageEngineFormat.DDS_ARGB);
                     return RGBA.Load(stream, out Width, out Height);
             }
 
@@ -93,24 +88,61 @@ namespace CSharpImageLibrary
 
             // KFreon: Try loading with built in codecs
             if (WindowsWICCodecsAvailable)
-                return Win8_10.LoadWithCodecs(stream, out Width, out Height, out Format);
+                return Win8_10.LoadWithCodecs(stream, out Width, out Height);
             else
             {
                 // KFreon: Handle DXT formats - all other DDS formats are above
                 switch (Format.InternalFormat)
                 {
                     case ImageEngineFormat.DDS_DXT1:
+                        return BC1.Load(stream, out Width, out Height);
                     case ImageEngineFormat.DDS_DXT2:
                     case ImageEngineFormat.DDS_DXT3:
+                        return BC2.Load(stream, out Width, out Height);
                     case ImageEngineFormat.DDS_DXT4:
                     case ImageEngineFormat.DDS_DXT5:
-                        break;
+                        return BC3.Load(stream, out Width, out Height);
                 }
 
                 // KFreon: None of those, so assume standard image formats (jpg, png, etc)
-                return Win7.LoadImageWithCodecs(stream, out Width, out Height, out Format);
+                return Win7.LoadImageWithCodecs(stream, out Width, out Height);
             }
         }
         #endregion Loading
+
+
+        public static bool Save(Stream PixelData, ImageEngineFormat format, Stream destination)
+        {
+            // KFreon: Try DDS formats first
+            switch (format)
+            {
+                case ImageEngineFormat.DDS_V8U8:
+                    return V8U8.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_G8_L8:
+                    return G8_L8.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_ATI1:
+                    return BC4_ATI1.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    return BC5_ATI2_3Dc.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_ARGB:
+                    return RGBA.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_DXT1:
+                    return BC1.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                    return BC2.Save(PixelData, destination);
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    return BC3.Save(PixelData, destination);
+            }
+
+            // KFreon: NOT any of the above then...
+
+            // KFreon: Try saving with built in codecs
+            if (WindowsWICCodecsAvailable)
+                return Win8_10.SaveWithCodecs(PixelData, destination);
+            else
+                return Win7.SaveWithCodecs(PixelData, destination);
+        }
     }
 }

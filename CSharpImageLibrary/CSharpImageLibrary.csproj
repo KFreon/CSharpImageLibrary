@@ -61,9 +61,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="ATI1.cs" />
-    <Compile Include="ATI2_3Dc.cs" />
+    <Compile Include="BC4_ATI1.cs" />
+    <Compile Include="BC5_ATI2_3Dc.cs" />
     <Compile Include="DDSGeneral.cs" />
+    <Compile Include="BC1.cs" />
+    <Compile Include="BC2.cs" />
+    <Compile Include="BC3.cs" />
     <Compile Include="G8_L8.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="RGBA.cs" />

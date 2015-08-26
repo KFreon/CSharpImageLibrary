@@ -48,5 +48,10 @@ namespace CSharpImageLibrary
 
             return imgData;
         }
+
+        internal static bool Save(Stream destination)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

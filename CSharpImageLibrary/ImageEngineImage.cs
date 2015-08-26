@@ -83,6 +83,18 @@ namespace CSharpImageLibrary
             Format = format;
         }
 
+
+        public bool Save(string destination, ImageEngineFormat format)
+        {
+            using (FileStream fs = new FileStream(destination, FileMode.Create))
+                return Save(fs, format);
+        }
+
+        public bool Save(Stream destination, ImageEngineFormat format)
+        {
+            return ImageEngine.Save(PixelData, format, destination);
+        }
+
         /// <summary>
         /// TEMPORARY. Gets a preview.
         /// </summary>

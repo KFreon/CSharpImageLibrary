@@ -135,7 +135,7 @@ namespace CSharpImageLibrary
                     ext = SupportedExtensions.BMP;
 
                 // PNG
-                if (l1 == '%' && l2 == 'P' && l3 == 'N' && l4 == 'G')  
+                if (l1 == 137 && l2 == 'P' && l3 == 'N' && l4 == 'G')  
                     ext = SupportedExtensions.PNG;
 
                 // JPG

@@ -136,27 +136,13 @@ namespace CSharpImageLibrary
         /// <param name="bmp">Image to load.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Detected image format.</param>
         /// <param name="extension">Image file extension. Leave null to guess.</param>
         /// <returns>RGBA pixel data as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(BitmapImage bmp, out double Width, out double Height, out Format Format, string extension = null)
+        internal static MemoryTributary LoadImageWithCodecs(BitmapImage bmp, out double Width, out double Height, string extension = null)
         {
             // KFreon: Round up - some weird bug where bmp's would be 1023.4 or something.
             Height = Math.Ceiling(bmp.Height);
             Width = Math.Ceiling(bmp.Width);
-
-            // KFreon: Get format, choosing data source based on how BitmapImage was created.
-            if (bmp.UriSource != null)
-                Format = ImageFormats.ParseFormat(bmp.UriSource.OriginalString);
-            else if (bmp.StreamSource != null)
-                Format = ImageFormats.ParseFormat(bmp.StreamSource, extension);
-            else
-                throw new InvalidDataException("Bitmap doesn't seem to have a suitable source.");
-
-
-            if (Format.InternalFormat == ImageEngineFormat.Unknown)
-                Console.WriteLine();
-
 
             // KFreon: Read pixel data from image.
             MemoryTributary pixelData = new MemoryTributary();
@@ -170,6 +156,11 @@ namespace CSharpImageLibrary
             return pixelData;
         }
 
+        internal static bool SaveWithCodecs(Stream destination)
+        {
+            throw new NotImplementedException();
+        }
+
 
         /// <summary>
         /// Loads useful information from an image file.
@@ -177,20 +168,18 @@ namespace CSharpImageLibrary
         /// <param name="imageFile">Path to image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Detected Format.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(string imageFile, out double Width, out double Height, out Format Format)
+        internal static MemoryTributary LoadWithCodecs(string imageFile, out double Width, out double Height)
         {
             if (!WindowsCodecsAvailable)
             {
                 Width = 0;
                 Height = 0;
-                Format = new Format();
                 return null;
             }
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadWithCodecs(fs, out Width, out Height, out Format, Path.GetExtension(imageFile));
+                return LoadWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
         }
 
 
@@ -200,16 +189,14 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Detected Format.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(Stream stream, out double Width, out double Height, out Format Format, string extension = null)
+        internal static MemoryTributary LoadWithCodecs(Stream stream, out double Width, out double Height, string extension = null)
         {
             if (!WindowsCodecsAvailable)
             {
                 Width = 0;
                 Height = 0;
-                Format = new Format();
                 return null;
             }
 
@@ -218,11 +205,10 @@ namespace CSharpImageLibrary
             {
                 Width = 0;
                 Height = 0;
-                Format = new Format();
                 return null;
             }
 
-            return LoadImageWithCodecs(bmp, out Width, out Height, out Format, extension);
+            return LoadImageWithCodecs(bmp, out Width, out Height, extension);
         }
     }
 }

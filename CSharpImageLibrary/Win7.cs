@@ -64,12 +64,11 @@ namespace CSharpImageLibrary
         /// <param name="imageFile">Path to image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Image Format.</param>
         /// <returns>RGBA Pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(string imageFile, out double Width, out double Height, out Format Format)
+        internal static MemoryTributary LoadImageWithCodecs(string imageFile, out double Width, out double Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadImageWithCodecs(fs, out Width, out Height, out Format, Path.GetExtension(imageFile));
+                return LoadImageWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
         }
 
 
@@ -79,10 +78,9 @@ namespace CSharpImageLibrary
         /// <param name="stream">Entire file. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Image Format</param>
         /// <param name="extension"></param>
         /// <returns>RGBA Pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(Stream stream, out double Width, out double Height, out Format Format, string extension = null)
+        internal static MemoryTributary LoadImageWithCodecs(Stream stream, out double Width, out double Height, string extension = null)
         {
             Bitmap bmp = AttemptWindowsCodecs(stream);
 
@@ -90,11 +88,10 @@ namespace CSharpImageLibrary
             {
                 Width = 0;
                 Height = 0;
-                Format = new Format();
                 return null;
             }
 
-            MemoryTributary imgData = LoadImageWithCodecs(bmp, out Width, out Height, out Format, extension);
+            MemoryTributary imgData = LoadImageWithCodecs(bmp, out Width, out Height, extension);
             bmp.Dispose();
             return imgData;
         }
@@ -106,20 +103,22 @@ namespace CSharpImageLibrary
         /// <param name="bmp">Bitmap to load.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Image Format.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>RGBA pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(Bitmap bmp, out double Width, out double Height, out Format Format, string extension = null)
+        internal static MemoryTributary LoadImageWithCodecs(Bitmap bmp, out double Width, out double Height, string extension = null)
         {
             byte[] imgData = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(bmp);
 
             Width = bmp.Width;
             Height = bmp.Width;
             Debugger.Break();
-            Format = new Format();
-            //Format = ImageFormats.ParseFormat(bmp.RawFormat.ToString(), extension);
 
             return new MemoryTributary(imgData);
+        }
+
+        internal static bool SaveWithCodecs(object stream)
+        {
+            throw new NotImplementedException();
         }
     }
 }

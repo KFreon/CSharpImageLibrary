@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -194,38 +195,19 @@ namespace CSharpImageLibrary
         /// Decompresses an 8 bit channel.
         /// </summary>
         /// <param name="compressed">Compressed image data.</param>
+        /// <param name="isSigned">true = use signed alpha range (-254 -- 255), false = 0 -- 255</param>
         /// <returns>Single channel decompressed (16 bits).</returns>
-        internal static byte[] Decompress8BitBlock(Stream compressed)
+        internal static byte[] Decompress8BitBlock(Stream compressed, bool isSigned)
         {
             byte[] DecompressedBlock = new byte[16];
 
             // KFreon: Read colour range and build palette
-            ushort[] Colours = new ushort[8];
 
             // KFreon: Read min and max colours (not necessarily in that order)
-            Colours[0] = (byte)compressed.ReadByte();
-            Colours[1] = (byte)compressed.ReadByte();
+            byte min = (byte)compressed.ReadByte();
+            byte max = (byte)compressed.ReadByte();
 
-            // KFreon: Choose which type of interpolation required.
-            if (Colours[0] > Colours[1])
-            {
-                // KFreon: Interpolate other colours
-                for (int i = 2; i < 8; i++)
-                {
-                    int firstbit = (8 - i);
-                    int secondbit = (i - 1);
-                    double test = (firstbit * Colours[0] + secondbit * Colours[1]) / 7.0f;
-                    Colours[i] = (ushort)test;
-                }
-            }
-            else
-            {
-                // KFreon: Interpolate other colours and add OPACITY
-                for (int i = 2; i < 6; i++)
-                    Colours[i] = (ushort)(((6 - i) * Colours[0] + (i - 1) * Colours[1]) / 5.0);
-                Colours[6] = 0;
-                Colours[7] = 255;
-            }
+            byte[] Colours = Build8BitPalette(min, max, isSigned);
 
 
             // KFreon: Decompress pixels
@@ -290,5 +272,185 @@ namespace CSharpImageLibrary
             return DecompressedChannels;
         }
         #endregion
+
+
+        internal static bool SaveBlockCompressedTexture(Stream Uncompressed, Stream Destination)
+        {
+
+        }
+
+
+        #region Block Compression
+        /// <summary>
+        /// Compresses RGB channels using Block Compression.
+        /// </summary>
+        /// <param name="min">First main colour (often actually minimum.</param>
+        /// <param name="max">Second main colour (often actually maximum.</param>
+        /// <param name="pixelColours">16 pixel texel to compress.</param>
+        /// <param name="isDXT1">Set true if DXT1.</param>
+        /// <returns>8 byte compressed texel.</returns>
+        public static byte[] CompressRGBBlock(int min, int max, int[] pixelColours, bool isDXT1)
+        {
+            if (pixelColours.Length != 16)
+                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {pixelColours.Length}");
+
+            byte[] CompressedBlock = new byte[8];
+
+            // Write colours
+            byte[] colour0 = BitConverter.GetBytes(min);
+            byte[] colour1 = BitConverter.GetBytes(max);
+
+            CompressedBlock[0] = colour0[0];
+            CompressedBlock[1] = colour0[1];
+
+            CompressedBlock[2] = colour1[0];
+            CompressedBlock[3] = colour1[1];
+
+            // Build interpolated palette
+            int[] Colours = BuildRGBPalette(min, max, isDXT1);
+
+            // Compress pixels
+            for (int i = 0; i < 16; i += 4) // each "row" of 4 pixels is a single byte
+            {
+                byte indicies = 0;
+                for (int j = 0; j < 4; j++)
+                {
+                    int colour = pixelColours[i + j];
+                    int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
+                    indicies |= (byte)(index << (2 * j));
+                }
+                CompressedBlock[i / 4 + 4] = indicies;
+            }
+
+            return CompressedBlock;
+        }
+
+
+        /// <summary>
+        /// Compresses single channel using Block Compression.
+        /// </summary>
+        /// <param name="min">First main colour (often actually minimum)</param>
+        /// <param name="max">Second main colour (often actually maximum)</param>
+        /// <param name="pixelColours">16 pixel texel to compress.</param>
+        /// <param name="isSigned">true = uses alpha range -255 -- 255, else 0 -- 255</param>
+        /// <returns>8 byte compressed texel.</returns>
+        public static byte[] Compress8BitBlock(byte min, byte max, byte[] pixelColours, bool isSigned)
+        {
+            byte[] CompressedBlock = new byte[8];
+
+            // Write Colours
+            CompressedBlock[0] = min;
+            CompressedBlock[1] = max;
+
+            // Build Palette
+            byte[] Colours = Build8BitPalette(min, max, isSigned);
+
+            // Compress Pixels
+            ulong line = 0;
+            for (int i = 0; i < 16; i++)
+            {
+                byte colour = pixelColours[i];
+                int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
+                line |= (ulong)index << (i * 3);
+            }
+
+            return BitConverter.GetBytes(line);
+        }
+
+        #endregion Block Compression
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        public static int[] GetRGB(List<byte[]> texel, out int min, out int max)
+        {
+            // find largest and smallest colours
+            int[] pixelColours = new int[16];
+
+            // First get colours as single numbers
+            for (int i = 0; i < 16; i++)
+                pixelColours.Add(texel[0] << 0 | texel[1] << 5 | texel[2] << 11; right?
+
+            max = pixelColours.Max();
+            min = pixelColours.Min();
+
+            return pixelColours;
+        }
+
+
+        #region Palette
+        /// <summary>
+        /// Builds palette for 8 bit channel.
+        /// </summary>
+        /// <param name="min">First main colour (often actually minimum)</param>
+        /// <param name="max">Second main colour (often actually maximum)</param>
+        /// <param name="isSigned">true = sets signed alpha range (-254 -- 255), false = 0 -- 255</param>
+        /// <returns>8 byte colour palette.</returns>
+        internal static byte[] Build8BitPalette(byte min, byte max, bool isSigned)
+        {
+            byte[] Colours = new byte[8];
+            Colours[0] = min;
+            Colours[1] = max;
+
+            // KFreon: Choose which type of interpolation is required
+            if (min > max)
+            {
+                // KFreon: Interpolate other colours
+                for (int i = 2; i < 8; i++)
+                {
+                    double test = ((8 - i) * min + (i - 1) * max) / 7.0f;
+                    Colours[i] = (byte)test;
+                }
+            }
+            else
+            {
+                // KFreon: Interpolate other colours and add Opacity or something...
+                for (int i = 2; i < 6; i++)
+                {
+                    double test = ((8 - i) * min + (i - 1) * max) / 5.0f;
+                    Colours[i] = (byte)test;
+                }
+                Colours[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
+                Colours[7] = 255;
+            }
+
+            return Colours;
+        }
+
+        /// <summary>
+        /// Builds a palette for RGB channels (DXT only)
+        /// </summary>
+        /// <param name="min">First main colour (often actually minimum)</param>
+        /// <param name="max">Second main colour (often actually maximum)</param>
+        /// <param name="isDXT1">true = use DXT1 format (1 bit alpha)</param>
+        /// <returns>4 Colours as integers.</returns>
+        public static int[] BuildRGBPalette(int min, int max, bool isDXT1)
+        {
+            int[] Colours = new int[4];
+            Colours[0] = min;
+            Colours[1] = max;
+
+            Debugger.Break();
+
+            // Interpolate other 2 colours
+            if (min > max && !isDXT1)
+            {
+                Colours[2] = 2 / 3 * Colours[0] + 1 / 3 * Colours[1];
+                Colours[3] = 1 / 3 * Colours[0] + 2 / 3 * Colours[1];
+            }
+            else
+            {
+                // KFreon: Only for dxt1
+                Colours[2] = 1 / 2 * Colours[0] + 1 / 2 * Colours[1];
+                Colours[3] = 0;
+            }
+
+            return Colours;
+        }
+
+        #endregion Palette
     }
 }

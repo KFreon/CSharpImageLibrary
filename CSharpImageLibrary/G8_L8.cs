@@ -48,5 +48,10 @@ namespace CSharpImageLibrary
 
             return DDSGeneral.LoadUncompressed(stream, 1, out Width, out Height, PixelReader);
         }
+
+        internal static bool Save(Stream destination)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

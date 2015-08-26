@@ -10,9 +10,9 @@ using UsefulThings;
 namespace CSharpImageLibrary
 {
     /// <summary>
-    /// Provides ATI2_3Dc(BC5) functionality.
+    /// Provides ATI2_3Dc (Block Compressed 5 [BC5]) functionality.
     /// </summary>
-    internal static class ATI2_3Dc
+    internal static class BC5_ATI2_3Dc
     {
         /// <summary>
         /// Loads ATI2 (BC5) image from file.
@@ -57,6 +57,11 @@ namespace CSharpImageLibrary
             DecompressedBlock.Add(new byte[16]);
 
             return DecompressedBlock;
+        }
+
+        internal static bool Save(Stream destination)
+        {
+            throw new NotImplementedException();
         }
     }
 }

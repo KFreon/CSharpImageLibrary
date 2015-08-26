@@ -12,10 +12,10 @@ using UsefulThings;
 namespace CSharpImageLibrary
 {
     /// <summary>
-    /// Provides ATI1 (BC4) format functionality.
+    /// Provides ATI1 (Block Compressed 4 [BC4]) format functionality.
     /// This is a single channel, 8 bit image.
     /// </summary>
-    internal static class ATI1
+    internal static class BC4_ATI1
     {
         /// <summary>
         /// Loads important information from ATI1 image.
@@ -58,6 +58,11 @@ namespace CSharpImageLibrary
             DecompressedBlock.Add(channel);
             DecompressedBlock.Add(new byte[16]);  // No alpha
             return DecompressedBlock;
+        }
+
+        internal static bool Save(Stream destination)
+        {
+            throw new NotImplementedException();
         }
     }
 }
