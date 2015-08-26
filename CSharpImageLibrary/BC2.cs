@@ -20,7 +20,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>16 byte RGBA channels as stream.</returns>
-        internal static MemoryTributary Load(string imageFile, out double Width, out double Height)
+        internal static MemoryTributary Load(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return Load(fs, out Width, out Height);
@@ -34,7 +34,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>16 byte RGBA channels as stream.</returns>
-        internal static MemoryTributary Load(Stream compressed, out double Width, out double Height)
+        internal static MemoryTributary Load(Stream compressed, out int Width, out int Height)
         {
             return DDSGeneral.LoadBlockCompressedTexture(compressed, out Width, out Height, DecompressBC2);
         }
@@ -59,7 +59,7 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        internal static bool Save(object stream)
+        internal static bool Save(Stream pixelsWithMips, Stream destination)
         {
             throw new NotImplementedException();
         }

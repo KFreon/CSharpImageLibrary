@@ -19,12 +19,12 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Width of image.
         /// </summary>
-        public double Width { get; private set; }
+        public int Width { get; private set; }
 
         /// <summary>
         /// Height of image.
         /// </summary>
-        public double Height { get; private set; }
+        public int Height { get; private set; }
 
         /// <summary>
         /// Format of image and whether it's mippable.
@@ -48,8 +48,8 @@ namespace CSharpImageLibrary
         /// <param name="imagePath">Path to image file.</param>
         public ImageEngineImage(string imagePath)
         {
-            double width = 0;
-            double height = 0;
+            int width = 0;
+            int height = 0;
             Format format = new Format();
             FilePath = imagePath;
 
@@ -71,8 +71,8 @@ namespace CSharpImageLibrary
         /// <param name="extension">Extension of original file.</param>
         public ImageEngineImage(Stream stream, string extension)
         {
-            double width = 0;
-            double height = 0;
+            int width = 0;
+            int height = 0;
             Format format = new Format();
 
             // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
@@ -84,15 +84,28 @@ namespace CSharpImageLibrary
         }
 
 
+        /// <summary>
+        /// Saves image in specified format to file. If file exists, it will be overwritten.
+        /// </summary>
+        /// <param name="destination">File to save to.</param>
+        /// <param name="format">Format to save as.</param>
+        /// <returns>True if success</returns>
         public bool Save(string destination, ImageEngineFormat format)
         {
             using (FileStream fs = new FileStream(destination, FileMode.Create))
                 return Save(fs, format);
         }
 
+
+        /// <summary>
+        /// Saves fully formatted image in specified format to stream.
+        /// </summary>
+        /// <param name="destination">Stream to save to.</param>
+        /// <param name="format">Format to save as.</param>
+        /// <returns>True if success</returns>
         public bool Save(Stream destination, ImageEngineFormat format)
         {
-            return ImageEngine.Save(PixelData, format, destination);
+            return ImageEngine.Save(PixelData, format, destination, Width, Height);
         }
 
         /// <summary>

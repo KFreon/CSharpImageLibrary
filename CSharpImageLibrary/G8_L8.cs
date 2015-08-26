@@ -20,7 +20,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
-        internal static MemoryTributary Load(string imageFile, out double Width, out double Height)
+        internal static MemoryTributary Load(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return Load(fs, out Width, out Height);
@@ -34,7 +34,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary Load(Stream stream, out double Width, out double Height)
+        internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
             Func<Stream, int> PixelReader = fileData =>
@@ -49,7 +49,7 @@ namespace CSharpImageLibrary
             return DDSGeneral.LoadUncompressed(stream, 1, out Width, out Height, PixelReader);
         }
 
-        internal static bool Save(Stream destination)
+        internal static bool Save(Stream pixelsWithMips, Stream destination)
         {
             throw new NotImplementedException();
         }

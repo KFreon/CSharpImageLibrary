@@ -97,7 +97,33 @@ namespace CSharpImageLibrary
             {
             }
         }
+
+        public static DDS_HEADER Build_DDS_Header(int Mips, int height, int width, ImageEngineFormat surfaceformat)
+        {
+            DDS_HEADER header = new DDS_HEADER();
+            header.dwSize = 124;
+            header.dwFlags = 0x1 | 0x2 | 0x4 | 0x1000 | (Mips != 0 ? 0x20000 : 0x0);  // Flags to denote valid fields: DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT
+            header.dwWidth = width;
+            header.dwHeight = height;
+            header.dwCaps = 0x1000 | 0x8 | (Mips == 0 ? 0 : 0x400000);
+            header.dwMipMapCount = Mips == 0 ? 1 : Mips;
+            //header.dwPitchOrLinearSize = ((width + 1) >> 1)*4;
+
+            DDS_PIXELFORMAT px = new DDS_PIXELFORMAT();
+            px.dwFourCC = (int)surfaceformat;
+            px.dwSize = 32;
+            //px.dwFlags = 0x200;
+            px.dwFlags = 0x80000;
+            px.dwRGBBitCount = 16;
+            px.dwRBitMask = 255;
+            px.dwGBitMask = 0x0000FF00;
+
+            header.ddspf = px;
+            return header;
+        }
         #endregion Header Stuff
+
+
 
 
         #region Loading
@@ -105,12 +131,11 @@ namespace CSharpImageLibrary
         /// Loads an uncompressed DDS image given format specific Pixel Reader
         /// </summary>
         /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
-        /// <param name="NumChannels">Number of colour channels in image. (RGBA = 4)</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, RGBA)</param>
         /// <returns></returns>
-        internal static MemoryTributary LoadUncompressed(Stream stream, int NumChannels, out double Width, out double Height, Func<Stream, int> PixelReader)
+        internal static MemoryTributary LoadUncompressed(Stream stream, out int Width, out int Height, Func<Stream, int> PixelReader)
         {
             // KFreon: Necessary to move stream position along to pixel data.
             DDS_HEADER header = null;
@@ -119,7 +144,6 @@ namespace CSharpImageLibrary
             Width = header.dwWidth;
             Height = header.dwHeight;
 
-            int mipMapBytes = (int)(Width * Height * NumChannels);  // KFreon: 2 bytes per pixel
             MemoryTributary imgData = new MemoryTributary();
 
             // KFreon: Read data
@@ -147,7 +171,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="DecompressBlock">Format specific block decompressor.</param>
         /// <returns>16 pixel RGBA channels.</returns>
-        internal static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out double Width, out double Height, Func<Stream, List<byte[]>> DecompressBlock)
+        internal static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out int Width, out int Height, Func<Stream, List<byte[]>> DecompressBlock)
         {
             DDS_HEADER header;
             Format format = ImageFormats.ParseDDSFormat(compressed, out header);
@@ -274,12 +298,6 @@ namespace CSharpImageLibrary
         #endregion
 
 
-        internal static bool SaveBlockCompressedTexture(Stream Uncompressed, Stream Destination)
-        {
-
-        }
-
-
         #region Block Compression
         /// <summary>
         /// Compresses RGB channels using Block Compression.
@@ -359,26 +377,6 @@ namespace CSharpImageLibrary
 
         #endregion Block Compression
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="min"></param>
-        /// <param name="max"></param>
-        /// <returns></returns>
-        public static int[] GetRGB(List<byte[]> texel, out int min, out int max)
-        {
-            // find largest and smallest colours
-            int[] pixelColours = new int[16];
-
-            // First get colours as single numbers
-            for (int i = 0; i < 16; i++)
-                pixelColours.Add(texel[0] << 0 | texel[1] << 5 | texel[2] << 11; right?
-
-            max = pixelColours.Max();
-            min = pixelColours.Min();
-
-            return pixelColours;
-        }
 
 
         #region Palette

@@ -24,7 +24,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height</param>
         /// <returns>RGBA pixel data as stream.</returns>
-        internal static MemoryTributary Load(string imagePath, out double Width, out double Height)
+        internal static MemoryTributary Load(string imagePath, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return Load(fs, out Width, out Height);
@@ -38,7 +38,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary Load(Stream stream, out double Width, out double Height)
+        internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             return DDSGeneral.LoadBlockCompressedTexture(stream, out Width, out Height, DecompressATI1);
         }
@@ -60,7 +60,7 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        internal static bool Save(Stream destination)
+        internal static bool Save(Stream pixelsWithMips, Stream destination)
         {
             throw new NotImplementedException();
         }

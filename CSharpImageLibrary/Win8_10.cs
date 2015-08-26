@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using UsefulThings;
+using System.Windows.Media;
 
 namespace CSharpImageLibrary
 {
@@ -138,27 +139,13 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="extension">Image file extension. Leave null to guess.</param>
         /// <returns>RGBA pixel data as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(BitmapImage bmp, out double Width, out double Height, string extension = null)
+        internal static MemoryTributary LoadImageWithCodecs(BitmapImage bmp, out int Width, out int Height, string extension = null)
         {
             // KFreon: Round up - some weird bug where bmp's would be 1023.4 or something.
-            Height = Math.Ceiling(bmp.Height);
-            Width = Math.Ceiling(bmp.Width);
+            Height = (int)Math.Ceiling(bmp.Height);
+            Width = (int)Math.Ceiling(bmp.Width);
 
-            // KFreon: Read pixel data from image.
-            MemoryTributary pixelData = new MemoryTributary();
-
-            int size = (int)(4 * Width * Height);
-            byte[] pixels = new byte[size];
-            int stride = (int)Width * 4;
-
-            bmp.CopyPixels(pixels, stride, 0);
-            pixelData.Write(pixels, 0, pixels.Length);
-            return pixelData;
-        }
-
-        internal static bool SaveWithCodecs(Stream destination)
-        {
-            throw new NotImplementedException();
+            return bmp.GetPixelsAsStream(Width, Height);
         }
 
 
@@ -169,7 +156,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(string imageFile, out double Width, out double Height)
+        internal static MemoryTributary LoadWithCodecs(string imageFile, out int Width, out int Height)
         {
             if (!WindowsCodecsAvailable)
             {
@@ -182,6 +169,56 @@ namespace CSharpImageLibrary
                 return LoadWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
         }
 
+        internal static int BuildMipMaps(Stream pixelData, Stream destination, int Width, int Height)
+        {
+            BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(pixelData);
+            int smallestDimension = Width > Height ? Height : Width;
+            int newWidth = Width;
+            int newHeight = Height;
+
+            int count = 1;
+            while (smallestDimension > 0)
+            {
+                newWidth /= 2;
+                newHeight /= 2;
+
+                bmp = UsefulThings.WPF.Images.ResizeImage(bmp, newWidth, newHeight);
+                MemoryTributary data = bmp.GetPixelsAsStream(newWidth, newHeight);
+                data.WriteTo(destination);
+                smallestDimension /= 2;
+                count++;
+            }
+
+            return count;
+        }
+
+        internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
+        {
+            int stride = 4 * (Width * 32 + 31) / 32;
+            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, pixelsWithMips.ToArray(), stride));
+
+            BitmapEncoder encoder = null;
+            switch (format)
+            {
+                case ImageEngineFormat.BMP:
+                    encoder = new BmpBitmapEncoder();
+                    break;
+                case ImageEngineFormat.JPG:
+                    encoder = new JpegBitmapEncoder();
+                    ((JpegBitmapEncoder)encoder).QualityLevel = 90;
+                    break;
+                case ImageEngineFormat.PNG:
+                    encoder = new PngBitmapEncoder();
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unable to encode format: {format} using Windows 8.1 Codecs.");
+            }
+
+            encoder.Frames.Add(frame);
+            encoder.Save(destination);
+            return true;
+        }
+
 
         /// <summary>
         /// Loads useful information from image stream using Windows 8.1+ codecs.
@@ -191,7 +228,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(Stream stream, out double Width, out double Height, string extension = null)
+        internal static MemoryTributary LoadWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
         {
             if (!WindowsCodecsAvailable)
             {

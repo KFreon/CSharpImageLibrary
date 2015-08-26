@@ -45,7 +45,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="Format">Detected image format.</param>
         /// <returns>Raw pixel data as stream.</returns>
-        public static MemoryTributary LoadImage(string imagePath, out double Width, out double Height, out Format Format)
+        public static MemoryTributary LoadImage(string imagePath, out int Width, out int Height, out Format Format)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return LoadImage(fs, out Width, out Height, out Format);
@@ -61,7 +61,7 @@ namespace CSharpImageLibrary
         /// <param name="Format">Image format (dds surfaces, jpg, png, etc)</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>RGBA pixels.</returns>
-        public static MemoryTributary LoadImage(Stream stream, out double Width, out double Height, out Format Format, string extension = null)
+        public static MemoryTributary LoadImage(Stream stream, out int Width, out int Height, out Format Format, string extension = null)
         {
             Width = 0;
             Height = 0;
@@ -111,38 +111,61 @@ namespace CSharpImageLibrary
         #endregion Loading
 
 
-        public static bool Save(Stream PixelData, ImageEngineFormat format, Stream destination)
+        public static bool Save(MemoryTributary PixelData, ImageEngineFormat format, Stream destination, int Width, int Height, bool GenerateMips)
         {
+            MemoryTributary PixelsWithMips = new MemoryTributary();
+            int Mips = 1;
+
+
+            if (GenerateMips)
+            {
+                PixelData.Seek(0, SeekOrigin.Begin);
+                PixelsWithMips.ReadFrom(PixelData, PixelData.Length);
+
+                Mips = BuildMipMaps(PixelData, PixelsWithMips, Width, Height);
+            }
+            else
+                PixelsWithMips = PixelData;
+            
+
             // KFreon: Try DDS formats first
             switch (format)
             {
                 case ImageEngineFormat.DDS_V8U8:
-                    return V8U8.Save(PixelData, destination);
+                    return V8U8.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_G8_L8:
-                    return G8_L8.Save(PixelData, destination);
+                    return G8_L8.Save(PixelsWithMips, destination);
                 case ImageEngineFormat.DDS_ATI1:
-                    return BC4_ATI1.Save(PixelData, destination);
+                    return BC4_ATI1.Save(PixelsWithMips, destination);
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                    return BC5_ATI2_3Dc.Save(PixelData, destination);
+                    return BC5_ATI2_3Dc.Save(PixelsWithMips, destination);
                 case ImageEngineFormat.DDS_ARGB:
-                    return RGBA.Save(PixelData, destination);
+                    return RGBA.Save(PixelsWithMips, destination);
                 case ImageEngineFormat.DDS_DXT1:
-                    return BC1.Save(PixelData, destination);
+                    return BC1.Save(PixelsWithMips, destination);
                 case ImageEngineFormat.DDS_DXT2:
                 case ImageEngineFormat.DDS_DXT3:
-                    return BC2.Save(PixelData, destination);
+                    return BC2.Save(PixelsWithMips, destination);
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
-                    return BC3.Save(PixelData, destination);
+                    return BC3.Save(PixelsWithMips, destination);
             }
 
             // KFreon: NOT any of the above then...
 
             // KFreon: Try saving with built in codecs
             if (WindowsWICCodecsAvailable)
-                return Win8_10.SaveWithCodecs(PixelData, destination);
+                return Win8_10.SaveWithCodecs(PixelsWithMips, destination, format, Width, Height);
             else
-                return Win7.SaveWithCodecs(PixelData, destination);
+                return Win7.SaveWithCodecs(PixelsWithMips, destination);
+        }
+
+        private static int BuildMipMaps(MemoryTributary PixelData, Stream destination, int Width, int Height)
+        {
+            if (WindowsWICCodecsAvailable)
+                return Win8_10.BuildMipMaps(PixelData, destination, Width, Height);
+            else
+                return Win7.BuildMipMaps(PixelData, destination, Width, Height);
         }
     }
 }

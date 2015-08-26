@@ -26,7 +26,7 @@ namespace CSharpImageLibrary
         DDS_DXT5 = 0x35545844,
         DDS_ARGB = 6,  // No specific value apparently
         DDS_ATI1 = 0x31495441,  // ATI1 backwards
-        DDS_V8U8 = 117,  // Doesn't seem like this value is used much - but it's in the programming guide for DDS by Microsoft
+        DDS_V8U8 = 8, 
         DDS_G8_L8 = 7,  // No specific value it seems
         DDS_ATI2_3Dc = 0x32495441  // ATI2 backwards
     }

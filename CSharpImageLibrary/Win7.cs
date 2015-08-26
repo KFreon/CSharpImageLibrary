@@ -65,7 +65,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(string imageFile, out double Width, out double Height)
+        internal static MemoryTributary LoadImageWithCodecs(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return LoadImageWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
@@ -80,7 +80,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="extension"></param>
         /// <returns>RGBA Pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(Stream stream, out double Width, out double Height, string extension = null)
+        internal static MemoryTributary LoadImageWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
         {
             Bitmap bmp = AttemptWindowsCodecs(stream);
 
@@ -105,7 +105,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>RGBA pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(Bitmap bmp, out double Width, out double Height, string extension = null)
+        internal static MemoryTributary LoadImageWithCodecs(Bitmap bmp, out int Width, out int Height, string extension = null)
         {
             byte[] imgData = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(bmp);
 
@@ -117,6 +117,16 @@ namespace CSharpImageLibrary
         }
 
         internal static bool SaveWithCodecs(object stream)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static int BuildMipMaps(Stream pixelData, Stream destination)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static bool SaveWithCodecs(Stream pixelsWithMips, Stream destination)
         {
             throw new NotImplementedException();
         }
