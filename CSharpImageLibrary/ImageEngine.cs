@@ -157,7 +157,7 @@ namespace CSharpImageLibrary
             if (WindowsWICCodecsAvailable)
                 return Win8_10.SaveWithCodecs(PixelsWithMips, destination, format, Width, Height);
             else
-                return Win7.SaveWithCodecs(PixelsWithMips, destination);
+                return Win7.SaveWithCodecs(PixelsWithMips, destination, format, Width, Height);
         }
 
         private static int BuildMipMaps(MemoryTributary PixelData, Stream destination, int Width, int Height)

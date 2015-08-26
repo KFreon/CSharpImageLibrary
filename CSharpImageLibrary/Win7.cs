@@ -116,19 +116,55 @@ namespace CSharpImageLibrary
             return new MemoryTributary(imgData);
         }
 
-        internal static bool SaveWithCodecs(object stream)
+        internal static int BuildMipMaps(MemoryTributary pixelData, Stream destination, int Width, int Height)
         {
-            throw new NotImplementedException();
+            Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(pixelData.ToArray(), Width, Height);
+            int determiningDimension = Width > Height ? Height : Width;
+            int newWidth = Width;
+            int newHeight = Height;
+            int count = 1;
+
+            while (determiningDimension > 0)
+            {
+                newWidth /= 2;
+                newHeight /= 2;
+                bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(newWidth, newHeight));
+
+                byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
+                destination.Write(data, 0, data.Length);
+
+                determiningDimension /= 2;
+                count++;
+            }
+
+            return count;
         }
 
-        internal static int BuildMipMaps(Stream pixelData, Stream destination)
+        internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
-            throw new NotImplementedException();
-        }
+            Bitmap bmp = UsefulThings.WinForms.Misc.CreateBitmap(pixelsWithMips.ToArray(), Width, Height);
 
-        internal static bool SaveWithCodecs(Stream pixelsWithMips, Stream destination)
-        {
-            throw new NotImplementedException();
+            // KFreon: Get format
+            System.Drawing.Imaging.ImageFormat imgformat = null;
+            switch (format)
+            {
+                case ImageEngineFormat.BMP:
+                    imgformat = System.Drawing.Imaging.ImageFormat.Bmp;
+                    break;
+                case ImageEngineFormat.JPG:
+                    imgformat = System.Drawing.Imaging.ImageFormat.Jpeg;
+                    break;
+                case ImageEngineFormat.PNG:
+                    imgformat = System.Drawing.Imaging.ImageFormat.Png;
+                    break;
+            }
+
+            if (imgformat == null)
+                throw new InvalidDataException($"Unable to parse format to Windows 7 codec format: {format}");
+
+            bmp.Save(destination, imgformat);
+
+            return true;
         }
     }
 }
