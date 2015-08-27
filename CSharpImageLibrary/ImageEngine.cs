@@ -134,21 +134,21 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_V8U8:
                     return V8U8.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_G8_L8:
-                    return G8_L8.Save(PixelsWithMips, destination);
+                    return G8_L8.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_ATI1:
-                    return BC4_ATI1.Save(PixelsWithMips, destination);
+                    return BC4_ATI1.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                    return BC5_ATI2_3Dc.Save(PixelsWithMips, destination);
+                    return BC5_ATI2_3Dc.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_ARGB:
-                    return RGBA.Save(PixelsWithMips, destination);
+                    return RGBA.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_DXT1:
-                    return BC1.Save(PixelsWithMips, destination);
+                    return BC1.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_DXT2:
                 case ImageEngineFormat.DDS_DXT3:
-                    return BC2.Save(PixelsWithMips, destination);
+                    return BC2.Save(PixelsWithMips, destination, Width, Height, Mips);
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
-                    return BC3.Save(PixelsWithMips, destination);
+                    return BC3.Save(PixelsWithMips, destination, Width, Height, Mips);
             }
 
             // KFreon: NOT any of the above then...

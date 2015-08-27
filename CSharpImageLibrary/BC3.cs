@@ -53,9 +53,40 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        internal static bool Save(Stream pixelsWithMips, Stream destination)
+
+        /// <summary>
+        /// Compress texel to 16 byte BC3 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 RGBA set of pixels.</param>
+        /// <returns>16 byte BC3 compressed block.</returns>
+        private static byte[] CompressBC3Block(byte[] texel)
         {
-            throw new NotImplementedException();
+            byte[] CompressedBlock = new byte[16];
+
+
+            // Compress Alpha
+            byte[] Alpha = DDSGeneral.Compress8BitBlock(texel, 3, false);
+
+            // Compress Colour
+            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, true);
+
+            return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
+        }
+
+
+        /// <summary>
+        /// Saves a texture using BC3 compression.
+        /// </summary>
+        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested)</param>
+        /// <param name="Destination">Stream to save to.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Width.</param>
+        /// <param name="Mips">Number of mips in pixelWithMips (1 if no mips).</param>
+        /// <returns>True if saved successfully.</returns>
+        internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
+        {
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT1);
+            return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC3Block);
         }
     }
 }

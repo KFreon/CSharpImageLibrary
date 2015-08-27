@@ -79,6 +79,7 @@ namespace CSharpImageLibrary
             public int dwReserved2;
         }
 
+        
         /// <summary>
         /// Contains information about DDS Pixel Format.
         /// </summary>
@@ -98,13 +99,22 @@ namespace CSharpImageLibrary
             }
         }
 
-        public static DDS_HEADER Build_DDS_Header(int Mips, int height, int width, ImageEngineFormat surfaceformat)
+
+        /// <summary>
+        /// Builds a header for DDS file format using provided information.
+        /// </summary>
+        /// <param name="Mips">Number of mips in image.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="surfaceformat">DDS FourCC.</param>
+        /// <returns>Header for DDS file.</returns>
+        public static DDS_HEADER Build_DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
         {
             DDS_HEADER header = new DDS_HEADER();
             header.dwSize = 124;
             header.dwFlags = 0x1 | 0x2 | 0x4 | 0x1000 | (Mips != 0 ? 0x20000 : 0x0);  // Flags to denote valid fields: DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT
-            header.dwWidth = width;
-            header.dwHeight = height;
+            header.dwWidth = Width;
+            header.dwHeight = Height;
             header.dwCaps = 0x1000 | 0x8 | (Mips == 0 ? 0 : 0x400000);
             header.dwMipMapCount = Mips == 0 ? 1 : Mips;
             //header.dwPitchOrLinearSize = ((width + 1) >> 1)*4;
@@ -121,9 +131,101 @@ namespace CSharpImageLibrary
             header.ddspf = px;
             return header;
         }
+
+
+        /// <summary>
+        /// Write DDS header to stream via BinaryWriter.
+        /// </summary>
+        /// <param name="header">Populated DDS header by Build_DDS_Header.</param>
+        /// <param name="writer">Stream to write to.</param>
+        public static void Write_DDS_Header(DDS_HEADER header, BinaryWriter writer)
+        {
+            // KFreon: Write magic number ("DDS")
+            writer.Write(0x20534444);
+
+            // KFreon: Write all header fields regardless of filled or not
+            writer.Write(header.dwSize);
+            writer.Write(header.dwFlags);
+            writer.Write(header.dwHeight);
+            writer.Write(header.dwWidth);
+            writer.Write(header.dwPitchOrLinearSize);
+            writer.Write(header.dwDepth);
+            writer.Write(header.dwMipMapCount);
+
+            // KFreon: Write reserved1
+            for (int i = 0; i < 11; i++)
+                writer.Write(0);
+
+            // KFreon: Write PIXELFORMAT
+            DDS_PIXELFORMAT px = header.ddspf;
+            writer.Write(px.dwSize);
+            writer.Write(px.dwFlags);
+            writer.Write(px.dwFourCC);
+            writer.Write(px.dwRGBBitCount);
+            writer.Write(px.dwRBitMask);
+            writer.Write(px.dwGBitMask);
+            writer.Write(px.dwBBitMask);
+            writer.Write(px.dwABitMask);
+
+            writer.Write(header.dwCaps);
+            writer.Write(header.dwCaps2);
+            writer.Write(header.dwCaps3);
+            writer.Write(header.dwCaps4);
+            writer.Write(header.dwReserved2);
+        }
         #endregion Header Stuff
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pixelData"></param>
+        /// <param name="Destination"></param>
+        /// <param name="Width"></param>
+        /// <param name="Height"></param>
+        /// <param name="Mips"></param>
+        /// <param name="header"></param>
+        /// <param name="CompressBlock"></param>
+        /// <returns></returns>
+        internal static bool WriteBlockCompressedDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
+        {
+            Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
+            {
+                byte[] texel = DDSGeneral.GetTexel(pixels, Width);
+                byte[] CompressedBlock = CompressBlock(texel);
+                writer.Write(CompressedBlock);
+            };
+
+            return DDSGeneral.WriteDDS(pixelData, Destination, Width, Height, Mips, header, PixelWriter);
+        }
+
+        internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream> PixelWriter)
+        {
+            try
+            {
+                pixelData.Seek(0, SeekOrigin.Begin);
+                using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
+                {
+                    Write_DDS_Header(header, writer);
+                    for (int m = 1; m < Mips; m++)
+                    {
+                        for (int h = 0; h < Height / Mips; h++)
+                        {
+                            for (int w = 0; w < Width / Mips; w++)
+                            {
+                                PixelWriter(writer, pixelData);
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+                return false;
+            }
+        }
 
 
         #region Loading
@@ -302,17 +404,36 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Compresses RGB channels using Block Compression.
         /// </summary>
-        /// <param name="min">First main colour (often actually minimum.</param>
-        /// <param name="max">Second main colour (often actually maximum.</param>
-        /// <param name="pixelColours">16 pixel texel to compress.</param>
+        /// <param name="texel">16 pixel texel to compress.</param>
         /// <param name="isDXT1">Set true if DXT1.</param>
         /// <returns>8 byte compressed texel.</returns>
-        public static byte[] CompressRGBBlock(int min, int max, int[] pixelColours, bool isDXT1)
+        public static byte[] CompressRGBBlock(byte[] texel, bool isDXT1)
         {
-            if (pixelColours.Length != 16)
-                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {pixelColours.Length}");
+            if (texel.Length != 16)
+                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");
 
             byte[] CompressedBlock = new byte[8];
+
+            // Get Min and Max colours
+            int min = 0;
+            int max = 0;
+            GetRGBMinMax(texel, out min, out max);
+
+            if (isDXT1)
+            {
+                // KFreon: Check alpha (every 4 bytes)
+                for (int i = 0; i < texel.Length; i += 4)
+                {
+                    if (texel[i] != 0) // Alpha found, switch min and max
+                    {
+                        int temp = min;
+                        min = max;
+                        max = temp;
+                        break;
+                    }
+                }
+            }
+
 
             // Write colours
             byte[] colour0 = BitConverter.GetBytes(min);
@@ -330,30 +451,35 @@ namespace CSharpImageLibrary
             // Compress pixels
             for (int i = 0; i < 16; i += 4) // each "row" of 4 pixels is a single byte
             {
-                byte indicies = 0;
+                byte twoIndicies = 0;
                 for (int j = 0; j < 4; j++)
                 {
-                    int colour = pixelColours[i + j];
+                    int colour = texel[i + j];
                     int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
-                    indicies |= (byte)(index << (2 * j));
+                    twoIndicies |= (byte)(index << (2 * j));
                 }
-                CompressedBlock[i / 4 + 4] = indicies;
+                CompressedBlock[i / 4 + 4] = twoIndicies;
             }
 
             return CompressedBlock;
         }
 
-
         /// <summary>
         /// Compresses single channel using Block Compression.
         /// </summary>
-        /// <param name="min">First main colour (often actually minimum)</param>
-        /// <param name="max">Second main colour (often actually maximum)</param>
-        /// <param name="pixelColours">16 pixel texel to compress.</param>
+        /// <param name="texel">4 channel Texel to compress.</param>
+        /// <param name="channel">0-3 (RGBA)</param>
         /// <param name="isSigned">true = uses alpha range -255 -- 255, else 0 -- 255</param>
         /// <returns>8 byte compressed texel.</returns>
-        public static byte[] Compress8BitBlock(byte min, byte max, byte[] pixelColours, bool isSigned)
+        public static byte[] Compress8BitBlock(byte[] texel, int channel, bool isSigned)
         {
+            if (texel.Length != 16)
+                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");
+
+            // KFreon: Get min and max - since it's a single channel, can just get min/max, directly from texel.
+            byte min = texel.Min();
+            byte max = texel.Max();
+
             byte[] CompressedBlock = new byte[8];
 
             // Write Colours
@@ -365,11 +491,13 @@ namespace CSharpImageLibrary
 
             // Compress Pixels
             ulong line = 0;
+            int count = channel;
             for (int i = 0; i < 16; i++)
             {
-                byte colour = pixelColours[i];
+                byte colour = texel[count];
                 int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
                 line |= (ulong)index << (i * 3);
+                count += 4;  // Only need 1 channel
             }
 
             return BitConverter.GetBytes(line);
@@ -418,11 +546,28 @@ namespace CSharpImageLibrary
             return Colours;
         }
 
+        internal static void GetRGBMinMax(byte[] texel, out int min, out int max)
+        {
+            int[] RGB = new int[16];
+            int count = 0;
+            for (int i = 0; i < 64; i += 16) // texel row
+            {
+                for (int j = 0; j < 16; j += 4)  // pixels in row incl RGBA
+                {
+                    int pixelColour = texel[i + j] << 0 | texel[i + j + 1] << 5 | texel[i + j + 2] << 11;  // RGB - NO alpha
+                    RGB[count++] = pixelColour;
+                }
+            }
+
+            min = RGB.Min();
+            max = RGB.Max();
+        }
+
         /// <summary>
         /// Builds a palette for RGB channels (DXT only)
         /// </summary>
-        /// <param name="min">First main colour (often actually minimum)</param>
-        /// <param name="max">Second main colour (often actually maximum)</param>
+        /// <param name="min">First main colour. Often actually the minumum.</param>
+        /// <param name="max">Second main colour. Often actually the maximum.</param>
         /// <param name="isDXT1">true = use DXT1 format (1 bit alpha)</param>
         /// <returns>4 Colours as integers.</returns>
         public static int[] BuildRGBPalette(int min, int max, bool isDXT1)
@@ -450,5 +595,27 @@ namespace CSharpImageLibrary
         }
 
         #endregion Palette
+
+
+
+        internal static byte[] GetTexel(Stream pixelData, int Width)
+        {
+            byte[] texel = new byte[16 * 4]; // 16 pixels, 4 bytes per pixel
+
+            int bitsPerScanLine = 4 * Width;
+            for (int i = 0; i < 64; i+=16)  // pixel rows
+            {
+                for (int j = 0; j < 16; j+=4)  // pixels in row
+                {
+                    for (int k = 0; k < 4; k++) // RGBA
+                    {
+                        texel[i + j + k] = (byte)pixelData.ReadByte();
+                    }
+                }
+                pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);
+            }
+
+            return texel;
+        }
     }
 }

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
-using static CSharpImageLibrary.DDSGeneral;
 
 namespace CSharpImageLibrary
 {
@@ -53,34 +52,16 @@ namespace CSharpImageLibrary
 
         internal static bool Save(Stream pixelData, Stream destination, int Width, int Height, int Mips)
         {
-            try
+            Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
             {
-                DDS_HEADER header = Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_V8U8);
+                writer.Write(pixelData.ReadByte());  // Red
+                writer.Write(pixelData.ReadByte());  // Green
+                pixelData.Position += 2;    // No blue or alpha
+            };
 
 
-                pixelData.Seek(0, SeekOrigin.Begin);
-                using (BinaryWriter writer = new BinaryWriter(destination, Encoding.Default, true))
-                {
-                    for (int m = 1; m < Mips; m++)
-                    {
-                        for (int h = 0; h < Height / Mips; h++)
-                        {
-                            for (int w = 0; w < Width / Mips; w++)
-                            {
-                                writer.Write(pixelData.ReadByte());  // Red
-                                writer.Write(pixelData.ReadByte());  // Green
-                                pixelData.Position += 2;    // No blue or alpha
-                            }
-                        }
-                    }
-                }
-                return true;
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.Message);
-                return false;
-            }
+            var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_V8U8);
+            return DDSGeneral.WriteDDS(pixelData, destination, Width, Height, Mips, header, PixelWriter);
         }
     }
 }

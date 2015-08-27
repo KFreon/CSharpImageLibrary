@@ -49,9 +49,15 @@ namespace CSharpImageLibrary
             return imgData;
         }
 
-        internal static bool Save(Stream pixelsWithMips, Stream destination)
+        internal static bool Save(MemoryTributary pixelsWithMips, Stream destination, int Width, int Height, int Mips)
         {
-            throw new NotImplementedException();
+            var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_ARGB);
+            using (BinaryWriter writer = new BinaryWriter(destination, Encoding.Default, true))
+                DDSGeneral.Write_DDS_Header(header, writer);
+
+            pixelsWithMips.WriteTo(destination);
+
+            return true;
         }
     }
 }

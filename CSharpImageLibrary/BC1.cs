@@ -51,14 +51,30 @@ namespace CSharpImageLibrary
         }
 
 
-        private static List<byte[]> CompressBC1Block(Stream uncompressed)
+        /// <summary>
+        /// Compress texel to 8 byte BC1 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 RGBA group of pixels.</param>
+        /// <returns>8 byte BC1 compressed block.</returns>
+        private static byte[] CompressBC1Block(byte[] texel)
         {
-            
+            return DDSGeneral.CompressRGBBlock(texel, true);
         }
 
-        internal static bool Save(Stream PixelData, Stream Destination)
+
+        /// <summary>
+        /// Saves a texture using BC1 compression.
+        /// </summary>
+        /// <param name="pixelsWithMips">4 channel Stream containing mips (if required).</param>
+        /// <param name="Destination">Stream to save to.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <param name="Mips">Number of mips in pixelsWithMips (1 if no mips).</param>
+        /// <returns>True if saved successfully.</returns>
+        internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
         {
-            // Loop over texels
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT1);
+            return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC1Block);
         }
     }
 }

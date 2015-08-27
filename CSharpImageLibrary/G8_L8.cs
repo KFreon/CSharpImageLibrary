@@ -46,12 +46,19 @@ namespace CSharpImageLibrary
                 return blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
             };
 
-            return DDSGeneral.LoadUncompressed(stream, 1, out Width, out Height, PixelReader);
+            return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
         }
 
-        internal static bool Save(Stream pixelsWithMips, Stream destination)
+        internal static bool Save(Stream pixelData, Stream destination, int Width, int Height, int Mips)
         {
-            throw new NotImplementedException();
+            Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
+            {
+                writer.Write(pixels.ReadByte());  // Red
+                pixels.Position += 3;    // No green, blue, or alpha
+            };
+
+            var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_G8_L8);
+            return DDSGeneral.WriteDDS(pixelData, destination, Width, Height, Mips, header, PixelWriter);
         }
     }
 }

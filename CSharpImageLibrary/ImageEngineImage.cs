@@ -89,11 +89,12 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="destination">File to save to.</param>
         /// <param name="format">Format to save as.</param>
-        /// <returns>True if success</returns>
-        public bool Save(string destination, ImageEngineFormat format)
+        /// <param name="GenerateMips">Tr</param>
+        /// <returns>True = Generates all mipmaps. False = Uses largest available Mipmap.</returns>
+        public bool Save(string destination, ImageEngineFormat format, bool GenerateMips)
         {
             using (FileStream fs = new FileStream(destination, FileMode.Create))
-                return Save(fs, format);
+                return Save(fs, format, GenerateMips);
         }
 
 
@@ -102,10 +103,11 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="destination">Stream to save to.</param>
         /// <param name="format">Format to save as.</param>
+        /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <returns>True if success</returns>
-        public bool Save(Stream destination, ImageEngineFormat format)
+        public bool Save(Stream destination, ImageEngineFormat format, bool GenerateMips)
         {
-            return ImageEngine.Save(PixelData, format, destination, Width, Height);
+            return ImageEngine.Save(PixelData, format, destination, Width, Height, GenerateMips);
         }
 
         /// <summary>

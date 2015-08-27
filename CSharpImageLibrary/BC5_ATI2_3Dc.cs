@@ -48,8 +48,8 @@ namespace CSharpImageLibrary
         /// <returns>16 pixel RGBA channels.</returns>
         private static List<byte[]> DecompressATI2Block(Stream compressed)
         {
-            byte[] red = DDSGeneral.Decompress8BitBlock(compressed);
-            byte[] green = DDSGeneral.Decompress8BitBlock(compressed);
+            byte[] red = DDSGeneral.Decompress8BitBlock(compressed, false);
+            byte[] green = DDSGeneral.Decompress8BitBlock(compressed, false);
             List<byte[]> DecompressedBlock = new List<byte[]>();
             DecompressedBlock.Add(red);
             DecompressedBlock.Add(green);
@@ -59,9 +59,34 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        internal static bool Save(Stream pixelsWithMips, Stream destination)
+
+        /// <summary>
+        /// Compresses texel to 16 byte BC5 block.
+        /// </summary>
+        /// <param name="texel">4x4 RGBA set of pixels.</param>
+        /// <returns>16 byte BC5 block.</returns>
+        private static byte[] CompressBC5Block(byte[] texel)
         {
-            throw new NotImplementedException();
+            byte[] red = DDSGeneral.Compress8BitBlock(texel, 0, false);
+            byte[] green = DDSGeneral.Compress8BitBlock(texel, 1, false);
+
+            return red.Concat(green).ToArray(red.Length + green.Length);
+        }
+
+
+        /// <summary>
+        /// Saves texture using BC5 compression.
+        /// </summary>
+        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested).</param>
+        /// <param name="Destination">Stream to save to.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <param name="Mips">Number of mips in pixelsWithMips (1 if no mips).</param>
+        /// <returns>True if saved successfully.</returns>
+        internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
+        {
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_ATI2_3Dc);
+            return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC5Block);
         }
     }
 }

@@ -51,7 +51,7 @@ namespace CSharpImageLibrary
         /// <returns>RGBA channels (16 bits each)</returns>
         private static List<byte[]> DecompressATI1(Stream compressed)
         {
-            byte[] channel = DDSGeneral.Decompress8BitBlock(compressed);
+            byte[] channel = DDSGeneral.Decompress8BitBlock(compressed, false);
             List<byte[]> DecompressedBlock = new List<byte[]>();
             DecompressedBlock.Add(channel);
             DecompressedBlock.Add(channel);
@@ -60,9 +60,31 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        internal static bool Save(Stream pixelsWithMips, Stream destination)
+
+        /// <summary>
+        /// Compress texel to 8 byte BC4 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 RGBA set of pixels.</param>
+        /// <returns>8 byte BC4 compressed block.</returns>
+        private static byte[] CompressBC4Block(byte[] texel)
         {
-            throw new NotImplementedException();
+            return DDSGeneral.Compress8BitBlock(texel, 0, false);
+        }
+
+
+        /// <summary>
+        /// Saves texture using BC4 compression.
+        /// </summary>
+        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested).</param>
+        /// <param name="Destination">Stream to save to.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <param name="Mips">Number of mips in pixelsWithMips (1 if no mips).</param>
+        /// <returns>True if saved successfully.</returns>
+        internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
+        {
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_ATI1);
+            return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC4Block);
         }
     }
 }
