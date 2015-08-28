@@ -166,5 +166,13 @@ namespace CSharpImageLibrary
 
             return true;
         }
+
+        internal static MemoryTributary GenerateThumbnail(Stream stream, int newWidth, int newHeight)
+        {
+            Bitmap bmp = new Bitmap(stream);
+            Bitmap resized = new Bitmap(bmp, new Size(newWidth, newHeight));
+            byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(resized);
+            return new MemoryTributary(data);
+        }
     }
 }

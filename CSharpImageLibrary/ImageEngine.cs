@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
+using System.Runtime.InteropServices;
 
 namespace CSharpImageLibrary
 {
@@ -32,7 +33,8 @@ namespace CSharpImageLibrary
         /// </summary>
         static ImageEngine()
         {
-            WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            //WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            WindowsWICCodecsAvailable = false;
         }
 
 
@@ -45,32 +47,15 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="Format">Detected image format.</param>
         /// <returns>Raw pixel data as stream.</returns>
-        public static MemoryTributary LoadImage(string imagePath, out int Width, out int Height, out Format Format)
+        internal static MemoryTributary LoadImage(string imagePath, out int Width, out int Height, out Format Format)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return LoadImage(fs, out Width, out Height, out Format);
         }
 
-
-        /// <summary>
-        /// Loads image from image stream.
-        /// </summary>
-        /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
-        /// <param name="Format">Image format (dds surfaces, jpg, png, etc)</param>
-        /// <param name="extension">Extension of original file. Leave null to guess.</param>
-        /// <returns>RGBA pixels.</returns>
-        public static MemoryTributary LoadImage(Stream stream, out int Width, out int Height, out Format Format, string extension = null)
+        private static MemoryTributary LoadEsoterics(Stream stream, out int Width, out int Height, Format Format)
         {
-            Width = 0;
-            Height = 0;
-            Format = new Format();
-
-            // KFreon: See if image is built-in codec agnostic.
-            Format test = ImageFormats.ParseFormat(stream, extension);
-
-            switch (test.InternalFormat)
+            switch (Format.InternalFormat)
             {
                 case ImageEngineFormat.DDS_V8U8:
                     return V8U8.Load(stream, out Width, out Height);
@@ -84,34 +69,139 @@ namespace CSharpImageLibrary
                     return RGBA.Load(stream, out Width, out Height);
             }
 
+            Width = 0;
+            Height = 0;
+            return null;
+        }
+
+        /// <summary>
+        /// Loads image from image stream.
+        /// </summary>
+        /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <param name="Format">Image format (dds surfaces, jpg, png, etc)</param>
+        /// <param name="extension">Extension of original file. Leave null to guess.</param>
+        /// <returns>RGBA pixels.</returns>
+        internal static MemoryTributary LoadImage(Stream stream, out int Width, out int Height, out Format Format, string extension = null)
+        {
+            Width = 0;
+            Height = 0;
+
+            // KFreon: See if image is built-in codec agnostic.
+            Format = ImageFormats.ParseFormat(stream, extension);
+
+            MemoryTributary output = LoadEsoterics(stream, out Width, out Height, Format);
+            if (output != null)
+                return output;
+
             // KFreon: NOT any of the above then...
 
             // KFreon: Try loading with built in codecs
+            return LoadWithCodecs(stream, out Width, out Height, Format.InternalFormat);
+        }
+
+        private static MemoryTributary LoadWithCodecs(Stream stream, out int Width, out int Height, ImageEngineFormat Format, int decodeWidth = 0, int decodeHeight = 0)
+        {
             if (WindowsWICCodecsAvailable)
-                return Win8_10.LoadWithCodecs(stream, out Width, out Height);
+                return Win8_10.LoadWithCodecs(stream, out Width, out Height, decodeWidth, decodeHeight);
             else
             {
+                int height = 0;
+                int width = 0;
+
                 // KFreon: Handle DXT formats - all other DDS formats are above
-                switch (Format.InternalFormat)
+                MemoryTributary outstream = null;
+                switch (Format)
                 {
                     case ImageEngineFormat.DDS_DXT1:
-                        return BC1.Load(stream, out Width, out Height);
+                        outstream = BC1.Load(stream, out width, out height);
+                        break;
                     case ImageEngineFormat.DDS_DXT2:
                     case ImageEngineFormat.DDS_DXT3:
-                        return BC2.Load(stream, out Width, out Height);
+                        outstream = BC2.Load(stream, out width, out height);
+                        break;
                     case ImageEngineFormat.DDS_DXT4:
                     case ImageEngineFormat.DDS_DXT5:
-                        return BC3.Load(stream, out Width, out Height);
+                        outstream = BC3.Load(stream, out width, out height);
+                        break;
                 }
 
-                // KFreon: None of those, so assume standard image formats (jpg, png, etc)
-                return Win7.LoadImageWithCodecs(stream, out Width, out Height);
+                bool needsResize = decodeWidth != 0 || decodeHeight != 0;
+                if (outstream == null)
+                {
+                    // KFreon: None of those, so assume standard image formats (jpg, png, etc)
+                    outstream = Win7.LoadImageWithCodecs(stream, out width, out height);
+                }
+
+                if (outstream == null)
+                    throw new InvalidDataException("Image incompatable with Windows 7 and/or internal codecs.");
+
+                
+
+                if (needsResize)
+                {
+                    System.Drawing.Bitmap img = new System.Drawing.Bitmap(outstream);
+                    System.Drawing.Bitmap newimg = (System.Drawing.Bitmap)UsefulThings.WinForms.Misc.resizeImage(img, new System.Drawing.Size(decodeWidth, decodeHeight));
+
+                    Width = decodeWidth;
+                    Height = decodeHeight;
+                    return new MemoryTributary(UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(newimg));
+                }
+                else
+                {
+                    Width = width;
+                    Height = height;
+                    return outstream;
+                }
             }
+        }
+
+        internal static MemoryTributary LoadImage(string imagePath, out int Width, out int Height, out Format Format, int desiredMaxDimension)
+        {
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                return LoadImage(fs, out Width, out Height, out Format, Path.GetExtension(imagePath), desiredMaxDimension);
+        }
+
+        internal static MemoryTributary LoadImage(Stream stream, out int Width, out int Height, out Format Format, string extension, int desiredMaxDimension)
+        {
+            Width = 0;
+            Height = 0;
+
+            // KFreon: See if image is built-in codec agnostic.
+            Format = ImageFormats.ParseFormat(stream, extension);
+
+            MemoryTributary output = LoadEsoterics(stream, out Width, out Height, Format);
+            if (output != null)
+            {
+                // scale and return;
+                if (WindowsWICCodecsAvailable)
+                {
+                    int stride = 4 * (Width * 32 + 31) / 32;
+                    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
+                    BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, output.ToArray(), stride));
+                    encoder.Frames.Add(frame);
+                    output = new MemoryTributary();
+                    encoder.Save(output);
+                    return output;
+                }
+                else
+                {
+                    System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(Width, Height);
+                    var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, Width, Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                    byte[] pixels = new byte[output.Length];
+                    Marshal.Copy(data.Scan0, pixels, 0, (int)output.Length);
+                    bmp.UnlockBits(data);
+                    return new MemoryTributary(pixels);
+                }
+            }
+            else
+                return LoadWithCodecs(stream, out Width, out Height, Format.InternalFormat, Width > Height ? 0 : desiredMaxDimension, Height > Width ? 0 : desiredMaxDimension);
         }
         #endregion Loading
 
 
-        public static bool Save(MemoryTributary PixelData, ImageEngineFormat format, Stream destination, int Width, int Height, bool GenerateMips)
+        internal static bool Save(MemoryTributary PixelData, ImageEngineFormat format, Stream destination, int Width, int Height, bool GenerateMips)
         {
             MemoryTributary PixelsWithMips = new MemoryTributary();
             int Mips = 1;
@@ -166,6 +256,23 @@ namespace CSharpImageLibrary
                 return Win8_10.BuildMipMaps(PixelData, destination, Width, Height);
             else
                 return Win7.BuildMipMaps(PixelData, destination, Width, Height);
+        }
+
+        public static MemoryTributary GenerateThumbnail(Stream stream, ImageEngineFormat sourceFormat, int newWidth, int newHeight)
+        {
+            // KFreon: No codecs save any DDS', so use mine/everyone elses
+            if (sourceFormat.ToString().Contains("DDS"))
+            {
+                /*ImageEngineImage img = new ImageEngineImage(stream, "dds");
+                img.Save()*/
+                // TODO: Needs fixing
+            }
+
+            // jpg, bmp, png
+            if (WindowsWICCodecsAvailable)
+                return Win8_10.GenerateThumbnail(stream, newWidth, newHeight);
+            else
+                return Win7.GenerateThumbnail(stream, newWidth, newHeight);
         }
     }
 }

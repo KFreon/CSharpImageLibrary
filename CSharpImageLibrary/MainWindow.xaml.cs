@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using UsefulThings.WPF;
+using System.Diagnostics;
 
 namespace CSharpImageLibrary
 {
@@ -103,8 +104,22 @@ namespace CSharpImageLibrary
 
         public void LoadImage(string path)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             ImageEngineImage img = new ImageEngineImage(path);
+
+            Debug.WriteLine("");
+            Debug.WriteLine($"Format: {img.Format}");
+            Debug.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
+
+
+            stopwatch.Restart();
+
             Preview = img.GeneratePreview();
+
+            Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
+            stopwatch.Stop();
 
             Format = img.Format.InternalFormat.ToString();
             ImagePath = path;

@@ -83,6 +83,38 @@ namespace CSharpImageLibrary
             Format = format;
         }
 
+        public ImageEngineImage(string imagePath, int desiredMaxDimension)
+        {
+            int width = 0;
+            int height = 0;
+            Format format = new Format();
+            FilePath = imagePath;
+
+            // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
+            PixelData = ImageEngine.LoadImage(imagePath, out width, out height, out format, desiredMaxDimension);
+
+
+            // KFreon: Can't pass properties as out :(
+            Width = width;
+            Height = height;
+            Format = format;
+        }
+
+
+        public ImageEngineImage(Stream stream, string extension, int desiredMaxDimension)
+        {
+            int width = 0;
+            int height = 0;
+            Format format = new Format();
+
+            // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
+            PixelData = ImageEngine.LoadImage(stream, out width, out height, out format, extension, desiredMaxDimension);
+
+            Width = width;
+            Height = height;
+            Format = format;
+        }
+
 
         /// <summary>
         /// Saves image in specified format to file. If file exists, it will be overwritten.

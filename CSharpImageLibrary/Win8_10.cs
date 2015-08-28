@@ -19,6 +19,11 @@ namespace CSharpImageLibrary
     {
         static bool WindowsCodecsAvailable = true;
 
+        static Win8_10()
+        {
+            Console.WriteLine();
+        }
+
         /// <summary>
         /// Tests whether Windows WIC Codecs are present.
         /// </summary>
@@ -29,7 +34,7 @@ namespace CSharpImageLibrary
 
             try
             {
-                BitmapImage bmp = AttemptUsingWindowsCodecs(testData);
+                BitmapImage bmp = AttemptUsingWindowsCodecs(testData, 0, 0);
 
                 if (bmp == null)
                 {
@@ -52,7 +57,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <returns></returns>
-        private static BitmapImage AttemptUsingWindowsCodecs(string imagePath)
+        private static BitmapImage AttemptUsingWindowsCodecs(string imagePath, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
                 return null;
@@ -60,7 +65,7 @@ namespace CSharpImageLibrary
             BitmapImage img = null;
             try
             {
-                img = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath);
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(imagePath, decodeWidth, decodeHeight);
             }
             catch (FileFormatException fileformatexception)
             {
@@ -79,7 +84,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="ImageFileData">Entire image file. NOT raw pixel data.</param>
         /// <returns></returns>
-        private static BitmapImage AttemptUsingWindowsCodecs(byte[] ImageFileData)
+        private static BitmapImage AttemptUsingWindowsCodecs(byte[] ImageFileData, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
                 return null;
@@ -87,7 +92,7 @@ namespace CSharpImageLibrary
             BitmapImage img = null;
             try
             {
-                img = UsefulThings.WPF.Images.CreateWPFBitmap(ImageFileData);
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(ImageFileData, decodeWidth, decodeHeight);
             }
             catch (FileFormatException fileformatexception)
             {
@@ -107,8 +112,10 @@ namespace CSharpImageLibrary
         /// Returns null if unable to.
         /// </summary>
         /// <param name="stream">Stream containing entire file. NOT raw pixels.</param>
-        /// <returns>BitmapImage of </returns>
-        private static BitmapImage AttemptUsingWindowsCodecs(Stream stream)
+        /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
+        /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
+        /// <returns>BitmapImage of stream.</returns>
+        private static BitmapImage AttemptUsingWindowsCodecs(Stream stream, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
                 return null;
@@ -116,7 +123,7 @@ namespace CSharpImageLibrary
             BitmapImage img = null;
             try
             {
-                img = UsefulThings.WPF.Images.CreateWPFBitmap(stream);
+                img = UsefulThings.WPF.Images.CreateWPFBitmap(stream, decodeWidth, decodeHeight);
             }
             catch (FileFormatException fileformatexception)
             {
@@ -137,9 +144,8 @@ namespace CSharpImageLibrary
         /// <param name="bmp">Image to load.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="extension">Image file extension. Leave null to guess.</param>
         /// <returns>RGBA pixel data as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(BitmapImage bmp, out int Width, out int Height, string extension = null)
+        internal static MemoryTributary LoadWithCodecs(BitmapImage bmp, out int Width, out int Height)
         {
             // KFreon: Round up - some weird bug where bmp's would be 1023.4 or something.
             Height = (int)Math.Ceiling(bmp.Height);
@@ -155,8 +161,10 @@ namespace CSharpImageLibrary
         /// <param name="imageFile">Path to image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
+        /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
+        /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(string imageFile, out int Width, out int Height)
+        internal static MemoryTributary LoadWithCodecs(string imageFile, out int Width, out int Height, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
             {
@@ -166,7 +174,8 @@ namespace CSharpImageLibrary
             }
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
+                //return LoadWithCodecs(fs, out Width, out Height, decodeWidth, decodeHeight, Path.GetExtension(imageFile));
+                return LoadWithCodecs(fs, out Width, out Height, decodeWidth, decodeHeight);
         }
 
         internal static int BuildMipMaps(Stream pixelData, Stream destination, int Width, int Height)
@@ -219,6 +228,13 @@ namespace CSharpImageLibrary
             return true;
         }
 
+        internal static MemoryTributary GenerateThumbnail(Stream stream, int newWidth, int newHeight)
+        {
+            int Width;
+            int Height;
+            return LoadWithCodecs(stream, out Width, out Height, newWidth, newHeight);
+        }
+
 
         /// <summary>
         /// Loads useful information from image stream using Windows 8.1+ codecs.
@@ -226,9 +242,10 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="extension">Extension of original file. Leave null to guess.</param>
+        /// <param name="decodeWidth">Width to decode as. Aspect ratio unchanged if decodeHeight = 0.</param>
+        /// <param name="decodeHeight">Height to decode as. Aspect ratio unchanged if decodeWidth = 0.</param>
         /// <returns>RGBA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
+        internal static MemoryTributary LoadWithCodecs(Stream stream, out int Width, out int Height, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
             {
@@ -237,7 +254,7 @@ namespace CSharpImageLibrary
                 return null;
             }
 
-            BitmapImage bmp = AttemptUsingWindowsCodecs(stream);
+            BitmapImage bmp = AttemptUsingWindowsCodecs(stream, decodeWidth, decodeHeight);
             if (bmp == null)
             {
                 Width = 0;
@@ -245,7 +262,7 @@ namespace CSharpImageLibrary
                 return null;
             }
 
-            return LoadImageWithCodecs(bmp, out Width, out Height, extension);
+            return LoadWithCodecs(bmp, out Width, out Height);
         }
     }
 }
