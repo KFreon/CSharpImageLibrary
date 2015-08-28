@@ -353,24 +353,59 @@ namespace CSharpImageLibrary
         /// Decompresses a 3 channel (RGB) block.
         /// </summary>
         /// <param name="compressed">Compressed image data.</param>
+        /// <param name="isDXT1">True = DXT1, otherwise false.</param>
         /// <returns>16 pixel RGBA channels.</returns>
-        internal static List<byte[]> DecompressRGBBlock(Stream compressed)
+        internal static List<byte[]> DecompressRGBBlock(Stream compressed, bool isDXT1)
         {
-            int[] DecompressedBlock = new int[16];
+            byte[] DecompressedBlock = new byte[16];
             int[] Colours = new int[4];
 
             // Read min max colours
-            Colours[0] = compressed.ReadByte() << 0 | compressed.ReadByte() << 8;
-            Colours[1] = compressed.ReadByte() << 0 | compressed.ReadByte() << 8;
+            BinaryReader reader = new BinaryReader(compressed);
+            ushort min = (ushort)reader.ReadInt16();
 
-            // Interpolate other 2 colours
-            Colours[2] = 2 / 3 * Colours[0] + 1 / 3 * Colours[1];
-            Colours[3] = 1 / 3 * Colours[0] + 2 / 3 * Colours[1];
+            byte r = (byte)((min & 0x1F));
+            byte g = (byte)((min & 0x7E0) >> 5);
+            byte b = (byte)((min & 0xF800) >> 11);
+
+            byte r1 = (byte)(r << 3 | r >> 2);  // still mixed up somehow. FIGURE THIS OUT
+            byte g1 = (byte)(g << 2 | g >> 3);
+            byte b1 = (byte)(b << 3 | b >> 2);
+
+            ushort max = (ushort)reader.ReadInt16();
+            r = (byte)((max & 0x1F));
+            g = (byte)((max & 0x7E0) >> 5);
+            b = (byte)((max & 0xF800) >> 11);
+
+            /*byte test1 = (byte)compressed.ReadByte();
+            byte test2 = (byte)compressed.ReadByte();
+
+            byte test3 = (byte)compressed.ReadByte();
+            byte test4 = (byte)compressed.ReadByte();*/
+
+            /*int min = test1 << 0 | test2 << 8;
+            int max = test3 << 0 | test4 << 8;*/
+
+            Colours = BuildRGBPalette(min, max, isDXT1);
 
             // Decompress pixels
-            byte bitmask = (byte)compressed.ReadByte();
-            for (int i = 0; i < 16; i++)
-                DecompressedBlock[i] = Colours[bitmask >> (2 * i) & 0x03];
+            for (int i = 0; i < 16; i+=4)
+            {
+                byte bitmask = (byte)compressed.ReadByte();
+                Debug.WriteLine($"bitmask: {bitmask}");
+                for (int j = 0; j < 4; j++)
+                    DecompressedBlock[i + j] = (byte)Colours[bitmask >> (2 * j) & 0x03];
+            }
+                
+
+            for (int i = 0; i < 16; i += 4)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    Debug.Write(DecompressedBlock[i + j] + " ");
+                }
+                Debug.WriteLine("");
+            }
 
             // KFreon: Decode into RGBA
             List<byte[]> DecompressedChannels = new List<byte[]>();
@@ -378,21 +413,29 @@ namespace CSharpImageLibrary
             byte[] green = new byte[16];
             byte[] blue = new byte[16];
             byte[] alpha = new byte[16];
+            DecompressedChannels.Add(red);
+            DecompressedChannels.Add(green);
+            DecompressedChannels.Add(blue);
+            DecompressedChannels.Add(alpha);
 
             for (int i = 0; i < 16; i++)
             {
-                int colour = DecompressedBlock[i];
+                byte colour = DecompressedBlock[i];
                 if (colour == 0)
                     alpha[i] = 255;
                 else
                 {
                     /*red[i] = (byte)(colour >> 11 & 31); // Top 5 bits
                     green[i] = (byte)(colour >> 5 & 63);   // Middle 6 bits
-                    blue[i] = (byte)(colour & 31);  // Low 5 bits*/
+                    blue[i] = (byte)(colour & 31); */ // Low 5 bits
 
-                    red[i] = (byte)(colour >> 11 & 0x1F); // Top 5 bits
-                    green[i] = (byte)(colour >> 5 & 0x3F);   // Middle 6 bits
-                    blue[i] = (byte)(colour & 0x1F);  // Low 5 bits
+                    /*red[i] = (byte)(colour & 0xF800); // Top 5 bits
+                    green[i] = (byte)(colour & 0x07E0);   // Middle 6 bits
+                    blue[i] = (byte)(colour & 0x001F); // Low 5 bits*/
+
+                    red[i] = (byte)(colour >> 11 & 0x1F);
+                    green[i] = (byte)(colour >> 5 & 0x3F);
+                    blue[i] = (byte)(colour >> 0 & 0x1F);
                 }
             }
             return DecompressedChannels;
@@ -576,7 +619,6 @@ namespace CSharpImageLibrary
             Colours[0] = min;
             Colours[1] = max;
 
-            Debugger.Break();
 
             // Interpolate other 2 colours
             if (min > max && !isDXT1)

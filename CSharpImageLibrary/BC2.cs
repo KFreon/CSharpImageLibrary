@@ -58,7 +58,7 @@ namespace CSharpImageLibrary
                     
 
             // KFreon: Organise output by adding alpha channel (channel read in RGB block is empty)
-            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed);
+            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed, false);
             DecompressedBlock[3] = alpha;
             return DecompressedBlock;
         }

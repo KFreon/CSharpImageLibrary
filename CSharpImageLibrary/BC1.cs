@@ -47,7 +47,7 @@ namespace CSharpImageLibrary
         /// <returns>RGBA channels.</returns>
         private static List<byte[]> DecompressBC1Block(Stream compressed)
         {
-            return DDSGeneral.DecompressRGBBlock(compressed);
+            return DDSGeneral.DecompressRGBBlock(compressed, true);
         }
 
 

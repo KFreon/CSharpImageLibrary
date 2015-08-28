@@ -48,7 +48,7 @@ namespace CSharpImageLibrary
         private static List<byte[]> DecompressBC3(Stream compressed)
         {
             byte[] alpha = DDSGeneral.Decompress8BitBlock(compressed, false);
-            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed);
+            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed, false);
             DecompressedBlock[3] = alpha;
             return DecompressedBlock;
         }
