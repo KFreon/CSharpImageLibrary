@@ -235,7 +235,7 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, RGBA)</param>
+        /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, BGRA)</param>
         /// <returns></returns>
         internal static MemoryTributary LoadUncompressed(Stream stream, out int Width, out int Height, Func<Stream, int> PixelReader)
         {
@@ -272,7 +272,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <param name="DecompressBlock">Format specific block decompressor.</param>
-        /// <returns>16 pixel RGBA channels.</returns>
+        /// <returns>16 pixel BGRA channels.</returns>
         internal static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out int Width, out int Height, Func<Stream, List<byte[]>> DecompressBlock)
         {
             DDS_HEADER header;
@@ -300,7 +300,7 @@ namespace CSharpImageLibrary
                     {
                         for (int j = 0; j < 4; j++)
                         {
-                            // RGBA
+                            // BGRA
                             imgData.WriteByte(decompressed[0][i + j]);
                             imgData.WriteByte(decompressed[1][i + j]);
                             imgData.WriteByte(decompressed[2][i + j]);
@@ -377,7 +377,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="compressed">Compressed image data.</param>
         /// <param name="isDXT1">True = DXT1, otherwise false.</param>
-        /// <returns>16 pixel RGBA channels.</returns>
+        /// <returns>16 pixel BGRA channels.</returns>
         internal static List<byte[]> DecompressRGBBlock(Stream compressed, bool isDXT1)
         {
             int[] DecompressedBlock = new int[16];
@@ -397,7 +397,7 @@ namespace CSharpImageLibrary
                     DecompressedBlock[i + j] = Colours[bitmask >> (2 * j) & 0x03];
             }
 
-            // KFreon: Decode into RGBA
+            // KFreon: Decode into BGRA
             List<byte[]> DecompressedChannels = new List<byte[]>();
             byte[] red = new byte[16];
             byte[] green = new byte[16];
@@ -494,7 +494,7 @@ namespace CSharpImageLibrary
         /// Compresses single channel using Block Compression.
         /// </summary>
         /// <param name="texel">4 channel Texel to compress.</param>
-        /// <param name="channel">0-3 (RGBA)</param>
+        /// <param name="channel">0-3 (BGRA)</param>
         /// <param name="isSigned">true = uses alpha range -255 -- 255, else 0 -- 255</param>
         /// <returns>8 byte compressed texel.</returns>
         public static byte[] Compress8BitBlock(byte[] texel, int channel, bool isSigned)
@@ -578,7 +578,7 @@ namespace CSharpImageLibrary
             int count = 0;
             for (int i = 0; i < 64; i += 16) // texel row
             {
-                for (int j = 0; j < 16; j += 4)  // pixels in row incl RGBA
+                for (int j = 0; j < 16; j += 4)  // pixels in row incl BGRA
                 {
                     int pixelColour = texel[i + j] << 0 | texel[i + j + 1] << 5 | texel[i + j + 2] << 11;  // RGB - NO alpha
                     RGB[count++] = pixelColour;
@@ -632,7 +632,7 @@ namespace CSharpImageLibrary
             {
                 for (int j = 0; j < 16; j+=4)  // pixels in row
                 {
-                    for (int k = 0; k < 4; k++) // RGBA
+                    for (int k = 0; k < 4; k++) // BGRA
                     {
                         texel[i + j + k] = (byte)pixelData.ReadByte();
                     }

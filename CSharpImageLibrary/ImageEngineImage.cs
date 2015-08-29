@@ -32,7 +32,7 @@ namespace CSharpImageLibrary
         public Format Format { get; private set; }
 
         /// <summary>
-        /// Raw pixel data for image - RGBA only, no compression - NO MIPS! Single level.
+        /// Raw pixel data for image - BGRA only, no compression - NO MIPS! Single level.
         /// </summary>
         public MemoryTributary PixelData { get; private set; }
 
@@ -53,7 +53,7 @@ namespace CSharpImageLibrary
             Format format = new Format();
             FilePath = imagePath;
 
-            // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
+            // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
             PixelData = ImageEngine.LoadImage(imagePath, out width, out height, out format);
 
 
@@ -75,7 +75,7 @@ namespace CSharpImageLibrary
             int height = 0;
             Format format = new Format();
 
-            // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
+            // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
             PixelData = ImageEngine.LoadImage(stream, out width, out height, out format, extension);
 
             Width = width;
@@ -90,7 +90,7 @@ namespace CSharpImageLibrary
             Format format = new Format();
             FilePath = imagePath;
 
-            // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
+            // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
             PixelData = ImageEngine.LoadImage(imagePath, out width, out height, out format, desiredMaxDimension);
 
 
@@ -107,7 +107,7 @@ namespace CSharpImageLibrary
             int height = 0;
             Format format = new Format();
 
-            // KFreon: Load image and save useful information including RGBA pixel data - may be processed from original into this form.
+            // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
             PixelData = ImageEngine.LoadImage(stream, out width, out height, out format, extension, desiredMaxDimension);
 
             Width = width;

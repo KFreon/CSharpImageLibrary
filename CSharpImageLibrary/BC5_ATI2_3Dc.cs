@@ -20,7 +20,7 @@ namespace CSharpImageLibrary
         /// <param name="imagePath">Path to image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA pixels.</returns>
+        /// <returns>BGRA pixels.</returns>
         internal static MemoryTributary Load(string imagePath, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -34,7 +34,7 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA pixels.</returns>
+        /// <returns>BGRA pixels.</returns>
         internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             return DDSGeneral.LoadBlockCompressedTexture(stream, out Width, out Height, DecompressATI2Block);
@@ -45,7 +45,7 @@ namespace CSharpImageLibrary
         /// Decompresses ATI2 (BC5) block.
         /// </summary>
         /// <param name="compressed">Compressed data stream.</param>
-        /// <returns>16 pixel RGBA channels.</returns>
+        /// <returns>16 pixel BGRA channels.</returns>
         private static List<byte[]> DecompressATI2Block(Stream compressed)
         {
             byte[] red = DDSGeneral.Decompress8BitBlock(compressed, false);
@@ -63,7 +63,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Compresses texel to 16 byte BC5 block.
         /// </summary>
-        /// <param name="texel">4x4 RGBA set of pixels.</param>
+        /// <param name="texel">4x4 BGRA set of pixels.</param>
         /// <returns>16 byte BC5 block.</returns>
         private static byte[] CompressBC5Block(byte[] texel)
         {

@@ -19,7 +19,7 @@ namespace CSharpImageLibrary
         /// <param name="imageFile">Path to image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA Pixel data as stream.</returns>
+        /// <returns>BGRA Pixel data as stream.</returns>
         internal static MemoryTributary Load(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -33,7 +33,7 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA Pixel Data as stream.</returns>
+        /// <returns>BGRA Pixel Data as stream.</returns>
         internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.

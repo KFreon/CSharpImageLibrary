@@ -20,7 +20,7 @@ namespace CSharpImageLibrary
         /// <param name="imagePath">Path to V8U8 image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA Pixel data as stream.</returns>
+        /// <returns>BGRA Pixel data as stream.</returns>
         internal static MemoryTributary Load(string imagePath, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -34,7 +34,7 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing entire V8U8 image. Not just Pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA Pixel data as stream.</returns>
+        /// <returns>BGRA Pixel data as stream.</returns>
         internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.

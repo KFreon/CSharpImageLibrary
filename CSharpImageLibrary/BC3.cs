@@ -19,7 +19,7 @@ namespace CSharpImageLibrary
         /// <param name="imageFile">Path to image file.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>16 byte RGBA channels as stream.</returns>
+        /// <returns>16 byte BGRA channels as stream.</returns>
         internal static MemoryTributary Load(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -33,7 +33,7 @@ namespace CSharpImageLibrary
         /// <param name="compressed">Stream containing entire image file. NOT just pixels.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>16 byte RGBA channels as stream.</returns>
+        /// <returns>16 byte BGRA channels as stream.</returns>
         internal static MemoryTributary Load(Stream compressed, out int Width, out int Height)
         {
             return DDSGeneral.LoadBlockCompressedTexture(compressed, out Width, out Height, DecompressBC3);
@@ -44,7 +44,7 @@ namespace CSharpImageLibrary
         /// Reads a 16 byte BC3 compressed block from stream.
         /// </summary>
         /// <param name="compressed">BC3 compressed image stream.</param>
-        /// <returns>List of RGBA channels.</returns>
+        /// <returns>List of BGRA channels.</returns>
         private static List<byte[]> DecompressBC3(Stream compressed)
         {
             byte[] alpha = DDSGeneral.Decompress8BitBlock(compressed, false);
@@ -57,7 +57,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Compress texel to 16 byte BC3 compressed block.
         /// </summary>
-        /// <param name="texel">4x4 RGBA set of pixels.</param>
+        /// <param name="texel">4x4 BGRA set of pixels.</param>
         /// <returns>16 byte BC3 compressed block.</returns>
         private static byte[] CompressBC3Block(byte[] texel)
         {

@@ -82,7 +82,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="Format">Image format (dds surfaces, jpg, png, etc)</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
-        /// <returns>RGBA pixels.</returns>
+        /// <returns>BGRA pixels.</returns>
         internal static MemoryTributary LoadImage(Stream stream, out int Width, out int Height, out Format Format, string extension = null)
         {
             Width = 0;

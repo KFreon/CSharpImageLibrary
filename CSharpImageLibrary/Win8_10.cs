@@ -144,7 +144,7 @@ namespace CSharpImageLibrary
         /// <param name="bmp">Image to load.</param>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
-        /// <returns>RGBA pixel data as stream.</returns>
+        /// <returns>BGRA pixel data as stream.</returns>
         internal static MemoryTributary LoadWithCodecs(BitmapImage bmp, out int Width, out int Height)
         {
             // KFreon: Round up - some weird bug where bmp's would be 1023.4 or something.
@@ -163,7 +163,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
-        /// <returns>RGBA Pixel Data as stream.</returns>
+        /// <returns>BGRA Pixel Data as stream.</returns>
         internal static MemoryTributary LoadWithCodecs(string imageFile, out int Width, out int Height, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
@@ -244,7 +244,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="decodeWidth">Width to decode as. Aspect ratio unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode as. Aspect ratio unchanged if decodeWidth = 0.</param>
-        /// <returns>RGBA Pixel Data as stream.</returns>
+        /// <returns>BGRA Pixel Data as stream.</returns>
         internal static MemoryTributary LoadWithCodecs(Stream stream, out int Width, out int Height, int decodeWidth, int decodeHeight)
         {
             if (!WindowsCodecsAvailable)
