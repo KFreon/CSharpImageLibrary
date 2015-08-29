@@ -3,10 +3,21 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:CSharpImageLibrary"
         mc:Ignorable="d"
         Title="MainWindow" Height="384.202" Width="748.453">
     <Grid>
+        <Grid.Resources>
+            <ObjectDataProvider MethodName="GetValues"
+                        ObjectType="{x:Type sys:Enum}"
+                        x:Key="Formats">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="local:ImageEngineFormat"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+        </Grid.Resources>
+        
         <Grid.RowDefinitions>
             <RowDefinition Height="283*"/>
             <RowDefinition Height="47*"/>
@@ -24,5 +35,7 @@
             <TextBlock Margin="20,0,0,0" Text="{Binding ImagePath, StringFormat=Image Path: {0}}"/>
         </StackPanel>
         <Button Click="Button_Click" Content="Load Image" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="2" Height="20" Width="66"/>
+        <ComboBox x:Name="FormatSelector" ItemsSource="{Binding Source={StaticResource Formats}}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="1"/>
+        <Button Click="Button_Click_1" Content="Save" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="2"/>
     </Grid>
 </Window>

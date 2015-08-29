@@ -242,24 +242,28 @@ namespace CSharpImageLibrary
 
                 format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
 
-                // KFreon: Apparently all these flags mean it's a V8U8 image...
-                if (header.ddspf.dwRGBBitCount == 0x10 &&
-                           header.ddspf.dwRBitMask == 0xFF &&
-                           header.ddspf.dwGBitMask == 0xFF00 &&
-                           header.ddspf.dwBBitMask == 0x00 &&
-                           header.ddspf.dwABitMask == 0x00)
-                    format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
+                if (format.InternalFormat == ImageEngineFormat.Unknown)
+                {
+                    // KFreon: Apparently all these flags mean it's a V8U8 image...
+                    if (header.ddspf.dwRGBBitCount == 0x10 &&
+                               header.ddspf.dwRBitMask == 0xFF &&
+                               header.ddspf.dwGBitMask == 0xFF00 &&
+                               header.ddspf.dwBBitMask == 0x00 &&
+                               header.ddspf.dwABitMask == 0x00)
+                        format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
 
 
-                // KFreon: Test for L8/G8
-                if (header.ddspf.dwABitMask == 0 &&
-                        header.ddspf.dwBBitMask == 0 &&
-                        header.ddspf.dwGBitMask == 0 &&
-                        header.ddspf.dwRBitMask == 255 &&
-                        header.ddspf.dwFlags == 131072 &&
-                        header.ddspf.dwSize == 32 &&
-                        header.ddspf.dwRGBBitCount == 8)
-                    format = new Format(ImageEngineFormat.DDS_G8_L8);
+                    // KFreon: Test for L8/G8
+                    if (header.ddspf.dwABitMask == 0 &&
+                            header.ddspf.dwBBitMask == 0 &&
+                            header.ddspf.dwGBitMask == 0 &&
+                            header.ddspf.dwRBitMask == 255 &&
+                            header.ddspf.dwFlags == 131072 &&
+                            header.ddspf.dwSize == 32 &&
+                            header.ddspf.dwRGBBitCount == 8)
+                        format = new Format(ImageEngineFormat.DDS_G8_L8);
+                }
+                
             }
 
             return format;

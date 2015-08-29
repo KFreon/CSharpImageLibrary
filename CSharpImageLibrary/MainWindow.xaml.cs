@@ -53,6 +53,13 @@ namespace CSharpImageLibrary
         {
             
         }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            if (sfd.ShowDialog() == true)
+                vm.Save(sfd.FileName, (ImageEngineFormat)FormatSelector.SelectedItem);
+        }
     }
 
     public class VM : ViewModelBase
@@ -96,6 +103,7 @@ namespace CSharpImageLibrary
             }
         }
 
+        ImageEngineImage img = null;
 
         public VM()
         {
@@ -107,7 +115,7 @@ namespace CSharpImageLibrary
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            ImageEngineImage img = new ImageEngineImage(path);
+            img = new ImageEngineImage(path);
 
             Debug.WriteLine("");
             Debug.WriteLine($"Format: {img.Format}");
@@ -125,6 +133,12 @@ namespace CSharpImageLibrary
             ImagePath = path;
 
             //ATI1.TestWrite(img.PixelData, @"R:\test.jpg", (int)img.Width, (int)img.Height);
+        }
+
+        internal void Save(string fileName, ImageEngineFormat format)
+        {
+            if (img != null)
+                img.Save(fileName, format, false);
         }
     }
 }

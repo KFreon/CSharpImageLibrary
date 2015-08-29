@@ -61,9 +61,6 @@ namespace CSharpImageLibrary
         /// <returns>16 byte BC3 compressed block.</returns>
         private static byte[] CompressBC3Block(byte[] texel)
         {
-            byte[] CompressedBlock = new byte[16];
-
-
             // Compress Alpha
             byte[] Alpha = DDSGeneral.Compress8BitBlock(texel, 3, false);
 
