@@ -49,7 +49,7 @@ namespace CSharpImageLibrary
         {
             // KFreon: Read alpha
             byte[] alpha = new byte[16];
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 16; i+=2)
             {
                 byte twoAlphas = (byte)compressed.ReadByte();
                 for (int j = 0; j < 2; j++)

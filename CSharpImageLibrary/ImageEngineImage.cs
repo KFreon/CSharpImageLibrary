@@ -164,6 +164,7 @@ namespace CSharpImageLibrary
                 palette = BitmapPalettes.Halftone125;
                 pixelformat = PixelFormats.Bgr32;
             }
+            
 
             // KFreon: Create a bitmap from raw pixel data
             BitmapSource source = BitmapFrame.Create((int)Width, (int)Height, 96, 96, pixelformat, palette, data, stride);
