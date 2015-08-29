@@ -77,6 +77,28 @@ namespace CSharpImageLibrary
             public int dwCaps3;
             public int dwCaps4;
             public int dwReserved2;
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("--DDS_HEADER--");
+                sb.AppendLine($"dwSize: {dwSize}");
+                sb.AppendLine($"dwFlags: 0x{dwFlags.ToString("X")}");  // As hex
+                sb.AppendLine($"dwHeight: {dwHeight}");
+                sb.AppendLine($"dwWidth: {dwWidth}");
+                sb.AppendLine($"dwPitchOrLinearSize: {dwPitchOrLinearSize}");
+                sb.AppendLine($"dwDepth: {dwDepth}");
+                sb.AppendLine($"dwMipMapCount: {dwMipMapCount}");
+                sb.AppendLine($"ddspf: ");
+                sb.AppendLine(ddspf.ToString());
+                sb.AppendLine($"dwCaps: 0x{dwCaps.ToString("X")}");
+                sb.AppendLine($"dwCaps2: {dwCaps2}");
+                sb.AppendLine($"dwCaps3: {dwCaps3}");
+                sb.AppendLine($"dwCaps4: {dwCaps4}");
+                sb.AppendLine($"dwReserved2: {dwReserved2}");
+                sb.AppendLine("--END DDS_HEADER--");
+                return sb.ToString();
+            }
         }
 
         
@@ -96,6 +118,22 @@ namespace CSharpImageLibrary
 
             public DDS_PIXELFORMAT()
             {
+            }
+
+            public override string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("--DDS_PIXELFORMAT--");
+                sb.AppendLine($"dwSize: {dwSize}");
+                sb.AppendLine($"dwFlags: 0x{dwFlags.ToString("X")}");  // As hex
+                sb.AppendLine($"dwFourCC: 0x{dwFourCC.ToString("X")}");  // As Hex
+                sb.AppendLine($"dwRGBBitCount: {dwRGBBitCount}");
+                sb.AppendLine($"dwRBitMask: 0x{dwRBitMask.ToString("X")}");  // As Hex
+                sb.AppendLine($"dwGBitMask: 0x{dwGBitMask.ToString("X")}");  // As Hex
+                sb.AppendLine($"dwBBitMask: 0x{dwBBitMask.ToString("X")}");  // As Hex
+                sb.AppendLine($"dwABitMask: 0x{dwABitMask.ToString("X")}");  // As Hex
+                sb.AppendLine("--END DDS_PIXELFORMAT--");
+                return sb.ToString();
             }
         }
 

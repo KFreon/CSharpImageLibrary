@@ -237,6 +237,8 @@ namespace CSharpImageLibrary
                 header = new DDS_HEADER();
                 Read_DDS_HEADER(header, reader);
 
+                
+
                 if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))
                     throw new Exception("DX10 not supported yet!");
 
@@ -266,6 +268,11 @@ namespace CSharpImageLibrary
                 
             }
 
+
+
+            Debug.WriteLine($"_________ {format} __________");
+            Debug.WriteLine(header);
+            Debug.WriteLine("");
             return format;
         }
 
