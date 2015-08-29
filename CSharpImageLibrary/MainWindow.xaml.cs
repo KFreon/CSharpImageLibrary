@@ -138,7 +138,13 @@ namespace CSharpImageLibrary
         internal void Save(string fileName, ImageEngineFormat format)
         {
             if (img != null)
+            {
+                Stopwatch watc = new Stopwatch();
+                watc.Start();
                 img.Save(fileName, format, false);
+                watc.Stop();
+                Debug.WriteLine($"Saved format: {format} in {watc.ElapsedMilliseconds} milliseconds.");
+            }
         }
     }
 }

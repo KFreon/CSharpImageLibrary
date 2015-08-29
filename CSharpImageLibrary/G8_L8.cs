@@ -58,7 +58,7 @@ namespace CSharpImageLibrary
             };
 
             var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_G8_L8);
-            return DDSGeneral.WriteDDS(pixelData, destination, Width, Height, Mips, header, PixelWriter);
+            return DDSGeneral.WriteDDS(pixelData, destination, Width, Height, Mips, header, PixelWriter, false);
         }
     }
 }

@@ -206,8 +206,9 @@ namespace CSharpImageLibrary
             MemoryTributary PixelsWithMips = new MemoryTributary();
             int Mips = 1;
 
+            Format temp = new Format(format);
 
-            if (GenerateMips)
+            if (temp.IsMippable && GenerateMips)
             {
                 PixelData.Seek(0, SeekOrigin.Begin);
                 PixelsWithMips.ReadFrom(PixelData, PixelData.Length);

@@ -242,7 +242,7 @@ namespace CSharpImageLibrary
 
                 format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
 
-                if (format.InternalFormat == ImageEngineFormat.Unknown)
+                if (format.InternalFormat == ImageEngineFormat.Unknown || format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                 {
                     // KFreon: Apparently all these flags mean it's a V8U8 image...
                     if (header.ddspf.dwRGBBitCount == 0x10 &&

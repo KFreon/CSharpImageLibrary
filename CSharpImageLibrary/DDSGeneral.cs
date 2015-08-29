@@ -112,21 +112,32 @@ namespace CSharpImageLibrary
         {
             DDS_HEADER header = new DDS_HEADER();
             header.dwSize = 124;
-            header.dwFlags = 0x1 | 0x2 | 0x4 | 0x1000 | (Mips != 0 ? 0x20000 : 0x0);  // Flags to denote valid fields: DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT
+            header.dwFlags = 0x1 | 0x2 | 0x4 | 0x1000 | (Mips != 1 ? 0x20000 : 0x0);  // Flags to denote valid fields: DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT
             header.dwWidth = Width;
             header.dwHeight = Height;
             header.dwCaps = 0x1000 | 0x8 | (Mips == 0 ? 0 : 0x400000);
-            header.dwMipMapCount = Mips == 0 ? 1 : Mips;
+            header.dwMipMapCount = Mips == 1 ? 1 : Mips;
             //header.dwPitchOrLinearSize = ((width + 1) >> 1)*4;
 
             DDS_PIXELFORMAT px = new DDS_PIXELFORMAT();
             px.dwFourCC = (int)surfaceformat;
             px.dwSize = 32;
-            //px.dwFlags = 0x200;
-            px.dwFlags = 0x80000;
+            /*px.dwFlags = 0x200;
             px.dwRGBBitCount = 16;
             px.dwRBitMask = 255;
-            px.dwGBitMask = 0x0000FF00;
+            px.dwGBitMask = 0x0000FF00;*/
+
+            px.dwFlags = 4;
+
+            switch (surfaceformat)
+            {
+                case ImageEngineFormat.DDS_G8_L8:
+                    px.dwFlags = 0x20000;
+                    px.dwRGBBitCount = 8;
+                    px.dwRBitMask = 255;
+                    break;
+            }
+            
 
             header.ddspf = px;
             return header;
@@ -196,10 +207,10 @@ namespace CSharpImageLibrary
                 writer.Write(CompressedBlock);
             };
 
-            return DDSGeneral.WriteDDS(pixelData, Destination, Width, Height, Mips, header, PixelWriter);
+            return DDSGeneral.WriteDDS(pixelData, Destination, Width, Height, Mips, header, PixelWriter, true);
         }
 
-        internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream> PixelWriter)
+        internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream> PixelWriter, bool isBCd)
         {
             try
             {
@@ -209,9 +220,9 @@ namespace CSharpImageLibrary
                     Write_DDS_Header(header, writer);
                     for (int m = 0; m < Mips; m++)
                     {
-                        for (int h = 0; h < Height / Mips; h++)
+                        for (int h = 0; h < Height / Mips; h+=(isBCd ? 4 : 1))
                         {
-                            for (int w = 0; w < Width / Mips; w++)
+                            for (int w = 0; w < Width / Mips; w+=(isBCd ? 4 : 1))
                             {
                                 PixelWriter(writer, pixelData);
                             }
@@ -454,7 +465,7 @@ namespace CSharpImageLibrary
             // Get Min and Max colours
             int min = 0;
             int max = 0;
-            GetRGBMinMax(texel, out min, out max);
+            int[] texelColours = GetRGB(texel, out min, out max);
 
             var t1 = ReadDXTColour(min);
             var t2 = ReadDXTColour(max);
@@ -462,9 +473,9 @@ namespace CSharpImageLibrary
             if (isDXT1)
             {
                 // KFreon: Check alpha (every 4 bytes)
-                for (int i = 0; i < texel.Length; i += 4)
+                for (int i = 3; i < texel.Length; i += 4)
                 {
-                    if (texel[i] != 0) // Alpha found, switch min and max
+                    if (texel[i] != 0xFF) // Alpha found, switch min and max
                     {
                         int temp = min;
                         min = max;
@@ -491,17 +502,36 @@ namespace CSharpImageLibrary
             // Compress pixels
             for (int i = 0; i < 16; i += 4) // each "row" of 4 pixels is a single byte
             {
-                byte twoIndicies = 0;
+                byte fourIndicies = 0;
                 for (int j = 0; j < 4; j++)
                 {
-                    int colour = texel[i + j];
-                    int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
-                    twoIndicies |= (byte)(index << (2 * j));
+                    int colour = texelColours[i + j];
+                    int index = IndexOfMinn(Colours, c => Math.Abs(colour - c));
+                    fourIndicies |= (byte)(index << (2 * j));
                 }
-                CompressedBlock[i / 4 + 4] = twoIndicies;
+                CompressedBlock[i / 4 + 4] = fourIndicies;
             }
 
             return CompressedBlock;
+        }
+
+        public static int IndexOfMinn(IEnumerable<int> enumerable, Func<int, int> comparer)
+        {
+            int min = int.MaxValue;
+            int index = 0;
+            int minIndex = 0;
+            foreach (int item in enumerable)
+            {
+                int check = comparer(item);
+                if (check < min)
+                {
+                    min = check;
+                    minIndex = index;
+                }
+
+                index++;
+            }
+            return minIndex;
         }
 
         /// <summary>
@@ -513,8 +543,8 @@ namespace CSharpImageLibrary
         /// <returns>8 byte compressed texel.</returns>
         public static byte[] Compress8BitBlock(byte[] texel, int channel, bool isSigned)
         {
-            if (texel.Length != 16)
-                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");
+            /*if (texel.Length != 16)
+                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");*/
 
             // KFreon: Get min and max - since it's a single channel, can just get min/max, directly from texel.
             byte min = texel.Min();
@@ -586,7 +616,7 @@ namespace CSharpImageLibrary
             return Colours;
         }
 
-        internal static void GetRGBMinMax(byte[] texel, out int min, out int max)
+        internal static int[] GetRGB(byte[] texel, out int min, out int max)
         {
             int[] RGB = new int[16];
             int count = 0;
@@ -594,13 +624,15 @@ namespace CSharpImageLibrary
             {
                 for (int j = 0; j < 16; j += 4)  // pixels in row incl BGRA
                 {
-                    int pixelColour = BuildDXTColour(texel[i + j], texel[i + j + 1], texel[i + j + 2]);
+                    int pixelColour = BuildDXTColour(texel[i + j + 2], texel[i + j + 1], texel[i + j]);
                     RGB[count++] = pixelColour;
                 }
             }
 
             min = RGB.Min();
             max = RGB.Max();
+
+            return RGB;
         }
 
         /// <summary>
