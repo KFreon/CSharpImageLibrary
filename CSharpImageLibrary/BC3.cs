@@ -65,7 +65,7 @@ namespace CSharpImageLibrary
             byte[] Alpha = DDSGeneral.Compress8BitBlock(texel, 3, false);
 
             // Compress Colour
-            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, true);
+            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, false);
 
             return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
         }
@@ -82,7 +82,7 @@ namespace CSharpImageLibrary
         /// <returns>True if saved successfully.</returns>
         internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
         {
-            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT1);
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT5);
             return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC3Block);
         }
     }

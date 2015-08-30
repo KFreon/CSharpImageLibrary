@@ -52,10 +52,10 @@ namespace CSharpImageLibrary
             p.dwFlags = r.ReadInt32();
             p.dwFourCC = r.ReadInt32();
             p.dwRGBBitCount = r.ReadInt32();
-            p.dwRBitMask = r.ReadInt32();
-            p.dwGBitMask = r.ReadInt32();
-            p.dwBBitMask = r.ReadInt32();
-            p.dwABitMask = r.ReadInt32();
+            p.dwRBitMask = r.ReadUInt32();
+            p.dwGBitMask = r.ReadUInt32();
+            p.dwBBitMask = r.ReadUInt32();
+            p.dwABitMask = r.ReadUInt32();
         }
 
         /// <summary>
@@ -111,10 +111,10 @@ namespace CSharpImageLibrary
             public int dwFlags;
             public int dwFourCC;
             public int dwRGBBitCount;
-            public int dwRBitMask;
-            public int dwGBitMask;
-            public int dwBBitMask;
-            public int dwABitMask;
+            public uint dwRBitMask;
+            public uint dwGBitMask;
+            public uint dwBBitMask;
+            public uint dwABitMask;
 
             public DDS_PIXELFORMAT()
             {
@@ -150,29 +150,50 @@ namespace CSharpImageLibrary
         {
             DDS_HEADER header = new DDS_HEADER();
             header.dwSize = 124;
-            header.dwFlags = 0x1 | 0x2 | 0x4 | 0x1000 | (Mips != 1 ? 0x20000 : 0x0);  // Flags to denote valid fields: DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT
+            header.dwFlags = 0x1 | 0x2 | 0x4 | 0x0 | 0x1000 | (Mips != 1 ? 0x20000 : 0x0) | 0x0 | 0x0;  // Flags to denote fields: DDSD_CAPS = 0x1 | DDSD_HEIGHT = 0x2 | DDSD_WIDTH = 0x4 | DDSD_PITCH = 0x8 | DDSD_PIXELFORMAT = 0x1000 | DDSD_MIPMAPCOUNT = 0x20000 | DDSD_LINEARSIZE = 0x80000 | DDSD_DEPTH = 0x800000
             header.dwWidth = Width;
             header.dwHeight = Height;
-            header.dwCaps = 0x1000 | 0x8 | (Mips == 0 ? 0 : 0x400000);
+            header.dwCaps = 0x1000 | (Mips != 1 ? 0 : (0x8 | 0x400000));  // Flags are: 0x8 = Optional: Used for mipmapped textures | 0x400000 = DDSCAPS_MIMPAP | 0x1000 = DDSCAPS_TEXTURE
             header.dwMipMapCount = Mips == 1 ? 1 : Mips;
-            //header.dwPitchOrLinearSize = ((width + 1) >> 1)*4;
 
             DDS_PIXELFORMAT px = new DDS_PIXELFORMAT();
-            px.dwFourCC = (int)surfaceformat;
             px.dwSize = 32;
-            /*px.dwFlags = 0x200;
-            px.dwRGBBitCount = 16;
-            px.dwRBitMask = 255;
-            px.dwGBitMask = 0x0000FF00;*/
-
+            px.dwFourCC = (int)surfaceformat;
             px.dwFlags = 4;
 
             switch (surfaceformat)
             {
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    px.dwFlags |= 0x80000;
+                    header.dwPitchOrLinearSize = (int)(Width * Height);
+                    break;
+                case ImageEngineFormat.DDS_ATI1:
+                    header.dwFlags |= 0x80000;  
+                    header.dwPitchOrLinearSize = (int)(Width * Height / 2f);
+                    break;
                 case ImageEngineFormat.DDS_G8_L8:
                     px.dwFlags = 0x20000;
+                    header.dwPitchOrLinearSize = Width * 8; // maybe?
+                    header.dwFlags |= 0x8;
                     px.dwRGBBitCount = 8;
-                    px.dwRBitMask = 255;
+                    px.dwRBitMask = 0xFF;
+                    px.dwFourCC = 0x0;
+                    break;
+                case ImageEngineFormat.DDS_ARGB:
+                    px.dwFlags = 0x41;
+                    px.dwFourCC = 0x0;
+                    px.dwRGBBitCount = 32;
+                    px.dwRBitMask = 0xFF0000;
+                    px.dwGBitMask = 0xFF00;
+                    px.dwBBitMask = 0xFF;
+                    px.dwABitMask = 0xFF000000;
+                    break;
+                case ImageEngineFormat.DDS_V8U8:
+                    px.dwFourCC = 0x0;
+                    px.dwFlags = 0;  // 0x80000 not actually a valid value....
+                    px.dwRGBBitCount = 16;
+                    px.dwRBitMask = 0xFF;
+                    px.dwGBitMask = 0xFF00;
                     break;
             }
             
@@ -250,6 +271,8 @@ namespace CSharpImageLibrary
 
         internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream> PixelWriter, bool isBCd)
         {
+            int bitsPerScanLine = 4 * Width;
+
             try
             {
                 pixelData.Seek(0, SeekOrigin.Begin);
@@ -257,15 +280,18 @@ namespace CSharpImageLibrary
                 {
                     Write_DDS_Header(header, writer);
                     for (int m = 0; m < Mips; m++)
-                    {
                         for (int h = 0; h < Height / Mips; h+=(isBCd ? 4 : 1))
                         {
-                            for (int w = 0; w < Width / Mips; w+=(isBCd ? 4 : 1))
+                            for (int w = 0; w < Width / Mips; w += (isBCd ? 4 : 1))
                             {
                                 PixelWriter(writer, pixelData);
+                                if (isBCd && w != (Width / Mips) - 4)
+                                    pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
                             }
+                            if (isBCd)
+                                pixelData.Seek(-bitsPerScanLine + 4 * 4, SeekOrigin.Current);  // Row end texel. Just need to add 1.
                         }
-                    }
+                            
                 }
                 return true;
             }
@@ -470,16 +496,11 @@ namespace CSharpImageLibrary
             for (int i = 0; i < 16; i++)
             {
                 int colour = DecompressedBlock[i];
-                if (colour == 0)
-                    alpha[i] = 0; 
-                else
-                {
-                    List<byte> rgb = ReadDXTColour(colour);
-                    red[i] = rgb[0];
-                    green[i] = rgb[1];
-                    blue[i] = rgb[2];
-                    alpha[i] = 0xFF;
-                }
+                List<byte> rgb = ReadDXTColour(colour);
+                red[i] = rgb[0];
+                green[i] = rgb[1];
+                blue[i] = rgb[2];
+                alpha[i] = (byte)(colour == 0 && max > min ? 0x0 : 0xFF);
             }
             return DecompressedChannels;
         }
@@ -746,7 +767,9 @@ namespace CSharpImageLibrary
                         texel[i + j + k] = (byte)pixelData.ReadByte();
                     }
                 }
-                pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);
+
+                
+                pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);  // Seek to next line of texel
             }
 
             return texel;

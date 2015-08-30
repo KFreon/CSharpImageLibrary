@@ -39,11 +39,13 @@ namespace CSharpImageLibrary
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
             Func<Stream, int> PixelReader = fileData =>
             {
-                sbyte red = (sbyte)fileData.ReadByte();
-                byte green = 0xFF;
-                byte blue = 0xFF;
+                byte red = (byte)fileData.ReadByte();
+                byte green = red;
+                byte blue = red;
 
-                return blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
+                //int test = blue | (0x7F + green) << 8 | (0x7F + red) << 16;
+                int test = blue | green << 8 | red << 16;
+                return test;
             };
 
             return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
@@ -53,8 +55,19 @@ namespace CSharpImageLibrary
         {
             Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
             {
-                writer.Write(pixels.ReadByte());  // Red
-                pixels.Position += 3;    // No green, blue, or alpha
+                // BGRA
+                byte blue = (byte)pixels.ReadByte();
+                byte green = (byte)pixels.ReadByte();
+                byte red = (byte)pixels.ReadByte();
+                //byte alpha = (byte)pixels.ReadByte();
+                pixels.Position++;  // Skip alpha
+
+                byte b1 = (byte)(blue * 3 * 0.082);
+                byte g1 = (byte)(green * 3 * 0.6094);
+                byte r1 = (byte)(red * 3 * 0.3086);
+
+                int test = (int)((b1 + g1 + r1)/ 3f);
+                writer.Write((byte)test);
             };
 
             var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_G8_L8);

@@ -44,7 +44,7 @@ namespace CSharpImageLibrary
                 sbyte green = (sbyte)fileData.ReadByte();
                 byte blue = 0xFF;
 
-                return blue | (0x7F + green) << 8 | (0x7F + red) << 16 | 0xFF << 24;
+                return blue | (0x7F + green) << 8 | (0x7F + red) << 16;
             };
 
             return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
@@ -54,9 +54,14 @@ namespace CSharpImageLibrary
         {
             Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
             {
-                writer.Write(pixelData.ReadByte());  // Red
-                writer.Write(pixelData.ReadByte());  // Green
-                pixelData.Position += 2;    // No blue or alpha
+                // BGRA
+                sbyte blue = (sbyte)pixelData.ReadByte();
+                sbyte green = (sbyte)pixelData.ReadByte();
+                sbyte red = (sbyte)pixelData.ReadByte();
+
+                writer.Write(red);  // Blue
+                writer.Write(green);  // Green
+                pixelData.Position++;    // No alpha
             };
 
 

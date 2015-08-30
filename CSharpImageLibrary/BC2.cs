@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -73,16 +74,16 @@ namespace CSharpImageLibrary
         {
             // Compress Alpha
             byte[] Alpha = new byte[8];
-            for (int i = 4; i < 64; i += 4)  // Only read alphas
+            for (int i = 3; i < 64; i += 8)  // Only read alphas
             {
                 byte twoAlpha = 0;
-                for (int j = 0; j < 2; j++)
-                    twoAlpha |= (byte)(texel[i] << (j * 4));
-                Alpha[i / 4] = twoAlpha;
+                for (int j = 0; j < 8; j+=4)
+                    twoAlpha |= (byte)(texel[i + j] << j);
+                Alpha[i / 8] = twoAlpha;
             }
 
             // Compress Colour
-            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, true);
+            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, false);
 
             return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
         }
@@ -99,7 +100,7 @@ namespace CSharpImageLibrary
         /// <returns>True if saved successfully.</returns>
         internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
         {
-            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT1);
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT3);
             return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC2Block);
         }
     }
