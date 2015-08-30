@@ -105,6 +105,19 @@ namespace CSharpImageLibrary
 
         ImageEngineImage img = null;
 
+        bool generatemips = true;
+        public bool GenerateMips
+        {
+            get
+            {
+                return generatemips;
+            }
+            set
+            {
+                SetProperty(ref generatemips, value);
+            }
+        }
+
         public VM()
         {
             
@@ -141,7 +154,7 @@ namespace CSharpImageLibrary
             {
                 Stopwatch watc = new Stopwatch();
                 watc.Start();
-                img.Save(fileName, format, false);
+                img.Save(fileName, format, GenerateMips);
                 watc.Stop();
                 Debug.WriteLine($"Saved format: {format} in {watc.ElapsedMilliseconds} milliseconds.");
             }

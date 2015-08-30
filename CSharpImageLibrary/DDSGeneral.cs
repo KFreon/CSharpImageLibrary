@@ -279,19 +279,23 @@ namespace CSharpImageLibrary
                 using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
                 {
                     Write_DDS_Header(header, writer);
-                    for (int m = 0; m < Mips; m++)
-                        for (int h = 0; h < Height / Mips; h+=(isBCd ? 4 : 1))
+                    for (int m = 0; m < Mips ; m++)
+                    {
+                        double mipDimensionModifier = Math.Pow(2, m);
+                        Debug.WriteLine(Width / mipDimensionModifier);
+
+                        for (int h = 0; h < Height / mipDimensionModifier; h += (isBCd ? 4 : 1))
                         {
-                            for (int w = 0; w < Width / Mips; w += (isBCd ? 4 : 1))
+                            for (int w = 0; w < Width / mipDimensionModifier; w += (isBCd ? 4 : 1))
                             {
                                 PixelWriter(writer, pixelData);
-                                if (isBCd && w != (Width / Mips) - 4)
+                                if (isBCd && w != (Width / mipDimensionModifier) - 4)
                                     pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
                             }
                             if (isBCd)
                                 pixelData.Seek(-bitsPerScanLine + 4 * 4, SeekOrigin.Current);  // Row end texel. Just need to add 1.
                         }
-                            
+                    }
                 }
                 return true;
             }

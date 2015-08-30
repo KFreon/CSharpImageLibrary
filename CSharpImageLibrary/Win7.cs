@@ -123,7 +123,7 @@ namespace CSharpImageLibrary
             int newHeight = Height;
             int count = 1;
 
-            while (determiningDimension > 0)
+            while (determiningDimension > 1)
             {
                 newWidth /= 2;
                 newHeight /= 2;
