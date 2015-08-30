@@ -203,7 +203,7 @@ namespace CSharpImageLibrary
 
         internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
-            int stride = 4 * (Width * 32 + 31) / 32;
+            int stride = 4 * Width;
             BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, pixelsWithMips.ToArray(), stride));
 
             BitmapEncoder encoder = null;
