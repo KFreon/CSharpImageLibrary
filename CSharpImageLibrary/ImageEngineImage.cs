@@ -158,12 +158,12 @@ namespace CSharpImageLibrary
             PixelFormat pixelformat = PixelFormats.Bgra32;
 
             // KFreon: V8U8 needs some different settings
-            if (Format.InternalFormat == ImageEngineFormat.DDS_V8U8)
+            /*if (Format.InternalFormat == ImageEngineFormat.DDS_V8U8)
             {
                 stride = ((int)Width * 32 + 7) / 8;
                 palette = BitmapPalettes.Halftone125;
                 pixelformat = PixelFormats.Bgr32;
-            }
+            }*/
             
 
             // KFreon: Create a bitmap from raw pixel data

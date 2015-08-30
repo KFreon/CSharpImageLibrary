@@ -38,13 +38,15 @@ namespace CSharpImageLibrary
         internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
-            Func<Stream, int> PixelReader = fileData =>
+            Func<Stream, List<byte>> PixelReader = fileData =>
             {
-                sbyte red = (sbyte)fileData.ReadByte();
-                sbyte green = (sbyte)fileData.ReadByte();
+                byte red = (byte)(fileData.ReadByte() - 130);
+                byte green = (byte)(fileData.ReadByte() - 130);
+                //Debug.WriteLine($"Red: {red}  Green: {green}");
                 byte blue = 0xFF;
 
-                return blue | (0x7F + green) << 8 | (0x7F + red) << 16;
+                //return blue | (0x7F + green) << 8 | (0x7F + red) << 16;
+                return new List<byte>() { blue, green, red };
             };
 
             return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
@@ -55,11 +57,11 @@ namespace CSharpImageLibrary
             Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
             {
                 // BGRA
-                sbyte blue = (sbyte)pixelData.ReadByte();
-                sbyte green = (sbyte)pixelData.ReadByte();
-                sbyte red = (sbyte)pixelData.ReadByte();
+                pixels.Position++; // No blue
+                byte green = (byte)(pixelData.ReadByte() + 130);
+                byte red = (byte)(pixelData.ReadByte() + 130);
 
-                writer.Write(red);  // Blue
+                writer.Write(red);  // Red
                 writer.Write(green);  // Green
                 pixelData.Position++;    // No alpha
             };

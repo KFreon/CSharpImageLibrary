@@ -190,7 +190,7 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.DDS_V8U8:
                     px.dwFourCC = 0x0;
-                    px.dwFlags = 0;  // 0x80000 not actually a valid value....
+                    px.dwFlags = 0x80000;  // 0x80000 not actually a valid value....
                     px.dwRGBBitCount = 16;
                     px.dwRBitMask = 0xFF;
                     px.dwGBitMask = 0xFF00;
@@ -312,7 +312,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, BGRA)</param>
         /// <returns></returns>
-        internal static MemoryTributary LoadUncompressed(Stream stream, out int Width, out int Height, Func<Stream, int> PixelReader)
+        internal static MemoryTributary LoadUncompressed(Stream stream, out int Width, out int Height, Func<Stream, List<byte>> PixelReader)
         {
             // KFreon: Necessary to move stream position along to pixel data.
             DDS_HEADER header = null;
@@ -324,17 +324,19 @@ namespace CSharpImageLibrary
             MemoryTributary imgData = new MemoryTributary();
 
             // KFreon: Read data
-            using (BinaryWriter writer = new BinaryWriter(imgData, Encoding.Default, true))
+            
+            for (int y = 0; y < Height; y++)
             {
-                for (int y = 0; y < Height; y++)
+                for (int x = 0; x < Width; x++)
                 {
-                    for (int x = 0; x < Width; x++)
-                    {
-                        int fCol = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
-                        writer.Write(fCol);
-                    }
+                    List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
+                    imgData.WriteByte(bgr[0]);
+                    imgData.WriteByte(bgr[1]);
+                    imgData.WriteByte(bgr[2]);
+                    imgData.WriteByte(0xFF);
                 }
             }
+            
 
             return imgData;
         }

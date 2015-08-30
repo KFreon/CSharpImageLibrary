@@ -68,7 +68,7 @@ namespace CSharpImageLibrary
         /// <returns>8 byte BC4 compressed block.</returns>
         private static byte[] CompressBC4Block(byte[] texel)
         {
-            return DDSGeneral.Compress8BitBlock(texel, 0, false);
+            return DDSGeneral.Compress8BitBlock(texel, 2, false);
         }
 
 

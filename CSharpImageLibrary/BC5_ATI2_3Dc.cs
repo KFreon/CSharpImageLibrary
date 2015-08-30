@@ -67,7 +67,7 @@ namespace CSharpImageLibrary
         /// <returns>16 byte BC5 block.</returns>
         private static byte[] CompressBC5Block(byte[] texel)
         {
-            byte[] red = DDSGeneral.Compress8BitBlock(texel, 0, false);
+            byte[] red = DDSGeneral.Compress8BitBlock(texel, 2, false);
             byte[] green = DDSGeneral.Compress8BitBlock(texel, 1, false);
 
             return red.Concat(green).ToArray(red.Length + green.Length);

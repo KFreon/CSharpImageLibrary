@@ -37,15 +37,16 @@ namespace CSharpImageLibrary
         internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
-            Func<Stream, int> PixelReader = fileData =>
+            Func<Stream, List<byte>> PixelReader = fileData =>
             {
                 byte red = (byte)fileData.ReadByte();
                 byte green = red;
                 byte blue = red;
 
                 //int test = blue | (0x7F + green) << 8 | (0x7F + red) << 16;
-                int test = blue | green << 8 | red << 16;
-                return test;
+                //int test = blue | green << 8 | red << 16;
+
+                return new List<byte>() { blue, green, red };
             };
 
             return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
@@ -62,9 +63,9 @@ namespace CSharpImageLibrary
                 //byte alpha = (byte)pixels.ReadByte();
                 pixels.Position++;  // Skip alpha
 
-                byte b1 = (byte)(blue * 3 * 0.082);
-                byte g1 = (byte)(green * 3 * 0.6094);
-                byte r1 = (byte)(red * 3 * 0.3086);
+                int b1 = (int)(blue * 3 * 0.082);
+                int g1 = (int)(green * 3 * 0.6094);
+                int r1 = (int)(red * 3 * 0.3086);
 
                 int test = (int)((b1 + g1 + r1)/ 3f);
                 writer.Write((byte)test);
