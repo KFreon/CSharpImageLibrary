@@ -567,32 +567,13 @@ namespace CSharpImageLibrary
                 for (int j = 0; j < 4; j++)
                 {
                     int colour = texelColours[i + j];
-                    int index = IndexOfMinn(Colours, c => Math.Abs(colour - c));
+                    int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
                     fourIndicies |= (byte)(index << (2 * j));
                 }
                 CompressedBlock[i / 4 + 4] = fourIndicies;
             }
 
             return CompressedBlock;
-        }
-
-        public static int IndexOfMinn(IEnumerable<int> enumerable, Func<int, int> comparer)
-        {
-            int min = int.MaxValue;
-            int index = 0;
-            int minIndex = 0;
-            foreach (int item in enumerable)
-            {
-                int check = comparer(item);
-                if (check < min)
-                {
-                    min = check;
-                    minIndex = index;
-                }
-
-                index++;
-            }
-            return minIndex;
         }
 
         /// <summary>
@@ -607,31 +588,45 @@ namespace CSharpImageLibrary
             /*if (texel.Length != 16)
                 throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");*/
 
-            // KFreon: Get min and max - since it's a single channel, can just get min/max, directly from texel.
-            byte min = texel.Min();
-            byte max = texel.Max();
+            // KFreon: Get min and max
+            byte min = byte.MaxValue;
+            byte max = byte.MinValue;
+            int count = channel;
+            for (int i = 0; i < 16; i++)
+            {
+                byte colour = texel[count];
+                if (colour > max)
+                    max = colour;
+                else if (colour < min)
+                    min = colour;
 
-            byte[] CompressedBlock = new byte[8];
-
-            // Write Colours
-            CompressedBlock[0] = min;
-            CompressedBlock[1] = max;
+                count += 4; // skip to next entry in channel
+            }
 
             // Build Palette
             byte[] Colours = Build8BitPalette(min, max, isSigned);
 
             // Compress Pixels
             ulong line = 0;
-            int count = channel;
+            count = channel;
+            List<byte> indicies = new List<byte>();
             for (int i = 0; i < 16; i++)
             {
                 byte colour = texel[count];
-                int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
-                line |= (ulong)index << (i * 3);
+                byte index = (byte)Colours.IndexOfMin(c => Math.Abs(colour - c));
+                indicies.Add(index);
+                line |= (ulong)index << (i * 3); 
                 count += 4;  // Only need 1 channel
             }
 
-            return BitConverter.GetBytes(line);
+            byte[] CompressedBlock = new byte[8];
+            byte[] compressed = BitConverter.GetBytes(line);
+            CompressedBlock[0] = min;
+            CompressedBlock[1] = max;
+            for (int i = 2; i < 8; i++)
+                CompressedBlock[i] = compressed[i - 2];
+
+            return CompressedBlock;
         }
 
         #endregion Block Compression
