@@ -259,9 +259,9 @@ namespace CSharpImageLibrary
         /// <returns></returns>
         internal static bool WriteBlockCompressedDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
         {
-            Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
+            Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, width) =>
             {
-                byte[] texel = DDSGeneral.GetTexel(pixels, Width);
+                byte[] texel = DDSGeneral.GetTexel(pixels, width);
                 byte[] CompressedBlock = CompressBlock(texel);
                 writer.Write(CompressedBlock);
             };
@@ -269,9 +269,8 @@ namespace CSharpImageLibrary
             return DDSGeneral.WriteDDS(pixelData, Destination, Width, Height, Mips, header, PixelWriter, true);
         }
 
-        internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream> PixelWriter, bool isBCd)
+        internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd)
         {
-            int bitsPerScanLine = 4 * Width;
 
             try
             {
@@ -282,19 +281,9 @@ namespace CSharpImageLibrary
                     for (int m = 0; m < Mips ; m++)
                     {
                         double mipDimensionModifier = Math.Pow(2, m);
-                        Debug.WriteLine(Width / mipDimensionModifier);
-
-                        for (int h = 0; h < Height / mipDimensionModifier; h += (isBCd ? 4 : 1))
-                        {
-                            for (int w = 0; w < Width / mipDimensionModifier; w += (isBCd ? 4 : 1))
-                            {
-                                PixelWriter(writer, pixelData);
-                                if (isBCd && w != (Width / mipDimensionModifier) - 4)
-                                    pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
-                            }
-                            if (isBCd)
-                                pixelData.Seek(-bitsPerScanLine + 4 * 4, SeekOrigin.Current);  // Row end texel. Just need to add 1.
-                        }
+                        int mipWidth = (int)(Width / mipDimensionModifier);
+                        int mipHeight = (int)(Height / mipDimensionModifier);
+                        WriteMipMap(pixelData, mipWidth, mipHeight, PixelWriter, isBCd, writer, mipDimensionModifier);
                     }
                 }
                 return true;
@@ -303,6 +292,23 @@ namespace CSharpImageLibrary
             {
                 Debug.WriteLine(e.Message);
                 return false;
+            }
+        }
+
+        private static void WriteMipMap(Stream pixelData, int Width, int Height, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd, BinaryWriter writer, double mipDimen)
+        {
+            int bitsPerScanLine = 4 * Width;
+
+            for (int h = 0; h < Height; h += (isBCd ? 4 : 1))
+            {
+                for (int w = 0; w < Width; w += (isBCd ? 4 : 1))
+                {
+                    PixelWriter(writer, pixelData, Width);
+                    if (isBCd && w != Width - 4)
+                        pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
+                }
+                if (isBCd)
+                    pixelData.Seek(-bitsPerScanLine + 4 * 4, SeekOrigin.Current);  // Row end texel. Just need to add 1.
             }
         }
 

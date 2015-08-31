@@ -270,9 +270,9 @@ namespace CSharpImageLibrary
 
 
 
-            Debug.WriteLine($"_________ {format} __________");
+            /*Debug.WriteLine($"_________ {format} __________");
             Debug.WriteLine(header);
-            Debug.WriteLine("");
+            Debug.WriteLine("");*/
             return format;
         }
 

@@ -130,9 +130,9 @@ namespace CSharpImageLibrary
 
             img = new ImageEngineImage(path);
 
-            Debug.WriteLine("");
-            Debug.WriteLine($"Format: {img.Format}");
-            Debug.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
+            Console.WriteLine("");
+            Console.WriteLine($"Format: {img.Format}");
+            Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
 
 
             stopwatch.Restart();

@@ -54,7 +54,7 @@ namespace CSharpImageLibrary
 
         internal static bool Save(Stream pixelData, Stream destination, int Width, int Height, int Mips)
         {
-            Action<BinaryWriter, Stream> PixelWriter = (writer, pixels) =>
+            Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, unused) =>
             {
                 // BGRA
                 pixels.Position++; // No blue

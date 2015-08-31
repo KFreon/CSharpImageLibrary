@@ -127,6 +127,7 @@ namespace CSharpImageLibrary
             {
                 newWidth /= 2;
                 newHeight /= 2;
+                Debug.WriteLine($"newWidth: {newWidth}");
                 bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(newWidth, newHeight));
 
                 byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
