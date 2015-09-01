@@ -184,7 +184,7 @@ namespace CSharpImageLibrary
                         JpegBitmapEncoder encoder = new JpegBitmapEncoder();
                         BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
                         encoder.Frames.Add(frame);
-                        var output = new MemoryTributary();
+                        var output = new MemoryTributary((int)mip.Data.Length);
                         encoder.Save(output);
                         MipMaps.Add(mip);
                     }

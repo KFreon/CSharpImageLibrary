@@ -14,6 +14,12 @@ namespace CSharpImageLibrary
     /// </summary>
     internal static class DDSGeneral
     {
+        const float DecompRedBlueModifier = 255f / 31f;
+        const float DecompGreenModifier = 255f / 63f;
+
+        const float CompRedBlueModifier = 31f / 255f;
+        const float CompGreenModifier = 63f / 255f;
+
         #region Header Stuff
         /// <summary>
         /// Reads DDS header from file.
@@ -333,19 +339,25 @@ namespace CSharpImageLibrary
             // KFreon: Read data
             for (int m = 0; m < header.dwMipMapCount; m++)
             {
-                MemoryTributary mipmap = new MemoryTributary();
+                int count = 0;
+                byte[] mipmap = new byte[newHeight * newWidth * 4];
                 for (int y = 0; y < newHeight; y++)
                 {
                     for (int x = 0; x < newWidth; x++)
                     {
                         List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
-                        mipmap.WriteByte(bgr[0]);
-                        mipmap.WriteByte(bgr[1]);
-                        mipmap.WriteByte(bgr[2]);
-                        mipmap.WriteByte(0xFF);
+                                                               /*mipmap.WriteByte(bgr[0]);
+                                                               mipmap.WriteByte(bgr[1]);
+                                                               mipmap.WriteByte(bgr[2]);
+                                                               mipmap.WriteByte(0xFF);*/
+
+                        mipmap[count++] = bgr[0];
+                        mipmap[count++] = bgr[1];
+                        mipmap[count++] = bgr[2];
+                        mipmap[count++] = 0xFF;
                     }
                 }
-                MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
+                MipMaps.Add(new MipMap(new MemoryTributary(mipmap), newWidth, newHeight));
 
                 newWidth /= 2;
                 newHeight /= 2;
@@ -388,20 +400,35 @@ namespace CSharpImageLibrary
                     {
                         // decompress 
                         List<byte[]> decompressed = DecompressBlock(compressed);
+                        byte[] blue = decompressed[0];
+                        byte[] green = decompressed[1];
+                        byte[] red = decompressed[2];
+                        byte[] alpha = decompressed[3];
+
 
                         // Write texel
                         int TopLeft = column * bitsPerPixel + row * bitsPerScanline;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
                         mipmap.Seek(TopLeft, SeekOrigin.Begin);
+                        byte[] block = new byte[16];
                         for (int i = 0; i < 16; i += 4)
                         {
-                            for (int j = 0; j < 4; j++)
+                            /*for (int j = 0; j < 4; j++)
                             {
                                 // BGRA
-                                mipmap.WriteByte(decompressed[0][i + j]);
-                                mipmap.WriteByte(decompressed[1][i + j]);
-                                mipmap.WriteByte(decompressed[2][i + j]);
-                                mipmap.WriteByte(decompressed[3][i + j]);
+                                mipmap.WriteByte(blue[i + j]);
+                                mipmap.WriteByte(green[i + j]);
+                                mipmap.WriteByte(red[i + j]);
+                                mipmap.WriteByte(alpha[i + j])
+                            }*/
+
+                            for (int j = 0; j < 16; j+=4)
+                            {
+                                block[j] = blue[i + (j >> 2)];
+                                block[j+1] = green[i + (j >> 2)];
+                                block[j+2] = red[i + (j >> 2)];
+                                block[j+3] = alpha[i + (j >> 2)];
                             }
+                            mipmap.Write(block, 0, 16);
                             // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
                             mipmap.Seek(bitsPerScanline - bitsPerPixel * 4, SeekOrigin.Current);
                         }
@@ -450,35 +477,32 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-        private static List<byte> ReadDXTColour(int colour)
+        private static byte[] ReadDXTColour(int colour)
         {
             // Read RGB 5:6:5 data
-            byte b = (byte)(colour & 0x1F);
-            byte g = (byte)((colour & 0x7E0) >> 5);
-            byte r = (byte)((colour & 0xF800) >> 11);
+            var b = (colour & 0x1F);
+            var g = (colour & 0x7E0) >> 5;
+            var r = (colour & 0xF800) >> 11;
 
             // Expand to 8 bit data
-            /*byte r2 = (byte)(r << 3 | r >> 2);
-            byte g21 = (byte)(g << 2 | g >> 3);
-            byte b54 = (byte)(b << 3 | b >> 2);*/
-            byte r1 = (byte)Math.Round(r * 255f / 31f);
-            byte g1 = (byte)Math.Round(g * 255f / 63f);
-            byte b1 = (byte)Math.Round(b * 255f / 31f);
+            byte r1 = (byte)Math.Round(r * DecompRedBlueModifier);
+            byte g1 = (byte)Math.Round(g * DecompGreenModifier);
+            byte b1 = (byte)Math.Round(b * DecompRedBlueModifier);
+
+            /*byte r1 = (byte)(r * DecompRedBlueModifier);
+            byte g1 = (byte)(g * DecompGreenModifier);
+            byte b1 = (byte)(b * DecompRedBlueModifier);*/
 
             // TODO: Performance
-            List<byte> rgb = new List<byte>();
-            rgb.Add(r1);
-            rgb.Add(g1);
-            rgb.Add(b1);
-            return rgb;
+            return new byte[3] { r1, g1, b1 };
         }
 
         private static int BuildDXTColour(byte r, byte g, byte b)
         {
             // Compress to 5:6:5
-            byte r1 = (byte)(Math.Round(r * 31f / 255f));
-            byte g1 = (byte)(Math.Round(g * 63f / 255f));
-            byte b1 = (byte)(Math.Round(b * 31f / 255f));
+            byte r1 = (byte)(Math.Round(r * CompRedBlueModifier));
+            byte g1 = (byte)(Math.Round(g * CompGreenModifier));
+            byte b1 = (byte)(Math.Round(b * CompRedBlueModifier));
 
             return r1 << 11 | g1 << 5 | b1;
         }
@@ -493,7 +517,7 @@ namespace CSharpImageLibrary
         internal static List<byte[]> DecompressRGBBlock(Stream compressed, bool isDXT1)
         {
             int[] DecompressedBlock = new int[16];
-            int[] Colours = new int[4];
+            int[] Colours = null;
 
             // Read min max colours
             BinaryReader reader = new BinaryReader(compressed);
@@ -510,7 +534,7 @@ namespace CSharpImageLibrary
             }
 
             // KFreon: Decode into BGRA
-            List<byte[]> DecompressedChannels = new List<byte[]>();
+            List<byte[]> DecompressedChannels = new List<byte[]>(4);
             byte[] red = new byte[16];
             byte[] green = new byte[16];
             byte[] blue = new byte[16];
@@ -523,7 +547,7 @@ namespace CSharpImageLibrary
             for (int i = 0; i < 16; i++)
             {
                 int colour = DecompressedBlock[i];
-                List<byte> rgb = ReadDXTColour(colour);
+                var rgb = ReadDXTColour(colour);
                 red[i] = rgb[0];
                 green[i] = rgb[1];
                 blue[i] = rgb[2];
@@ -552,9 +576,6 @@ namespace CSharpImageLibrary
             int min = 0;
             int max = 0;
             int[] texelColours = GetRGB(texel, out min, out max);
-
-            var t1 = ReadDXTColour(min);
-            var t2 = ReadDXTColour(max);
 
             if (isDXT1)
             {
@@ -732,12 +753,6 @@ namespace CSharpImageLibrary
             var minrgb = ReadDXTColour(min);
             var maxrgb = ReadDXTColour(max);
 
-            /*var r = (byte)(2 / 3f * minrgb[0] + 1 / 3f * maxrgb[0]);
-            var g = (byte)(2 / 3f * minrgb[1] + 1 / 3f * maxrgb[1]);
-            var b = (byte)(2 / 3f * minrgb[2] + 1 / 3f * maxrgb[2]);
-
-            int testcolour = BuildDXTColour(r, g, b);*/
-
             // Interpolate other 2 colours
             if (min > max || !isDXT1)
             {
@@ -763,11 +778,6 @@ namespace CSharpImageLibrary
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;
             }
-
-            var c1 = ReadDXTColour(Colours[0]);
-            var c2 = ReadDXTColour(Colours[1]);
-            var c3 = ReadDXTColour(Colours[2]);
-            var c4 = ReadDXTColour(Colours[3]);
 
             return Colours;
         }

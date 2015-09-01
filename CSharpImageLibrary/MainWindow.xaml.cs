@@ -123,12 +123,12 @@ namespace CSharpImageLibrary
             
         }
 
-        public void LoadImage(string path)
+        public async Task LoadImage(string path)
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            img = new ImageEngineImage(path);
+            img = await Task.Run(() => new ImageEngineImage(path));
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");

@@ -47,7 +47,7 @@ namespace CSharpImageLibrary
             for (int m = 0; m < header.dwMipMapCount; m++)
             {
                 int mipLength = newWidth * newHeight * 4;
-                MemoryTributary mipmap = new MemoryTributary();
+                MemoryTributary mipmap = new MemoryTributary(mipLength);
                 mipmap.ReadFrom(stream, mipLength);
 
                 MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
