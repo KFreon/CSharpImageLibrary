@@ -257,7 +257,7 @@ namespace CSharpImageLibrary
         /// <param name="header"></param>
         /// <param name="CompressBlock"></param>
         /// <returns></returns>
-        internal static bool WriteBlockCompressedDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
+        internal static bool WriteBlockCompressedDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
         {
             Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, width) =>
             {
@@ -266,24 +266,21 @@ namespace CSharpImageLibrary
                 writer.Write(CompressedBlock);
             };
 
-            return DDSGeneral.WriteDDS(pixelData, Destination, Width, Height, Mips, header, PixelWriter, true);
+            return DDSGeneral.WriteDDS(MipMaps, Destination, header, PixelWriter, true);
         }
 
-        internal static bool WriteDDS(Stream pixelData, Stream Destination, int Width, int Height, int Mips, DDS_HEADER header, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd)
+        internal static bool WriteDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd)
         {
-
             try
             {
-                pixelData.Seek(0, SeekOrigin.Begin);
                 using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
                 {
                     Write_DDS_Header(header, writer);
-                    for (int m = 0; m < Mips ; m++)
+                    for (int m = 0; m < MipMaps.Count ; m++)
                     {
-                        double mipDimensionModifier = Math.Pow(2, m);
-                        int mipWidth = (int)(Width / mipDimensionModifier);
-                        int mipHeight = (int)(Height / mipDimensionModifier);
-                        WriteMipMap(pixelData, mipWidth, mipHeight, PixelWriter, isBCd, writer, mipDimensionModifier);
+                        MemoryTributary mipmap = MipMaps[m].Data;
+                        mipmap.Seek(0, SeekOrigin.Begin);
+                        WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd, writer);
                     }
                 }
                 return true;
@@ -295,7 +292,7 @@ namespace CSharpImageLibrary
             }
         }
 
-        private static void WriteMipMap(Stream pixelData, int Width, int Height, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd, BinaryWriter writer, double mipDimen)
+        private static void WriteMipMap(Stream pixelData, int Width, int Height, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd, BinaryWriter writer)
         {
             int bitsPerScanLine = 4 * Width;
 
@@ -322,33 +319,41 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, BGRA)</param>
         /// <returns></returns>
-        internal static MemoryTributary LoadUncompressed(Stream stream, out int Width, out int Height, Func<Stream, List<byte>> PixelReader)
+        internal static List<MipMap> LoadUncompressed(Stream stream, Func<Stream, List<byte>> PixelReader)
         {
             // KFreon: Necessary to move stream position along to pixel data.
             DDS_HEADER header = null;
             Format format = ImageFormats.ParseDDSFormat(stream, out header);
 
-            Width = header.dwWidth;
-            Height = header.dwHeight;
+            List<MipMap> MipMaps = new List<MipMap>();
 
-            MemoryTributary imgData = new MemoryTributary();
+            int newWidth = header.dwWidth;
+            int newHeight = header.dwHeight;
 
             // KFreon: Read data
-            
-            for (int y = 0; y < Height; y++)
+            for (int m = 0; m < header.dwMipMapCount; m++)
             {
-                for (int x = 0; x < Width; x++)
+                MemoryTributary mipmap = new MemoryTributary();
+                for (int y = 0; y < newHeight; y++)
                 {
-                    List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
-                    imgData.WriteByte(bgr[0]);
-                    imgData.WriteByte(bgr[1]);
-                    imgData.WriteByte(bgr[2]);
-                    imgData.WriteByte(0xFF);
+                    for (int x = 0; x < newWidth; x++)
+                    {
+                        List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
+                        mipmap.WriteByte(bgr[0]);
+                        mipmap.WriteByte(bgr[1]);
+                        mipmap.WriteByte(bgr[2]);
+                        mipmap.WriteByte(0xFF);
+                    }
                 }
-            }
-            
+                MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
 
-            return imgData;
+                newWidth /= 2;
+                newHeight /= 2;
+            }
+
+
+
+            return MipMaps;
         }
 
 
@@ -360,45 +365,55 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="DecompressBlock">Format specific block decompressor.</param>
         /// <returns>16 pixel BGRA channels.</returns>
-        internal static MemoryTributary LoadBlockCompressedTexture(Stream compressed, out int Width, out int Height, Func<Stream, List<byte[]>> DecompressBlock)
+        internal static List<MipMap> LoadBlockCompressedTexture(Stream compressed, Func<Stream, List<byte[]>> DecompressBlock)
         {
             DDS_HEADER header;
             Format format = ImageFormats.ParseDDSFormat(compressed, out header);
-
-            Width = header.dwWidth;
-            Height = header.dwHeight;
-
             int bitsPerPixel = 4;
-            MemoryTributary imgData = new MemoryTributary(bitsPerPixel * (int)Width * (int)Height);
 
-            // Loop over rows and columns NOT pixels
-            int bitsPerScanline = bitsPerPixel * (int)Width;
-            for (int row = 0; row < Height; row += 4)
+            List<MipMap> MipMaps = new List<MipMap>();
+
+            int mipWidth = header.dwWidth;
+            int mipHeight = header.dwHeight;
+
+            for (int m = 0; m < header.dwMipMapCount; m++)
             {
-                for (int column = 0; column < Width; column += 4)
-                {
-                    // decompress 
-                    List<byte[]> decompressed = DecompressBlock(compressed);
+                MemoryTributary mipmap = new MemoryTributary(bitsPerPixel * (int)mipWidth * (int)mipHeight);
 
-                    // Write texel
-                    int TopLeft = column * bitsPerPixel + row * bitsPerScanline;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
-                    imgData.Seek(TopLeft, SeekOrigin.Begin);
-                    for (int i = 0; i < 16; i += 4)
+                // Loop over rows and columns NOT pixels
+                int bitsPerScanline = bitsPerPixel * (int)mipWidth;
+                for (int row = 0; row < mipHeight; row += 4)
+                {
+                    for (int column = 0; column < mipWidth; column += 4)
                     {
-                        for (int j = 0; j < 4; j++)
+                        // decompress 
+                        List<byte[]> decompressed = DecompressBlock(compressed);
+
+                        // Write texel
+                        int TopLeft = column * bitsPerPixel + row * bitsPerScanline;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
+                        mipmap.Seek(TopLeft, SeekOrigin.Begin);
+                        for (int i = 0; i < 16; i += 4)
                         {
-                            // BGRA
-                            imgData.WriteByte(decompressed[0][i + j]);
-                            imgData.WriteByte(decompressed[1][i + j]);
-                            imgData.WriteByte(decompressed[2][i + j]);
-                            imgData.WriteByte(decompressed[3][i + j]);
+                            for (int j = 0; j < 4; j++)
+                            {
+                                // BGRA
+                                mipmap.WriteByte(decompressed[0][i + j]);
+                                mipmap.WriteByte(decompressed[1][i + j]);
+                                mipmap.WriteByte(decompressed[2][i + j]);
+                                mipmap.WriteByte(decompressed[3][i + j]);
+                            }
+                            // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
+                            mipmap.Seek(bitsPerScanline - bitsPerPixel * 4, SeekOrigin.Current);
                         }
-                        // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
-                        imgData.Seek(bitsPerScanline - bitsPerPixel * 4, SeekOrigin.Current);
                     }
                 }
+                MipMaps.Add(new MipMap(mipmap, mipWidth, mipHeight));
+
+                mipWidth /= 2;
+                mipHeight /= 2;
             }
-            return imgData;
+            
+            return MipMaps;
         }
         #endregion Loading
 
@@ -780,6 +795,12 @@ namespace CSharpImageLibrary
             }
 
             return texel;
+        }
+
+        internal static int EstimateNumMipMaps(int Width, int Height)
+        {
+            int limitingDimension = Width > Height ? Height : Width;
+            return (int)Math.Log(limitingDimension, 2);
         }
     }
 }

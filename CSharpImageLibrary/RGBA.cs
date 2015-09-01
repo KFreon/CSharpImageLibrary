@@ -21,10 +21,10 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
-        internal static MemoryTributary Load(string imagePath, out int Width, out int Height)
+        internal static List<MipMap> Load(string imagePath)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return Load(fs, out Width, out Height);
+                return Load(fs);
         }
 
 
@@ -35,27 +35,39 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
-        internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
+        internal static List<MipMap> Load(Stream stream)
         {
             DDS_HEADER header = null;
             Format format = ImageFormats.ParseDDSFormat(stream, out header);
 
-            Width = header.dwWidth;
-            Height = header.dwHeight;
+            List<MipMap> MipMaps = new List<MipMap>();
+            int newWidth = header.dwWidth;
+            int newHeight = header.dwHeight;
 
-            MemoryTributary imgData = new MemoryTributary();
-            imgData.ReadFrom(stream, stream.Length - stream.Position);
+            for (int m = 0; m < header.dwMipMapCount; m++)
+            {
+                int mipLength = newWidth * newHeight * 4;
+                MemoryTributary mipmap = new MemoryTributary();
+                mipmap.ReadFrom(stream, mipLength);
 
-            return imgData;
+                MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
+
+                newWidth /= 2;
+                newHeight /= 2;
+            }
+            
+
+            return MipMaps;
         }
 
-        internal static bool Save(MemoryTributary pixelsWithMips, Stream destination, int Width, int Height, int Mips)
+        internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
-            var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_ARGB);
+            var header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_ARGB);
             using (BinaryWriter writer = new BinaryWriter(destination, Encoding.Default, true))
                 DDSGeneral.Write_DDS_Header(header, writer);
 
-            pixelsWithMips.WriteTo(destination);
+            for (int m = 0; m < MipMaps.Count; m++)
+                MipMaps[m].Data.WriteTo(destination);
 
             return true;
         }

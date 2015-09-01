@@ -20,10 +20,10 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>16 byte BGRA channels as stream.</returns>
-        internal static MemoryTributary Load(string imageFile, out int Width, out int Height)
+        internal static List<MipMap> Load(string imageFile)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return Load(fs, out Width, out Height);
+                return Load(fs);
         }
 
 
@@ -34,9 +34,9 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>16 byte BGRA channels as stream.</returns>
-        internal static MemoryTributary Load(Stream compressed, out int Width, out int Height)
+        internal static List<MipMap> Load(Stream compressed)
         {
-            return DDSGeneral.LoadBlockCompressedTexture(compressed, out Width, out Height, DecompressBC3);
+            return DDSGeneral.LoadBlockCompressedTexture(compressed, DecompressBC3);
         }
 
 
@@ -80,10 +80,10 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Width.</param>
         /// <param name="Mips">Number of mips in pixelWithMips (1 if no mips).</param>
         /// <returns>True if saved successfully.</returns>
-        internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
+        internal static bool Save(List<MipMap> MipMaps, Stream Destination)
         {
-            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_DXT5);
-            return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC3Block);
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_DXT5);
+            return DDSGeneral.WriteBlockCompressedDDS(MipMaps, Destination, header, CompressBC3Block);
         }
     }
 }

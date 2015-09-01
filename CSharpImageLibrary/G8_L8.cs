@@ -20,10 +20,10 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel data as stream.</returns>
-        internal static MemoryTributary Load(string imageFile, out int Width, out int Height)
+        internal static List<MipMap> Load(string imageFile)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return Load(fs, out Width, out Height);
+                return Load(fs);
         }
 
 
@@ -34,7 +34,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
+        internal static List<MipMap> Load(Stream stream)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
             Func<Stream, List<byte>> PixelReader = fileData =>
@@ -49,10 +49,10 @@ namespace CSharpImageLibrary
                 return new List<byte>() { blue, green, red };
             };
 
-            return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
+            return DDSGeneral.LoadUncompressed(stream, PixelReader);
         }
 
-        internal static bool Save(Stream pixelData, Stream destination, int Width, int Height, int Mips)
+        internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
             Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, unused) =>
             {
@@ -71,8 +71,8 @@ namespace CSharpImageLibrary
                 writer.Write((byte)test);
             };
 
-            var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_G8_L8);
-            return DDSGeneral.WriteDDS(pixelData, destination, Width, Height, Mips, header, PixelWriter, false);
+            var header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_G8_L8);
+            return DDSGeneral.WriteDDS(MipMaps, destination, header, PixelWriter, false);
         }
     }
 }

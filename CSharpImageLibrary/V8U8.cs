@@ -21,10 +21,10 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel data as stream.</returns>
-        internal static MemoryTributary Load(string imagePath, out int Width, out int Height)
+        internal static List<MipMap> Load(string imagePath)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return Load(fs, out Width, out Height);
+                return Load(fs);
         }
 
 
@@ -35,7 +35,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel data as stream.</returns>
-        internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
+        internal static List<MipMap> Load(Stream stream)
         {
             // KFreon: Read pixel data. Note: No blue channel. Only 2 colour channels.
             Func<Stream, List<byte>> PixelReader = fileData =>
@@ -49,26 +49,26 @@ namespace CSharpImageLibrary
                 return new List<byte>() { blue, green, red };
             };
 
-            return DDSGeneral.LoadUncompressed(stream, out Width, out Height, PixelReader);
+            return DDSGeneral.LoadUncompressed(stream, PixelReader);
         }
 
-        internal static bool Save(Stream pixelData, Stream destination, int Width, int Height, int Mips)
+        internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
             Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, unused) =>
             {
                 // BGRA
                 pixels.Position++; // No blue
-                byte green = (byte)(pixelData.ReadByte() + 130);
-                byte red = (byte)(pixelData.ReadByte() + 130);
+                byte green = (byte)(pixels.ReadByte() + 130);
+                byte red = (byte)(pixels.ReadByte() + 130);
 
                 writer.Write(red);  // Red
                 writer.Write(green);  // Green
-                pixelData.Position++;    // No alpha
+                pixels.Position++;    // No alpha
             };
 
 
-            var header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_V8U8);
-            return DDSGeneral.WriteDDS(pixelData, destination, Width, Height, Mips, header, PixelWriter, false);
+            var header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_V8U8);
+            return DDSGeneral.WriteDDS(MipMaps, destination, header, PixelWriter, false);
         }
     }
 }

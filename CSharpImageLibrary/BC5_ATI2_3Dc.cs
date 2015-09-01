@@ -21,10 +21,10 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA pixels.</returns>
-        internal static MemoryTributary Load(string imagePath, out int Width, out int Height)
+        internal static List<MipMap> Load(string imagePath)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return Load(fs, out Width, out Height);
+                return Load(fs);
         }
 
 
@@ -35,9 +35,9 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA pixels.</returns>
-        internal static MemoryTributary Load(Stream stream, out int Width, out int Height)
+        internal static List<MipMap> Load(Stream stream)
         {
-            return DDSGeneral.LoadBlockCompressedTexture(stream, out Width, out Height, DecompressATI2Block);
+            return DDSGeneral.LoadBlockCompressedTexture(stream, DecompressATI2Block);
         }
 
 
@@ -83,10 +83,10 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="Mips">Number of mips in pixelsWithMips (1 if no mips).</param>
         /// <returns>True if saved successfully.</returns>
-        internal static bool Save(MemoryTributary pixelsWithMips, Stream Destination, int Width, int Height, int Mips)
+        internal static bool Save(List<MipMap> MipMaps, Stream Destination)
         {
-            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(Mips, Height, Width, ImageEngineFormat.DDS_ATI2_3Dc);
-            return DDSGeneral.WriteBlockCompressedDDS(pixelsWithMips, Destination, Width, Height, Mips, header, CompressBC5Block);
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_ATI2_3Dc);
+            return DDSGeneral.WriteBlockCompressedDDS(MipMaps, Destination, header, CompressBC5Block);
         }
     }
 }

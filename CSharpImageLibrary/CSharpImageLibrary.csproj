@@ -69,6 +69,7 @@
     <Compile Include="BC3.cs" />
     <Compile Include="G8_L8.cs" />
     <Compile Include="ImageEngineImage.cs" />
+    <Compile Include="MipMap.cs" />
     <Compile Include="RGBA.cs" />
     <Compile Include="V8U8.cs" />
     <Compile Include="Win7.cs" />

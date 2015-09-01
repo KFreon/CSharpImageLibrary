@@ -142,16 +142,12 @@ namespace CSharpImageLibrary
         /// Loads useful information from a WIC Image.
         /// </summary>
         /// <param name="bmp">Image to load.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>BGRA pixel data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(BitmapImage bmp, out int Width, out int Height)
+        private static MemoryTributary LoadMipMap(BitmapSource bmp)
         {
-            // KFreon: Round up - some weird bug where bmp's would be 1023.4 or something.
-            Height = (int)Math.Ceiling(bmp.Height);
-            Width = (int)Math.Ceiling(bmp.Width);
-
-            return bmp.GetPixelsAsStream(Width, Height);
+            int width = (int)Math.Ceiling(bmp.Width);
+            int height = (int)Math.Ceiling(bmp.Height);
+            return bmp.GetPixelsAsStream(width, height);
         }
 
 
@@ -164,47 +160,62 @@ namespace CSharpImageLibrary
         /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(string imageFile, out int Width, out int Height, int decodeWidth, int decodeHeight)
+        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, bool isDDS)
         {
             if (!WindowsCodecsAvailable)
-            {
-                Width = 0;
-                Height = 0;
                 return null;
-            }
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                //return LoadWithCodecs(fs, out Width, out Height, decodeWidth, decodeHeight, Path.GetExtension(imageFile));
-                return LoadWithCodecs(fs, out Width, out Height, decodeWidth, decodeHeight);
+                return LoadWithCodecs(fs, decodeWidth, decodeHeight, isDDS);
         }
 
-        internal static int BuildMipMaps(Stream pixelData, Stream destination, int Width, int Height)
+        internal static int BuildMipMaps(List<MipMap> MipMaps)
         {
-            BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(pixelData);
-            int smallestDimension = Width > Height ? Height : Width;
-            int newWidth = Width;
-            int newHeight = Height;
+            if (MipMaps?.Count == 0)
+                return 0;
 
-            int count = 1;
-            while (smallestDimension > 0)
+            MipMap currentMip = MipMaps[0];
+
+            // KFreon: Check if mips required
+            int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
+            if (estimatedMips == MipMaps.Count)
+                return estimatedMips;
+
+
+            int newWidth = currentMip.Width;
+            int newHeight = currentMip.Height;
+
+            
+            for (int i = 0; i < estimatedMips; i++)
             {
+                BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(currentMip.Data);
                 newWidth /= 2;
                 newHeight /= 2;
 
                 bmp = UsefulThings.WPF.Images.ResizeImage(bmp, newWidth, newHeight);
                 MemoryTributary data = bmp.GetPixelsAsStream(newWidth, newHeight);
-                data.WriteTo(destination);
-                smallestDimension /= 2;
-                count++;
+                MipMaps.Add(new MipMap(data, newWidth, newHeight));
+
+                currentMip = MipMaps[i];
             }
 
-            return count;
+            return estimatedMips;
         }
 
-        internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
+
+        /// <summary>
+        /// Saves image using internal Codecs - DDS not supported.
+        /// </summary>
+        /// <param name="pixels"></param>
+        /// <param name="destination"></param>
+        /// <param name="format"></param>
+        /// <param name="Width"></param>
+        /// <param name="Height"></param>
+        /// <returns></returns>
+        internal static bool SaveWithCodecs(MemoryTributary pixels, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
             int stride = 4 * Width;
-            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, pixelsWithMips.ToArray(), stride));
+            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, pixels.ToArray(), stride));
 
             BitmapEncoder encoder = null;
             switch (format)
@@ -230,9 +241,8 @@ namespace CSharpImageLibrary
 
         internal static MemoryTributary GenerateThumbnail(Stream stream, int newWidth, int newHeight)
         {
-            int Width;
-            int Height;
-            return LoadWithCodecs(stream, out Width, out Height, newWidth, newHeight);
+            var mips = LoadWithCodecs(stream, newWidth, newHeight, false);  // Don't want mips so isDDS == false
+            return mips?[0].Data;  // Returns null if mips is null
         }
 
 
@@ -245,24 +255,38 @@ namespace CSharpImageLibrary
         /// <param name="decodeWidth">Width to decode as. Aspect ratio unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode as. Aspect ratio unchanged if decodeWidth = 0.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static MemoryTributary LoadWithCodecs(Stream stream, out int Width, out int Height, int decodeWidth, int decodeHeight)
+        internal static List<MipMap> LoadWithCodecs(Stream stream, int decodeWidth, int decodeHeight, bool isDDS)
         {
             if (!WindowsCodecsAvailable)
-            {
-                Width = 0;
-                Height = 0;
                 return null;
-            }
 
-            BitmapImage bmp = AttemptUsingWindowsCodecs(stream, decodeWidth, decodeHeight);
-            if (bmp == null)
+            List<MipMap> mipmaps = new List<MipMap>();
+            BitmapSource top = null;
+
+            if (isDDS)
             {
-                Width = 0;
-                Height = 0;
-                return null;
+                stream.Seek(0, SeekOrigin.Begin);
+                var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+                foreach (var mipmap in decoder.Frames)
+                {
+                    MemoryTributary data = LoadMipMap(mipmap);
+                    mipmaps.Add(new MipMap(data, (int)mipmap.Width, (int)mipmap.Height));
+                }
+                top = decoder.Frames[0];
             }
+            else
+            {
+                // KFreon: No Mipmaps
+                BitmapImage bmp = AttemptUsingWindowsCodecs(stream, decodeWidth, decodeHeight);
+                if (bmp == null)
+                    return null;
 
-            return LoadWithCodecs(bmp, out Width, out Height);
+                MemoryTributary mipmap = LoadMipMap(bmp);
+                top = bmp;
+                mipmaps.Add(new MipMap(mipmap, (int)bmp.Width, (int)bmp.Height));
+            }
+            
+            return mipmaps;
         }
     }
 }

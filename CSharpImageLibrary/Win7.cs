@@ -84,14 +84,17 @@ namespace CSharpImageLibrary
         {
             Bitmap bmp = AttemptWindowsCodecs(stream);
 
-            if (bmp == null)
-            {
-                Width = 0;
-                Height = 0;
-                return null;
-            }
+            Width = 0;
+            Height = 0;
 
-            MemoryTributary imgData = LoadImageWithCodecs(bmp, out Width, out Height, extension);
+            if (bmp == null)
+                return null;
+
+            MemoryTributary imgData = LoadMipMap(bmp, extension);
+
+            Width = bmp.Width;
+            Height = bmp.Height;
+
             bmp.Dispose();
             return imgData;
         }
@@ -105,39 +108,44 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>BGRA pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(Bitmap bmp, out int Width, out int Height, string extension = null)
+        private static MemoryTributary LoadMipMap(Bitmap bmp, string extension = null)
         {
             byte[] imgData = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(bmp);
-
-            Width = bmp.Width;
-            Height = bmp.Width;
 
             return new MemoryTributary(imgData);
         }
 
-        internal static int BuildMipMaps(MemoryTributary pixelData, Stream destination, int Width, int Height)
+        internal static int BuildMipMaps(List<MipMap> MipMaps)
         {
-            Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(pixelData.ToArray(), Width, Height);
-            int determiningDimension = Width > Height ? Height : Width;
-            int newWidth = Width;
-            int newHeight = Height;
-            int count = 1;
+            if (MipMaps?.Count == 0)
+                return 0;
 
-            while (determiningDimension > 1)
+            MipMap currentMip = MipMaps[0];
+
+            // KFreon: Check if mips required
+            int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
+            if (estimatedMips == MipMaps.Count)
+                return estimatedMips;
+
+
+            int determiningDimension = currentMip.Height > currentMip.Width ? currentMip.Width : currentMip.Height;
+            int newWidth = currentMip.Width;
+            int newHeight = currentMip.Height;
+
+            for (int i = 0; i < estimatedMips; i++)
             {
+                Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(currentMip.Data.ToArray(), currentMip.Width, currentMip.Height);
                 newWidth /= 2;
                 newHeight /= 2;
-                Debug.WriteLine($"newWidth: {newWidth}");
                 bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(newWidth, newHeight));
 
                 byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
-                destination.Write(data, 0, data.Length);
+                MipMaps.Add(new MipMap(new MemoryTributary(data), newWidth, newHeight));
 
-                determiningDimension /= 2;
-                count++;
+                currentMip = MipMaps[i];
             }
 
-            return count;
+            return estimatedMips;
         }
 
         internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
