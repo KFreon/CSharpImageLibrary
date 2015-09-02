@@ -18,8 +18,6 @@ namespace CSharpImageLibrary
         /// Load important information from BC2 image file.
         /// </summary>
         /// <param name="imageFile">Path to image file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>16 byte BGRA channels as stream.</returns>
         internal static List<MipMap> Load(string imageFile)
         {
@@ -32,8 +30,6 @@ namespace CSharpImageLibrary
         /// Load important information from BC2 image stream.
         /// </summary>
         /// <param name="compressed">Stream containing entire image. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>16 byte BGRA channels as stream.</returns>
         internal static List<MipMap> Load(Stream compressed)
         {
@@ -48,11 +44,17 @@ namespace CSharpImageLibrary
         /// <returns>BGRA channels.</returns>
         private static List<byte[]> DecompressBC2(Stream compressed)
         {
+            // KFreon: Read alpha into byte[] for maximum speed? Might be cos it's a MemoryTributary...
+            byte[] CompressedAlphas = new byte[8];
+            compressed.Read(CompressedAlphas, 0, 8);
+            int count = 0;
+
             // KFreon: Read alpha
             byte[] alpha = new byte[16];
             for (int i = 0; i < 16; i+=2)
             {
-                byte twoAlphas = (byte)compressed.ReadByte();
+                //byte twoAlphas = (byte)compressed.ReadByte();
+                byte twoAlphas = CompressedAlphas[count++];
                 for (int j = 0; j < 2; j++)
                     alpha[i + j] = (byte)(twoAlphas << (j * 4));
             }
@@ -92,11 +94,8 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Saves texture using BC2 compression.
         /// </summary>
-        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested)</param>
+        /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
         /// <param name="Destination">Stream to save to.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
-        /// <param name="Mips">Number of mips in pixelWidthMips (1 if no mips).</param>
         /// <returns>True if saved successfully.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream Destination)
         {

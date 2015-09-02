@@ -14,12 +14,6 @@ namespace CSharpImageLibrary
     /// </summary>
     internal static class DDSGeneral
     {
-        const float DecompRedBlueModifier = 255f / 31f;
-        const float DecompGreenModifier = 255f / 63f;
-
-        const float CompRedBlueModifier = 31f / 255f;
-        const float CompGreenModifier = 63f / 255f;
-
         #region Header Stuff
         /// <summary>
         /// Reads DDS header from file.
@@ -36,9 +30,7 @@ namespace CSharpImageLibrary
             h.dwDepth = r.ReadInt32();
             h.dwMipMapCount = r.ReadInt32();
             for (int i = 0; i < 11; ++i)
-            {
                 h.dwReserved1[i] = r.ReadInt32();
-            }
             Read_DDS_PIXELFORMAT(h.ddspf, r);
             h.dwCaps = r.ReadInt32();
             h.dwCaps2 = r.ReadInt32();
@@ -252,17 +244,15 @@ namespace CSharpImageLibrary
         #endregion Header Stuff
 
 
+        #region Saving
         /// <summary>
-        /// 
+        /// Writes a block compressed DDS to stream. Uses format specific function to compress and write blocks.
         /// </summary>
-        /// <param name="pixelData"></param>
-        /// <param name="Destination"></param>
-        /// <param name="Width"></param>
-        /// <param name="Height"></param>
-        /// <param name="Mips"></param>
-        /// <param name="header"></param>
-        /// <param name="CompressBlock"></param>
-        /// <returns></returns>
+        /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
+        /// <param name="Destination">Stream to save to.</param>
+        /// <param name="header">Header of DDS to use.</param>
+        /// <param name="CompressBlock">Function to compress and write blocks with.</param>
+        /// <returns>True on success.</returns>
         internal static bool WriteBlockCompressedDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
         {
             Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, width) =>
@@ -275,6 +265,16 @@ namespace CSharpImageLibrary
             return DDSGeneral.WriteDDS(MipMaps, Destination, header, PixelWriter, true);
         }
 
+
+        /// <summary>
+        /// Writes a DDS file using a format specific function to write pixels.
+        /// </summary>
+        /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
+        /// <param name="Destination">Stream to save to.</param>
+        /// <param name="header">Header to use.</param>
+        /// <param name="PixelWriter">Function to write pixels. Optionally also compresses blocks before writing.</param>
+        /// <param name="isBCd">True = Block Compressed DDS. Performs extra manipulation to get and order Texels.</param>
+        /// <returns>True on success.</returns>
         internal static bool WriteDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd)
         {
             try
@@ -298,9 +298,19 @@ namespace CSharpImageLibrary
             }
         }
 
+
+        /// <summary>
+        /// Write a mipmap to a stream using a format specific pixel writing function.
+        /// </summary>
+        /// <param name="pixelData">Pixels of mipmap.</param>
+        /// <param name="Width">Mipmap Width.</param>
+        /// <param name="Height">Mipmap Height.</param>
+        /// <param name="PixelWriter">Function to write pixels with. Also compresses if block compressed texture.</param>
+        /// <param name="isBCd">True = Block Compressed DDS.</param>
+        /// <param name="writer">Stream to write to.</param>
         private static void WriteMipMap(Stream pixelData, int Width, int Height, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd, BinaryWriter writer)
         {
-            int bitsPerScanLine = 4 * Width;
+            int bitsPerScanLine = 4 * Width;  // KFreon: Bits per image line.
 
             // KFreon: Handle things too small for texels
             if (isBCd && (Width < 4 || Height < 4))
@@ -309,6 +319,7 @@ namespace CSharpImageLibrary
 
             }
 
+            // KFreon: Loop over rows and columns, doing extra moving if Block Compressed to accommodate texels.
             for (int h = 0; h < Height; h += (isBCd ? 4 : 1))
             {
                 for (int w = 0; w < Width; w += (isBCd ? 4 : 1))
@@ -317,10 +328,12 @@ namespace CSharpImageLibrary
                     if (isBCd && w != Width - 4)
                         pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
                 }
+
                 if (isBCd)
                     pixelData.Seek(-bitsPerScanLine + 4 * 4, SeekOrigin.Current);  // Row end texel. Just need to add 1.
             }
         }
+        #endregion Save
 
 
         #region Loading
@@ -328,8 +341,6 @@ namespace CSharpImageLibrary
         /// Loads an uncompressed DDS image given format specific Pixel Reader
         /// </summary>
         /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, BGRA)</param>
         /// <returns></returns>
         internal static List<MipMap> LoadUncompressed(Stream stream, Func<Stream, List<byte>> PixelReader)
@@ -353,11 +364,6 @@ namespace CSharpImageLibrary
                     for (int x = 0; x < newWidth; x++)
                     {
                         List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
-                                                               /*mipmap.WriteByte(bgr[0]);
-                                                               mipmap.WriteByte(bgr[1]);
-                                                               mipmap.WriteByte(bgr[2]);
-                                                               mipmap.WriteByte(0xFF);*/
-
                         mipmap[count++] = bgr[0];
                         mipmap[count++] = bgr[1];
                         mipmap[count++] = bgr[2];
@@ -370,8 +376,6 @@ namespace CSharpImageLibrary
                 newHeight /= 2;
             }
 
-
-
             return MipMaps;
         }
 
@@ -380,8 +384,6 @@ namespace CSharpImageLibrary
         /// Loads a block compressed (BCx) texture.
         /// </summary>
         /// <param name="compressed">Compressed image data.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <param name="DecompressBlock">Format specific block decompressor.</param>
         /// <returns>16 pixel BGRA channels.</returns>
         internal static List<MipMap> LoadBlockCompressedTexture(Stream compressed, Func<Stream, List<byte[]>> DecompressBlock)
@@ -419,15 +421,7 @@ namespace CSharpImageLibrary
                         byte[] block = new byte[16];
                         for (int i = 0; i < 16; i += 4)
                         {
-                            /*for (int j = 0; j < 4; j++)
-                            {
-                                // BGRA
-                                mipmap.WriteByte(blue[i + j]);
-                                mipmap.WriteByte(green[i + j]);
-                                mipmap.WriteByte(red[i + j]);
-                                mipmap.WriteByte(alpha[i + j])
-                            }*/
-
+                            // BGRA
                             for (int j = 0; j < 16; j+=4)
                             {
                                 block[j] = blue[i + (j >> 2)];
@@ -436,6 +430,7 @@ namespace CSharpImageLibrary
                                 block[j+3] = alpha[i + (j >> 2)];
                             }
                             mipmap.Write(block, 0, 16);
+
                             // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
                             mipmap.Seek(bitsPerScanline - bitsPerPixel * 4, SeekOrigin.Current);
                         }
@@ -463,14 +458,11 @@ namespace CSharpImageLibrary
         {
             byte[] DecompressedBlock = new byte[16];
 
-            // KFreon: Read colour range and build palette
-
             // KFreon: Read min and max colours (not necessarily in that order)
             byte min = (byte)compressed.ReadByte();
             byte max = (byte)compressed.ReadByte();
 
             byte[] Colours = Build8BitPalette(min, max, isSigned);
-
 
             // KFreon: Decompress pixels
             ulong bitmask = (ulong)compressed.ReadByte() << 0 | (ulong)compressed.ReadByte() << 8 | (ulong)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single 
@@ -482,36 +474,6 @@ namespace CSharpImageLibrary
                 DecompressedBlock[i] = (byte)Colours[bitmask >> (i * 3) & 0x7];
 
             return DecompressedBlock;
-        }
-
-        private static byte[] ReadDXTColour(int colour)
-        {
-            // Read RGB 5:6:5 data
-            var b = (colour & 0x1F);
-            var g = (colour & 0x7E0) >> 5;
-            var r = (colour & 0xF800) >> 11;
-
-            // Expand to 8 bit data
-            byte r1 = (byte)Math.Round(r * DecompRedBlueModifier);
-            byte g1 = (byte)Math.Round(g * DecompGreenModifier);
-            byte b1 = (byte)Math.Round(b * DecompRedBlueModifier);
-
-            /*byte r1 = (byte)(r * DecompRedBlueModifier);
-            byte g1 = (byte)(g * DecompGreenModifier);
-            byte b1 = (byte)(b * DecompRedBlueModifier);*/
-
-            // TODO: Performance
-            return new byte[3] { r1, g1, b1 };
-        }
-
-        private static int BuildDXTColour(byte r, byte g, byte b)
-        {
-            // Compress to 5:6:5
-            byte r1 = (byte)(Math.Round(r * CompRedBlueModifier));
-            byte g1 = (byte)(Math.Round(g * CompGreenModifier));
-            byte b1 = (byte)(Math.Round(b * CompRedBlueModifier));
-
-            return r1 << 11 | g1 << 5 | b1;
         }
 
 
@@ -567,6 +529,33 @@ namespace CSharpImageLibrary
 
         #region Block Compression
         /// <summary>
+        /// Compresses RGB texel into DXT colours.
+        /// </summary>
+        /// <param name="texel">4x4 Texel to compress.</param>
+        /// <param name="min">Minimum Colour value.</param>
+        /// <param name="max">Maximum Colour value.</param>
+        /// <returns>DXT Colours</returns>
+        internal static int[] CompressRGBFromTexel(byte[] texel, out int min, out int max)
+        {
+            int[] RGB = new int[16];
+            int count = 0;
+            for (int i = 0; i < 64; i += 16) // texel row
+            {
+                for (int j = 0; j < 16; j += 4)  // pixels in row incl BGRA
+                {
+                    int pixelColour = BuildDXTColour(texel[i + j + 2], texel[i + j + 1], texel[i + j]);
+                    RGB[count++] = pixelColour;
+                }
+            }
+
+            min = RGB.Min();
+            max = RGB.Max();
+
+            return RGB;
+        }
+
+
+        /// <summary>
         /// Compresses RGB channels using Block Compression.
         /// </summary>
         /// <param name="texel">16 pixel texel to compress.</param>
@@ -574,15 +563,12 @@ namespace CSharpImageLibrary
         /// <returns>8 byte compressed texel.</returns>
         public static byte[] CompressRGBBlock(byte[] texel, bool isDXT1)
         {
-            /*if (texel.Length != 16)
-                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");*/
-
             byte[] CompressedBlock = new byte[8];
 
             // Get Min and Max colours
             int min = 0;
             int max = 0;
-            int[] texelColours = GetRGB(texel, out min, out max);
+            int[] texelColours = CompressRGBFromTexel(texel, out min, out max);
 
             if (isDXT1)
             {
@@ -638,9 +624,6 @@ namespace CSharpImageLibrary
         /// <returns>8 byte compressed texel.</returns>
         public static byte[] Compress8BitBlock(byte[] texel, int channel, bool isSigned)
         {
-            /*if (texel.Length != 16)
-                throw new ArgumentOutOfRangeException($"PixelColours must have 16 entries. Got: {texel.Length}");*/
-
             // KFreon: Get min and max
             byte min = byte.MaxValue;
             byte max = byte.MinValue;
@@ -681,12 +664,74 @@ namespace CSharpImageLibrary
 
             return CompressedBlock;
         }
-
         #endregion Block Compression
 
 
+        /// <summary>
+        /// Gets 4x4 texel block from stream.
+        /// </summary>
+        /// <param name="pixelData">Image pixels.</param>
+        /// <param name="Width">Width of image.</param>
+        /// <returns>4x4 texel.</returns>
+        internal static byte[] GetTexel(Stream pixelData, int Width)
+        {
+            byte[] texel = new byte[16 * 4]; // 16 pixels, 4 bytes per pixel
 
-        #region Palette
+            int bitsPerScanLine = 4 * Width;
+            for (int i = 0; i < 64; i += 16)  // pixel rows
+            {
+                for (int j = 0; j < 16; j += 4)  // pixels in row
+                    for (int k = 0; k < 4; k++) // BGRA
+                        texel[i + j + k] = (byte)pixelData.ReadByte();
+
+                pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);  // Seek to next line of texel
+            }
+                
+
+            return texel;
+        }
+
+
+        #region Palette/Colour
+        /// <summary>
+        /// Reads a packed DXT colour into RGB
+        /// </summary>
+        /// <param name="colour"></param>
+        /// <returns>RGB bytes</returns>
+        private static byte[] ReadDXTColour(int colour)
+        {
+            // Read RGB 5:6:5 data
+            var b = (colour & 0x1F);
+            var g = (colour & 0x7E0) >> 5;
+            var r = (colour & 0xF800) >> 11;
+
+            // Expand to 8 bit data
+            byte r1 = (byte)Math.Round(r * 255f / 31f);
+            byte g1 = (byte)Math.Round(g * 255f / 63f);
+            byte b1 = (byte)Math.Round(b * 255f / 31f);
+
+            return new byte[3] { r1, g1, b1 };
+        }
+
+
+        /// <summary>
+        /// Creates a packed DXT colour from RGB.
+        /// </summary>
+        /// <param name="r">Red byte.</param>
+        /// <param name="g">Green byte.</param>
+        /// <param name="b">Blue byte.</param>
+        /// <returns>DXT Colour</returns>
+        private static int BuildDXTColour(byte r, byte g, byte b)
+        {
+            // Compress to 5:6:5
+            byte r1 = (byte)(Math.Round(r * 31f / 255f));
+            byte g1 = (byte)(Math.Round(g * 63f / 255f));
+            byte b1 = (byte)(Math.Round(b * 31f / 255f));
+
+            return r1 << 11 | g1 << 5 | b1;
+        }
+
+
         /// <summary>
         /// Builds palette for 8 bit channel.
         /// </summary>
@@ -725,24 +770,7 @@ namespace CSharpImageLibrary
             return Colours;
         }
 
-        internal static int[] GetRGB(byte[] texel, out int min, out int max)
-        {
-            int[] RGB = new int[16];
-            int count = 0;
-            for (int i = 0; i < 64; i += 16) // texel row
-            {
-                for (int j = 0; j < 16; j += 4)  // pixels in row incl BGRA
-                {
-                    int pixelColour = BuildDXTColour(texel[i + j + 2], texel[i + j + 1], texel[i + j]);
-                    RGB[count++] = pixelColour;
-                }
-            }
-
-            min = RGB.Min();
-            max = RGB.Max();
-
-            return RGB;
-        }
+        
 
         /// <summary>
         /// Builds a palette for RGB channels (DXT only)
@@ -788,32 +816,15 @@ namespace CSharpImageLibrary
 
             return Colours;
         }
-        #endregion Palette
+        #endregion Palette/Colour
+        
 
-
-
-        internal static byte[] GetTexel(Stream pixelData, int Width)
-        {
-            byte[] texel = new byte[16 * 4]; // 16 pixels, 4 bytes per pixel
-
-            int bitsPerScanLine = 4 * Width;
-            for (int i = 0; i < 64; i+=16)  // pixel rows
-            {
-                for (int j = 0; j < 16; j+=4)  // pixels in row
-                {
-                    for (int k = 0; k < 4; k++) // BGRA
-                    {
-                        texel[i + j + k] = (byte)pixelData.ReadByte();
-                    }
-                }
-
-                
-                pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);  // Seek to next line of texel
-            }
-
-            return texel;
-        }
-
+        /// <summary>
+        /// Estimates number of MipMaps for a given width and height.
+        /// </summary>
+        /// <param name="Width">Image Width.</param>
+        /// <param name="Height">Image Height.</param>
+        /// <returns>Number of mipmaps expected for image.</returns>
         internal static int EstimateNumMipMaps(int Width, int Height)
         {
             int limitingDimension = Width > Height ? Height : Width;

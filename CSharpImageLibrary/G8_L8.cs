@@ -17,8 +17,6 @@ namespace CSharpImageLibrary
         /// Loads useful information from G8_L8 image file.
         /// </summary>
         /// <param name="imageFile">Path to image file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel data as stream.</returns>
         internal static List<MipMap> Load(string imageFile)
         {
@@ -31,8 +29,6 @@ namespace CSharpImageLibrary
         /// Loads useful information from G8_L8 image stream.
         /// </summary>
         /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
         internal static List<MipMap> Load(Stream stream)
         {
@@ -41,10 +37,7 @@ namespace CSharpImageLibrary
             {
                 byte red = (byte)fileData.ReadByte();
                 byte green = red;
-                byte blue = red;
-
-                //int test = blue | (0x7F + green) << 8 | (0x7F + red) << 16;
-                //int test = blue | green << 8 | red << 16;
+                byte blue = red;  // KFreon: Same colour for other channels to make grayscale.
 
                 return new List<byte>() { blue, green, red };
             };
@@ -52,6 +45,12 @@ namespace CSharpImageLibrary
             return DDSGeneral.LoadUncompressed(stream, PixelReader);
         }
 
+        /// <summary>
+        /// Saves Mipmaps to stream.
+        /// </summary>
+        /// <param name="MipMaps">List of mipmaps to save. Pixels only.</param>
+        /// <param name="destination">Stream to save to.</param>
+        /// <returns>True on success.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
             Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, unused) =>
@@ -59,12 +58,9 @@ namespace CSharpImageLibrary
                 // BGRA
                 byte[] colours = new byte[3];
                 pixels.Read(colours, 0, 3);
-                /*byte blue = (byte)pixels.ReadByte();
-                byte green = (byte)pixels.ReadByte();
-                byte red = (byte)pixels.ReadByte();*/
-                //byte alpha = (byte)pixels.ReadByte();
                 pixels.Position++;  // Skip alpha
 
+                // KFreon: Weight colours to look proper. Dunno if this affects things but anyway...Got weightings from ATi Compressonator
                 int b1 = (int)(colours[0] * 3 * 0.082);
                 int g1 = (int)(colours[1] * 3 * 0.6094);
                 int r1 = (int)(colours[2] * 3 * 0.3086);

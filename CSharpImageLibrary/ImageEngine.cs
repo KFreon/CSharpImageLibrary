@@ -43,8 +43,6 @@ namespace CSharpImageLibrary
         /// Loads useful information from an image file.
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <param name="Format">Detected image format.</param>
         /// <returns>Raw pixel data as stream.</returns>
         internal static List<MipMap> LoadImage(string imagePath, out Format Format)
@@ -53,6 +51,13 @@ namespace CSharpImageLibrary
                 return LoadImage(fs, out Format);
         }
 
+
+        /// <summary>
+        /// Loads formats which have no native decompressors. (V8U8, G8/L8, ATI1 and 2(3Dc), ARGB.
+        /// </summary>
+        /// <param name="stream">Image data.</param>
+        /// <param name="Format">Detected format of image.</param>
+        /// <returns>List of mipmaps.</returns>
         private static List<MipMap> LoadEsoterics(Stream stream, Format Format)
         {
             switch (Format.InternalFormat)
@@ -75,8 +80,6 @@ namespace CSharpImageLibrary
         /// Loads image from image stream.
         /// </summary>
         /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <param name="Format">Image format (dds surfaces, jpg, png, etc)</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>BGRA pixels.</returns>
@@ -89,12 +92,19 @@ namespace CSharpImageLibrary
             if (output != null)
                 return output;
 
-            // KFreon: NOT any of the above then...
-
-            // KFreon: Try loading with built in codecs
+            // KFreon: Ok, none of those so try loading with built in codecs
             return LoadWithCodecs(stream, Format.InternalFormat);
         }
 
+
+        /// <summary>
+        /// Load image with internal codecs. Which set depends on OS.
+        /// </summary>
+        /// <param name="stream">Full Image stream.</param>
+        /// <param name="Format">Detected format of image.</param>
+        /// <param name="decodeWidth">Width to decode to. Leave as 0 to be natural dimensions.</param>
+        /// <param name="decodeHeight">Height to decode to. Leave as 0 to be natural dimensions.</param>
+        /// <returns>List of Mipmaps.</returns>
         private static List<MipMap> LoadWithCodecs(Stream stream, ImageEngineFormat Format, int decodeWidth = 0, int decodeHeight = 0)
         {
             List<MipMap> MipMaps = new List<MipMap>();
@@ -121,6 +131,8 @@ namespace CSharpImageLibrary
                         break;
                 }
 
+
+                // Resize if necessary
                 bool needsResize = decodeWidth != 0 || decodeHeight != 0;
                 if (MipMaps.Count == 0)
                 {
@@ -151,12 +163,29 @@ namespace CSharpImageLibrary
             return MipMaps;
         }
 
+
+        /// <summary>
+        /// Loads image from file.
+        /// </summary>
+        /// <param name="imagePath">Path to image file.</param>
+        /// <param name="Format">Detected format.</param>
+        /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
+        /// <returns>List of Mipmaps.</returns>
         internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension);
         }
 
+
+        /// <summary>
+        /// Loads image from stream.
+        /// </summary>
+        /// <param name="stream">Full image stream.</param>
+        /// <param name="Format">Detected format.</param>
+        /// <param name="extension">File extension. Used to determine format more easily.</param>
+        /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
+        /// <returns>List of Mipmaps.</returns>
         internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension)
         {
             // KFreon: See if image is built-in codec agnostic.
@@ -177,6 +206,7 @@ namespace CSharpImageLibrary
                     }
                     else
                     {
+                        // Get top mip and clear others.
                         var mip = MipMaps[0];
                         MipMaps.Clear();
 
@@ -191,6 +221,7 @@ namespace CSharpImageLibrary
                 }
                 else
                 {
+                    // Get top mip and clear others.
                     var mip = MipMaps[0];
                     MipMaps.Clear();
 
@@ -211,14 +242,20 @@ namespace CSharpImageLibrary
         #endregion Loading
 
 
+        /// <summary>
+        /// Save mipmaps as given format to stream.
+        /// </summary>
+        /// <param name="MipMaps">List of Mips to save.</param>
+        /// <param name="format">Desired format.</param>
+        /// <param name="destination">Stream to save to.</param>
+        /// <param name="GenerateMips">True = Generate mipmaps for mippable images.</param>
+        /// <returns>True on success.</returns>
         internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips)
         {
             Format temp = new Format(format);
 
             if (temp.IsMippable && GenerateMips)
                 BuildMipMaps(MipMaps);
-
-            
 
             // KFreon: Try DDS formats first
             switch (format)
@@ -253,6 +290,12 @@ namespace CSharpImageLibrary
                 return Win7.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
         }
 
+
+        /// <summary>
+        /// Builds mipmaps. Expects at least one mipmap in given list.
+        /// </summary>
+        /// <param name="MipMaps">List of Mipmaps, both existing and generated.</param>
+        /// <returns>Number of mips present (generated or otherwise)</returns>
         private static int BuildMipMaps(List<MipMap> MipMaps)
         {
             if (WindowsWICCodecsAvailable)
@@ -261,6 +304,14 @@ namespace CSharpImageLibrary
                 return Win7.BuildMipMaps(MipMaps);
         }
 
+        /// <summary>
+        /// Generates a thumbnail image as quickly and efficiently as possible.
+        /// </summary>
+        /// <param name="stream">Full image stream.</param>
+        /// <param name="sourceFormat">Format of original image.</param>
+        /// <param name="newWidth">Desired width.</param>
+        /// <param name="newHeight">Desired height.</param>
+        /// <returns>Formatted thumbnail as stream.</returns>
         public static MemoryTributary GenerateThumbnail(Stream stream, ImageEngineFormat sourceFormat, int newWidth, int newHeight)
         {
             // KFreon: No codecs save any DDS', so use mine/everyone elses

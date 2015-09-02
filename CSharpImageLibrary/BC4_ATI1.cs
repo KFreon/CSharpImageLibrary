@@ -21,8 +21,6 @@ namespace CSharpImageLibrary
         /// Loads important information from ATI1 image.
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height</param>
         /// <returns>BGRA pixel data as stream.</returns>
         internal static List<MipMap> Load(string imagePath)
         {
@@ -35,8 +33,6 @@ namespace CSharpImageLibrary
         /// Loads important information from ATI1 image stream.
         /// </summary>
         /// <param name="stream">Stream containing entire image file. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
         internal static List<MipMap> Load(Stream stream)
         {
@@ -53,6 +49,8 @@ namespace CSharpImageLibrary
         {
             byte[] channel = DDSGeneral.Decompress8BitBlock(compressed, false);
             List<byte[]> DecompressedBlock = new List<byte[]>();
+
+            // KFreon: All channels are the same to make grayscale.
             DecompressedBlock.Add(channel);
             DecompressedBlock.Add(channel);
             DecompressedBlock.Add(channel);
@@ -75,11 +73,8 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Saves texture using BC4 compression.
         /// </summary>
-        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested).</param>
+        /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
         /// <param name="Destination">Stream to save to.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
-        /// <param name="Mips">Number of mips in pixelsWithMips (1 if no mips).</param>
         /// <returns>True if saved successfully.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream Destination)
         {

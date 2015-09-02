@@ -18,8 +18,6 @@ namespace CSharpImageLibrary
         /// Loads ATI2 (BC5) image from file.
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>BGRA pixels.</returns>
         internal static List<MipMap> Load(string imagePath)
         {
@@ -32,8 +30,6 @@ namespace CSharpImageLibrary
         /// Loads ATI2 (BC5) image from stream.
         /// </summary>
         /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>BGRA pixels.</returns>
         internal static List<MipMap> Load(Stream stream)
         {
@@ -77,11 +73,8 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Saves texture using BC5 compression.
         /// </summary>
-        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested).</param>
         /// <param name="Destination">Stream to save to.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
-        /// <param name="Mips">Number of mips in pixelsWithMips (1 if no mips).</param>
+        /// <param name="MipMaps">List of Mipmaps to save. Pixels only.</param>
         /// <returns>True if saved successfully.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream Destination)
         {

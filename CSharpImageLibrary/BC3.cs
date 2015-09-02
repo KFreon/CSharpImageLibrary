@@ -17,8 +17,6 @@ namespace CSharpImageLibrary
         /// Load important information from image file.
         /// </summary>
         /// <param name="imageFile">Path to image file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>16 byte BGRA channels as stream.</returns>
         internal static List<MipMap> Load(string imageFile)
         {
@@ -31,8 +29,6 @@ namespace CSharpImageLibrary
         /// Load important information from image stream.
         /// </summary>
         /// <param name="compressed">Stream containing entire image file. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>16 byte BGRA channels as stream.</returns>
         internal static List<MipMap> Load(Stream compressed)
         {
@@ -74,11 +70,8 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Saves a texture using BC3 compression.
         /// </summary>
-        /// <param name="pixelsWithMips">4 channel stream containing mips (if requested)</param>
         /// <param name="Destination">Stream to save to.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Width.</param>
-        /// <param name="Mips">Number of mips in pixelWithMips (1 if no mips).</param>
+        /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
         /// <returns>True if saved successfully.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream Destination)
         {
