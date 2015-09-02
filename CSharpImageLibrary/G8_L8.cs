@@ -57,15 +57,17 @@ namespace CSharpImageLibrary
             Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, unused) =>
             {
                 // BGRA
-                byte blue = (byte)pixels.ReadByte();
+                byte[] colours = new byte[3];
+                pixels.Read(colours, 0, 3);
+                /*byte blue = (byte)pixels.ReadByte();
                 byte green = (byte)pixels.ReadByte();
-                byte red = (byte)pixels.ReadByte();
+                byte red = (byte)pixels.ReadByte();*/
                 //byte alpha = (byte)pixels.ReadByte();
                 pixels.Position++;  // Skip alpha
 
-                int b1 = (int)(blue * 3 * 0.082);
-                int g1 = (int)(green * 3 * 0.6094);
-                int r1 = (int)(red * 3 * 0.3086);
+                int b1 = (int)(colours[0] * 3 * 0.082);
+                int g1 = (int)(colours[1] * 3 * 0.6094);
+                int r1 = (int)(colours[2] * 3 * 0.3086);
 
                 int test = (int)((b1 + g1 + r1)/ 3f);
                 writer.Write((byte)test);

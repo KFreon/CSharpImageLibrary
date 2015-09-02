@@ -302,6 +302,13 @@ namespace CSharpImageLibrary
         {
             int bitsPerScanLine = 4 * Width;
 
+            // KFreon: Handle things too small for texels
+            if (isBCd && (Width < 4 || Height < 4))
+            {
+                // KFreon: So what imma do, is average some colours and stick them in.
+
+            }
+
             for (int h = 0; h < Height; h += (isBCd ? 4 : 1))
             {
                 for (int w = 0; w < Width; w += (isBCd ? 4 : 1))
