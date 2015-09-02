@@ -17,8 +17,8 @@ Performance of this toolset is of some concern currently (details below), howeve
 
 Combined Colours to indicate absolute worst performance.
 ---
-![None](https://dl.dropboxusercontent.com/u/37301843/ImageEngine%20Test%20Combined%20Colours.jpg "Combined Colours to indicate absolute worst performance.")
+![None](http://s15.postimg.org/753fpd8ez/Image_Engine_Test_Combined_Colours.jpg "Combined Colours to indicate absolute worst performance.")
 
 Individual Colours to indicate worst performance per Format.
 ---
-![None](https://dl.dropboxusercontent.com/u/37301843/ImageEngine%20Test%20Individual%20Colours.jpg "Individual Colours to indicate worst performance per Format.")
+![None](http://s15.postimg.org/h3oebuhuj/Image_Engine_Test_Individual_Colours.jpg  "Individual Colours to indicate worst performance per Format.")
