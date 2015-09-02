@@ -143,11 +143,11 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="bmp">Image to load.</param>
         /// <returns>BGRA pixel data as stream.</returns>
-        private static MemoryTributary LoadMipMap(BitmapSource bmp)
+        private static MemoryTributary LoadMipMap(BitmapSource bmp, out int Width, out int Height)
         {
-            int width = (int)Math.Ceiling(bmp.Width);
-            int height = (int)Math.Ceiling(bmp.Height);
-            return bmp.GetPixelsAsStream(width, height);
+            Width = (int)Math.Round(bmp.Width);
+            Height = (int)Math.Round(bmp.Height);
+            return bmp.GetPixelsAsStream(Width, Height);
         }
 
 
@@ -261,7 +261,6 @@ namespace CSharpImageLibrary
                 return null;
 
             List<MipMap> mipmaps = new List<MipMap>();
-            BitmapSource top = null;
 
             if (isDDS)
             {
@@ -269,10 +268,11 @@ namespace CSharpImageLibrary
                 var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
                 foreach (var mipmap in decoder.Frames)
                 {
-                    MemoryTributary data = LoadMipMap(mipmap);
-                    mipmaps.Add(new MipMap(data, (int)mipmap.Width, (int)mipmap.Height));
+                    int width = 0;
+                    int height = 0;
+                    MemoryTributary data = LoadMipMap(mipmap, out width, out height);
+                    mipmaps.Add(new MipMap(data, width, height));
                 }
-                top = decoder.Frames[0];
             }
             else
             {
@@ -281,9 +281,10 @@ namespace CSharpImageLibrary
                 if (bmp == null)
                     return null;
 
-                MemoryTributary mipmap = LoadMipMap(bmp);
-                top = bmp;
-                mipmaps.Add(new MipMap(mipmap, (int)bmp.Width, (int)bmp.Height));
+                int width = 0;
+                int height = 0;
+                MemoryTributary mipmap = LoadMipMap(bmp, out width, out height);
+                mipmaps.Add(new MipMap(mipmap, width, height));
             }
             
             return mipmaps;
