@@ -15,10 +15,6 @@ Current Features
 
 Performance of this toolset is of some concern currently (details below), however I'm trying to get it all working first before major optimisation.
 
-Combined Colours to indicate absolute worst performance.
+Overall results for loading (in Debug mode)
 ---
-![None](http://s15.postimg.org/753fpd8ez/Image_Engine_Test_Combined_Colours.jpg "Combined Colours to indicate absolute worst performance.")
-
-Individual Colours to indicate worst performance per Format.
----
-![None](http://s15.postimg.org/h3oebuhuj/Image_Engine_Test_Individual_Colours.jpg  "Individual Colours to indicate worst performance per Format.")
+![None](http://s12.postimg.org/gw5rjaoql/Image_Engine_Loading_Results.jpg "Overall results for loading (in debug mode)")
