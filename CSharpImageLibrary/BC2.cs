@@ -44,7 +44,7 @@ namespace CSharpImageLibrary
         /// <returns>BGRA channels.</returns>
         private static List<byte[]> DecompressBC2(Stream compressed)
         {
-            // KFreon: Read alpha into byte[] for maximum speed? Might be cos it's a MemoryTributary...
+            // KFreon: Read alpha into byte[] for maximum speed? Might be cos it's a MemoryStream...
             byte[] CompressedAlphas = new byte[8];
             compressed.Read(CompressedAlphas, 0, 8);
             int count = 0;

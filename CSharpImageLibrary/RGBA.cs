@@ -44,7 +44,7 @@ namespace CSharpImageLibrary
             {
                 // KFreon: Uncompressed, so can just read from stream.
                 int mipLength = newWidth * newHeight * 4;
-                MemoryTributary mipmap = new MemoryTributary(mipLength);
+                MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(mipLength);
                 mipmap.ReadFrom(stream, mipLength);
 
                 MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
@@ -52,8 +52,6 @@ namespace CSharpImageLibrary
                 newWidth /= 2;
                 newHeight /= 2;
             }
-            
-
             return MipMaps;
         }
         

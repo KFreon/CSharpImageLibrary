@@ -66,7 +66,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(string imageFile, out int Width, out int Height)
+        internal static MemoryStream LoadImageWithCodecs(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return LoadImageWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
@@ -81,7 +81,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">Image Height.</param>
         /// <param name="extension"></param>
         /// <returns>BGRA Pixels as stream.</returns>
-        internal static MemoryTributary LoadImageWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
+        internal static MemoryStream LoadImageWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
         {
             Bitmap bmp = AttemptWindowsCodecs(stream);
 
@@ -91,7 +91,7 @@ namespace CSharpImageLibrary
             if (bmp == null)
                 return null;
 
-            MemoryTributary imgData = LoadMipMap(bmp, extension);
+            MemoryStream imgData = LoadMipMap(bmp, extension);
 
             Width = bmp.Width;
             Height = bmp.Height;
@@ -107,11 +107,11 @@ namespace CSharpImageLibrary
         /// <param name="bmp">Bitmap to load.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>BGRA pixels as stream.</returns>
-        private static MemoryTributary LoadMipMap(Bitmap bmp, string extension = null)
+        private static MemoryStream LoadMipMap(Bitmap bmp, string extension = null)
         {
             byte[] imgData = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(bmp);
 
-            return new MemoryTributary(imgData);
+            return UsefulThings.RecyclableMemoryManager.GetStream(imgData);
         }
         #endregion Loading
 
@@ -150,7 +150,7 @@ namespace CSharpImageLibrary
                 bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(newWidth, newHeight));
 
                 byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
-                MipMaps.Add(new MipMap(new MemoryTributary(data), newWidth, newHeight));
+                MipMaps.Add(new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(data), newWidth, newHeight));
             }
 
             return estimatedMips;
@@ -167,7 +167,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Width of image.</param>
         /// <param name="Height">Height of image.</param>
         /// <returns>True on success.</returns>
-        internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
+        internal static bool SaveWithCodecs(MemoryStream pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
             Bitmap bmp = UsefulThings.WinForms.Misc.CreateBitmap(pixelsWithMips.ToArray(), Width, Height);
 
@@ -202,12 +202,12 @@ namespace CSharpImageLibrary
         /// <param name="newWidth">Desired width.</param>
         /// <param name="newHeight">Desired height.</param>
         /// <returns></returns>
-        internal static MemoryTributary GenerateThumbnail(Stream stream, int newWidth, int newHeight)
+        internal static MemoryStream GenerateThumbnail(Stream stream, int newWidth, int newHeight)
         {
             Bitmap bmp = new Bitmap(stream);
             Bitmap resized = new Bitmap(bmp, new Size(newWidth, newHeight));
             byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(resized);
-            return new MemoryTributary(data);
+            return UsefulThings.RecyclableMemoryManager.GetStream(data);
         }
     }
 }

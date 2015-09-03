@@ -255,9 +255,9 @@ namespace CSharpImageLibrary
         /// <returns>True on success.</returns>
         internal static bool WriteBlockCompressedDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
         {
-            Action<BinaryWriter, Stream, int> PixelWriter = (writer, pixels, width) =>
+            Action<BinaryWriter, Stream, int, int> PixelWriter = (writer, pixels, width, height) =>
             {
-                byte[] texel = DDSGeneral.GetTexel(pixels, width);
+                byte[] texel = DDSGeneral.GetTexel(pixels, width, height);
                 byte[] CompressedBlock = CompressBlock(texel);
                 writer.Write(CompressedBlock);
             };
@@ -275,7 +275,7 @@ namespace CSharpImageLibrary
         /// <param name="PixelWriter">Function to write pixels. Optionally also compresses blocks before writing.</param>
         /// <param name="isBCd">True = Block Compressed DDS. Performs extra manipulation to get and order Texels.</param>
         /// <returns>True on success.</returns>
-        internal static bool WriteDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd)
+        internal static bool WriteDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Action<BinaryWriter, Stream, int, int> PixelWriter, bool isBCd)
         {
             try
             {
@@ -284,7 +284,7 @@ namespace CSharpImageLibrary
                     Write_DDS_Header(header, writer);
                     for (int m = 0; m < MipMaps.Count ; m++)
                     {
-                        MemoryTributary mipmap = MipMaps[m].Data;
+                        MemoryStream mipmap = MipMaps[m].Data;
                         mipmap.Seek(0, SeekOrigin.Begin);
                         WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd, writer);
                     }
@@ -308,7 +308,7 @@ namespace CSharpImageLibrary
         /// <param name="PixelWriter">Function to write pixels with. Also compresses if block compressed texture.</param>
         /// <param name="isBCd">True = Block Compressed DDS.</param>
         /// <param name="writer">Stream to write to.</param>
-        private static void WriteMipMap(Stream pixelData, int Width, int Height, Action<BinaryWriter, Stream, int> PixelWriter, bool isBCd, BinaryWriter writer)
+        private static void WriteMipMap(Stream pixelData, int Width, int Height, Action<BinaryWriter, Stream, int, int> PixelWriter, bool isBCd, BinaryWriter writer)
         {
             int bitsPerScanLine = 4 * Width;  // KFreon: Bits per image line.
 
@@ -317,7 +317,7 @@ namespace CSharpImageLibrary
             {
                 for (int w = 0; w < Width; w += (isBCd ? 4 : 1))
                 {
-                    PixelWriter(writer, pixelData, Width);
+                    PixelWriter(writer, pixelData, Width, Height);
                     if (isBCd && w != Width - 4 && Width > 4 && Height > 4)  // KFreon: Only do this if dimensions are big enough
                         pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
                 }
@@ -363,7 +363,7 @@ namespace CSharpImageLibrary
                         mipmap[count++] = 0xFF;
                     }
                 }
-                MipMaps.Add(new MipMap(new MemoryTributary(mipmap), newWidth, newHeight));
+                MipMaps.Add(new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(mipmap), newWidth, newHeight));
 
                 newWidth /= 2;
                 newHeight /= 2;
@@ -392,7 +392,7 @@ namespace CSharpImageLibrary
 
             for (int m = 0; m < header.dwMipMapCount; m++)
             {
-                MemoryTributary mipmap = new MemoryTributary(bitsPerPixel * (int)mipWidth * (int)mipHeight);
+                MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerPixel * (int)mipWidth * (int)mipHeight);
 
                 // Loop over rows and columns NOT pixels
                 int bitsPerScanline = bitsPerPixel * (int)mipWidth;
@@ -665,11 +665,25 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="pixelData">Image pixels.</param>
         /// <param name="Width">Width of image.</param>
+        /// <param name="Height">Height of image.</param>
         /// <returns>4x4 texel.</returns>
-        internal static byte[] GetTexel(Stream pixelData, int Width)
+        internal static byte[] GetTexel(Stream pixelData, int Width, int Height)
         {
             byte[] texel = new byte[16 * 4]; // 16 pixels, 4 bytes per pixel
 
+            // KFreon: Edge case for when dimensions are too small for texel
+            int count = 0;
+            if (Width < 4 || Height < 4)
+            {
+                for (int h = 0; h < Height; h++)
+                    for (int w = 0; w < Width; w++)
+                        for (int i = 0; i < 4; i++)
+                            texel[count++] = (byte)pixelData.ReadByte();
+
+                return texel;
+            }
+
+            // KFreon: Normal operation. Read 4x4 texel row by row.
             int bitsPerScanLine = 4 * Width;
             for (int i = 0; i < 64; i += 16)  // pixel rows
             {

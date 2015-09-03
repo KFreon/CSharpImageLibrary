@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
+using Microsoft.IO;
+using System.IO;
 
 namespace CSharpImageLibrary
 {
@@ -15,7 +17,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Pixels as stream.
         /// </summary>
-        public MemoryTributary Data { get; set; }
+        public MemoryStream Data { get; set; }
 
         /// <summary>
         /// Mipmap width.
@@ -34,7 +36,7 @@ namespace CSharpImageLibrary
         /// <param name="data">Raw pixels.</param>
         /// <param name="width">Mipmap width.</param>
         /// <param name="height">Mipmap height.</param>
-        public MipMap(MemoryTributary data, int width, int height)
+        public MipMap(MemoryStream data, int width, int height)
         {
             Data = data;
             Width = UsefulThings.General.RoundToNearestPowerOfTwo(width);

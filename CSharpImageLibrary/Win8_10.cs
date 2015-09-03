@@ -72,7 +72,7 @@ namespace CSharpImageLibrary
                 {
                     int width = 0;
                     int height = 0;
-                    MemoryTributary data = LoadMipMap(mipmap, out width, out height);
+                    MemoryStream data = LoadMipMap(mipmap, out width, out height);
                     mipmaps.Add(new MipMap(data, width, height));
                 }
             }
@@ -85,7 +85,7 @@ namespace CSharpImageLibrary
 
                 int width = 0;
                 int height = 0;
-                MemoryTributary mipmap = LoadMipMap(bmp, out width, out height);
+                MemoryStream mipmap = LoadMipMap(bmp, out width, out height);
                 mipmaps.Add(new MipMap(mipmap, width, height));
             }
 
@@ -192,7 +192,7 @@ namespace CSharpImageLibrary
         /// <param name="Height">MipMap height</param>
         /// <param name="Width">MipMap Width.</param>
         /// <returns>BGRA pixel data as stream.</returns>
-        private static MemoryTributary LoadMipMap(BitmapSource bmp, out int Width, out int Height)
+        private static MemoryStream LoadMipMap(BitmapSource bmp, out int Width, out int Height)
         {
             Width = (int)Math.Round(bmp.Width);
             Height = (int)Math.Round(bmp.Height);
@@ -248,7 +248,7 @@ namespace CSharpImageLibrary
                 newHeight /= 2;
 
                 bmp = UsefulThings.WPF.Images.ResizeImage(bmp, newWidth, newHeight);
-                MemoryTributary data = bmp.GetPixelsAsStream(newWidth, newHeight);
+                MemoryStream data = bmp.GetPixelsAsStream(newWidth, newHeight);
                 MipMaps.Add(new MipMap(data, newWidth, newHeight));
 
                 currentMip = MipMaps[i];
@@ -267,7 +267,7 @@ namespace CSharpImageLibrary
         /// <param name="Width">Width of image.</param>
         /// <param name="Height">Height of image.</param>
         /// <returns>True on success.</returns>
-        internal static bool SaveWithCodecs(MemoryTributary pixels, Stream destination, ImageEngineFormat format, int Width, int Height)
+        internal static bool SaveWithCodecs(MemoryStream pixels, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
             int stride = 4 * Width;
             BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, pixels.ToArray(), stride));
@@ -303,7 +303,7 @@ namespace CSharpImageLibrary
         /// <param name="newWidth">Desired width.</param>
         /// <param name="newHeight">Desired height.</param>
         /// <returns>Thumbnail image.</returns>
-        internal static MemoryTributary GenerateThumbnail(Stream stream, int newWidth, int newHeight)
+        internal static MemoryStream GenerateThumbnail(Stream stream, int newWidth, int newHeight)
         {
             var mips = LoadWithCodecs(stream, newWidth, newHeight, false);  // Don't want mips so isDDS == false
             return mips?[0].Data;  // Returns null if mips is null

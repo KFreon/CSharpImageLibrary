@@ -186,7 +186,7 @@ namespace CSharpImageLibrary
             BitmapFrame frame = BitmapFrame.Create(source);
             encoder.Frames.Add(frame);
 
-            MemoryTributary stream = new MemoryTributary(data.Length);
+            MemoryStream stream = UsefulThings.RecyclableMemoryManager.GetStream(data.Length);
             encoder.Save(stream);
 
             return UsefulThings.WPF.Images.CreateWPFBitmap(stream);

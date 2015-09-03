@@ -154,7 +154,7 @@ namespace CSharpImageLibrary
                     System.Drawing.Bitmap img = new System.Drawing.Bitmap(MipMaps[0].Data);
                     System.Drawing.Bitmap newimg = (System.Drawing.Bitmap)UsefulThings.WinForms.Misc.resizeImage(img, new System.Drawing.Size(decodeWidth, decodeHeight));
 
-                    var data = new MemoryTributary(UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(newimg));
+                    var data = UsefulThings.RecyclableMemoryManager.GetStream(UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(newimg));
                     MipMaps[0].Data = data;
                     MipMaps[0].Width = decodeWidth;
                     MipMaps[0].Height = decodeHeight;
@@ -214,7 +214,7 @@ namespace CSharpImageLibrary
                         JpegBitmapEncoder encoder = new JpegBitmapEncoder();
                         BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
                         encoder.Frames.Add(frame);
-                        var output = new MemoryTributary((int)mip.Data.Length);
+                        var output = UsefulThings.RecyclableMemoryManager.GetStream((int)mip.Data.Length);
                         encoder.Save(output);
                         MipMaps.Add(mip);
                     }
@@ -230,7 +230,7 @@ namespace CSharpImageLibrary
                     byte[] pixels = new byte[mip.Data.Length];
                     Marshal.Copy(data.Scan0, pixels, 0, (int)mip.Data.Length);
                     bmp.UnlockBits(data);
-                    MipMap newmip = new MipMap(new MemoryTributary(pixels), mip.Width, mip.Height);
+                    MipMap newmip = new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(pixels), mip.Width, mip.Height);
                     MipMaps.Add(newmip);
                 }
             }
@@ -312,7 +312,7 @@ namespace CSharpImageLibrary
         /// <param name="newWidth">Desired width.</param>
         /// <param name="newHeight">Desired height.</param>
         /// <returns>Formatted thumbnail as stream.</returns>
-        public static MemoryTributary GenerateThumbnail(Stream stream, ImageEngineFormat sourceFormat, int newWidth, int newHeight)
+        public static MemoryStream GenerateThumbnail(Stream stream, ImageEngineFormat sourceFormat, int newWidth, int newHeight)
         {
             // KFreon: No codecs save any DDS', so use mine/everyone elses
             if (sourceFormat.ToString().Contains("DDS"))
