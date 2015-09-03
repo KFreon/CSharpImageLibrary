@@ -267,12 +267,6 @@ namespace CSharpImageLibrary
                 }
                 
             }
-
-
-
-            /*Debug.WriteLine($"_________ {format} __________");
-            Debug.WriteLine(header);
-            Debug.WriteLine("");*/
             return format;
         }
 

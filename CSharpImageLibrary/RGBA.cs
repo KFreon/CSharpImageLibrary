@@ -18,8 +18,6 @@ namespace CSharpImageLibrary
         /// Loads useful information from RGBA DDS image file.
         /// </summary>
         /// <param name="imagePath">Path to RGBA DDS file.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
         internal static List<MipMap> Load(string imagePath)
         {
@@ -32,8 +30,6 @@ namespace CSharpImageLibrary
         /// Loads useful information from RGBA DDS image stream.
         /// </summary>
         /// <param name="stream">Stream containing entire image file. NOT just pixels.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <returns>RGBA Pixel data as stream.</returns>
         internal static List<MipMap> Load(Stream stream)
         {
@@ -46,6 +42,7 @@ namespace CSharpImageLibrary
 
             for (int m = 0; m < header.dwMipMapCount; m++)
             {
+                // KFreon: Uncompressed, so can just read from stream.
                 int mipLength = newWidth * newHeight * 4;
                 MemoryTributary mipmap = new MemoryTributary(mipLength);
                 mipmap.ReadFrom(stream, mipLength);
@@ -59,7 +56,14 @@ namespace CSharpImageLibrary
 
             return MipMaps;
         }
+        
 
+        /// <summary>
+        /// Saves mipmaps as RGBA DDS to stream.
+        /// </summary>
+        /// <param name="MipMaps">Mipmaps to save.</param>
+        /// <param name="destination">Image stream to save to.</param>
+        /// <returns>True on success.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
             var header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_ARGB);

@@ -15,6 +15,7 @@ namespace CSharpImageLibrary
     /// </summary>
     internal class Win7
     {
+        #region Loading
         /// <summary>
         /// Attempts to load image using GDI+ codecs.
         /// Returns null on failure.
@@ -104,8 +105,6 @@ namespace CSharpImageLibrary
         /// Loads image with Windows GDI+ codecs.
         /// </summary>
         /// <param name="bmp">Bitmap to load.</param>
-        /// <param name="Width">Image Width.</param>
-        /// <param name="Height">Image Height.</param>
         /// <param name="extension">Extension of original file. Leave null to guess.</param>
         /// <returns>BGRA pixels as stream.</returns>
         private static MemoryTributary LoadMipMap(Bitmap bmp, string extension = null)
@@ -114,7 +113,14 @@ namespace CSharpImageLibrary
 
             return new MemoryTributary(imgData);
         }
+        #endregion Loading
 
+
+        /// <summary>
+        /// Build mipmaps for image by scaling.
+        /// </summary>
+        /// <param name="MipMaps">Mipmaps to build with. Often only top mipmap exists, with others populated by this function.</param>
+        /// <returns>Number of mipmaps in image.</returns>
         internal static int BuildMipMaps(List<MipMap> MipMaps)
         {
             if (MipMaps?.Count == 0)
@@ -127,13 +133,17 @@ namespace CSharpImageLibrary
             if (estimatedMips == MipMaps.Count)
                 return estimatedMips;
 
-
+            // KFreon: Setup dimensions
             int determiningDimension = currentMip.Height > currentMip.Width ? currentMip.Width : currentMip.Height;
             int newWidth = currentMip.Width;
             int newHeight = currentMip.Height;
 
+            // KFreon: Half image dimensions until one dimension == 1
             for (int i = 0; i < estimatedMips; i++)
             {
+                currentMip = MipMaps[i];
+
+
                 Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(currentMip.Data.ToArray(), currentMip.Width, currentMip.Height);
                 newWidth /= 2;
                 newHeight /= 2;
@@ -141,13 +151,22 @@ namespace CSharpImageLibrary
 
                 byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
                 MipMaps.Add(new MipMap(new MemoryTributary(data), newWidth, newHeight));
-
-                currentMip = MipMaps[i];
             }
 
             return estimatedMips;
         }
 
+
+        /// <summary>
+        /// Save using Windows 7- GDI+ Codecs to stream.
+        /// Only single level images supported.
+        /// </summary>
+        /// <param name="pixelsWithMips">BGRA pixels.</param>
+        /// <param name="destination">Image stream to save to.</param>
+        /// <param name="format">Destination format.</param>
+        /// <param name="Width">Width of image.</param>
+        /// <param name="Height">Height of image.</param>
+        /// <returns>True on success.</returns>
         internal static bool SaveWithCodecs(MemoryTributary pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
             Bitmap bmp = UsefulThings.WinForms.Misc.CreateBitmap(pixelsWithMips.ToArray(), Width, Height);
@@ -175,6 +194,14 @@ namespace CSharpImageLibrary
             return true;
         }
 
+
+        /// <summary>
+        /// Generates a thumbnail of a given size as quickly as possible.
+        /// </summary>
+        /// <param name="stream">Full image stream.</param>
+        /// <param name="newWidth">Desired width.</param>
+        /// <param name="newHeight">Desired height.</param>
+        /// <returns></returns>
         internal static MemoryTributary GenerateThumbnail(Stream stream, int newWidth, int newHeight)
         {
             Bitmap bmp = new Bitmap(stream);

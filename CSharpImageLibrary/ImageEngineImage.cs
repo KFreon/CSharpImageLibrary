@@ -38,6 +38,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Number of mipmaps present.
+        /// </summary>
         public int NumMipMaps
         {
             get
@@ -52,6 +55,9 @@ namespace CSharpImageLibrary
         public Format Format { get; private set; }
 
         
+        /// <summary>
+        /// List of mipmaps. Single level images only have one mipmap.
+        /// </summary>
         public List<MipMap> MipMaps { get; private set; }
 
         /// <summary>
@@ -59,6 +65,7 @@ namespace CSharpImageLibrary
         /// </summary>
         public string FilePath { get; private set; }
         #endregion Properties
+
 
         /// <summary>
         /// Creates a new ImageEngineImage from file.
@@ -93,6 +100,13 @@ namespace CSharpImageLibrary
             Format = format;
         }
 
+
+        /// <summary>
+        /// Loads an image from a file and scales (aspect safe) to a maximum size.
+        /// e.g. 1024x512, desiredMaxDimension = 128 ===> Image is scaled to 128x64.
+        /// </summary>
+        /// <param name="imagePath">Path to image file.</param>
+        /// <param name="desiredMaxDimension">Max dimension to save.</param>
         public ImageEngineImage(string imagePath, int desiredMaxDimension)
         {
             Format format = new Format();
@@ -107,6 +121,13 @@ namespace CSharpImageLibrary
         }
 
 
+        /// <summary>
+        /// Loads an image from a stream and scales (aspect safe) to a maximum size.
+        /// e.g. 1024x512, desiredMaxDimension = 128 ===> Image is scaled to 128x64.
+        /// </summary>
+        /// <param name="stream">Full image stream.</param>
+        /// <param name="extension">File extension of original image.</param>
+        /// <param name="desiredMaxDimension">Maximum dimension.</param>
         public ImageEngineImage(Stream stream, string extension, int desiredMaxDimension)
         {
             Format format = new Format();
@@ -122,9 +143,9 @@ namespace CSharpImageLibrary
         /// Saves image in specified format to file. If file exists, it will be overwritten.
         /// </summary>
         /// <param name="destination">File to save to.</param>
-        /// <param name="format">Format to save as.</param>
-        /// <param name="GenerateMips">Tr</param>
-        /// <returns>True = Generates all mipmaps. False = Uses largest available Mipmap.</returns>
+        /// <param name="format">Desired image format.</param>
+        /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
+        /// <returns>True if success.</returns>
         public bool Save(string destination, ImageEngineFormat format, bool GenerateMips)
         {
             using (FileStream fs = new FileStream(destination, FileMode.Create))

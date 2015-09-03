@@ -7,12 +7,33 @@ using UsefulThings;
 
 namespace CSharpImageLibrary
 {
+    /// <summary>
+    /// Represents a mipmap of an image.
+    /// </summary>
     public class MipMap
     {
+        /// <summary>
+        /// Pixels as stream.
+        /// </summary>
         public MemoryTributary Data { get; set; }
+
+        /// <summary>
+        /// Mipmap width.
+        /// </summary>
         public int Width { get; set; }
+
+        /// <summary>
+        /// Mipmap height.
+        /// </summary>
         public int Height { get; set; }
 
+
+        /// <summary>
+        /// Creates a mipmap from stream at a given width and height.
+        /// </summary>
+        /// <param name="data">Raw pixels.</param>
+        /// <param name="width">Mipmap width.</param>
+        /// <param name="height">Mipmap height.</param>
         public MipMap(MemoryTributary data, int width, int height)
         {
             Data = data;

@@ -312,24 +312,17 @@ namespace CSharpImageLibrary
         {
             int bitsPerScanLine = 4 * Width;  // KFreon: Bits per image line.
 
-            // KFreon: Handle things too small for texels
-            if (isBCd && (Width < 4 || Height < 4))
-            {
-                // KFreon: So what imma do, is average some colours and stick them in.
-
-            }
-
             // KFreon: Loop over rows and columns, doing extra moving if Block Compressed to accommodate texels.
             for (int h = 0; h < Height; h += (isBCd ? 4 : 1))
             {
                 for (int w = 0; w < Width; w += (isBCd ? 4 : 1))
                 {
                     PixelWriter(writer, pixelData, Width);
-                    if (isBCd && w != Width - 4)
+                    if (isBCd && w != Width - 4 && Width > 4 && Height > 4)  // KFreon: Only do this if dimensions are big enough
                         pixelData.Seek(-(bitsPerScanLine * 4) + 4 * 4, SeekOrigin.Current);  // Not at an row end texel. Moves back up to read next texel in row.
                 }
 
-                if (isBCd)
+                if (isBCd && Width > 4 && Height > 4)  // Only do this jump if dimensions allow it
                     pixelData.Seek(-bitsPerScanLine + 4 * 4, SeekOrigin.Current);  // Row end texel. Just need to add 1.
             }
         }
@@ -820,7 +813,8 @@ namespace CSharpImageLibrary
         
 
         /// <summary>
-        /// Estimates number of MipMaps for a given width and height.
+        /// Estimates number of MipMaps for a given width and height EXCLUDING the top one.
+        /// i.e. If output is 10, there are 11 mipmaps total.
         /// </summary>
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
@@ -828,7 +822,7 @@ namespace CSharpImageLibrary
         internal static int EstimateNumMipMaps(int Width, int Height)
         {
             int limitingDimension = Width > Height ? Height : Width;
-            return (int)Math.Log(limitingDimension, 2);
+            return (int)Math.Log(limitingDimension, 2); // There's 10 mipmaps besides the main top one.
         }
     }
 }
