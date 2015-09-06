@@ -14,6 +14,15 @@ namespace CSharpImageLibrary
     /// </summary>
     internal static class DDSGeneral
     {
+        public readonly static byte[] RedBlueDecompressionConstants = new byte[] { 0, 8, 16, 25, 33, 41, 49, 58, 66, 74, 82, 90, 99, 107, 115, 123, 132, 140, 148, 156, 165, 173, 181, 189, 197, 206, 214, 222, 230, 239, 247, 255, 7, 15, 24, 32, 40, 48, 57, 65, 73, 81, 89, 98, 106, 114, 122, 131, 139, 147, 155, 164, 172, 180, 188, 196, 205, 213, 221, 229, 238, 246, 254, 6, 14, 23, 31, 39, 47, 56, 64, 72, 80, 88, 97, 105, 113, 121, 130, 138, 146, 154, 163, 171, 179, 187, 195, 204, 212, 220, 228, 237, 245, 253, 5, 13, 22, 30, 38, 46, 55, 63, 71, 79, 87, 96, 104, 112, 120, 129, 137, 145, 153, 162, 170, 178, 186, 194, 203, 211, 219, 227, 236, 244, 252, 4, 12, 21, 29, 37, 45, 54, 62, 70, 78, 86, 95, 103, 111, 119, 128, 136, 144, 152, 161, 169, 177, 185, 193, 202, 210, 218, 226, 235, 243, 251, 3, 11, 20, 28, 36, 44, 53, 61, 69, 77, 85, 94, 102, 110, 118, 127, 135, 143, 151, 160, 168, 176, 184, 192, 201, 209, 217, 225, 234, 242, 250, 2, 10, 19, 27, 35, 43, 52, 60, 68, 76, 84, 93, 101, 109, 117, 126, 134, 142, 150, 159, 167, 175, 183, 191, 200, 208, 216, 224, 233, 241, 249, 1, 9, 18, 26, 34, 42, 51, 59, 67, 75, 83, 92, 100, 108, 116, 125, 133, 141, 149, 158, 166, 174, 182, 190, 199, 207, 215, 223, 232, 240, 248, 0, 8, 17, 25, 33, 41, 50 };
+        public readonly static byte[] GreenDecompressionConstants = new byte[] { 0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97, 101, 105, 109, 113, 117, 121, 125, 130, 134, 138, 142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182, 186, 190, 194, 198, 202, 206, 210, 215, 219, 223, 227, 231, 235, 239, 243, 247, 251, 255, 3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177, 181, 185, 189, 193, 197, 201, 205, 209, 214, 218, 222, 226, 230, 234, 238, 242, 246, 250, 254, 2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 43, 47, 51, 55, 59, 63, 67, 71, 75, 79, 83, 87, 91, 95, 99, 103, 107, 111, 115, 119, 123, 128, 132, 136, 140, 144, 148, 152, 156, 160, 164, 168, 172, 176, 180, 184, 188, 192, 196, 200, 204, 208, 213, 217, 221, 225, 229, 233, 237, 241, 245, 249, 253, 1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 127, 131, 135, 139, 143, 147, 151, 155, 159, 163, 167, 171, 175, 179, 183, 187, 191, 195, 199, 203, 207, 212, 216, 220, 224, 228, 232, 236, 240, 244, 248, 252, 0, 4, 8 };
+        public readonly static byte[] RedBlueCompressionConstants = new byte[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 31, 31, 31, 31, 31 };
+        public readonly static byte[] GreenCompressionConstants = new byte[] { 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 21, 22, 22, 22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29, 29, 29, 30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32, 33, 33, 33, 33, 34, 34, 34, 34, 35, 35, 35, 35, 36, 36, 36, 36, 37, 37, 37, 37, 38, 38, 38, 38, 39, 39, 39, 39, 40, 40, 40, 40, 41, 41, 41, 41, 42, 42, 42, 42, 42, 43, 43, 43, 43, 44, 44, 44, 44, 45, 45, 45, 45, 46, 46, 46, 46, 47, 47, 47, 47, 48, 48, 48, 48, 49, 49, 49, 49, 50, 50, 50, 50, 51, 51, 51, 51, 52, 52, 52, 52, 53, 53, 53, 53, 54, 54, 54, 54, 55, 55, 55, 55, 56, 56, 56, 56, 57, 57, 57, 57, 58, 58, 58, 58, 59, 59, 59, 59, 60, 60, 60, 60, 61, 61, 61, 61, 62, 62, 62, 62, 63, 63, 63 };
+
+
+
+
+
         #region Header Stuff
         /// <summary>
         /// Reads DDS header from file.
@@ -452,14 +461,17 @@ namespace CSharpImageLibrary
             byte[] DecompressedBlock = new byte[16];
 
             // KFreon: Read min and max colours (not necessarily in that order)
-            byte min = (byte)compressed.ReadByte();
-            byte max = (byte)compressed.ReadByte();
+            byte[] block = new byte[8];
+            compressed.Read(block, 0, 8);
+
+            byte min = block[0];
+            byte max = block[1];
 
             byte[] Colours = Build8BitPalette(min, max, isSigned);
 
             // KFreon: Decompress pixels
-            ulong bitmask = (ulong)compressed.ReadByte() << 0 | (ulong)compressed.ReadByte() << 8 | (ulong)compressed.ReadByte() << 16 |   // KFreon: Read all 6 compressed bytes into single 
-                (ulong)compressed.ReadByte() << 24 | (ulong)compressed.ReadByte() << 32 | (ulong)compressed.ReadByte() << 40;
+            ulong bitmask = (ulong)block[2] << 0 | (ulong)block[3] << 8 | (ulong)block[4] << 16 |   // KFreon: Read all 6 compressed bytes into single 
+                (ulong)block[5] << 24 | (ulong)block[6] << 32 | (ulong)block[7] << 40;
 
 
             // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
@@ -488,9 +500,11 @@ namespace CSharpImageLibrary
             Colours = BuildRGBPalette(min, max, isDXT1);
 
             // Decompress pixels
+            byte[] pixels = reader.ReadBytes(4);
             for (int i = 0; i < 16; i+=4)
             {
-                byte bitmask = (byte)compressed.ReadByte();
+                //byte bitmask = (byte)compressed.ReadByte();
+                byte bitmask = pixels[i / 4];
                 for (int j = 0; j < 4; j++)
                     DecompressedBlock[i + j] = Colours[bitmask >> (2 * j) & 0x03];
             }
@@ -687,9 +701,10 @@ namespace CSharpImageLibrary
             int bitsPerScanLine = 4 * Width;
             for (int i = 0; i < 64; i += 16)  // pixel rows
             {
-                for (int j = 0; j < 16; j += 4)  // pixels in row
+                pixelData.Read(texel, i, 16);
+                /*for (int j = 0; j < 16; j += 4)  // pixels in row
                     for (int k = 0; k < 4; k++) // BGRA
-                        texel[i + j + k] = (byte)pixelData.ReadByte();
+                        texel[i + j + k] = (byte)pixelData.ReadByte();*/
 
                 pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);  // Seek to next line of texel
             }
@@ -712,10 +727,15 @@ namespace CSharpImageLibrary
             var g = (colour & 0x7E0) >> 5;
             var r = (colour & 0xF800) >> 11;
 
+
             // Expand to 8 bit data
-            byte r1 = (byte)Math.Round(r * 255f / 31f);
+            /*byte r1 = (byte)Math.Round(r * 255f / 31f);
             byte g1 = (byte)Math.Round(g * 255f / 63f);
-            byte b1 = (byte)Math.Round(b * 255f / 31f);
+            byte b1 = (byte)Math.Round(b * 255f / 31f);*/
+
+            byte r1 = RedBlueDecompressionConstants[r];
+            byte g1 = GreenDecompressionConstants[g];
+            byte b1 = RedBlueDecompressionConstants[b];
 
             return new byte[3] { r1, g1, b1 };
         }
@@ -731,9 +751,12 @@ namespace CSharpImageLibrary
         private static int BuildDXTColour(byte r, byte g, byte b)
         {
             // Compress to 5:6:5
-            byte r1 = (byte)(Math.Round(r * 31f / 255f));
+            /*byte r1 = (byte)(Math.Round(r * 31f / 255f));
             byte g1 = (byte)(Math.Round(g * 63f / 255f));
-            byte b1 = (byte)(Math.Round(b * 31f / 255f));
+            byte b1 = (byte)(Math.Round(b * 31f / 255f));*/
+            byte r1 = RedBlueCompressionConstants[r];
+            byte g1 = GreenCompressionConstants[g];
+            byte b1 = RedBlueCompressionConstants[b];
 
             return r1 << 11 | g1 << 5 | b1;
         }
