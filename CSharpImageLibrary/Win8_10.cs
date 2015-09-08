@@ -62,18 +62,36 @@ namespace CSharpImageLibrary
                 return null;
 
             List<MipMap> mipmaps = new List<MipMap>();
+            bool alternateDecodeDimensions = decodeWidth != 0 || decodeHeight != 0;
 
             if (isDDS)
             {
                 // KFreon: Attempt to load any mipmaps
                 stream.Seek(0, SeekOrigin.Begin);
-                var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad);
+                var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnDemand);
+                
                 foreach (var mipmap in decoder.Frames)
                 {
+                    // KFreon: Skip mipmaps that are too big if asked to load a smaller image
+                    if (alternateDecodeDimensions)
+                        if (mipmap.Width > decodeWidth || mipmap.Height > decodeHeight)
+                            continue;
+
                     int width = 0;
                     int height = 0;
                     MemoryStream data = LoadMipMap(mipmap, out width, out height);
                     mipmaps.Add(new MipMap(data, width, height));
+                }
+
+                if (mipmaps.Count == 0)
+                {
+                    // KFreon: No mips, so resize largest
+                    int width = 0;
+                    int height = 0;
+                    MemoryStream data = LoadMipMap(decoder.Frames[0], out width, out height);
+                    var mip = new MipMap(data, width, height);
+                    mip = Resize(mip, width, height);
+                    mipmaps.Add(mip);
                 }
             }
             else
@@ -243,15 +261,12 @@ namespace CSharpImageLibrary
             // KFreon: Half dimensions until one == 1.
             for (int i = 0; i < estimatedMips; i++)
             {
-                BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(currentMip.Data);
                 newWidth /= 2;
                 newHeight /= 2;
 
-                bmp = UsefulThings.WPF.Images.ResizeImage(bmp, newWidth, newHeight);
-                MemoryStream data = bmp.GetPixelsAsStream(newWidth, newHeight);
-                MipMaps.Add(new MipMap(data, newWidth, newHeight));
+                MipMap newmip = Resize(currentMip, newWidth, newHeight);
 
-                currentMip = MipMaps[i];
+                MipMaps.Add(newmip);
             }
 
             return estimatedMips;
@@ -307,6 +322,14 @@ namespace CSharpImageLibrary
         {
             var mips = LoadWithCodecs(stream, newWidth, newHeight, false);  // Don't want mips so isDDS == false
             return mips?[0].Data;  // Returns null if mips is null
+        }
+
+        internal static MipMap Resize(MipMap mipMap, int width, int height)
+        {
+            BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Data);
+            bmp = UsefulThings.WPF.Images.ResizeImage(bmp, width, height);
+            MemoryStream data = bmp.GetPixelsAsStream(width, height);
+            return new MipMap(data, width, height);
         }
     }
 }

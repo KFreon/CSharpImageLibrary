@@ -141,16 +141,11 @@ namespace CSharpImageLibrary
             // KFreon: Half image dimensions until one dimension == 1
             for (int i = 0; i < estimatedMips; i++)
             {
-                currentMip = MipMaps[i];
-
-
-                Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(currentMip.Data.ToArray(), currentMip.Width, currentMip.Height);
                 newWidth /= 2;
                 newHeight /= 2;
-                bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(newWidth, newHeight));
 
-                byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
-                MipMaps.Add(new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(data), newWidth, newHeight));
+                var mip = Resize(currentMip, newWidth, newHeight);
+                MipMaps.Add(mip);
             }
 
             return estimatedMips;
@@ -208,6 +203,15 @@ namespace CSharpImageLibrary
             Bitmap resized = new Bitmap(bmp, new Size(newWidth, newHeight));
             byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(resized);
             return UsefulThings.RecyclableMemoryManager.GetStream(data);
+        }
+
+        internal static MipMap Resize(MipMap mipMap, int width, int height)
+        {
+            Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(mipMap.Data.ToArray(), mipMap.Width, mipMap.Height);
+            bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(width, height));
+
+            byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
+            return new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(data), width, height);
         }
     }
 }

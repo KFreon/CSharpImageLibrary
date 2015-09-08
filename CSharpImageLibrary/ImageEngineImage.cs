@@ -13,7 +13,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Represents an image. Can use Windows codecs if available.
     /// </summary>
-    public class ImageEngineImage
+    public class ImageEngineImage : IDisposable
     {
         #region Properties
         /// <summary>
@@ -90,7 +90,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="stream">Image to load.</param>
         /// <param name="extension">Extension of original file.</param>
-        public ImageEngineImage(Stream stream, string extension)
+        public ImageEngineImage(Stream stream, string extension = null)
         {
             Format format = new Format();
 
@@ -146,10 +146,10 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired image format.</param>
         /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <returns>True if success.</returns>
-        public bool Save(string destination, ImageEngineFormat format, bool GenerateMips)
+        public bool Save(string destination, ImageEngineFormat format, bool GenerateMips, int newWidth = 0, int newHeight = 0)
         {
             using (FileStream fs = new FileStream(destination, FileMode.Create))
-                return Save(fs, format, GenerateMips);
+                return Save(fs, format, GenerateMips, newWidth, newHeight);
         }
 
 
@@ -160,9 +160,9 @@ namespace CSharpImageLibrary
         /// <param name="format">Format to save as.</param>
         /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <returns>True if success</returns>
-        public bool Save(Stream destination, ImageEngineFormat format, bool GenerateMips)
+        public bool Save(Stream destination, ImageEngineFormat format, bool GenerateMips, int newWidth = 0, int newHeight = 0)
         {
-            return ImageEngine.Save(MipMaps, format, destination, GenerateMips);
+            return ImageEngine.Save(MipMaps, format, destination, GenerateMips, newWidth, newHeight);
         }
 
         /// <summary>
@@ -190,6 +190,37 @@ namespace CSharpImageLibrary
             encoder.Save(stream);
 
             return UsefulThings.WPF.Images.CreateWPFBitmap(stream);
+        }
+
+        public void Dispose()
+        {
+            if (MipMaps == null)
+                return;
+
+            foreach (MipMap mipmap in MipMaps)
+                mipmap.Data.Dispose();
+        }
+
+
+        /// <summary>
+        /// Creates a GDI+ bitmap from largest mipmap.
+        /// </summary>
+        /// <returns>GDI+ bitmap of largest mipmap.</returns>
+        public System.Drawing.Bitmap GetGDIBitmap()
+        {
+            return UsefulThings.WinForms.Misc.CreateBitmap(MipMaps[0].Data.ToArray(), Width, Height);
+        }
+
+
+        /// <summary>
+        /// Creates a WPF Bitmap from largest mipmap.
+        /// </summary>
+        /// <returns>WPF bitmap of largest mipmap.</returns>
+        public BitmapSource GetWPFBitmap()
+        {
+            int stride = 4 * Width;
+            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, MipMaps[0].Data.ToArray(), stride));
+            return frame;
         }
     }
 }

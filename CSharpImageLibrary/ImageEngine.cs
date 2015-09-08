@@ -33,8 +33,8 @@ namespace CSharpImageLibrary
         /// </summary>
         static ImageEngine()
         {
-            //WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
-            WindowsWICCodecsAvailable = false;
+            WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            //WindowsWICCodecsAvailable = false;
         }
 
 
@@ -190,7 +190,6 @@ namespace CSharpImageLibrary
         {
             // KFreon: See if image is built-in codec agnostic.
             Format = ImageFormats.ParseFormat(stream, extension);
-
             List<MipMap> MipMaps = LoadEsoterics(stream, Format);
             if (MipMaps != null)
             {
@@ -242,20 +241,45 @@ namespace CSharpImageLibrary
         #endregion Loading
 
 
+
         /// <summary>
         /// Save mipmaps as given format to stream.
         /// </summary>
         /// <param name="MipMaps">List of Mips to save.</param>
         /// <param name="format">Desired format.</param>
         /// <param name="destination">Stream to save to.</param>
-        /// <param name="GenerateMips">True = Generate mipmaps for mippable images.</param>
+        /// <param name="GenerateMips">True = Generate mipmaps for mippable images. False = Destroys them.</param>
         /// <returns>True on success.</returns>
-        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips)
+        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips, int Width = 0, int Height = 0)
         {
+            if ((Width == 0 && Height != 0) || (Height == 0 && Width != 0))
+                throw new ArgumentException("Width and Height must both be specified OR neither.");
+
+
             Format temp = new Format(format);
 
             if (temp.IsMippable && GenerateMips)
                 BuildMipMaps(MipMaps);
+
+            // KFreon: Resize if asked
+            if (Width != 0 && Height != 0)
+            {
+                if (!UsefulThings.General.IsPowerOfTwo(Width) || !UsefulThings.General.IsPowerOfTwo(Height))
+                    throw new ArgumentException($"Width and/or Height must be a power of 2. Got Width = {Width} and Height = {Height}");
+
+                // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
+                var validMipmap = MipMaps.Where(img => img.Width == Width && img.Height == Height);
+                if (validMipmap?.Count() != 0)
+                {
+                    int index = MipMaps.IndexOf(validMipmap.First());
+                    MipMaps.RemoveRange(0, index);
+                }
+                else
+                {
+                    // KFreon: No mip. Resize.
+                    MipMaps[0] = Resize(MipMaps[0], Width, Height);
+                }
+            }
 
             // KFreon: Try DDS formats first
             switch (format)
@@ -290,6 +314,14 @@ namespace CSharpImageLibrary
                 return Win7.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
         }
 
+        private static MipMap Resize(MipMap mipMap, int width, int height)
+        {
+            if (WindowsWICCodecsAvailable)
+                return Win8_10.Resize(mipMap, width, height);
+            else
+                return Win7.Resize(mipMap, width, height);
+        }
+
 
         /// <summary>
         /// Builds mipmaps. Expects at least one mipmap in given list.
@@ -302,6 +334,24 @@ namespace CSharpImageLibrary
                 return Win8_10.BuildMipMaps(MipMaps);
             else
                 return Win7.BuildMipMaps(MipMaps);
+        }
+
+
+        /// <summary>
+        /// Destroys mipmaps. Expects at least one mipmap in given list.
+        /// </summary>
+        /// <param name="MipMaps">List of Mipmaps.</param>
+        /// <returns>Number of mips present.</returns>
+        private static int DestroyMipMaps(List<MipMap> MipMaps)
+        {
+            MipMap mipmap = MipMaps[0];
+            if (MipMaps.Count > 1)
+            {
+                MipMaps.Clear();
+                MipMaps[0] = mipmap;
+            }
+
+            return MipMaps.Count;
         }
 
         /// <summary>
@@ -327,6 +377,54 @@ namespace CSharpImageLibrary
                 return Win8_10.GenerateThumbnail(stream, newWidth, newHeight);
             else
                 return Win7.GenerateThumbnail(stream, newWidth, newHeight);
+        }
+
+
+        public static ImageEngineFormat ParseFromString(string format)
+        {
+            ImageEngineFormat parsedFormat = ImageEngineFormat.Unknown;
+
+            if (format.Contains("dxt1", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_DXT1;
+
+            if (format.Contains("dxt2", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_DXT2;
+
+            if (format.Contains("dxt3", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_DXT3;
+
+            if (format.Contains("dxt4", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_DXT4;
+
+            if (format.Contains("dxt5", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_DXT5;
+
+            if (format.Contains("bmp", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.BMP;
+
+            if (format.Contains("argb", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_ARGB;
+
+            if (format.Contains("ati1", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_ATI1;
+
+            if (format.Contains("ati2", StringComparison.OrdinalIgnoreCase) || format.Contains("3dc", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_ATI2_3Dc;
+
+            if (format.Contains("l8", StringComparison.OrdinalIgnoreCase) || format.Contains("g8", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_G8_L8;
+
+            if (format.Contains("v8u8", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.DDS_V8U8;
+
+            if (format.Contains("jpg", StringComparison.OrdinalIgnoreCase) || format.Contains("jpeg", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.JPG;
+
+            if (format.Contains("png", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.PNG;
+
+
+            return parsedFormat;
         }
     }
 }
