@@ -64,15 +64,15 @@ namespace CSharpImageLibrary
 
     public class VM : ViewModelBase
     {
-        BitmapImage preview = null;
-        public BitmapImage Preview
+        BitmapSource preview = null;
+        public BitmapSource Preview
         {
             get
             {
                 return preview;
             }
             set
-            {
+            { 
                 SetProperty(ref preview, value);
             }
         }
@@ -144,7 +144,7 @@ namespace CSharpImageLibrary
 
             Format = img.Format.InternalFormat.ToString();
             ImagePath = path;
-
+            img.Dispose();
             //ATI1.TestWrite(img.PixelData, @"R:\test.jpg", (int)img.Width, (int)img.Height);
         }
 

@@ -357,8 +357,14 @@ namespace CSharpImageLibrary
             int newHeight = header.dwHeight;
 
             // KFreon: Read data
-            for (int m = 0; m < header.dwMipMapCount; m++)
+            int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(newWidth, newHeight) + 1 : header.dwMipMapCount;
+
+            for (int m = 0; m < estimatedMips; m++)
             {
+                // KFreon: Since mip count is an estimate, check if there are any mips left to read.
+                if (stream.Position >= stream.Length)
+                    break;
+
                 int count = 0;
                 byte[] mipmap = new byte[newHeight * newWidth * 4];
                 for (int y = 0; y < newHeight; y++)
@@ -399,8 +405,14 @@ namespace CSharpImageLibrary
             int mipWidth = header.dwWidth;
             int mipHeight = header.dwHeight;
 
-            for (int m = 0; m < header.dwMipMapCount; m++)
+            int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(mipWidth, mipHeight) + 1 : header.dwMipMapCount;
+
+            for (int m = 0; m < estimatedMips; m++)
             {
+                // KFreon: since mip count is an estimate, check to see if there are any mips left to read.
+                if (compressed.Position >= compressed.Length)
+                    break;
+
                 MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerPixel * (int)mipWidth * (int)mipHeight);
 
                 // Loop over rows and columns NOT pixels

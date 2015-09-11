@@ -189,27 +189,11 @@ namespace CSharpImageLibrary
             return true;
         }
 
-
-        /// <summary>
-        /// Generates a thumbnail of a given size as quickly as possible.
-        /// </summary>
-        /// <param name="stream">Full image stream.</param>
-        /// <param name="newWidth">Desired width.</param>
-        /// <param name="newHeight">Desired height.</param>
-        /// <returns></returns>
-        internal static MemoryStream GenerateThumbnail(Stream stream, int newWidth, int newHeight)
-        {
-            Bitmap bmp = new Bitmap(stream);
-            Bitmap resized = new Bitmap(bmp, new Size(newWidth, newHeight));
-            byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(resized);
-            return UsefulThings.RecyclableMemoryManager.GetStream(data);
-        }
-
         internal static MipMap Resize(MipMap mipMap, int width, int height)
         {
             Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(mipMap.Data.ToArray(), mipMap.Width, mipMap.Height);
             bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(width, height));
-
+            
             byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
             return new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(data), width, height);
         }

@@ -191,13 +191,13 @@ namespace CSharpImageLibrary
             // KFreon: See if image is built-in codec agnostic.
             Format = ImageFormats.ParseFormat(stream, extension);
             List<MipMap> MipMaps = LoadEsoterics(stream, Format);
-            if (MipMaps != null)
+            if (MipMaps != null && MipMaps.Count != 0)
             {
                 // scale and return;
                 if (WindowsWICCodecsAvailable)
                 {
                     var sizedMip = MipMaps.Where(m => m.Width > m.Height ? m.Width == desiredMaxDimension : m.Height == desiredMaxDimension);
-                    if (sizedMip != null)  // KFreon: If there's already a mip, return that.
+                    if (sizedMip != null && sizedMip.Any())  // KFreon: If there's already a mip, return that.
                     {
                         var mip = sizedMip.First();
                         MipMaps.Clear();
@@ -209,7 +209,8 @@ namespace CSharpImageLibrary
                         var mip = MipMaps[0];
                         MipMaps.Clear();
 
-                        int stride = 4 * (mip.Width * 32 + 31) / 32;
+                        //int stride = 4 * (mip.Width * 32 + 31) / 32;
+                        int stride = 4 * mip.Width;
                         JpegBitmapEncoder encoder = new JpegBitmapEncoder();
                         BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
                         encoder.Frames.Add(frame);
@@ -249,37 +250,45 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired format.</param>
         /// <param name="destination">Stream to save to.</param>
         /// <param name="GenerateMips">True = Generate mipmaps for mippable images. False = Destroys them.</param>
+        /// <param name="maxDimension">Maximum value for either image dimension.</param>
         /// <returns>True on success.</returns>
-        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips, int Width = 0, int Height = 0)
+        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips, int maxDimension = 0)
         {
-            if ((Width == 0 && Height != 0) || (Height == 0 && Width != 0))
-                throw new ArgumentException("Width and Height must both be specified OR neither.");
-
-
             Format temp = new Format(format);
 
             if (temp.IsMippable && GenerateMips)
                 BuildMipMaps(MipMaps);
 
             // KFreon: Resize if asked
-            if (Width != 0 && Height != 0)
+            if (maxDimension != 0)
             {
-                if (!UsefulThings.General.IsPowerOfTwo(Width) || !UsefulThings.General.IsPowerOfTwo(Height))
-                    throw new ArgumentException($"Width and/or Height must be a power of 2. Got Width = {Width} and Height = {Height}");
+                if (!UsefulThings.General.IsPowerOfTwo(maxDimension))
+                    throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
 
                 // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
-                var validMipmap = MipMaps.Where(img => img.Width == Width && img.Height == Height);
+                var validMipmap = MipMaps.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension));  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
                 if (validMipmap?.Count() != 0)
                 {
                     int index = MipMaps.IndexOf(validMipmap.First());
+                    for (int i = 0; i < index; i++)
+                        MipMaps[i].Data.Dispose();
+
                     MipMaps.RemoveRange(0, index);
                 }
                 else
                 {
+                    // KFreon: Get the amount the image needs to be scaled. Find largest dimension and get it's scale.
+                    double scale = maxDimension * 1f / (MipMaps[0].Width > MipMaps[0].Height ? MipMaps[0].Width: MipMaps[0].Height);
+                    /*Debug.WriteLine($"width: {MipMaps[0].Width}  height: {MipMaps[0].Height}  scale: {scale}");
+                    Debug.WriteLine($"scaled width: {MipMaps[0].Width * scale}   scaled height: {MipMaps[0].Height * scale}");*/
+
                     // KFreon: No mip. Resize.
-                    MipMaps[0] = Resize(MipMaps[0], Width, Height);
+                    MipMaps[0] = Resize(MipMaps[0], scale);
                 }
             }
+
+            if (!GenerateMips)
+                DestroyMipMaps(MipMaps);
 
             // KFreon: Try DDS formats first
             switch (format)
@@ -314,12 +323,12 @@ namespace CSharpImageLibrary
                 return Win7.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
         }
 
-        private static MipMap Resize(MipMap mipMap, int width, int height)
+        internal static MipMap Resize(MipMap mipMap, double scale)
         {
             if (WindowsWICCodecsAvailable)
-                return Win8_10.Resize(mipMap, width, height);
+                return Win8_10.Resize(mipMap, scale);
             else
-                return Win7.Resize(mipMap, width, height);
+                return Win7.Resize(mipMap, (int)(mipMap.Width * scale), (int)(mipMap.Height * scale));
         }
 
 
@@ -347,8 +356,12 @@ namespace CSharpImageLibrary
             MipMap mipmap = MipMaps[0];
             if (MipMaps.Count > 1)
             {
+                foreach (var item in MipMaps)
+                    if (item != mipmap)
+                        item.Data.Dispose();
+
                 MipMaps.Clear();
-                MipMaps[0] = mipmap;
+                MipMaps.Add(mipmap);
             }
 
             return MipMaps.Count;
@@ -358,28 +371,50 @@ namespace CSharpImageLibrary
         /// Generates a thumbnail image as quickly and efficiently as possible.
         /// </summary>
         /// <param name="stream">Full image stream.</param>
-        /// <param name="sourceFormat">Format of original image.</param>
-        /// <param name="newWidth">Desired width.</param>
-        /// <param name="newHeight">Desired height.</param>
-        /// <returns>Formatted thumbnail as stream.</returns>
-        public static MemoryStream GenerateThumbnail(Stream stream, ImageEngineFormat sourceFormat, int newWidth, int newHeight)
+        /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension)
         {
-            // KFreon: No codecs save any DDS', so use mine/everyone elses
-            if (sourceFormat.ToString().Contains("DDS"))
-            {
-                /*ImageEngineImage img = new ImageEngineImage(stream, "dds");
-                img.Save()*/
-                // TODO: Needs fixing
-            }
+            Format format = new Format();
+            var mipmaps = LoadImage(stream, out format, null, maxDimension);
 
-            // jpg, bmp, png
-            if (WindowsWICCodecsAvailable)
-                return Win8_10.GenerateThumbnail(stream, newWidth, newHeight);
-            else
-                return Win7.GenerateThumbnail(stream, newWidth, newHeight);
+            MemoryStream ms = UsefulThings.RecyclableMemoryManager.GetStream();
+            Save(mipmaps, ImageEngineFormat.JPG, ms, false);
+
+            foreach (var mip in mipmaps)
+                mip.Data.Dispose();
+
+            return ms;
         }
 
 
+        /// <summary>
+        /// Generates a thumbnail of image and saves it to a file.
+        /// </summary>
+        /// <param name="stream">Fully formatted image stream.</param>
+        /// <param name="destination">File path to save to.</param>
+        /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        /// <returns>True on success.</returns>
+        public static bool GenerateThumbnailToFile(Stream stream, string destination, int maxDimension)
+        {
+            Format format = new Format();
+            var mipmaps = LoadImage(stream, out format, null, maxDimension);
+
+            bool success = false;
+            using (FileStream fs = new FileStream(destination, FileMode.Create))
+                success = Save(mipmaps, ImageEngineFormat.JPG, fs, false);
+
+            foreach (var mip in mipmaps)
+                mip.Data.Dispose();
+
+            return success;
+        }
+
+
+        /// <summary>
+        /// Parses a string to an ImageEngineFormat.
+        /// </summary>
+        /// <param name="format">String representation of ImageEngineFormat.</param>
+        /// <returns>ImageEngineFormat of format.</returns>
         public static ImageEngineFormat ParseFromString(string format)
         {
             ImageEngineFormat parsedFormat = ImageEngineFormat.Unknown;

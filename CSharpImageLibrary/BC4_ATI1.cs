@@ -54,7 +54,12 @@ namespace CSharpImageLibrary
             DecompressedBlock.Add(channel);
             DecompressedBlock.Add(channel);
             DecompressedBlock.Add(channel);
-            DecompressedBlock.Add(new byte[16]);  // No alpha
+
+            // KFreon: Alpha needs to be 255
+            byte[] alpha = new byte[16];
+            for (int i = 0; i < 16; i++)
+                alpha[i] = 0xFF;
+            DecompressedBlock.Add(alpha);
             return DecompressedBlock;
         }
 

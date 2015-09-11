@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -40,8 +41,14 @@ namespace CSharpImageLibrary
             int newWidth = header.dwWidth;
             int newHeight = header.dwHeight;
 
-            for (int m = 0; m < header.dwMipMapCount; m++)
+            int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(newWidth, newHeight) + 1 : header.dwMipMapCount;
+
+            for (int m = 0; m < estimatedMips; m++)
             {
+                // KFreon: Since mip count is a guess, check to see if there are any mips left to read.
+                if (stream.Position >= stream.Length)
+                    break;
+
                 // KFreon: Uncompressed, so can just read from stream.
                 int mipLength = newWidth * newHeight * 4;
                 MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(mipLength);

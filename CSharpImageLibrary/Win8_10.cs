@@ -90,7 +90,11 @@ namespace CSharpImageLibrary
                     int height = 0;
                     MemoryStream data = LoadMipMap(decoder.Frames[0], out width, out height);
                     var mip = new MipMap(data, width, height);
-                    mip = Resize(mip, width, height);
+                    double scale = decodeHeight != 0 ? decodeHeight * 1f / height: (decodeWidth != 0 ? decodeWidth * 1f / width : 0);
+                    if (scale == 0)
+                        throw new InvalidOperationException("No mips detected and no decodeWidth or decodeHeight specified. This is likely due to an invalid image or some weird error.");
+
+                    mip = Resize(mip, scale);
                     mipmaps.Add(mip);
                 }
             }
@@ -254,18 +258,10 @@ namespace CSharpImageLibrary
             if (estimatedMips == MipMaps.Count)
                 return estimatedMips;
 
-
-            int newWidth = currentMip.Width;
-            int newHeight = currentMip.Height;
-
             // KFreon: Half dimensions until one == 1.
-            for (int i = 0; i < estimatedMips; i++)
+            for (int i = 1; i <= estimatedMips; i++)
             {
-                newWidth /= 2;
-                newHeight /= 2;
-
-                MipMap newmip = Resize(currentMip, newWidth, newHeight);
-
+                MipMap newmip = Resize(currentMip, 1f / Math.Pow(2, i));
                 MipMaps.Add(newmip);
             }
 
@@ -310,26 +306,24 @@ namespace CSharpImageLibrary
             return true;
         }
 
-
-        /// <summary>
-        /// Generates a thumbnail image for given dimensions as quickly as possible.
-        /// </summary>
-        /// <param name="stream">Full image stream.</param>
-        /// <param name="newWidth">Desired width.</param>
-        /// <param name="newHeight">Desired height.</param>
-        /// <returns>Thumbnail image.</returns>
-        internal static MemoryStream GenerateThumbnail(Stream stream, int newWidth, int newHeight)
+        internal static MipMap Resize(MipMap mipMap, double scale)
         {
-            var mips = LoadWithCodecs(stream, newWidth, newHeight, false);  // Don't want mips so isDDS == false
-            return mips?[0].Data;  // Returns null if mips is null
-        }
+            BitmapImage bmp = null;
+            using (MemoryStream ms = UsefulThings.RecyclableMemoryManager.GetStream())
+            {
+                if (!SaveWithCodecs(mipMap.Data, ms, ImageEngineFormat.PNG, mipMap.Width, mipMap.Height))
+                    return null;
 
-        internal static MipMap Resize(MipMap mipMap, int width, int height)
-        {
-            BitmapImage bmp = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Data);
-            bmp = UsefulThings.WPF.Images.ResizeImage(bmp, width, height);
-            MemoryStream data = bmp.GetPixelsAsStream(width, height);
-            return new MipMap(data, width, height);
+                bmp = UsefulThings.WPF.Images.CreateWPFBitmap(ms);
+            }
+
+            //bmp = UsefulThings.WPF.Images.ResizeImage(bmp, width, height);
+            bmp = UsefulThings.WPF.Images.ScaleImage(bmp, scale);
+            int bmpWidth = (int)bmp.Width;
+            int bmpHeight = (int)bmp.Height;
+
+            MemoryStream data = bmp.GetPixelsAsStream(bmpWidth, bmpHeight);
+            return new MipMap(data, bmpWidth, bmpHeight);
         }
     }
 }

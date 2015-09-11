@@ -59,9 +59,10 @@ namespace CSharpImageLibrary
             {
                 // BGRA
                 pixels.Position++; // No blue
-                byte[] colours = new byte[2];
+                /*byte[] colours = new byte[2];
                 pixels.Read(colours, 0, 2);
-                writer.Write(colours);
+                writer.Write(colours);*/
+                writer.Write(pixels.ReadBytesFromStream(2));
                 pixels.Position++;    // No alpha
             };
 
