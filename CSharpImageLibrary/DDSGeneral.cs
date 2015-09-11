@@ -493,7 +493,6 @@ namespace CSharpImageLibrary
             return DecompressedBlock;
         }
 
-
         /// <summary>
         /// Decompresses a 3 channel (RGB) block.
         /// </summary>
@@ -503,17 +502,17 @@ namespace CSharpImageLibrary
         internal static List<byte[]> DecompressRGBBlock(Stream compressed, bool isDXT1)
         {
             int[] DecompressedBlock = new int[16];
-            int[] Colours = null;
+
+            BinaryReader reader = new BinaryReader(compressed);
 
             // Read min max colours
-            BinaryReader reader = new BinaryReader(compressed);
             ushort min = (ushort)reader.ReadInt16();
             ushort max = (ushort)reader.ReadInt16();
-            Colours = BuildRGBPalette(min, max, isDXT1);
+            int[] Colours = BuildRGBPalette(min, max, isDXT1);
 
             // Decompress pixels
             byte[] pixels = reader.ReadBytes(4);
-            for (int i = 0; i < 16; i+=4)
+            for (int i = 0; i < 16; i += 4)
             {
                 //byte bitmask = (byte)compressed.ReadByte();
                 byte bitmask = pixels[i / 4];
@@ -539,7 +538,7 @@ namespace CSharpImageLibrary
                 red[i] = rgb[0];
                 green[i] = rgb[1];
                 blue[i] = rgb[2];
-                alpha[i] = (byte)(colour == 0 && max > min ? 0x0 : 0xFF);
+                alpha[i] = 0xFF;//(byte)(colour == 0 && max > min ? 0x0 : 0xFF);
             }
             return DecompressedChannels;
         }
@@ -730,7 +729,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Reads a packed DXT colour into RGB
         /// </summary>
-        /// <param name="colour"></param>
+        /// <param name="colour">Colour to convert to RGB</param>
         /// <returns>RGB bytes</returns>
         private static byte[] ReadDXTColour(int colour)
         {

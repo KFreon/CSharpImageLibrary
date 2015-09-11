@@ -119,7 +119,7 @@ namespace CSharpImageLibrary
         /// <param name="imageFileData">Fully formatted image file data.</param>
         public ImageEngineImage(byte[] imageFileData)
         {
-            using (MemoryStream ms = RecyclableMemoryManager.GetStream(imageFileData.Length))
+            using (MemoryStream ms = RecyclableMemoryManager.GetStream(imageFileData))
                 LoadFromStream(ms);
         }
 
@@ -132,7 +132,7 @@ namespace CSharpImageLibrary
         /// <param name="desiredMaxDimension">Maximum dimension.</param>
         public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension)
         {
-            using (MemoryStream ms = RecyclableMemoryManager.GetStream(imageFileData.Length))
+            using (MemoryStream ms = RecyclableMemoryManager.GetStream(imageFileData))
                 LoadFromStream(ms, desiredMaxDimension: desiredMaxDimension);
         }
 
