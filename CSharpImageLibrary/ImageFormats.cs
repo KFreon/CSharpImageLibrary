@@ -118,6 +118,19 @@ namespace CSharpImageLibrary
             }
         }
 
+
+        /// <summary>
+        /// Size of a compressed block.
+        /// Returns -1 if format is not block compressed
+        /// </summary>
+        public int BlockSize
+        {
+            get
+            {
+                return GetBlockSize();
+            }
+        }
+
         /// <summary>
         /// Initialises a Format with an image format.
         /// </summary>
@@ -134,6 +147,26 @@ namespace CSharpImageLibrary
         public override string ToString()
         {
             return $"Format: {InternalFormat}  IsMippable: {IsMippable}";
+        }
+
+        private int GetBlockSize()
+        {
+            int blocksize = -1;
+            switch (InternalFormat)
+            {
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_DXT1:
+                    blocksize = 8;
+                    break;
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    blocksize = 16;
+                    break;
+            }
+            return blocksize;
         }
     }
 

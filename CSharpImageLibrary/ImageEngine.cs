@@ -193,6 +193,9 @@ namespace CSharpImageLibrary
             List<MipMap> MipMaps = LoadEsoterics(stream, Format);
             if (MipMaps != null && MipMaps.Count != 0)
             {
+                if (desiredMaxDimension == 0)
+                    return MipMaps;
+
                 // scale and return;
                 if (WindowsWICCodecsAvailable)
                 {
