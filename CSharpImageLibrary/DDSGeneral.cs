@@ -398,7 +398,6 @@ namespace CSharpImageLibrary
         {
             DDS_HEADER header;
             Format format = ImageFormats.ParseDDSFormat(compressed, out header);
-            int bitsPerPixel = 4;
 
             List<MipMap> MipMaps = new List<MipMap>();
 
@@ -413,43 +412,23 @@ namespace CSharpImageLibrary
                 if (compressed.Position >= compressed.Length)
                     break;
 
-                MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerPixel * (int)mipWidth * (int)mipHeight);
+                MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(4 * (int)mipWidth * (int)mipHeight);
 
                 // Loop over rows and columns NOT pixels
-                int bitsPerScanline = bitsPerPixel * (int)mipWidth;
-                for (int row = 0; row < mipHeight; row += 4)
+                int compressedLineSize = format.BlockSize * mipWidth / 4;
+                int bitsPerScanline = 4 * (int)mipWidth;
+                ParallelOptions po = new ParallelOptions();
+                po.MaxDegreeOfParallelism = -1;
+                Parallel.For(0, mipHeight / 4, po, rowr =>
                 {
-                    for (int column = 0; column < mipWidth; column += 4)
-                    {
-                        // decompress 
-                        List<byte[]> decompressed = DecompressBlock(compressed);
-                        byte[] blue = decompressed[0];
-                        byte[] green = decompressed[1];
-                        byte[] red = decompressed[2];
-                        byte[] alpha = decompressed[3];
-
-
-                        // Write texel
-                        int TopLeft = column * bitsPerPixel + row * bitsPerScanline;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
-                        mipmap.Seek(TopLeft, SeekOrigin.Begin);
-                        byte[] block = new byte[16];
-                        for (int i = 0; i < 16; i += 4)
+                    using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, compressedLineSize, rowr, DecompressBlock))
+                        lock (mipmap)
                         {
-                            // BGRA
-                            for (int j = 0; j < 16; j+=4)
-                            {
-                                block[j] = blue[i + (j >> 2)];
-                                block[j+1] = green[i + (j >> 2)];
-                                block[j+2] = red[i + (j >> 2)];
-                                block[j+3] = alpha[i + (j >> 2)];
-                            }
-                            mipmap.Write(block, 0, 16);
-
-                            // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
-                            mipmap.Seek(bitsPerScanline - bitsPerPixel * 4, SeekOrigin.Current);
+                            mipmap.Position = rowr * bitsPerScanline * 4;
+                            DecompressedLine.WriteTo(mipmap);
                         }
-                    }
-                }
+                });
+
                 MipMaps.Add(new MipMap(mipmap, mipWidth, mipHeight));
 
                 mipWidth /= 2;
@@ -457,6 +436,59 @@ namespace CSharpImageLibrary
             }
             
             return MipMaps;
+        }
+
+        private static MemoryStream ReadBCMipLine(Stream compressed, int mipHeight, int mipWidth, int bitsPerScanLine, int compressedLineSize, int rowIndex, Func<Stream, List<byte[]>> DecompressBlock)
+        {
+            int bitsPerPixel = 4;
+            //Debug.WriteLine($"row: {rowIndex}");
+
+            MemoryStream DecompressedLine = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerScanLine * 4);
+
+            // KFreon: Read compressed line into new stream for multithreading purposes
+            MemoryStream CompressedLine = UsefulThings.RecyclableMemoryManager.GetStream(compressedLineSize);
+            lock (compressed)
+            {
+                // KFreon: Seek to correct texel
+                compressed.Position = rowIndex * compressedLineSize + 128;  // +128 = header size
+
+                // KFreon: Read compressed line
+                CompressedLine.ReadFrom(compressed, compressedLineSize);
+            }
+            CompressedLine.Position = 0;
+
+            // KFreon: Read texels in row
+            for (int column = 0; column < mipWidth; column += 4)
+            {
+                // decompress 
+                List<byte[]> decompressed = DecompressBlock(CompressedLine);
+                byte[] blue = decompressed[0];
+                byte[] green = decompressed[1];
+                byte[] red = decompressed[2];
+                byte[] alpha = decompressed[3];
+
+
+                // Write texel
+                int TopLeft = column * bitsPerPixel;// + rowIndex * 4 * bitsPerScanLine;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
+                DecompressedLine.Seek(TopLeft, SeekOrigin.Begin);
+                byte[] block = new byte[16];
+                for (int i = 0; i < 16; i += 4)
+                {
+                    // BGRA
+                    for (int j = 0; j < 16; j += 4)
+                    {
+                        block[j] = blue[i + (j >> 2)];
+                        block[j + 1] = green[i + (j >> 2)];
+                        block[j + 2] = red[i + (j >> 2)];
+                        block[j + 3] = alpha[i + (j >> 2)];
+                    }
+                    DecompressedLine.Write(block, 0, 16);
+
+                    // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
+                    DecompressedLine.Seek(bitsPerScanLine - bitsPerPixel * 4, SeekOrigin.Current);
+                }
+            }
+            return DecompressedLine;
         }
         #endregion Loading
 
@@ -503,15 +535,22 @@ namespace CSharpImageLibrary
         {
             int[] DecompressedBlock = new int[16];
 
-            BinaryReader reader = new BinaryReader(compressed);
+            ushort min;
+            ushort max;
+            byte[] pixels;
+            int[] Colours;
+            using (BinaryReader reader = new BinaryReader(compressed, Encoding.Default, true))
+            {
+                // Read min max colours
+                min = (ushort)reader.ReadInt16();
+                max = (ushort)reader.ReadInt16();
+                Colours = BuildRGBPalette(min, max, isDXT1);
 
-            // Read min max colours
-            ushort min = (ushort)reader.ReadInt16();
-            ushort max = (ushort)reader.ReadInt16();
-            int[] Colours = BuildRGBPalette(min, max, isDXT1);
+                // Decompress pixels
+                pixels = reader.ReadBytes(4);
+            }
 
-            // Decompress pixels
-            byte[] pixels = reader.ReadBytes(4);
+                
             for (int i = 0; i < 16; i += 4)
             {
                 //byte bitmask = (byte)compressed.ReadByte();

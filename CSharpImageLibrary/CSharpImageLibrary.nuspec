@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>CSharpImageLibrary</id>
+    <version>$version$</version>
+    <title>C# Image Library</title>
+    <authors>KFreon</authors>
+    <owners>KFreon</owners>
+    <projectUrl>https://github.com/KFreon/CSharpImageLibrary</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Loads and saves standard images including DDS (all sorts and weird ones like V8U8, G8, etc. See full list on github.)</description>
+    <releaseNotes>Re-enabled Windows 8+ codecs</releaseNotes>
+    <copyright>Copyright KFreon 2015</copyright>
+    <tags>Image DDS</tags>
+  </metadata>
+</package>
