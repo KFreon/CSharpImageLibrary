@@ -197,28 +197,21 @@ namespace CSharpImageLibrary
         /// TEMPORARY. Gets a preview.
         /// </summary>
         /// <returns>BitmapImage of image.</returns>
-        public BitmapSource GeneratePreview()
+        public BitmapSource GeneratePreview(int index)
         {
             JpegBitmapEncoder encoder = new JpegBitmapEncoder();
             encoder.QualityLevel = 100;
 
             // KFreon: NOTE: Seems to ignore alpha - pretty much ultra useful since premultiplying alpha often removes most of the image
-            byte[] data = MipMaps[0].Data.ToArray();
+            MipMap mip = MipMaps[index];
+            byte[] data = mip.Data.ToArray();
 
-            int stride = 4 * (int)Width;
+            int stride = 4 * (int)mip.Width;
             BitmapPalette palette = BitmapPalettes.Halftone256;
             PixelFormat pixelformat = PixelFormats.Bgra32;           
 
             // KFreon: Create a bitmap from raw pixel data
-            BitmapSource source = BitmapFrame.Create((int)Width, (int)Height, 96, 96, pixelformat, palette, data, stride);
-
-            /*BitmapFrame frame = BitmapFrame.Create(source);
-            encoder.Frames.Add(frame);
-
-            MemoryStream stream = UsefulThings.RecyclableMemoryManager.GetStream(data.Length);
-            encoder.Save(stream);
-
-            return UsefulThings.WPF.Images.CreateWPFBitmap(stream);*/
+            BitmapSource source = BitmapFrame.Create((int)mip.Width, (int)mip.Height, 96, 96, pixelformat, palette, data, stride);
             return source;
         }
 

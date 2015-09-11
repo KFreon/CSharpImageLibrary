@@ -60,6 +60,14 @@ namespace CSharpImageLibrary
             if (sfd.ShowDialog() == true)
                 vm.Save(sfd.FileName, (ImageEngineFormat)FormatSelector.SelectedItem);
         }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.PageDown)
+                vm.GotoSmallerMip();
+            else if (e.Key == Key.PageUp)
+                vm.GotoLargerMip();
+        }
     }
 
     public class VM : ViewModelBase
@@ -118,9 +126,61 @@ namespace CSharpImageLibrary
             }
         }
 
+        int mipwidth = 0;
+        public int MipWidth
+        {
+            get
+            {
+                return mipwidth;
+            }
+            set
+            {
+                SetProperty(ref mipwidth, value);
+            }
+        }
+
+        int mipheight = 0;
+        public int MipHeight
+        {
+            get
+            {
+                return mipheight;
+            }
+            set
+            {
+                SetProperty(ref mipheight, value);
+            }
+        }
+
+        int mipIndex = 0;
+
         public VM()
         {
             
+        }
+
+        public void GotoSmallerMip()
+        {
+            if (mipIndex >= img.NumMipMaps)
+                return;
+            else
+                mipIndex++;
+
+            Preview = img.GeneratePreview(mipIndex);
+            MipWidth /= 2;
+            MipHeight /= 2;
+        }
+
+        public void GotoLargerMip()
+        {
+            if (mipIndex == 0)
+                return;
+            else
+                mipIndex--;
+
+            Preview = img.GeneratePreview(mipIndex);
+            MipHeight *= 2;
+            MipWidth *= 2;
         }
 
         public async Task LoadImage(string path)
@@ -134,17 +194,17 @@ namespace CSharpImageLibrary
             Console.WriteLine($"Format: {img.Format}");
             Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
 
-
+            MipWidth = img.Width;
+            MipHeight = img.Height;
             stopwatch.Restart();
 
-            Preview = img.GeneratePreview();
+            Preview = img.GeneratePreview(0);
 
             Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
             stopwatch.Stop();
 
             Format = img.Format.InternalFormat.ToString();
             ImagePath = path;
-            img.Dispose();
             //ATI1.TestWrite(img.PixelData, @"R:\test.jpg", (int)img.Width, (int)img.Height);
         }
 

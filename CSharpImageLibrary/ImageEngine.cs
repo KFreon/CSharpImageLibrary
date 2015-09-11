@@ -131,34 +131,6 @@ namespace CSharpImageLibrary
                         break;
                 }
 
-
-                // Resize if necessary
-                bool needsResize = decodeWidth != 0 || decodeHeight != 0;
-                if (MipMaps.Count == 0)
-                {
-                    // KFreon: None of those, so assume standard image formats (jpg, png, etc)
-                    var mipdata = Win7.LoadImageWithCodecs(stream, out width, out height);
-                    MipMaps.Add(new MipMap(mipdata, width, height));
-                }
-
-
-                // KFreon: Failed to load with anything. Bounce.
-                if (MipMaps.Count == 0)
-                    throw new InvalidDataException("Image incompatable with Windows 7 and/or internal codecs.");
-
-
-                // KFreon: Only allow resizing if there's no mipmaps
-                if (MipMaps.Count == 1 && needsResize)
-                {
-                    // KFreon: No Mip, so resize
-                    System.Drawing.Bitmap img = new System.Drawing.Bitmap(MipMaps[0].Data);
-                    System.Drawing.Bitmap newimg = (System.Drawing.Bitmap)UsefulThings.WinForms.Misc.resizeImage(img, new System.Drawing.Size(decodeWidth, decodeHeight));
-
-                    var data = UsefulThings.RecyclableMemoryManager.GetStream(UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(newimg));
-                    MipMaps[0].Data = data;
-                    MipMaps[0].Width = decodeWidth;
-                    MipMaps[0].Height = decodeHeight;
-                }
             }
             return MipMaps;
         }
@@ -191,54 +163,59 @@ namespace CSharpImageLibrary
             // KFreon: See if image is built-in codec agnostic.
             Format = ImageFormats.ParseFormat(stream, extension);
             List<MipMap> MipMaps = LoadEsoterics(stream, Format);
-            if (MipMaps != null && MipMaps.Count != 0)
-            {
-                if (desiredMaxDimension == 0)
-                    return MipMaps;
 
-                // scale and return;
+            // KFreon: Not an esoteric format. Try loading normally.
+            if (MipMaps == null)
+                MipMaps = LoadWithCodecs(stream, Format.InternalFormat, desiredMaxDimension, desiredMaxDimension);
+
+            if (MipMaps == null || MipMaps.Count == 0)
+                throw new InvalidDataException("No mipmaps loaded.");
+
+            
+            // KFreon: No resizing requested
+            if (desiredMaxDimension == 0)
+                return MipMaps;
+
+
+            // KFreon: Attempt to resize
+            var sizedMip = MipMaps.Where(m => m.Width > m.Height ? m.Width == desiredMaxDimension : m.Height == desiredMaxDimension);
+            if (sizedMip != null && sizedMip.Any())  // KFreon: If there's already a mip, return that.
+            {
+                var mip = sizedMip.First();
+                MipMaps.Clear();
+                MipMaps.Add(mip);
+            }
+            else
+            {
+                // Get top mip and clear others.
+                var mip = MipMaps[0];
+                MipMaps.Clear();
+                MemoryStream output = null;
+
                 if (WindowsWICCodecsAvailable)
                 {
-                    var sizedMip = MipMaps.Where(m => m.Width > m.Height ? m.Width == desiredMaxDimension : m.Height == desiredMaxDimension);
-                    if (sizedMip != null && sizedMip.Any())  // KFreon: If there's already a mip, return that.
-                    {
-                        var mip = sizedMip.First();
-                        MipMaps.Clear();
-                        MipMaps.Add(mip);
-                    }
-                    else
-                    {
-                        // Get top mip and clear others.
-                        var mip = MipMaps[0];
-                        MipMaps.Clear();
-
-                        //int stride = 4 * (mip.Width * 32 + 31) / 32;
-                        int stride = 4 * mip.Width;
-                        JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                        BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
-                        encoder.Frames.Add(frame);
-                        var output = UsefulThings.RecyclableMemoryManager.GetStream((int)mip.Data.Length);
-                        encoder.Save(output);
-                        MipMaps.Add(mip);
-                    }
+                    output = UsefulThings.RecyclableMemoryManager.GetStream((int)mip.Data.Length);
+                    int stride = 4 * mip.Width;
+                    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
+                    BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
+                    encoder.Frames.Add(frame);
+                    encoder.Save(output);
                 }
                 else
                 {
-                    // Get top mip and clear others.
-                    var mip = MipMaps[0];
-                    MipMaps.Clear();
-
                     System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(mip.Width, mip.Height);
                     var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, mip.Width, mip.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
                     byte[] pixels = new byte[mip.Data.Length];
                     Marshal.Copy(data.Scan0, pixels, 0, (int)mip.Data.Length);
                     bmp.UnlockBits(data);
-                    MipMap newmip = new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(pixels), mip.Width, mip.Height);
-                    MipMaps.Add(newmip);
+
+                    output = UsefulThings.RecyclableMemoryManager.GetStream(pixels);
                 }
+                MipMap newmip = new MipMap(output, mip.Width, mip.Height);
+
+                MipMaps.Add(newmip);
             }
-            else
-                MipMaps = LoadWithCodecs(stream, Format.InternalFormat, desiredMaxDimension, desiredMaxDimension);
+            
 
             return MipMaps;
         }

@@ -405,6 +405,7 @@ namespace CSharpImageLibrary
             int mipHeight = header.dwHeight;
 
             int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(mipWidth, mipHeight) + 1 : header.dwMipMapCount;
+            long mipOffset = 128;  // Includes header
 
             for (int m = 0; m < estimatedMips; m++)
             {
@@ -418,27 +419,36 @@ namespace CSharpImageLibrary
                 int compressedLineSize = format.BlockSize * mipWidth / 4;
                 int bitsPerScanline = 4 * (int)mipWidth;
                 ParallelOptions po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = -1;
-                Parallel.For(0, mipHeight / 4, po, rowr =>
+                po.MaxDegreeOfParallelism = 1;
+                int texelCount = mipHeight / 4;
+                if (texelCount == 0)
+                    mipmap.Write(new byte[format.BlockSize], 0, format.BlockSize);
+                else
                 {
-                    using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, compressedLineSize, rowr, DecompressBlock))
-                        lock (mipmap)
-                        {
-                            mipmap.Position = rowr * bitsPerScanline * 4;
-                            DecompressedLine.WriteTo(mipmap);
-                        }
-                });
+                    Parallel.For(0, texelCount, po, rowr =>
+                    {
+                        using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, rowr, DecompressBlock))
+                            lock (mipmap)
+                            {
+                                mipmap.Position = rowr * bitsPerScanline * 4;
+                                DecompressedLine.WriteTo(mipmap);
+                            }
+                    });
+                }
+
+                
 
                 MipMaps.Add(new MipMap(mipmap, mipWidth, mipHeight));
 
                 mipWidth /= 2;
                 mipHeight /= 2;
+                mipOffset = compressed.Position;
             }
             
             return MipMaps;
         }
 
-        private static MemoryStream ReadBCMipLine(Stream compressed, int mipHeight, int mipWidth, int bitsPerScanLine, int compressedLineSize, int rowIndex, Func<Stream, List<byte[]>> DecompressBlock)
+        private static MemoryStream ReadBCMipLine(Stream compressed, int mipHeight, int mipWidth, int bitsPerScanLine, long mipOffset, int compressedLineSize, int rowIndex, Func<Stream, List<byte[]>> DecompressBlock)
         {
             int bitsPerPixel = 4;
             //Debug.WriteLine($"row: {rowIndex}");
@@ -450,7 +460,7 @@ namespace CSharpImageLibrary
             lock (compressed)
             {
                 // KFreon: Seek to correct texel
-                compressed.Position = rowIndex * compressedLineSize + 128;  // +128 = header size
+                compressed.Position = mipOffset + rowIndex * compressedLineSize;  // +128 = header size
 
                 // KFreon: Read compressed line
                 CompressedLine.ReadFrom(compressed, compressedLineSize);
