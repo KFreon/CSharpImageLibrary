@@ -206,12 +206,13 @@ namespace CSharpImageLibrary
             MipMap mip = MipMaps[index];
             byte[] data = mip.Data.ToArray();
 
-            int stride = 4 * (int)mip.Width;
+            int stride = 4 * mip.Width;
             BitmapPalette palette = BitmapPalettes.Halftone256;
             PixelFormat pixelformat = PixelFormats.Bgra32;           
 
             // KFreon: Create a bitmap from raw pixel data
-            BitmapSource source = BitmapFrame.Create((int)mip.Width, (int)mip.Height, 96, 96, pixelformat, palette, data, stride);
+            BitmapSource source = BitmapFrame.Create(mip.Width, mip.Height, 96, 96, pixelformat, palette, data, stride);
+            source.Freeze();
             return source;
         }
 

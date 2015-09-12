@@ -416,7 +416,7 @@ namespace CSharpImageLibrary
                 po.MaxDegreeOfParallelism = -1;
                 int texelCount = mipHeight / 4;
                 if (texelCount == 0)
-                    mipmap.Write(new byte[format.BlockSize], 0, format.BlockSize);
+                    mipmap.Write(new byte[mipWidth * mipHeight * 4], 0, mipWidth * mipHeight * 4);
                 else
                 {
                     Parallel.For(0, texelCount, po, (rowr, loopstate) =>

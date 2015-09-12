@@ -6,7 +6,7 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:CSharpImageLibrary"
         mc:Ignorable="d"
-        Title="MainWindow" Height="384.202" Width="748.453" KeyDown="Window_KeyDown">
+        Title="MainWindow" Height="588.074" Width="1137.211" KeyDown="Window_KeyDown">
     <Grid>
         <Grid.Resources>
             <ObjectDataProvider MethodName="GetValues"
@@ -18,27 +18,59 @@
             </ObjectDataProvider>
         </Grid.Resources>
         
-        <Grid.RowDefinitions>
-            <RowDefinition Height="283*"/>
-            <RowDefinition Height="47*"/>
-            <RowDefinition Height="23*"/>
-        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260*"/>
-            <ColumnDefinition Width="257*"/>
+            <ColumnDefinition Width="566*"/>
+            <ColumnDefinition Width="563*"/>
         </Grid.ColumnDefinitions>
-        <Image x:Name="OrigImage" Grid.Column="0" Grid.Row="0"/>
-        <Image x:Name="NewImage" Source="{Binding Preview}"  Grid.Column="1" Grid.Row="0" MouseWheel="NewImage_MouseWheel"/>
+        <DockPanel Grid.Column="0">
+            <Button x:Name="LoadButton" DockPanel.Dock="Bottom" Content="Load" VerticalAlignment="Bottom" HorizontalAlignment="Center" Click="LoadButton_Click" FontSize="16"/>
+            <DockPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+                <Button x:Name="OpenConvertPanel" Content="Convert >>" DockPanel.Dock="Right" VerticalAlignment="Bottom" Click="OpenConvertPanel_Click"/>
+                <StackPanel DockPanel.Dock="Bottom" Height="68" VerticalAlignment="Bottom">
+                    <TextBlock>
+                        <Run Text="Image Path:    " FontWeight="Bold"/>
+                        <Run Text="{Binding ImagePath, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Format:    " FontWeight="Bold"/>
+                        <Run Text="{Binding Format, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Mipmap Width:    " FontWeight="Bold"/>
+                        <Run Text="{Binding MipWidth}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Mipmap Height:    " FontWeight="Bold"/>
+                        <Run Text="{Binding MipHeight}"/>
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+            
+            <DockPanel DockPanel.Dock="Right">
+                <Label Content="Mipmaps" FontWeight="Bold" DockPanel.Dock="Top"/>
+                <TextBlock Text="{Binding NumMipMaps, StringFormat=Max: {0}}" DockPanel.Dock="Top" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding Value, ElementName=MipSlider, StringFormat=Selected: {0}}" DockPanel.Dock="Bottom" HorizontalAlignment="Center"/>
+                <Slider x:Name="MipSlider" Orientation="Vertical" HorizontalAlignment="Center" Interval="1" Minimum="0" Maximum="{Binding img.NumMipMaps}" TickFrequency="1" TickPlacement="TopLeft" IsSnapToTickEnabled="True" Value="{Binding MipIndex}"/>
+            </DockPanel>
+            <Image Source="{Binding Preview}"/>
+        </DockPanel>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.ColumnSpan="2">
-            <TextBlock Text="{Binding Format, StringFormat=Format: {0}}"/>
-            <TextBlock Margin="20,0,0,0" Text="{Binding ImagePath, StringFormat=Image Path: {0}}"/>
-            <TextBlock Text="{Binding MipWidth, StringFormat=Width: {0}}" Margin="20,0,10,0"/>
-            <TextBlock Text="{Binding MipHeight, StringFormat=Height: {0}}"/>
-        </StackPanel>
-        <Button Click="Button_Click" Content="Load Image" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="2" Height="20" Width="66"/>
-        <CheckBox Content="Generate Mipmaps" IsChecked="{Binding GenerateMips, Mode=TwoWay}"/>
-        <ComboBox x:Name="FormatSelector" ItemsSource="{Binding Source={StaticResource Formats}}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="1"/>
-        <Button Click="Button_Click_1" Content="Save" HorizontalAlignment="Right" VerticalAlignment="Bottom" Grid.ColumnSpan="2" Grid.Row="2"/>
+        <DockPanel Grid.Column="1" Margin="10,0,0,0">
+            <Button x:Name="SaveButton" Content="Save" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="16" Click="SaveButton_Click"/>
+            <DockPanel DockPanel.Dock="Bottom" LastChildFill="False">
+                <CheckBox Content="Generate Mipmaps?" IsChecked="{Binding GenerateMipMaps, Mode=TwoWay}" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                <ComboBox x:Name="FormatComboBox" DockPanel.Dock="Right" SelectionChanged="FormatComboBox_SelectionChanged" ItemsSource="{StaticResource Formats}">
+                    
+                </ComboBox>
+                <Label Content="Format" DockPanel.Dock="Right"/>
+            </DockPanel>
+            <DockPanel DockPanel.Dock="Bottom">
+                <Label Content="Save path: " DockPanel.Dock="Left"/>
+                <Button x:Name="BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="BrowseButton_Click"/>
+                <TextBox Text="{Binding SavePath}"/>
+            </DockPanel>
+            <Image x:Name="SavePreviewer" Source="{Binding SavePreview}"/>
+        </DockPanel>
     </Grid>
+
 </Window>

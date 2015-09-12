@@ -71,9 +71,9 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="UsefulThings, Version=1.0.5728.31084, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\UsefulThings\UsefulThings\bin\Debug\UsefulThings.dll</HintPath>
+    <Reference Include="UsefulThings, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\UsefulCSharpThings.1.2.0.0\lib\net45\UsefulThings.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -95,6 +95,7 @@
     <Compile Include="MipMap.cs" />
     <Compile Include="RGBA.cs" />
     <Compile Include="V8U8.cs" />
+    <Compile Include="ViewModel.cs" />
     <Compile Include="Win7.cs" />
     <Compile Include="Win8_10.cs" />
     <Page Include="MainWindow.xaml">

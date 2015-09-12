@@ -23,7 +23,7 @@ namespace CSharpImageLibrary
     /// </summary>
     public partial class MainWindow : Window
     {
-        VM vm = new VM();
+        ViewModel vm = new ViewModel();
 
         public MainWindow()
         {
@@ -32,194 +32,48 @@ namespace CSharpImageLibrary
             DataContext = vm;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog ofd = new OpenFileDialog();
-            if (ofd.ShowDialog() == true)
-            {
-                try
-                {
-                    OrigImage.Source = UsefulThings.WPF.Images.CreateWPFBitmap(ofd.FileName);
-                }
-                catch
-                {
-                    OrigImage.Source = null;
-                }
-                vm.LoadImage(ofd.FileName);
-            }
-        }
-
-        private void NewImage_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            
-        }
-
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            SaveFileDialog sfd = new SaveFileDialog();
-            if (sfd.ShowDialog() == true)
-                vm.Save(sfd.FileName, (ImageEngineFormat)FormatSelector.SelectedItem);
-        }
-
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.PageDown)
+            {
                 vm.GotoSmallerMip();
+                e.Handled = true;
+            }
             else if (e.Key == Key.PageUp)
+            {
                 vm.GotoLargerMip();
-        }
-    }
-
-    public class VM : ViewModelBase
-    {
-        BitmapSource preview = null;
-        public BitmapSource Preview
-        {
-            get
-            {
-                return preview;
-            }
-            set
-            { 
-                SetProperty(ref preview, value);
+                e.Handled = true;
             }
         }
 
-        string format = null;
-        public string Format
+        private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
-            get
-            {
-                return format;
-            }
-            set
-            {
-                SetProperty(ref format, value);
-            }
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "Supported Image Files|*.dds;*.jpg;*.png;*.jpeg;*.bmp";
+            ofd.Title = "Select image to load";
+            if (ofd.ShowDialog() == true)
+                vm.LoadImage(ofd.FileName);
         }
 
-        string imagepath = null;
-        public string ImagePath
+        private void FormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            get
-            {
-                return imagepath;
-            }
-            set
-            {
-                SetProperty(ref imagepath, value);
-            }
+            vm.GenerateSavePreview();
         }
 
-        ImageEngineImage img = null;
-
-        bool generatemips = true;
-        public bool GenerateMips
+        private void OpenConvertPanel_Click(object sender, RoutedEventArgs e)
         {
-            get
-            {
-                return generatemips;
-            }
-            set
-            {
-                SetProperty(ref generatemips, value);
-            }
+as
         }
 
-        int mipwidth = 0;
-        public int MipWidth
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            get
-            {
-                return mipwidth;
-            }
-            set
-            {
-                SetProperty(ref mipwidth, value);
-            }
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = 
         }
 
-        int mipheight = 0;
-        public int MipHeight
+        private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            get
-            {
-                return mipheight;
-            }
-            set
-            {
-                SetProperty(ref mipheight, value);
-            }
-        }
-
-        int mipIndex = 0;
-
-        public VM()
-        {
-            
-        }
-
-        public void GotoSmallerMip()
-        {
-            if (mipIndex + 1 >= img.NumMipMaps)
-                return;
-            else
-                mipIndex++;
-
-            Preview = img.GeneratePreview(mipIndex);
-            MipWidth /= 2;
-            MipHeight /= 2;
-        }
-
-        public void GotoLargerMip()
-        {
-            if (mipIndex == 0)
-                return;
-            else
-                mipIndex--;
-
-            Preview = img.GeneratePreview(mipIndex);
-            MipHeight *= 2;
-            MipWidth *= 2;
-        }
-
-        public async Task LoadImage(string path)
-        {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            mipIndex = 0;
-
-            img = await Task.Run(() => new ImageEngineImage(path));
-
-            Console.WriteLine("");
-            Console.WriteLine($"Format: {img.Format}");
-            Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
-
-            MipWidth = img.Width;
-            MipHeight = img.Height;
-            stopwatch.Restart();
-
-            Preview = img.GeneratePreview(0);
-
-            Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
-            stopwatch.Stop();
-
-            Format = img.Format.InternalFormat.ToString();
-            ImagePath = path;
-            //ATI1.TestWrite(img.PixelData, @"R:\test.jpg", (int)img.Width, (int)img.Height);
-        }
-
-        internal void Save(string fileName, ImageEngineFormat format)
-        {
-            if (img != null)
-            {
-                Stopwatch watc = new Stopwatch();
-                watc.Start();
-                img.Save(fileName, format, GenerateMips);
-                watc.Stop();
-                Debug.WriteLine($"Saved format: {format} in {watc.ElapsedMilliseconds} milliseconds.");
-            }
+asf
         }
     }
 }
