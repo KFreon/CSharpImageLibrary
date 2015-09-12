@@ -253,7 +253,7 @@ namespace CSharpImageLibrary
             
 
 
-            return UsefulThings.WinForms.Misc.CreateBitmap(mip.Data.ToArray(), mip.Width, mip.Height);
+            return UsefulThings.WinForms.Imaging.CreateBitmap(mip.Data.ToArray(), mip.Width, mip.Height);
         }
 
 

@@ -161,7 +161,7 @@ namespace CSharpImageLibrary
 
         public void GotoSmallerMip()
         {
-            if (mipIndex >= img.NumMipMaps)
+            if (mipIndex + 1 >= img.NumMipMaps)
                 return;
             else
                 mipIndex++;
@@ -187,6 +187,8 @@ namespace CSharpImageLibrary
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
+
+            mipIndex = 0;
 
             img = await Task.Run(() => new ImageEngineImage(path));
 

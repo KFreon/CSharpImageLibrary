@@ -102,8 +102,8 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="stream">Full Image stream.</param>
         /// <param name="Format">Detected format of image.</param>
-        /// <param name="decodeWidth">Width to decode to. Leave as 0 to be natural dimensions.</param>
-        /// <param name="decodeHeight">Height to decode to. Leave as 0 to be natural dimensions.</param>
+        /// <param name="decodeWidth">WIN8+ ONLY - Width to decode to. Leave as 0 to be natural dimensions.</param>
+        /// <param name="decodeHeight">WIN8+ ONLY - Height to decode to. Leave as 0 to be natural dimensions.</param>
         /// <returns>List of Mipmaps.</returns>
         private static List<MipMap> LoadWithCodecs(Stream stream, ImageEngineFormat Format, int decodeWidth = 0, int decodeHeight = 0)
         {
@@ -112,9 +112,6 @@ namespace CSharpImageLibrary
                 return Win8_10.LoadWithCodecs(stream, decodeWidth, decodeHeight, Format.ToString().Contains("DDS"));
             else
             {
-                int height = 0;
-                int width = 0;
-
                 // KFreon: Handle DXT formats - all other DDS formats are above
                 switch (Format)
                 {
@@ -131,6 +128,14 @@ namespace CSharpImageLibrary
                         break;
                 }
 
+                // KFreon: Not DDS
+                if (MipMaps == null || MipMaps.Count == 0)
+                {
+                    int width;
+                    int height;
+                    var mipstream = Win7.LoadImageWithCodecs(stream, out width, out height);
+                    MipMaps.Add(new MipMap(mipstream, width, height));
+                }
             }
             return MipMaps;
         }

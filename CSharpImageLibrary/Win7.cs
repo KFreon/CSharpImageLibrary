@@ -109,7 +109,7 @@ namespace CSharpImageLibrary
         /// <returns>BGRA pixels as stream.</returns>
         private static MemoryStream LoadMipMap(Bitmap bmp, string extension = null)
         {
-            byte[] imgData = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap(bmp);
+            byte[] imgData = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap(bmp);
 
             return UsefulThings.RecyclableMemoryManager.GetStream(imgData);
         }
@@ -164,7 +164,7 @@ namespace CSharpImageLibrary
         /// <returns>True on success.</returns>
         internal static bool SaveWithCodecs(MemoryStream pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
-            Bitmap bmp = UsefulThings.WinForms.Misc.CreateBitmap(pixelsWithMips.ToArray(), Width, Height);
+            Bitmap bmp = UsefulThings.WinForms.Imaging.CreateBitmap(pixelsWithMips.ToArray(), Width, Height);
 
             // KFreon: Get format
             System.Drawing.Imaging.ImageFormat imgformat = null;
@@ -191,10 +191,10 @@ namespace CSharpImageLibrary
 
         internal static MipMap Resize(MipMap mipMap, int width, int height)
         {
-            Image bmp = UsefulThings.WinForms.Misc.CreateBitmap(mipMap.Data.ToArray(), mipMap.Width, mipMap.Height);
-            bmp = UsefulThings.WinForms.Misc.resizeImage(bmp, new Size(width, height));
+            Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.Data.ToArray(), mipMap.Width, mipMap.Height);
+            bmp = UsefulThings.WinForms.Imaging.resizeImage(bmp, new Size(width, height));
             
-            byte[] data = UsefulThings.WinForms.Misc.GetPixelDataFromBitmap((Bitmap)bmp);
+            byte[] data = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap((Bitmap)bmp);
             return new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(data), width, height);
         }
     }
