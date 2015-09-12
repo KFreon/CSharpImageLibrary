@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,11 +87,6 @@ namespace CSharpImageLibrary
             }
         }
 
-        internal void GenerateSavePreview()
-        {
-            asf
-        }
-
         int mipindex = 0;
         public int MipIndex
         {
@@ -106,6 +102,7 @@ namespace CSharpImageLibrary
         }
         #endregion Original Image Properties
 
+
         #region Save Properties
         bool generateMips = true;
         public bool GenerateMipMaps
@@ -116,6 +113,7 @@ namespace CSharpImageLibrary
             }
             set
             {
+                SaveSuccess = null;
                 SetProperty(ref generateMips, value);
             }
         }
@@ -129,7 +127,9 @@ namespace CSharpImageLibrary
             }
             set
             {
+                SaveSuccess = null;
                 SetProperty(ref savePath, value);
+                OnPropertyChanged(nameof(IsSaveReady));
             }
         }
 
@@ -142,7 +142,9 @@ namespace CSharpImageLibrary
             }
             set
             {
+                SaveSuccess = null;
                 SetProperty(ref saveFormat, value);
+                OnPropertyChanged(nameof(IsSaveReady));
             }
         }
 
@@ -158,12 +160,59 @@ namespace CSharpImageLibrary
                 SetProperty(ref savePreview, value);
             }
         }
-        
+
+        public bool IsSaveReady
+        {
+            get
+            {
+                return !String.IsNullOrEmpty(SavePath) && SaveFormat != ImageEngineFormat.Unknown;
+            }
+        }
+
+        public string SavingFailedErrorMessage
+        {
+            get; private set;
+        }
+
+        bool? saveSuccess = null;
+        public bool? SaveSuccess
+        {
+            get
+            {
+                return saveSuccess;
+            }
+            set
+            {
+                SetProperty(ref saveSuccess, value);
+            }
+        }
         #endregion Save Properties
+
 
         public ViewModel()
         {
             Previews = new MTObservableCollection<BitmapSource>();
+        }
+
+        internal string GetAutoSavePath(ImageEngineFormat newformat)
+        {
+            return Path.GetDirectoryName(ImagePath) + "\\" + Path.GetFileNameWithoutExtension(ImagePath) + "_" + newformat + Path.GetExtension(ImagePath);
+        }
+
+        internal async void GenerateSavePreview()
+        {
+            if (img == null || SaveFormat == ImageEngineFormat.Unknown)
+                return;
+
+            SavePreview = await Task.Run(() =>
+            {
+                using (MemoryStream stream = UsefulThings.RecyclableMemoryManager.GetStream())
+                {
+                    img.Save(stream, SaveFormat, false);
+                    using (ImageEngineImage previewimage = new ImageEngineImage(stream))
+                        return previewimage.GetWPFBitmap();
+                }
+            });
         }
 
         public void GotoSmallerMip()
@@ -190,10 +239,11 @@ namespace CSharpImageLibrary
 
         public async Task LoadImage(string path)
         {
+            SaveSuccess = null;
             Previews.Clear();
+
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-
 
             img = await Task.Run(() => new ImageEngineImage(path));
 
@@ -221,16 +271,29 @@ namespace CSharpImageLibrary
             OnPropertyChanged(nameof(NumMipMaps));
         }
 
-        internal void Save()
+        internal bool Save()
         {
-            if (img != null && String.IsNullOrEmpty(SavePath) && SaveFormat != ImageEngineFormat.Unknown)
+            if (img != null && !String.IsNullOrEmpty(SavePath) && SaveFormat != ImageEngineFormat.Unknown)
             {
-                Stopwatch watc = new Stopwatch();
-                watc.Start();
-                img.Save(SavePath, SaveFormat, GenerateMipMaps);
-                watc.Stop();
-                Debug.WriteLine($"Saved format: {SaveFormat} in {watc.ElapsedMilliseconds} milliseconds.");
+                try
+                {
+                    Stopwatch watc = new Stopwatch();
+                    watc.Start();
+                    img.Save(SavePath, SaveFormat, GenerateMipMaps);
+                    watc.Stop();
+                    Debug.WriteLine($"Saved format: {SaveFormat} in {watc.ElapsedMilliseconds} milliseconds.");
+                    SaveSuccess = true;
+                    return true;
+                }
+                catch(Exception e)
+                {
+                    SavingFailedErrorMessage = e.ToString();
+                    SaveSuccess = false;
+                    return false;
+                }
             }
+
+            return false;
         }
     }
 }

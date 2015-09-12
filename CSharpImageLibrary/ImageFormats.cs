@@ -173,12 +173,12 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides format functionality
     /// </summary>
-    internal static class ImageFormats
+    public static class ImageFormats
     {
         /// <summary>
         /// File extensions supported. Used to get initial format.
         /// </summary>
-        enum SupportedExtensions
+        public enum SupportedExtensions
         {
             UNKNOWN,
             JPG,
@@ -193,7 +193,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="FourCC">DDS FourCC to check.</param>
         /// <returns>Format specified by FourCC. Otherwise ARGB.</returns>
-        private static Format ParseFourCC(int FourCC)
+        public static Format ParseFourCC(int FourCC)
         {
             Format format = new Format();
 
@@ -212,7 +212,7 @@ namespace CSharpImageLibrary
         /// <param name="imgData">Stream containing entire image file. NOT just pixels.</param>
         /// <param name="extension">Extension of image file.</param>
         /// <returns>Format of image.</returns>
-        internal static Format ParseFormat(Stream imgData, string extension)
+        public static Format ParseFormat(Stream imgData, string extension)
         {
             SupportedExtensions ext = SupportedExtensions.UNKNOWN;
 
@@ -263,7 +263,7 @@ namespace CSharpImageLibrary
         /// <param name="imgData">Stream containing entire image. NOT just pixels.</param>
         /// <param name="extension">Type of file.</param>
         /// <returns>Format of image.</returns>
-        private static Format ParseFormat(Stream imgData, SupportedExtensions extension)
+        public static Format ParseFormat(Stream imgData, SupportedExtensions extension)
         {
             switch (extension)
             {
@@ -287,7 +287,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="extension">String containing file extension.</param>
         /// <returns>SupportedExtension of extension.</returns>
-        private static SupportedExtensions ParseExtension(string extension)
+        public static SupportedExtensions ParseExtension(string extension)
         {
             SupportedExtensions ext = SupportedExtensions.DDS;
             string tempext = Path.GetExtension(extension).Replace(".", "");
@@ -303,7 +303,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <returns>Format of image.</returns>
-        internal static Format ParseFormat(string imagePath)
+        public static Format ParseFormat(string imagePath)
         {
             SupportedExtensions ext = ParseExtension(imagePath);
 
@@ -318,7 +318,7 @@ namespace CSharpImageLibrary
         /// <param name="stream">Stream containing full image file. NOT just pixels.</param>
         /// <param name="header">DDS Header information.</param>
         /// <returns>Format of DDS.</returns>
-        public static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
+        internal static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
         {
             Format format = new Format(ImageEngineFormat.DDS_ARGB);
 
@@ -380,6 +380,21 @@ namespace CSharpImageLibrary
                 DDS_HEADER header;
                 return ParseDDSFormat(fs, out header);
             }
+        }
+
+
+        /// <summary>
+        /// Searches for a format within a string. Good for automatic file naming.
+        /// </summary>
+        /// <param name="stringWithFormatInIt">String containing format somewhere in it.</param>
+        /// <returns>Format in string, or UNKNOWN otherwise.</returns>
+        public static Format FindFormatInString(string stringWithFormatInIt)
+        {
+            foreach (var formatName in Enum.GetNames(typeof(ImageEngineFormat)))
+                if (stringWithFormatInIt.Contains(formatName, StringComparison.OrdinalIgnoreCase))
+                    return new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
+
+            return new Format();
         }
     }
 }

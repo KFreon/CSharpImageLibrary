@@ -284,6 +284,7 @@ namespace CSharpImageLibrary
             
 
             BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
+            frame.Freeze();
             return frame;
         }
     }

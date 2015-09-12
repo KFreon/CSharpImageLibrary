@@ -12,9 +12,11 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using UsefulThings.WPF;
 using System.Diagnostics;
+using System.Windows.Media.Animation;
+using System.IO;
+using System.Windows.Threading;
 
 namespace CSharpImageLibrary
 {
@@ -25,11 +27,56 @@ namespace CSharpImageLibrary
     {
         ViewModel vm = new ViewModel();
 
+        const double duration = 0.6;
+        const double labelDuration = 0.3;
+        GridLengthAnimation GridOpeningAnim = new GridLengthAnimation();
+        GridLengthAnimation GridClosingAnim = new GridLengthAnimation();
+        DoubleAnimation WindowOpeningAnim = new DoubleAnimation(1137.211, TimeSpan.FromSeconds(duration));
+        DoubleAnimation WindowClosingAnim = new DoubleAnimation(600, TimeSpan.FromSeconds(duration));
+
+        DoubleAnimation SaveMessageOpen = new DoubleAnimation(1, TimeSpan.FromSeconds(labelDuration));
+        DoubleAnimation SaveMessageClose = new DoubleAnimation(0, TimeSpan.FromSeconds(labelDuration));
+        Dispatcher mainDispatcher = null;
+
+        bool isOpen = false;
+
         public MainWindow()
         {
+            
             InitializeComponent();
-
+            mainDispatcher = this.Dispatcher;
             DataContext = vm;
+
+            GridOpeningAnim.Duration = TimeSpan.FromSeconds(duration);
+            GridClosingAnim.Duration = TimeSpan.FromSeconds(duration);
+
+            GridOpeningAnim.From = new GridLength(0, GridUnitType.Star);
+            GridOpeningAnim.To = new GridLength(563, GridUnitType.Star);
+
+            GridClosingAnim.From = new GridLength(563, GridUnitType.Star);
+            GridClosingAnim.To = new GridLength(0, GridUnitType.Star);
+
+            
+            QuarticEase easer = new QuarticEase();
+            easer.EasingMode = EasingMode.EaseOut;
+
+            GridOpeningAnim.EasingFunction = easer;
+            GridClosingAnim.EasingFunction = easer;
+            WindowOpeningAnim.EasingFunction = easer;
+            WindowClosingAnim.EasingFunction = easer;
+            SaveMessageClose.EasingFunction = easer;
+            SaveMessageOpen.EasingFunction = easer;
+
+            ThisWindow.BeginAnimation(Window.WidthProperty, WindowClosingAnim);
+            SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridClosingAnim);
+            SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+            FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+
+            vm.PropertyChanged += (source, args) =>
+             {
+                 if (args.PropertyName == "SaveSuccess")
+                     mainDispatcher.BeginInvoke(new Action(() => ChangeSaveMessageVisibility(vm.SaveSuccess)));
+             };
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -58,22 +105,96 @@ namespace CSharpImageLibrary
         private void FormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             vm.GenerateSavePreview();
+
+            // KFreon: Update format in auto generated SavePath ONLY IF it's unedited
+            if (e.RemovedItems.Count != 0 && vm.SavePath == vm.GetAutoSavePath((ImageEngineFormat)e.RemovedItems[0]))
+                vm.SavePath = vm.GetAutoSavePath((ImageEngineFormat)e.AddedItems[0]);
         }
 
         private void OpenConvertPanel_Click(object sender, RoutedEventArgs e)
         {
-as
+            if (vm.img != null)
+            {
+                vm.SaveFormat = vm.img.Format.InternalFormat;
+                vm.SavePath = vm.GetAutoSavePath(vm.img.Format.InternalFormat);
+            }
+
+            if (isOpen)
+            {
+                ThisWindow.BeginAnimation(Window.WidthProperty, WindowClosingAnim);
+                SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridClosingAnim);
+            }
+            else
+            {
+                ThisWindow.BeginAnimation(Window.WidthProperty, WindowOpeningAnim);
+                SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridOpeningAnim);
+            }
+            
+            isOpen = !isOpen;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = 
+            Task.Run(() => vm.Save());
         }
 
         private void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-asf
+            SaveFileDialog sfd = new SaveFileDialog();
+            string filterstring = null;
+            switch (vm.SaveFormat)
+            {
+                case ImageEngineFormat.BMP:
+                    filterstring = "Bitmap Images|*.bmp";
+                    break;
+                case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                case ImageEngineFormat.DDS_G8_L8:
+                case ImageEngineFormat.DDS_V8U8:
+                    filterstring = "DDS Images|*.dds";
+                    break;
+                case ImageEngineFormat.JPG:
+                    filterstring = "JPG Images|*.jpg;*.jpeg";
+                    break;
+                case ImageEngineFormat.PNG:
+                    filterstring = "PNG Images|*.png";
+                    break;
+            }
+
+            sfd.Filter = filterstring;
+            sfd.Title = "Select location to save image";
+            if (sfd.ShowDialog() == true)
+                vm.SavePath = sfd.FileName;
+        }
+
+        private void ChangeSaveMessageVisibility(bool? state)
+        {
+            if (state == true)
+            {
+                SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageOpen);
+                FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+            }
+            else if(state == false)
+            {
+                SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+                FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageOpen);
+            }
+            else
+            {
+                SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+                FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+            }
+        }
+
+        private void SaveFailedLabel_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            MessageBox.Show(vm.SavingFailedErrorMessage);
         }
     }
 }
