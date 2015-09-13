@@ -12,9 +12,11 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using UsefulThings.WPF;
 using System.Diagnostics;
+using System.Windows.Media.Animation;
+using System.IO;
+using System.Windows.Threading;
 
 namespace CSharpImageLibrary
 {
@@ -23,203 +25,188 @@ namespace CSharpImageLibrary
     /// </summary>
     public partial class MainWindow : Window
     {
-        VM vm = new VM();
+        ViewModel vm = new ViewModel();
+
+        const double duration = 0.6;
+        const double labelDuration = 0.3;
+        GridLengthAnimation GridOpeningAnim = new GridLengthAnimation();
+        GridLengthAnimation GridClosingAnim = new GridLengthAnimation();
+        DoubleAnimation WindowOpeningAnim = new DoubleAnimation(1137.211, TimeSpan.FromSeconds(duration));
+        DoubleAnimation WindowClosingAnim = new DoubleAnimation(600, TimeSpan.FromSeconds(duration));
+
+        DoubleAnimation SaveMessageOpen = new DoubleAnimation(1, TimeSpan.FromSeconds(labelDuration));
+        DoubleAnimation SaveMessageClose = new DoubleAnimation(0, TimeSpan.FromSeconds(labelDuration));
+        Dispatcher mainDispatcher = null;
+
+        bool isOpen = false;
 
         public MainWindow()
         {
-            InitializeComponent();
-
-            DataContext = vm;
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog ofd = new OpenFileDialog();
-            if (ofd.ShowDialog() == true)
-            {
-                try
-                {
-                    OrigImage.Source = UsefulThings.WPF.Images.CreateWPFBitmap(ofd.FileName);
-                }
-                catch
-                {
-                    OrigImage.Source = null;
-                }
-                vm.LoadImage(ofd.FileName);
-            }
-        }
-
-        private void NewImage_MouseWheel(object sender, MouseWheelEventArgs e)
-        {
             
-        }
+            InitializeComponent();
+            mainDispatcher = this.Dispatcher;
+            DataContext = vm;
 
-        private void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-            SaveFileDialog sfd = new SaveFileDialog();
-            if (sfd.ShowDialog() == true)
-                vm.Save(sfd.FileName, (ImageEngineFormat)FormatSelector.SelectedItem);
+            GridOpeningAnim.Duration = TimeSpan.FromSeconds(duration);
+            GridClosingAnim.Duration = TimeSpan.FromSeconds(duration);
+
+            GridOpeningAnim.From = new GridLength(0, GridUnitType.Star);
+            GridOpeningAnim.To = new GridLength(563, GridUnitType.Star);
+
+            GridClosingAnim.From = new GridLength(563, GridUnitType.Star);
+            GridClosingAnim.To = new GridLength(0, GridUnitType.Star);
+
+            
+            QuarticEase easer = new QuarticEase();
+            easer.EasingMode = EasingMode.EaseOut;
+
+            GridOpeningAnim.EasingFunction = easer;
+            GridClosingAnim.EasingFunction = easer;
+            WindowOpeningAnim.EasingFunction = easer;
+            WindowClosingAnim.EasingFunction = easer;
+            SaveMessageClose.EasingFunction = easer;
+            SaveMessageOpen.EasingFunction = easer;
+
+            ThisWindow.BeginAnimation(Window.WidthProperty, WindowClosingAnim);
+            SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridClosingAnim);
+            SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+            FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+
+            vm.PropertyChanged += (source, args) =>
+             {
+                 if (args.PropertyName == "SaveSuccess")
+                     mainDispatcher.BeginInvoke(new Action(() => ChangeSaveMessageVisibility(vm.SaveSuccess)));
+             };
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.PageDown)
+            {
                 vm.GotoSmallerMip();
+                e.Handled = true;
+            }
             else if (e.Key == Key.PageUp)
+            {
                 vm.GotoLargerMip();
-        }
-    }
-
-    public class VM : ViewModelBase
-    {
-        BitmapSource preview = null;
-        public BitmapSource Preview
-        {
-            get
-            {
-                return preview;
-            }
-            set
-            { 
-                SetProperty(ref preview, value);
+                e.Handled = true;
             }
         }
 
-        string format = null;
-        public string Format
+        private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
-            get
-            {
-                return format;
-            }
-            set
-            {
-                SetProperty(ref format, value);
-            }
+            ChangeConvertPanel(false);
+            isOpen = false;
+
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "Supported Image Files|*.dds;*.jpg;*.png;*.jpeg;*.bmp";
+            ofd.Title = "Select image to load";
+            if (ofd.ShowDialog() == true)
+                vm.LoadImage(ofd.FileName);
         }
 
-        string imagepath = null;
-        public string ImagePath
+        private void FormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            get
-            {
-                return imagepath;
-            }
-            set
-            {
-                SetProperty(ref imagepath, value);
-            }
+            vm.GenerateSavePreview();
+
+            // KFreon: Update format in auto generated SavePath ONLY IF it's unedited
+            if (e.RemovedItems.Count != 0 && vm.SavePath == vm.GetAutoSavePath((ImageEngineFormat)e.RemovedItems[0]))
+                vm.SavePath = vm.GetAutoSavePath((ImageEngineFormat)e.AddedItems[0]);
         }
 
-        ImageEngineImage img = null;
-
-        bool generatemips = true;
-        public bool GenerateMips
+        private void OpenConvertPanel_Click(object sender, RoutedEventArgs e)
         {
-            get
+            if (vm.img != null && !isOpen)  // only change stuff when opening
             {
-                return generatemips;
+                vm.SaveFormat = vm.img.Format.InternalFormat;
+                vm.SavePath = vm.GetAutoSavePath(vm.img.Format.InternalFormat);
             }
-            set
-            {
-                SetProperty(ref generatemips, value);
-            }
+
+            ChangeConvertPanel(!isOpen);
+            isOpen = !isOpen;
+
         }
 
-        int mipwidth = 0;
-        public int MipWidth
+        private void ChangeConvertPanel(bool toState)
         {
-            get
-            {
-                return mipwidth;
-            }
-            set
-            {
-                SetProperty(ref mipwidth, value);
-            }
-        }
-
-        int mipheight = 0;
-        public int MipHeight
-        {
-            get
-            {
-                return mipheight;
-            }
-            set
-            {
-                SetProperty(ref mipheight, value);
-            }
-        }
-
-        int mipIndex = 0;
-
-        public VM()
-        {
-            
-        }
-
-        public void GotoSmallerMip()
-        {
-            if (mipIndex + 1 >= img.NumMipMaps)
+            if (isOpen == toState)
                 return;
-            else
-                mipIndex++;
 
-            Preview = img.GeneratePreview(mipIndex);
-            MipWidth /= 2;
-            MipHeight /= 2;
-        }
-
-        public void GotoLargerMip()
-        {
-            if (mipIndex == 0)
-                return;
-            else
-                mipIndex--;
-
-            Preview = img.GeneratePreview(mipIndex);
-            MipHeight *= 2;
-            MipWidth *= 2;
-        }
-
-        public async Task LoadImage(string path)
-        {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-
-            mipIndex = 0;
-
-            img = await Task.Run(() => new ImageEngineImage(path));
-
-            Console.WriteLine("");
-            Console.WriteLine($"Format: {img.Format}");
-            Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
-
-            MipWidth = img.Width;
-            MipHeight = img.Height;
-            stopwatch.Restart();
-
-            Preview = img.GeneratePreview(0);
-
-            Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
-            stopwatch.Stop();
-
-            Format = img.Format.InternalFormat.ToString();
-            ImagePath = path;
-            //ATI1.TestWrite(img.PixelData, @"R:\test.jpg", (int)img.Width, (int)img.Height);
-        }
-
-        internal void Save(string fileName, ImageEngineFormat format)
-        {
-            if (img != null)
+            if (!toState)
             {
-                Stopwatch watc = new Stopwatch();
-                watc.Start();
-                img.Save(fileName, format, GenerateMips);
-                watc.Stop();
-                Debug.WriteLine($"Saved format: {format} in {watc.ElapsedMilliseconds} milliseconds.");
+                ThisWindow.BeginAnimation(Window.WidthProperty, WindowClosingAnim);
+                SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridClosingAnim);
             }
+            else
+            {
+                ThisWindow.BeginAnimation(Window.WidthProperty, WindowOpeningAnim);
+                SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridOpeningAnim);
+            }
+
+        }
+
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(() => vm.Save());
+        }
+
+        private void BrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            string filterstring = null;
+            switch (vm.SaveFormat)
+            {
+                case ImageEngineFormat.BMP:
+                    filterstring = "Bitmap Images|*.bmp";
+                    break;
+                case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                case ImageEngineFormat.DDS_G8_L8:
+                case ImageEngineFormat.DDS_V8U8:
+                    filterstring = "DDS Images|*.dds";
+                    break;
+                case ImageEngineFormat.JPG:
+                    filterstring = "JPG Images|*.jpg;*.jpeg";
+                    break;
+                case ImageEngineFormat.PNG:
+                    filterstring = "PNG Images|*.png";
+                    break;
+            }
+
+            sfd.Filter = filterstring;
+            sfd.Title = "Select location to save image";
+            if (sfd.ShowDialog() == true)
+                vm.SavePath = sfd.FileName;
+        }
+
+        private void ChangeSaveMessageVisibility(bool? state)
+        {
+            if (state == true)
+            {
+                SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageOpen);
+                FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+            }
+            else if(state == false)
+            {
+                SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+                FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageOpen);
+            }
+            else
+            {
+                SuccessfulSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+                FailedSaveMessage.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, SaveMessageClose);
+            }
+        }
+
+        private void SaveFailedLabel_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            MessageBox.Show(vm.SavingFailedErrorMessage);
         }
     }
 }

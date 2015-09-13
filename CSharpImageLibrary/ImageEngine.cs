@@ -33,8 +33,8 @@ namespace CSharpImageLibrary
         /// </summary>
         static ImageEngine()
         {
-            //WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
-            WindowsWICCodecsAvailable = false;
+            WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            //WindowsWICCodecsAvailable = false;
         }
 
 
@@ -240,9 +240,10 @@ namespace CSharpImageLibrary
         internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips, int maxDimension = 0)
         {
             Format temp = new Format(format);
+            List<MipMap> newMips = new List<MipMap>(MipMaps);
 
             if (temp.IsMippable && GenerateMips)
-                BuildMipMaps(MipMaps);
+                BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
             if (maxDimension != 0)
@@ -251,57 +252,54 @@ namespace CSharpImageLibrary
                     throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
 
                 // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
-                var validMipmap = MipMaps.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension));  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
+                var validMipmap = newMips.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension));  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
                 if (validMipmap?.Count() != 0)
                 {
-                    int index = MipMaps.IndexOf(validMipmap.First());
-                    for (int i = 0; i < index; i++)
-                        MipMaps[i].Data.Dispose();
-
-                    MipMaps.RemoveRange(0, index);
+                    int index = newMips.IndexOf(validMipmap.First());
+                    newMips.RemoveRange(0, index);
                 }
                 else
                 {
                     // KFreon: Get the amount the image needs to be scaled. Find largest dimension and get it's scale.
-                    double scale = maxDimension * 1f / (MipMaps[0].Width > MipMaps[0].Height ? MipMaps[0].Width: MipMaps[0].Height);
+                    double scale = maxDimension * 1f / (newMips[0].Width > newMips[0].Height ? newMips[0].Width: newMips[0].Height);
                     /*Debug.WriteLine($"width: {MipMaps[0].Width}  height: {MipMaps[0].Height}  scale: {scale}");
                     Debug.WriteLine($"scaled width: {MipMaps[0].Width * scale}   scaled height: {MipMaps[0].Height * scale}");*/
 
                     // KFreon: No mip. Resize.
-                    MipMaps[0] = Resize(MipMaps[0], scale);
+                    newMips[0] = Resize(newMips[0], scale);
                 }
             }
 
             if (!GenerateMips)
-                DestroyMipMaps(MipMaps);
+                DestroyMipMaps(newMips);
 
             // KFreon: Try DDS formats first
             switch (format)
             {
                 case ImageEngineFormat.DDS_V8U8:
-                    return V8U8.Save(MipMaps, destination);
+                    return V8U8.Save(newMips, destination);
                 case ImageEngineFormat.DDS_G8_L8:
-                    return G8_L8.Save(MipMaps, destination);
+                    return G8_L8.Save(newMips, destination);
                 case ImageEngineFormat.DDS_ATI1:
-                    return BC4_ATI1.Save(MipMaps, destination);
+                    return BC4_ATI1.Save(newMips, destination);
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                    return BC5_ATI2_3Dc.Save(MipMaps, destination);
+                    return BC5_ATI2_3Dc.Save(newMips, destination);
                 case ImageEngineFormat.DDS_ARGB:
-                    return RGBA.Save(MipMaps, destination);
+                    return RGBA.Save(newMips, destination);
                 case ImageEngineFormat.DDS_DXT1:
-                    return BC1.Save(MipMaps, destination);
+                    return BC1.Save(newMips, destination);
                 case ImageEngineFormat.DDS_DXT2:
                 case ImageEngineFormat.DDS_DXT3:
-                    return BC2.Save(MipMaps, destination);
+                    return BC2.Save(newMips, destination);
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
-                    return BC3.Save(MipMaps, destination);
+                    return BC3.Save(newMips, destination);
             }
 
             // KFreon: NOT any of the above then...
 
             // KFreon: Try saving with built in codecs
-            var mip = MipMaps[0];
+            var mip = newMips[0];
             if (WindowsWICCodecsAvailable)
                 return Win8_10.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
             else
@@ -338,18 +336,8 @@ namespace CSharpImageLibrary
         /// <returns>Number of mips present.</returns>
         private static int DestroyMipMaps(List<MipMap> MipMaps)
         {
-            MipMap mipmap = MipMaps[0];
-            if (MipMaps.Count > 1)
-            {
-                foreach (var item in MipMaps)
-                    if (item != mipmap)
-                        item.Data.Dispose();
-
-                MipMaps.Clear();
-                MipMaps.Add(mipmap);
-            }
-
-            return MipMaps.Count;
+            MipMaps.RemoveRange(1, MipMaps.Count - 1);
+            return 1;
         }
 
         /// <summary>

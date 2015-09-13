@@ -34,35 +34,38 @@ namespace CSharpImageLibrary
         /// <returns>RGBA Pixel data as stream.</returns>
         internal static List<MipMap> Load(Stream stream)
         {
-            DDS_HEADER header = null;
-            Format format = ImageFormats.ParseDDSFormat(stream, out header);
-
-            List<MipMap> MipMaps = new List<MipMap>();
-            int newWidth = header.dwWidth;
-            int newHeight = header.dwHeight;
-
-            int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(newWidth, newHeight) + 1 : header.dwMipMapCount;
-
-            for (int m = 0; m < estimatedMips; m++)
+            lock (stream)
             {
-                // KFreon: Since mip count is a guess, check to see if there are any mips left to read.
-                if (stream.Position >= stream.Length)
-                    break;
+                DDS_HEADER header = null;
+                Format format = ImageFormats.ParseDDSFormat(stream, out header);
 
-                // KFreon: Uncompressed, so can just read from stream.
-                int mipLength = newWidth * newHeight * 4;
-                MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(mipLength);
-                int numRead = mipmap.ReadFrom(stream, mipLength);
-                if (numRead == 0)
-                    throw new InvalidDataException($"Data not found for mipmap number {m}");
+                List<MipMap> MipMaps = new List<MipMap>();
+                int newWidth = header.dwWidth;
+                int newHeight = header.dwHeight;
+
+                int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(newWidth, newHeight) + 1 : header.dwMipMapCount;
+
+                for (int m = 0; m < estimatedMips; m++)
+                {
+                    // KFreon: Since mip count is a guess, check to see if there are any mips left to read.
+                    if (stream.Position >= stream.Length)
+                        break;
+
+                    // KFreon: Uncompressed, so can just read from stream.
+                    int mipLength = newWidth * newHeight * 4;
+                    MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(mipLength);
+                    int numRead = mipmap.ReadFrom(stream, mipLength);
+                    if (numRead == 0)
+                        throw new InvalidDataException($"Data not found for mipmap number {m}");
 
 
-                MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
+                    MipMaps.Add(new MipMap(mipmap, newWidth, newHeight));
 
-                newWidth /= 2;
-                newHeight /= 2;
+                    newWidth /= 2;
+                    newHeight /= 2;
+                }
+                return MipMaps;
             }
-            return MipMaps;
         }
         
 

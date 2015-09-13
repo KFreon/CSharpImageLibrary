@@ -55,14 +55,12 @@ namespace CSharpImageLibrary
         /// <returns>True if success.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
-            Action<BinaryWriter, Stream, int, int> PixelWriter = (writer, pixels, unused, unused2) =>
+            Action<Stream, Stream, int, int> PixelWriter = (writer, pixels, unused, unused2) =>
             {
                 // BGRA
                 pixels.Position++; // No blue
-                /*byte[] colours = new byte[2];
-                pixels.Read(colours, 0, 2);
-                writer.Write(colours);*/
-                writer.Write(pixels.ReadBytesFromStream(2));
+                var bytes = pixels.ReadBytesFromStream(2);
+                writer.Write(bytes, 0, 2);
                 pixels.Position++;    // No alpha
             };
 
