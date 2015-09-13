@@ -4,9 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpImageLibrary.General;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.Specifics
 {
     /// <summary>
     /// Provides G8_L8 functionality.

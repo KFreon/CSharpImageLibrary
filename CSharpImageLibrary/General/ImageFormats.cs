@@ -5,10 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static CSharpImageLibrary.DDSGeneral;
+using static CSharpImageLibrary.General.DDSGeneral;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.General
 {
     /// <summary>
     /// Indicates image format.

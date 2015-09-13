@@ -5,9 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpImageLibrary.General;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.Specifics
 {
     /// <summary>
     /// Provides Block Compressed 2 (BC2) functionality. Also known as DXT2 and 3.

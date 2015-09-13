@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.General
 {
     /// <summary>
     /// Represents an image. Can use Windows codecs if available.

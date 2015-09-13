@@ -5,9 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpImageLibrary.General;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.Specifics
 {
     /// <summary>
     /// Provides V8U8 format functionality.

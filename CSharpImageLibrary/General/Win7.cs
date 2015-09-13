@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.General
 {
     /// <summary>
     /// Provides access to standard GDI+ Windows image formats.

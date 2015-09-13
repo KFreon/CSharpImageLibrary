@@ -10,7 +10,7 @@ using System.Windows.Media.Imaging;
 using UsefulThings;
 using System.Windows.Media;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.General
 {
     /// <summary>
     /// Provides native Windows codec functionality for Windows 8.1+

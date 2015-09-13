@@ -4,10 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        xmlns:local="clr-namespace:CSharpImageLibrary"
+        xmlns:local="clr-namespace:CSharpImageLibrary.General"
         xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="MainWindow" Height="588.074" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown">
+        Title="Image Engine" Height="588.074" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown">
     <Grid x:Name="MainGrid">
         <Grid.Resources>
             <sys:Boolean x:Key="True">
@@ -29,10 +29,10 @@
         </Grid.ColumnDefinitions>
         <DockPanel Grid.Column="0">
             <Button x:Name="LoadButton" DockPanel.Dock="Bottom" Content="Load" VerticalAlignment="Bottom" HorizontalAlignment="Center" Click="LoadButton_Click" FontSize="16"/>
-            <DockPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
-                <Button x:Name="OpenConvertPanel" Content="Convert >>" DockPanel.Dock="Right" VerticalAlignment="Bottom" Click="OpenConvertPanel_Click"/>
-                <StackPanel DockPanel.Dock="Bottom" Height="68" VerticalAlignment="Bottom">
-                    <TextBlock>
+            <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+                <Button x:Name="OpenConvertPanel" HorizontalAlignment="Right" Content="Convert >>" DockPanel.Dock="Right" VerticalAlignment="Bottom" Click="OpenConvertPanel_Click"/>
+                <StackPanel DockPanel.Dock="Bottom" Height="68" VerticalAlignment="Bottom" IsHitTestVisible="False">
+                    <TextBlock TextWrapping="WrapWithOverflow">
                         <Run Text="Image Path:    " FontWeight="Bold"/>
                         <Run Text="{Binding ImagePath, Mode=OneWay}"/>
                     </TextBlock>
@@ -49,7 +49,7 @@
                         <Run Text="{Binding MipHeight}"/>
                     </TextBlock>
                 </StackPanel>
-            </DockPanel>
+            </Grid>
             
             <DockPanel DockPanel.Dock="Right">
                 <Label Content="Mipmaps" FontWeight="Bold" DockPanel.Dock="Top"/>

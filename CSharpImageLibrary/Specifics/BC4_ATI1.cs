@@ -7,9 +7,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using CSharpImageLibrary.General;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.Specifics
 {
     /// <summary>
     /// Provides ATI1 (Block Compressed 4 [BC4]) format functionality.

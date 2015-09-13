@@ -7,7 +7,7 @@ using UsefulThings;
 using Microsoft.IO;
 using System.IO;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.General
 {
     /// <summary>
     /// Represents a mipmap of an image.

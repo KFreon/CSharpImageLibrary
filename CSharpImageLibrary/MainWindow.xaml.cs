@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.Windows.Media.Animation;
 using System.IO;
 using System.Windows.Threading;
+using CSharpImageLibrary.General;
 
 namespace CSharpImageLibrary
 {

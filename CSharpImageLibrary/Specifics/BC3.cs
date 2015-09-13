@@ -4,9 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpImageLibrary.General;
 using UsefulThings;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.Specifics
 {
     /// <summary>
     /// Provides Block Compressed 3 functionality. Also known as DXT4 and 5.

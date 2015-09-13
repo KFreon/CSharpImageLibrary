@@ -5,10 +5,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CSharpImageLibrary.General;
 using UsefulThings;
-using static CSharpImageLibrary.DDSGeneral;
+using static CSharpImageLibrary.General.DDSGeneral;
 
-namespace CSharpImageLibrary
+namespace CSharpImageLibrary.Specifics
 {
     /// <summary>
     /// Provides RGBA (DDS) format functionality.
