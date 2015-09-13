@@ -53,7 +53,7 @@ namespace CSharpImageLibrary
         /// <returns>True on success.</returns>
         internal static bool Save(List<MipMap> MipMaps, Stream destination)
         {
-            Action<BinaryWriter, Stream, int, int> PixelWriter = (writer, pixels, unused, unused2) =>
+            Action<Stream, Stream, int, int> PixelWriter = (writer, pixels, unused, unused2) =>
             {
                 // BGRA
                 byte[] colours = new byte[3];
@@ -65,8 +65,8 @@ namespace CSharpImageLibrary
                 int g1 = (int)(colours[1] * 3 * 0.6094);
                 int r1 = (int)(colours[2] * 3 * 0.3086);
 
-                int test = (int)((b1 + g1 + r1)/ 3f);
-                writer.Write((byte)test);
+                int test = (int)((b1 + g1 + r1) / 3f);
+                writer.WriteByte((byte)test);
             };
 
             var header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, ImageEngineFormat.DDS_G8_L8);

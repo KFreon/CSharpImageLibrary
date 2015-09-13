@@ -95,6 +95,9 @@ namespace CSharpImageLibrary
 
         private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
+            ChangeConvertPanel(false);
+            isOpen = false;
+
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "Supported Image Files|*.dds;*.jpg;*.png;*.jpeg;*.bmp";
             ofd.Title = "Select image to load";
@@ -113,13 +116,23 @@ namespace CSharpImageLibrary
 
         private void OpenConvertPanel_Click(object sender, RoutedEventArgs e)
         {
-            if (vm.img != null)
+            if (vm.img != null && !isOpen)  // only change stuff when opening
             {
                 vm.SaveFormat = vm.img.Format.InternalFormat;
                 vm.SavePath = vm.GetAutoSavePath(vm.img.Format.InternalFormat);
             }
 
-            if (isOpen)
+            ChangeConvertPanel(!isOpen);
+            isOpen = !isOpen;
+
+        }
+
+        private void ChangeConvertPanel(bool toState)
+        {
+            if (isOpen == toState)
+                return;
+
+            if (!toState)
             {
                 ThisWindow.BeginAnimation(Window.WidthProperty, WindowClosingAnim);
                 SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridClosingAnim);
@@ -129,8 +142,7 @@ namespace CSharpImageLibrary
                 ThisWindow.BeginAnimation(Window.WidthProperty, WindowOpeningAnim);
                 SaveColumn.BeginAnimation(ColumnDefinition.WidthProperty, GridOpeningAnim);
             }
-            
-            isOpen = !isOpen;
+
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)

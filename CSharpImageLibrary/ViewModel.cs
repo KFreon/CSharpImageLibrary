@@ -17,6 +17,7 @@ namespace CSharpImageLibrary
     public class ViewModel : ViewModelBase
     {
         public ImageEngineImage img { get; set; }
+        Stopwatch stopwatch = new Stopwatch();
 
 
         #region Original Image Properties
@@ -204,15 +205,23 @@ namespace CSharpImageLibrary
             if (img == null || SaveFormat == ImageEngineFormat.Unknown)
                 return;
 
+            stopwatch.Start();
             SavePreview = await Task.Run(() =>
             {
                 using (MemoryStream stream = UsefulThings.RecyclableMemoryManager.GetStream())
                 {
-                    img.Save(stream, SaveFormat, false);
+                    Stopwatch watch = new Stopwatch();
+                    watch.Start();
+                    img.Save(stream, SaveFormat, false, 1024);  // KFreon: Smaller size for quicker loading
+                    watch.Stop();
+                    Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
                         return previewimage.GetWPFBitmap();
                 }
             });
+            stopwatch.Stop();
+            Debug.WriteLine($"Preview generation took {stopwatch.ElapsedMilliseconds}ms");
+            stopwatch.Reset();
         }
 
         public void GotoSmallerMip()
@@ -241,19 +250,22 @@ namespace CSharpImageLibrary
         {
             SaveSuccess = null;
             Previews.Clear();
+            SavePreview = null;
+            SavePath = null;
+            SaveFormat = ImageEngineFormat.Unknown;
 
-            Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
             img = await Task.Run(() => new ImageEngineImage(path));
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");
+            stopwatch.Stop();
             Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
+            stopwatch.Restart();
 
             MipWidth = img.Width;
             MipHeight = img.Height;
-            stopwatch.Restart();
 
             Previews.Add(img.GeneratePreview(0));
             MipIndex = 0;
@@ -263,8 +275,9 @@ namespace CSharpImageLibrary
                     Previews.Add(img.GeneratePreview(i));
             });
 
-            Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
             stopwatch.Stop();
+            Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
+            stopwatch.Reset();
 
             OnPropertyChanged(nameof(ImagePath));
             OnPropertyChanged(nameof(Format));
@@ -277,11 +290,11 @@ namespace CSharpImageLibrary
             {
                 try
                 {
-                    Stopwatch watc = new Stopwatch();
-                    watc.Start();
+                    stopwatch.Start();
                     img.Save(SavePath, SaveFormat, GenerateMipMaps);
-                    watc.Stop();
-                    Debug.WriteLine($"Saved format: {SaveFormat} in {watc.ElapsedMilliseconds} milliseconds.");
+                    stopwatch.Stop();
+                    Debug.WriteLine($"Saved format: {SaveFormat} in {stopwatch.ElapsedMilliseconds} milliseconds.");
+                    stopwatch.Reset();
                     SaveSuccess = true;
                     return true;
                 }
