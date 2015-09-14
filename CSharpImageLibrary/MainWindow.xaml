@@ -89,7 +89,7 @@
                             <DropShadowEffect ShadowDepth="1"/>
                         </TextBlock.Effect>
                     </TextBlock>
-                    <Label Canvas.Left="20" Content="Successfully saved!"/>
+                    <TextBlock Canvas.Left="25" Canvas.Top="3" Text="{Binding SaveElapsedTime, StringFormat=Successfully saved in {0}ms!}"/>
                 </Canvas>
 
                 <Canvas x:Name="FailedSaveMessage" Margin="5,0,0,0">
@@ -107,7 +107,7 @@
                             <DropShadowEffect ShadowDepth="1"/>
                         </TextBlock.Effect>
                     </TextBlock>
-                    <Label x:Name="SaveFailedLabel" Canvas.Left="20" Content="Saving failed! Click for details." MouseDown="SaveFailedLabel_MouseDown"/>
+                    <Label x:Name="SaveFailedLabel" Canvas.Left="20" Content=" Saving failed! Click for details." MouseDown="SaveFailedLabel_MouseDown"/>
                 </Canvas>
             </StackPanel>
             <DockPanel DockPanel.Dock="Bottom" LastChildFill="False" Margin="0,3">

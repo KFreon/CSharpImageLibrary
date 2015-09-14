@@ -20,6 +20,18 @@ namespace CSharpImageLibrary
         public ImageEngineImage img { get; set; }
         Stopwatch stopwatch = new Stopwatch();
 
+        long saveElapsed = -1;
+        public long SaveElapsedTime
+        {
+            get
+            {
+                return saveElapsed;
+            }
+            set
+            {
+                SetProperty(ref saveElapsed, value);
+            }
+        }
 
         #region Original Image Properties
         public MTObservableCollection<BitmapSource> Previews { get; set; }
@@ -295,6 +307,9 @@ namespace CSharpImageLibrary
                     img.Save(SavePath, SaveFormat, GenerateMipMaps);
                     stopwatch.Stop();
                     Debug.WriteLine($"Saved format: {SaveFormat} in {stopwatch.ElapsedMilliseconds} milliseconds.");
+
+                    SaveElapsedTime = stopwatch.ElapsedMilliseconds;
+
                     stopwatch.Reset();
                     SaveSuccess = true;
                     return true;

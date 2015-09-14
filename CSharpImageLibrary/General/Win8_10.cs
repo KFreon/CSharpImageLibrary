@@ -255,15 +255,18 @@ namespace CSharpImageLibrary.General
 
             // KFreon: Check if mips required
             int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
-            if (estimatedMips == MipMaps.Count)
+            if ((estimatedMips + 1) == MipMaps.Count)  // +1 is cos estimatedMips is the number required to be generated, not the total
                 return estimatedMips;
 
             // KFreon: Half dimensions until one == 1.
-            for (int i = 1; i <= estimatedMips; i++)
+            MipMap[] newmips = new MipMap[estimatedMips];
+            Parallel.For(1, estimatedMips, item =>
             {
-                MipMap newmip = Resize(currentMip, 1f / Math.Pow(2, i));
-                MipMaps.Add(newmip);
-            }
+                int index = item;
+                MipMap newmip = Resize(currentMip, 1f / Math.Pow(2, index));
+                newmips[index] = newmip;
+            });
+            MipMaps.AddRange(newmips);
 
             return estimatedMips;
         }
