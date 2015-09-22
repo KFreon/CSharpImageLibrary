@@ -84,17 +84,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Specifics\BC4_ATI1.cs" />
-    <Compile Include="Specifics\BC5_ATI2_3Dc.cs" />
     <Compile Include="General\DDSGeneral.cs" />
-    <Compile Include="Specifics\BC1.cs" />
-    <Compile Include="Specifics\BC2.cs" />
-    <Compile Include="Specifics\BC3.cs" />
-    <Compile Include="Specifics\G8_L8.cs" />
     <Compile Include="General\ImageEngineImage.cs" />
     <Compile Include="General\MipMap.cs" />
-    <Compile Include="Specifics\RGBA.cs" />
-    <Compile Include="Specifics\V8U8.cs" />
     <Compile Include="ViewModel.cs" />
     <Compile Include="General\Win7.cs" />
     <Compile Include="General\Win8_10.cs" />

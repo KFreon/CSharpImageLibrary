@@ -10,7 +10,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
 using System.Runtime.InteropServices;
-using CSharpImageLibrary.Specifics;
 
 namespace CSharpImageLibrary.General
 {
@@ -34,114 +33,12 @@ namespace CSharpImageLibrary.General
         /// </summary>
         static ImageEngine()
         {
-            WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
-            //WindowsWICCodecsAvailable = false;
+            //WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            WindowsWICCodecsAvailable = false;
         }
 
 
         #region Loading
-        /// <summary>
-        /// Loads useful information from an image file.
-        /// </summary>
-        /// <param name="imagePath">Path to image file.</param>
-        /// <param name="Format">Detected image format.</param>
-        /// <returns>Raw pixel data as stream.</returns>
-        internal static List<MipMap> LoadImage(string imagePath, out Format Format)
-        {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadImage(fs, out Format);
-        }
-
-
-        /// <summary>
-        /// Loads formats which have no native decompressors. (V8U8, G8/L8, ATI1 and 2(3Dc), ARGB.
-        /// </summary>
-        /// <param name="stream">Image data.</param>
-        /// <param name="Format">Detected format of image.</param>
-        /// <returns>List of mipmaps.</returns>
-        private static List<MipMap> LoadEsoterics(Stream stream, Format Format)
-        {
-            switch (Format.InternalFormat)
-            {
-                case ImageEngineFormat.DDS_V8U8:
-                    return V8U8.Load(stream);
-                case ImageEngineFormat.DDS_G8_L8:
-                    return G8_L8.Load(stream);
-                case ImageEngineFormat.DDS_ATI1:
-                    return BC4_ATI1.Load(stream);
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                    return BC5_ATI2_3Dc.Load(stream);
-                case ImageEngineFormat.DDS_ARGB:
-                    return RGBA.Load(stream);
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Loads image from image stream.
-        /// </summary>
-        /// <param name="stream">Stream containing entire file. NOT just pixels.</param>
-        /// <param name="Format">Image format (dds surfaces, jpg, png, etc)</param>
-        /// <param name="extension">Extension of original file. Leave null to guess.</param>
-        /// <returns>BGRA pixels.</returns>
-        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension = null)
-        {
-            // KFreon: See if image is built-in codec agnostic.
-            Format = ImageFormats.ParseFormat(stream, extension);
-
-            List<MipMap> output = LoadEsoterics(stream, Format);
-            if (output != null)
-                return output;
-
-            // KFreon: Ok, none of those so try loading with built in codecs
-            return LoadWithCodecs(stream, Format.InternalFormat);
-        }
-
-
-        /// <summary>
-        /// Load image with internal codecs. Which set depends on OS.
-        /// </summary>
-        /// <param name="stream">Full Image stream.</param>
-        /// <param name="Format">Detected format of image.</param>
-        /// <param name="decodeWidth">WIN8+ ONLY - Width to decode to. Leave as 0 to be natural dimensions.</param>
-        /// <param name="decodeHeight">WIN8+ ONLY - Height to decode to. Leave as 0 to be natural dimensions.</param>
-        /// <returns>List of Mipmaps.</returns>
-        private static List<MipMap> LoadWithCodecs(Stream stream, ImageEngineFormat Format, int decodeWidth = 0, int decodeHeight = 0)
-        {
-            List<MipMap> MipMaps = new List<MipMap>();
-            if (WindowsWICCodecsAvailable)
-                return Win8_10.LoadWithCodecs(stream, decodeWidth, decodeHeight, Format.ToString().Contains("DDS"));
-            else
-            {
-                // KFreon: Handle DXT formats - all other DDS formats are above
-                switch (Format)
-                {
-                    case ImageEngineFormat.DDS_DXT1:
-                        MipMaps = BC1.Load(stream);
-                        break;
-                    case ImageEngineFormat.DDS_DXT2:
-                    case ImageEngineFormat.DDS_DXT3:
-                        MipMaps = BC2.Load(stream);
-                        break;
-                    case ImageEngineFormat.DDS_DXT4:
-                    case ImageEngineFormat.DDS_DXT5:
-                        MipMaps = BC3.Load(stream);
-                        break;
-                }
-
-                // KFreon: Not DDS
-                if (MipMaps == null || MipMaps.Count == 0)
-                {
-                    int width;
-                    int height;
-                    var mipstream = Win7.LoadImageWithCodecs(stream, out width, out height);
-                    MipMaps.Add(new MipMap(mipstream, width, height));
-                }
-            }
-            return MipMaps;
-        }
-
-
         /// <summary>
         /// Loads image from file.
         /// </summary>
@@ -149,10 +46,10 @@ namespace CSharpImageLibrary.General
         /// <param name="Format">Detected format.</param>
         /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
         /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension)
+        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension, bool enforceResize)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension);
+                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension, enforceResize);
         }
 
 
@@ -164,15 +61,48 @@ namespace CSharpImageLibrary.General
         /// <param name="extension">File extension. Used to determine format more easily.</param>
         /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
         /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension)
+        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize)
         {
             // KFreon: See if image is built-in codec agnostic.
-            Format = ImageFormats.ParseFormat(stream, extension);
-            List<MipMap> MipMaps = LoadEsoterics(stream, Format);
+            DDSGeneral.DDS_HEADER header = null;
+            Format = ImageFormats.ParseFormat(stream, extension, ref header);
+            List<MipMap> MipMaps = null;
 
-            // KFreon: Not an esoteric format. Try loading normally.
-            if (MipMaps == null)
-                MipMaps = LoadWithCodecs(stream, Format.InternalFormat, desiredMaxDimension, desiredMaxDimension);
+            switch (Format.InternalFormat)
+            {
+                case ImageEngineFormat.BMP:
+                case ImageEngineFormat.JPG:
+                case ImageEngineFormat.PNG:
+                    if (WindowsWICCodecsAvailable)
+                        MipMaps = Win8_10.LoadWithCodecs(stream, desiredMaxDimension, desiredMaxDimension, false);
+                    else
+                    {
+                        int width, height;
+                        var mipData = Win7.LoadImageWithCodecs(stream, out width, out height);
+                        var mip = new MipMap(mipData, width, height);
+                        MipMaps = new List<MipMap>() { mip };
+                    }
+                    break;
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    if (WindowsWICCodecsAvailable)
+                        MipMaps = Win8_10.LoadWithCodecs(stream, desiredMaxDimension, desiredMaxDimension, true);
+                    else
+                        MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
+                    break;
+                case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_G8_L8:
+                case ImageEngineFormat.DDS_V8U8:
+                    MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
+                    break;
+                default:
+                    throw new InvalidDataException("Image format is unknown.");
+            }
 
             if (MipMaps == null || MipMaps.Count == 0)
                 throw new InvalidDataException("No mipmaps loaded.");
@@ -180,6 +110,11 @@ namespace CSharpImageLibrary.General
             
             // KFreon: No resizing requested
             if (desiredMaxDimension == 0)
+                return MipMaps;
+
+            // KFreon: Test if we need to resize
+            var top = MipMaps.First();
+            if (top.Width == desiredMaxDimension || top.Height == desiredMaxDimension)
                 return MipMaps;
 
 
@@ -191,7 +126,7 @@ namespace CSharpImageLibrary.General
                 MipMaps.Clear();
                 MipMaps.Add(mip);
             }
-            else
+            else if (enforceResize)
             {
                 // Get top mip and clear others.
                 var mip = MipMaps[0];
@@ -263,8 +198,6 @@ namespace CSharpImageLibrary.General
                 {
                     // KFreon: Get the amount the image needs to be scaled. Find largest dimension and get it's scale.
                     double scale = maxDimension * 1f / (newMips[0].Width > newMips[0].Height ? newMips[0].Width: newMips[0].Height);
-                    /*Debug.WriteLine($"width: {MipMaps[0].Width}  height: {MipMaps[0].Height}  scale: {scale}");
-                    Debug.WriteLine($"scaled width: {MipMaps[0].Width * scale}   scaled height: {MipMaps[0].Height * scale}");*/
 
                     // KFreon: No mip. Resize.
                     newMips[0] = Resize(newMips[0], scale);
@@ -274,38 +207,20 @@ namespace CSharpImageLibrary.General
             if (!GenerateMips)
                 DestroyMipMaps(newMips);
 
-            // KFreon: Try DDS formats first
-            switch (format)
-            {
-                case ImageEngineFormat.DDS_V8U8:
-                    return V8U8.Save(newMips, destination);
-                case ImageEngineFormat.DDS_G8_L8:
-                    return G8_L8.Save(newMips, destination);
-                case ImageEngineFormat.DDS_ATI1:
-                    return BC4_ATI1.Save(newMips, destination);
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                    return BC5_ATI2_3Dc.Save(newMips, destination);
-                case ImageEngineFormat.DDS_ARGB:
-                    return RGBA.Save(newMips, destination);
-                case ImageEngineFormat.DDS_DXT1:
-                    return BC1.Save(newMips, destination);
-                case ImageEngineFormat.DDS_DXT2:
-                case ImageEngineFormat.DDS_DXT3:
-                    return BC2.Save(newMips, destination);
-                case ImageEngineFormat.DDS_DXT4:
-                case ImageEngineFormat.DDS_DXT5:
-                    return BC3.Save(newMips, destination);
-            }
-
-            // KFreon: NOT any of the above then...
-
-            // KFreon: Try saving with built in codecs
-            var mip = newMips[0];
-            if (WindowsWICCodecsAvailable)
-                return Win8_10.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
+            if (temp.InternalFormat.ToString().Contains("DDS"))
+                return DDSGeneral.Save(MipMaps, destination, temp);
             else
-                return Win7.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
+            {
+                // KFreon: Try saving with built in codecs
+                var mip = newMips[0];
+                if (WindowsWICCodecsAvailable)
+                    return Win8_10.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
+                else
+                    return Win7.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
+            }
         }
+
+        
 
         internal static MipMap Resize(MipMap mipMap, double scale)
         {
@@ -349,7 +264,7 @@ namespace CSharpImageLibrary.General
         public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension)
         {
             Format format = new Format();
-            var mipmaps = LoadImage(stream, out format, null, maxDimension);
+            var mipmaps = LoadImage(stream, out format, null, maxDimension, true);
 
             MemoryStream ms = UsefulThings.RecyclableMemoryManager.GetStream();
             Save(mipmaps, ImageEngineFormat.JPG, ms, false);
@@ -371,7 +286,7 @@ namespace CSharpImageLibrary.General
         public static bool GenerateThumbnailToFile(Stream stream, string destination, int maxDimension)
         {
             Format format = new Format();
-            var mipmaps = LoadImage(stream, out format, null, maxDimension);
+            var mipmaps = LoadImage(stream, out format, null, maxDimension, true);
 
             bool success = false;
             using (FileStream fs = new FileStream(destination, FileMode.Create))

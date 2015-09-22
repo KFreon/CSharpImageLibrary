@@ -13,7 +13,7 @@ namespace CSharpImageLibrary.General
     /// <summary>
     /// Provides general functions specific to DDS format
     /// </summary>
-    internal static class DDSGeneral
+    public static class DDSGeneral
     {
         private readonly static byte[] RedBlueDecompressionConstants = new byte[] { 0, 8, 16, 25, 33, 41, 49, 58, 66, 74, 82, 90, 99, 107, 115, 123, 132, 140, 148, 156, 165, 173, 181, 189, 197, 206, 214, 222, 230, 239, 247, 255, 7, 15, 24, 32, 40, 48, 57, 65, 73, 81, 89, 98, 106, 114, 122, 131, 139, 147, 155, 164, 172, 180, 188, 196, 205, 213, 221, 229, 238, 246, 254, 6, 14, 23, 31, 39, 47, 56, 64, 72, 80, 88, 97, 105, 113, 121, 130, 138, 146, 154, 163, 171, 179, 187, 195, 204, 212, 220, 228, 237, 245, 253, 5, 13, 22, 30, 38, 46, 55, 63, 71, 79, 87, 96, 104, 112, 120, 129, 137, 145, 153, 162, 170, 178, 186, 194, 203, 211, 219, 227, 236, 244, 252, 4, 12, 21, 29, 37, 45, 54, 62, 70, 78, 86, 95, 103, 111, 119, 128, 136, 144, 152, 161, 169, 177, 185, 193, 202, 210, 218, 226, 235, 243, 251, 3, 11, 20, 28, 36, 44, 53, 61, 69, 77, 85, 94, 102, 110, 118, 127, 135, 143, 151, 160, 168, 176, 184, 192, 201, 209, 217, 225, 234, 242, 250, 2, 10, 19, 27, 35, 43, 52, 60, 68, 76, 84, 93, 101, 109, 117, 126, 134, 142, 150, 159, 167, 175, 183, 191, 200, 208, 216, 224, 233, 241, 249, 1, 9, 18, 26, 34, 42, 51, 59, 67, 75, 83, 92, 100, 108, 116, 125, 133, 141, 149, 158, 166, 174, 182, 190, 199, 207, 215, 223, 232, 240, 248, 0, 8, 17, 25, 33, 41, 50 };
         private readonly static byte[] GreenDecompressionConstants = new byte[] { 0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97, 101, 105, 109, 113, 117, 121, 125, 130, 134, 138, 142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182, 186, 190, 194, 198, 202, 206, 210, 215, 219, 223, 227, 231, 235, 239, 243, 247, 251, 255, 3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177, 181, 185, 189, 193, 197, 201, 205, 209, 214, 218, 222, 226, 230, 234, 238, 242, 246, 250, 254, 2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 43, 47, 51, 55, 59, 63, 67, 71, 75, 79, 83, 87, 91, 95, 99, 103, 107, 111, 115, 119, 123, 128, 132, 136, 140, 144, 148, 152, 156, 160, 164, 168, 172, 176, 180, 184, 188, 192, 196, 200, 204, 208, 213, 217, 221, 225, 229, 233, 237, 241, 245, 249, 253, 1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 127, 131, 135, 139, 143, 147, 151, 155, 159, 163, 167, 171, 175, 179, 183, 187, 191, 195, 199, 203, 207, 212, 216, 220, 224, 228, 232, 236, 240, 244, 248, 252, 0, 4, 8 };
@@ -66,7 +66,7 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// Contains information about DDS Headers. 
         /// </summary>
-        internal class DDS_HEADER
+        public class DDS_HEADER
         {
             public int dwSize;
             public int dwFlags;
@@ -110,7 +110,7 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// Contains information about DDS Pixel Format.
         /// </summary>
-        internal class DDS_PIXELFORMAT
+        public class DDS_PIXELFORMAT
         {
             public int dwSize;
             public int dwFlags;
@@ -253,27 +253,6 @@ namespace CSharpImageLibrary.General
 
         #region Saving
         /// <summary>
-        /// Writes a block compressed DDS to stream. Uses format specific function to compress and write blocks.
-        /// </summary>
-        /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
-        /// <param name="Destination">Stream to save to.</param>
-        /// <param name="header">Header of DDS to use.</param>
-        /// <param name="CompressBlock">Function to compress and write blocks with.</param>
-        /// <returns>True on success.</returns>
-        internal static bool WriteBlockCompressedDDS(List<MipMap> MipMaps, Stream Destination, DDS_HEADER header, Func<byte[], byte[]> CompressBlock)
-        {
-            Action<Stream, Stream, int, int> PixelWriter = (writer, pixels, width, height) =>
-            {
-                byte[] texel = DDSGeneral.GetTexel(pixels, width, height);
-                byte[] CompressedBlock = CompressBlock(texel);
-                writer.Write(CompressedBlock, 0, CompressedBlock.Length);
-            };
-
-            return DDSGeneral.WriteDDS(MipMaps, Destination, header, PixelWriter, true);
-        }
-
-
-        /// <summary>
         /// Writes a DDS file using a format specific function to write pixels.
         /// </summary>
         /// <param name="MipMaps">List of MipMaps to save. Pixels only.</param>
@@ -390,66 +369,82 @@ namespace CSharpImageLibrary.General
 
 
         #region Loading
-        /// <summary>
-        /// Loads an uncompressed DDS image given format specific Pixel Reader
-        /// </summary>
-        /// <param name="stream">Stream containing entire image. NOT just pixels.</param>
-        /// <param name="PixelReader">Function that knows how to read a pixel. Different for each format (V8U8, BGRA)</param>
-        /// <returns></returns>
-        internal static List<MipMap> LoadUncompressed(Stream stream, Func<Stream, List<byte>> PixelReader)
+        private static MipMap ReadUncompressedMipMap(Stream stream, int mipWidth, int mipHeight, Func<Stream, List<byte>> PixelReader)
         {
-            // KFreon: Necessary to move stream position along to pixel data.
-            DDS_HEADER header = null;
-            Format format = ImageFormats.ParseDDSFormat(stream, out header);
+            // KFreon: Since mip count is an estimate, check if there are any mips left to read.
+            if (stream.Position >= stream.Length)
+                return null;
 
-            List<MipMap> MipMaps = new List<MipMap>();
-
-            int newWidth = header.dwWidth;
-            int newHeight = header.dwHeight;
-
-            // KFreon: Read data
-            int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(newWidth, newHeight) + 1 : header.dwMipMapCount;
-
-            for (int m = 0; m < estimatedMips; m++)
+            int count = 0;
+            byte[] mipmap = new byte[mipHeight * mipWidth * 4];
+            for (int y = 0; y < mipHeight; y++)
             {
-                // KFreon: Since mip count is an estimate, check if there are any mips left to read.
-                if (stream.Position >= stream.Length)
-                    break;
-
-                int count = 0;
-                byte[] mipmap = new byte[newHeight * newWidth * 4];
-                for (int y = 0; y < newHeight; y++)
+                for (int x = 0; x < mipWidth; x++)
                 {
-                    for (int x = 0; x < newWidth; x++)
-                    {
-                        List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
-                        mipmap[count++] = bgr[0];
-                        mipmap[count++] = bgr[1];
-                        mipmap[count++] = bgr[2];
-                        mipmap[count++] = 0xFF;
-                    }
+                    List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
+                    mipmap[count++] = bgr[0];
+                    mipmap[count++] = bgr[1];
+                    mipmap[count++] = bgr[2];
+                    mipmap[count++] = 0xFF;
                 }
-                MipMaps.Add(new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(mipmap), newWidth, newHeight));
-
-                newWidth /= 2;
-                newHeight /= 2;
             }
-
-            return MipMaps;
+            return new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(mipmap), mipWidth, mipHeight);
         }
 
-
-        /// <summary>
-        /// Loads a block compressed (BCx) texture.
-        /// </summary>
-        /// <param name="compressed">Compressed image data.</param>
-        /// <param name="DecompressBlock">Format specific block decompressor.</param>
-        /// <returns>16 pixel BGRA channels.</returns>
-        internal static List<MipMap> LoadBlockCompressedTexture(Stream compressed, Func<Stream, List<byte[]>> DecompressBlock)
+        private static MipMap ReadCompressedMipMap(Stream compressed, int mipWidth, int mipHeight, int blockSize, long mipOffset, Func<Stream, List<byte[]>> DecompressBlock)
         {
-            DDS_HEADER header;
-            Format format = ImageFormats.ParseDDSFormat(compressed, out header);
+            MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(4 * mipWidth * mipHeight);
 
+            // Loop over rows and columns NOT pixels
+            int compressedLineSize = blockSize * mipWidth / 4;
+            int bitsPerScanline = 4 * (int)mipWidth;
+            ParallelOptions po = new ParallelOptions();
+            po.MaxDegreeOfParallelism = -1;
+            int texelCount = mipHeight / 4;
+            if (texelCount == 0)
+                mipmap.Write(new byte[mipWidth * mipHeight * 4], 0, mipWidth * mipHeight * 4);
+            else
+            {
+                Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                {
+                    int row = rowr;
+                    using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, row, DecompressBlock))
+                    {
+                        if (DecompressedLine != null)
+                            lock (mipmap)
+                            {
+                                mipmap.Position = rowr * bitsPerScanline * 4;
+                                DecompressedLine.WriteTo(mipmap);
+                            }
+                        else
+                            loopstate.Break();
+                    }
+                });
+            }
+
+            return new MipMap(mipmap, mipWidth, mipHeight);
+        }
+
+        private static List<byte> ReadG8_L8Pixel(Stream fileData)
+        {
+            byte red = (byte)fileData.ReadByte();
+            byte green = red;
+            byte blue = red;  // KFreon: Same colour for other channels to make grayscale.
+
+            return new List<byte>() { blue, green, red };
+        }
+
+        private static List<byte> ReadV8U8Pixel(Stream fileData)
+        {
+            byte red = (byte)(fileData.ReadByte() - 130);  // KFreon: Don't really know why this 130 is here, but it gives the correct pixel values.
+            byte green = (byte)(fileData.ReadByte() - 130);
+            byte blue = 0xFF;
+
+            return new List<byte>() { blue, green, red };
+        }
+
+        internal static List<MipMap> LoadDDS(Stream compressed, DDS_HEADER header, Format format, int desiredMaxDimension)
+        {           
             List<MipMap> MipMaps = new List<MipMap>();
 
             int mipWidth = header.dwWidth;
@@ -458,47 +453,97 @@ namespace CSharpImageLibrary.General
             int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(mipWidth, mipHeight) + 1 : header.dwMipMapCount;
             long mipOffset = 128;  // Includes header
 
-            for (int m = 0; m < estimatedMips; m++)
+            // KFreon: Decide which mip to start loading at - going to just load a few mipmaps if asked instead of loading all, then choosing later. That's slow.
+            if (desiredMaxDimension != 0 && estimatedMips > 1)
             {
-                MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(4 * (int)mipWidth * (int)mipHeight);
+                int tempEstimation;
+                mipOffset = EnsureMipInImage(compressed.Length, mipWidth, mipHeight, desiredMaxDimension, format, out tempEstimation);  // Update number of mips too
+                if (mipOffset > 128)
+                {
+                    compressed.Position = mipOffset;
+                    estimatedMips = tempEstimation;
 
-                // Loop over rows and columns NOT pixels
-                int compressedLineSize = format.BlockSize * mipWidth / 4;
-                int bitsPerScanline = 4 * (int)mipWidth;
-                ParallelOptions po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = -1;
-                int texelCount = mipHeight / 4;
-                if (texelCount == 0)
-                    mipmap.Write(new byte[mipWidth * mipHeight * 4], 0, mipWidth * mipHeight * 4);
+                    double divisor = mipHeight > mipWidth ? mipHeight / desiredMaxDimension : mipWidth / desiredMaxDimension;
+                    mipHeight = (int)(mipHeight / divisor);
+                    mipWidth = (int)(mipWidth / divisor);
+                }
                 else
                 {
-                    Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                    mipOffset = 128;
+                    compressed.Position = mipOffset;
+                }
+            }
+
+
+
+            Func<Stream, List<byte[]>> DecompressBCBlock = null;
+            Func<Stream, List<byte>> UncompressedPixelReader = null;
+            switch (format.InternalFormat)
+            {
+                case ImageEngineFormat.DDS_ARGB:  // leave this one. It has a totally different reading method and is done later
+                    break;
+                case ImageEngineFormat.DDS_ATI1:
+                    DecompressBCBlock = DecompressATI1;
+                    break;
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    DecompressBCBlock = DecompressATI2Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT1:
+                    DecompressBCBlock = DecompressBC1Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                    DecompressBCBlock = DecompressBC2Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    DecompressBCBlock = DecompressBC3Block;
+                    break;
+                case ImageEngineFormat.DDS_G8_L8:
+                    UncompressedPixelReader = ReadG8_L8Pixel;
+                    break;
+                case ImageEngineFormat.DDS_V8U8:
+                    UncompressedPixelReader = ReadV8U8Pixel;
+                    break;
+                default:
+                    throw new Exception("ahaaha");
+            }
+
+
+            // KFreon: Read mipmaps
+            for (int m = 0; m < estimatedMips; m++)
+            {
+                MipMap mipmap = null;
+                if (format.IsBlockCompressed)
+                    mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, format.BlockSize, mipOffset, DecompressBCBlock);
+                else
+                {
+                    if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                     {
-                        int row = rowr;
-                        using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, row, DecompressBlock))
-                        {
-                            if (DecompressedLine != null)
-                                lock (mipmap)
-                                {
-                                    mipmap.Position = rowr * bitsPerScanline * 4;
-                                    DecompressedLine.WriteTo(mipmap);
-                                }
-                            else
-                                loopstate.Break();
-                        }
-                    });
+                        // KFreon: Uncompressed, so can just read from stream.
+                        int mipLength = mipWidth * mipHeight * 4;
+                        var mipStream = UsefulThings.RecyclableMemoryManager.GetStream(mipLength);
+                        mipStream.ReadFrom(compressed, mipLength);
+                        mipmap = new MipMap(mipStream, mipWidth, mipHeight);
+                    }
+                    else
+                        mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
+                    if (mipmap == null)
+                        break;
                 }
 
-                if (mipmap.Length == 0)
-                    break;
+                if (mipmap.Data.Length == 0)
+                    break;  // why... --- KFreon: To handle weird cases where images are the wrong size.
 
-                MipMaps.Add(new MipMap(mipmap, mipWidth, mipHeight));
+                MipMaps.Add(mipmap);
 
-                mipOffset += mipWidth * mipHeight * format.BlockSize / 16;
+                mipOffset += mipWidth * mipHeight * format.BlockSize / 16; // Only used for BC textures
+
                 mipWidth /= 2;
                 mipHeight /= 2;
+
             }
-            
+
             return MipMaps;
         }
 
@@ -980,6 +1025,303 @@ namespace CSharpImageLibrary.General
         {
             int limitingDimension = Width > Height ? Height : Width;
             return (int)Math.Log(limitingDimension, 2); // There's 10 mipmaps besides the main top one.
+        }
+
+        internal static long EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMaxDimension, Format format, out int numMipMaps)
+        {
+            // TODO: Is the other estimated mips required?
+
+
+            int divisor = 1;
+            if (format.BlockSize > 1)
+                divisor = 4;
+
+            int dependentDimension = mainWidth > mainHeight ? mainWidth : mainHeight;
+
+            var mipIndex = Math.Log((dependentDimension / desiredMaxDimension), 2) - 1;
+            if (mipIndex < -1)
+                throw new InvalidDataException($"Invalid dimensions for mipmapping. Got desired: {desiredMaxDimension} and dependent: {dependentDimension}");
+
+            double sumPart = mipIndex == -1 ? 0 : (1 / 3f) * Math.Pow(4,-mipIndex) * (Math.Pow(4, (mipIndex + 1)) - 1);
+            //double sumPart = double sumPart = Math.Pow(2, -mipIndex) * (Math.Pow(2, mipIndex + 1) - 1);
+
+
+
+            int requiredOffset = 128 + (int)(sumPart * format.BlockSize * (mainHeight / divisor * mainWidth / divisor)); // +128 for header
+
+            int limitingDimension = mainWidth > mainHeight ? mainHeight : mainWidth;
+            double newDimDivisor = limitingDimension * 1f / desiredMaxDimension;
+            numMipMaps = EstimateNumMipMaps((int)(mainWidth / newDimDivisor), (int)(mainHeight / newDimDivisor));
+
+            // Should only occur when an image has no mips
+            if (streamLength < requiredOffset)
+                return -1;
+
+            return requiredOffset;
+        }
+
+        /// <summary>
+        /// Read an 8 byte BC1 compressed block from stream.
+        /// </summary>
+        /// <param name="compressed">BC1 compressed stream.</param>
+        /// <returns>BGRA channels.</returns>
+        private static List<byte[]> DecompressBC1Block(Stream compressed)
+        {
+            return DDSGeneral.DecompressRGBBlock(compressed, true);
+        }
+
+
+        /// <summary>
+        /// Compress texel to 8 byte BC1 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 BGRA group of pixels.</param>
+        /// <returns>8 byte BC1 compressed block.</returns>
+        private static byte[] CompressBC1Block(byte[] texel)
+        {
+            return DDSGeneral.CompressRGBBlock(texel, true);
+        }
+
+
+        /// <summary>
+        /// Reads a 16 byte BC2 compressed block from stream.
+        /// </summary>
+        /// <param name="compressed">BC2 compressed stream.</param>
+        /// <returns>BGRA channels.</returns>
+        private static List<byte[]> DecompressBC2Block(Stream compressed)
+        {
+            // KFreon: Read alpha into byte[] for maximum speed? Might be cos it's a MemoryStream...
+            byte[] CompressedAlphas = new byte[8];
+            compressed.Read(CompressedAlphas, 0, 8);
+            int count = 0;
+
+            // KFreon: Read alpha
+            byte[] alpha = new byte[16];
+            for (int i = 0; i < 16; i += 2)
+            {
+                //byte twoAlphas = (byte)compressed.ReadByte();
+                byte twoAlphas = CompressedAlphas[count++];
+                for (int j = 0; j < 2; j++)
+                    alpha[i + j] = (byte)(twoAlphas << (j * 4));
+            }
+
+
+            // KFreon: Organise output by adding alpha channel (channel read in RGB block is empty)
+            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed, false);
+            DecompressedBlock[3] = alpha;
+            return DecompressedBlock;
+        }
+
+
+        /// <summary>
+        /// Reads a 16 byte BC3 compressed block from stream.
+        /// </summary>
+        /// <param name="compressed">BC3 compressed image stream.</param>
+        /// <returns>List of BGRA channels.</returns>
+        private static List<byte[]> DecompressBC3Block(Stream compressed)
+        {
+            byte[] alpha = DDSGeneral.Decompress8BitBlock(compressed, false);
+            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed, false);
+            DecompressedBlock[3] = alpha;
+            return DecompressedBlock;
+        }
+
+
+        /// <summary>
+        /// Decompresses ATI2 (BC5) block.
+        /// </summary>
+        /// <param name="compressed">Compressed data stream.</param>
+        /// <returns>16 pixel BGRA channels.</returns>
+        private static List<byte[]> DecompressATI2Block(Stream compressed)
+        {
+            byte[] red = DDSGeneral.Decompress8BitBlock(compressed, false);
+            byte[] green = DDSGeneral.Decompress8BitBlock(compressed, false);
+            List<byte[]> DecompressedBlock = new List<byte[]>();
+            DecompressedBlock.Add(red);
+            DecompressedBlock.Add(green);
+            DecompressedBlock.Add(new byte[16]);
+
+            // KFreon: Alpha needs to be 255
+            byte[] alpha = new byte[16];
+            for (int i = 0; i < 16; i++)
+                alpha[i] = 0xFF;
+            DecompressedBlock.Add(alpha);
+
+            return DecompressedBlock;
+        }
+
+
+        /// <summary>
+        /// Compresses texel to 16 byte BC5 block.
+        /// </summary>
+        /// <param name="texel">4x4 BGRA set of pixels.</param>
+        /// <returns>16 byte BC5 block.</returns>
+        private static byte[] CompressBC5Block(byte[] texel)
+        {
+            byte[] red = DDSGeneral.Compress8BitBlock(texel, 2, false);
+            byte[] green = DDSGeneral.Compress8BitBlock(texel, 1, false);
+
+            return red.Concat(green).ToArray(red.Length + green.Length);
+        }
+
+
+        /// <summary>
+        /// Decompresses an ATI1 (BC4) block.
+        /// </summary>
+        /// <param name="compressed">Compressed data stream.</param>
+        /// <returns>BGRA channels (16 bits each)</returns>
+        private static List<byte[]> DecompressATI1(Stream compressed)
+        {
+            byte[] channel = DDSGeneral.Decompress8BitBlock(compressed, false);
+            List<byte[]> DecompressedBlock = new List<byte[]>();
+
+            // KFreon: All channels are the same to make grayscale.
+            DecompressedBlock.Add(channel);
+            DecompressedBlock.Add(channel);
+            DecompressedBlock.Add(channel);
+
+            // KFreon: Alpha needs to be 255
+            byte[] alpha = new byte[16];
+            for (int i = 0; i < 16; i++)
+                alpha[i] = 0xFF;
+            DecompressedBlock.Add(alpha);
+            return DecompressedBlock;
+        }
+
+
+        /// <summary>
+        /// Compress texel to 8 byte BC4 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 BGRA set of pixels.</param>
+        /// <returns>8 byte BC4 compressed block.</returns>
+        private static byte[] CompressBC4Block(byte[] texel)
+        {
+            return DDSGeneral.Compress8BitBlock(texel, 2, false);
+        }
+
+
+
+        /// <summary>
+        /// Compress texel to 16 byte BC3 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 BGRA set of pixels.</param>
+        /// <returns>16 byte BC3 compressed block.</returns>
+        private static byte[] CompressBC3Block(byte[] texel)
+        {
+            // Compress Alpha
+            byte[] Alpha = DDSGeneral.Compress8BitBlock(texel, 3, false);
+
+            // Compress Colour
+            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, false);
+
+            return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
+        }
+
+
+        /// <summary>
+        /// Compress texel to 16 byte BC2 compressed block.
+        /// </summary>
+        /// <param name="texel">4x4 BGRA set of pixels.</param>
+        /// <returns>16 byte BC2 compressed block.</returns>
+        private static byte[] CompressBC2Block(byte[] texel)
+        {
+            // Compress Alpha
+            byte[] Alpha = new byte[8];
+            for (int i = 3; i < 64; i += 8)  // Only read alphas
+            {
+                byte twoAlpha = 0;
+                for (int j = 0; j < 8; j += 4)
+                    twoAlpha |= (byte)(texel[i + j] << j);
+                Alpha[i / 8] = twoAlpha;
+            }
+
+            // Compress Colour
+            byte[] RGB = DDSGeneral.CompressRGBBlock(texel, false);
+
+            return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
+        }
+
+        internal static bool Save(List<MipMap> MipMaps, Stream Destination, Format format)
+        {
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, format.InternalFormat);
+
+            Func<byte[], byte[]> Compressor = null;
+            Action<Stream, Stream, int, int> PixelWriter = null;
+
+
+            switch (format.InternalFormat)
+            {
+                case ImageEngineFormat.DDS_ARGB:   // Way different method
+                    using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
+                        DDSGeneral.Write_DDS_Header(header, writer);
+
+                    for (int m = 0; m < MipMaps.Count; m++)
+                        MipMaps[m].Data.WriteTo(Destination);
+
+                    return true;
+                case ImageEngineFormat.DDS_ATI1:
+                    Compressor = CompressBC4Block;
+                    break;
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    Compressor = CompressBC4Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT1:
+                    Compressor = CompressBC1Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                    Compressor = CompressBC2Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    Compressor = CompressBC3Block;
+                    break;
+                case ImageEngineFormat.DDS_G8_L8:
+                    PixelWriter = WriteG8_L8Pixel;
+                    break;
+                case ImageEngineFormat.DDS_V8U8:
+                    PixelWriter = WriteV8U8Pixel;
+                    break;
+                default:
+                    throw new Exception("ahaaha");
+            }
+
+
+            // KFreon: Set to DDS pixel writer. Needs to be here or the Compressor function is null (due to inclusion or whatever it's called)
+            if (PixelWriter == null)
+                PixelWriter = (writer, pixels, width, height) =>  
+                {
+                    byte[] texel = DDSGeneral.GetTexel(pixels, width, height);
+                    byte[] CompressedBlock = Compressor(texel);
+                    writer.Write(CompressedBlock, 0, CompressedBlock.Length);
+                };
+
+            return DDSGeneral.WriteDDS(MipMaps, Destination, header, PixelWriter, format.IsBlockCompressed);
+        }
+
+
+        private static void WriteG8_L8Pixel(Stream writer, Stream pixels, int unused1, int unused2)
+        {
+            // BGRA
+            byte[] colours = new byte[3];
+            pixels.Read(colours, 0, 3);
+            pixels.Position++;  // Skip alpha
+
+            // KFreon: Weight colours to look proper. Dunno if this affects things but anyway...Got weightings from ATi Compressonator
+            int b1 = (int)(colours[0] * 3 * 0.082);
+            int g1 = (int)(colours[1] * 3 * 0.6094);
+            int r1 = (int)(colours[2] * 3 * 0.3086);
+
+            int test = (int)((b1 + g1 + r1) / 3f);
+            writer.WriteByte((byte)test);
+        }
+
+        private static void WriteV8U8Pixel(Stream writer, Stream pixels, int unused1, int unused2)
+        {
+            // BGRA
+            pixels.Position++; // No blue
+            var bytes = pixels.ReadBytesFromStream(2);
+            writer.Write(bytes, 0, 2);
+            pixels.Position++;    // No alpha
         }
     }
 }

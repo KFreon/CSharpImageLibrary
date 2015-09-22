@@ -84,12 +84,12 @@ namespace CSharpImageLibrary
         {
             if (e.Key == Key.PageDown)
             {
-                vm.GotoSmallerMip();
+                vm.MipIndex++;
                 e.Handled = true;
             }
             else if (e.Key == Key.PageUp)
             {
-                vm.GotoLargerMip();
+                vm.MipIndex--;
                 e.Handled = true;
             }
         }

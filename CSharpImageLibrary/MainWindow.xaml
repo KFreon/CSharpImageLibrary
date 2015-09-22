@@ -42,11 +42,11 @@
                     </TextBlock>
                     <TextBlock>
                         <Run Text="Mipmap Width:    " FontWeight="Bold"/>
-                        <Run Text="{Binding MipWidth}"/>
+                        <Run Text="{Binding MipWidth, Mode=OneWay}"/>
                     </TextBlock>
                     <TextBlock>
                         <Run Text="Mipmap Height:    " FontWeight="Bold"/>
-                        <Run Text="{Binding MipHeight}"/>
+                        <Run Text="{Binding MipHeight, Mode=OneWay}"/>
                     </TextBlock>
                 </StackPanel>
             </Grid>
@@ -55,7 +55,7 @@
                 <Label Content="Mipmaps" FontWeight="Bold" DockPanel.Dock="Top"/>
                 <TextBlock Text="{Binding NumMipMaps, StringFormat=Max: {0}}" DockPanel.Dock="Top" HorizontalAlignment="Center"/>
                 <TextBlock Text="{Binding Value, ElementName=MipSlider, StringFormat=Selected: {0}}" DockPanel.Dock="Bottom" HorizontalAlignment="Center"/>
-                <Slider x:Name="MipSlider" Orientation="Vertical" HorizontalAlignment="Center" Interval="1" Minimum="0" Maximum="{Binding img.NumMipMaps}" TickFrequency="1" TickPlacement="TopLeft" IsSnapToTickEnabled="True" Value="{Binding MipIndex}"/>
+                <Slider x:Name="MipSlider" Orientation="Vertical" HorizontalAlignment="Center" Interval="1" Minimum="0" Maximum="{Binding NumMipMaps}" TickFrequency="1" TickPlacement="TopLeft" IsSnapToTickEnabled="True" Value="{Binding MipIndex}"/>
             </DockPanel>
             <Image Source="{Binding Preview}"/>
         </DockPanel>
