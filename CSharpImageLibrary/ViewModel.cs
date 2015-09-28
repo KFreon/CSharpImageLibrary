@@ -20,6 +20,7 @@ namespace CSharpImageLibrary
         public ImageEngineImage img { get; set; }
         Stopwatch stopwatch = new Stopwatch();
 
+
         long saveElapsed = -1;
         public long SaveElapsedTime
         {
@@ -34,7 +35,7 @@ namespace CSharpImageLibrary
         }
 
         #region Original Image Properties
-        public MTObservableCollection<BitmapSource> Previews { get; set; }
+        public MTRangedObservableCollection<BitmapSource> Previews { get; set; }
 
         public int NumMipMaps
         {
@@ -67,7 +68,7 @@ namespace CSharpImageLibrary
         {
             get
             {
-                if (Previews?.Count == 0)
+                if (Previews?.Count == 0 || MipIndex >= Previews?.Count)
                     return null;
 
                 return Previews?[MipIndex];
@@ -75,29 +76,19 @@ namespace CSharpImageLibrary
         }
 
 
-        int mipwidth = 0;
-        public int MipWidth
+        public double? MipWidth
         {
             get
             {
-                return mipwidth;
-            }
-            set
-            {
-                SetProperty(ref mipwidth, value);
+                return Preview?.Width;
             }
         }
 
-        int mipheight = 0;
-        public int MipHeight
+        public double? MipHeight
         {
             get
             {
-                return mipheight;
-            }
-            set
-            {
-                SetProperty(ref mipheight, value);
+                return Preview?.Height;
             }
         }
 
@@ -110,8 +101,13 @@ namespace CSharpImageLibrary
             }
             set
             {
+                if (value < 0 || value > NumMipMaps)
+                    return;
+
                 SetProperty(ref mipindex, value);
                 OnPropertyChanged(nameof(Preview));
+                OnPropertyChanged(nameof(MipWidth));
+                OnPropertyChanged(nameof(MipHeight));
             }
         }
         #endregion Original Image Properties
@@ -205,7 +201,7 @@ namespace CSharpImageLibrary
 
         public ViewModel()
         {
-            Previews = new MTObservableCollection<BitmapSource>();
+            Previews = new MTRangedObservableCollection<BitmapSource>();
         }
 
         internal string GetAutoSavePath(ImageEngineFormat newformat)
@@ -221,11 +217,12 @@ namespace CSharpImageLibrary
             stopwatch.Start();
             SavePreview = await Task.Run(() =>
             {
-                using (MemoryStream stream = UsefulThings.RecyclableMemoryManager.GetStream())
+                using (MemoryStream stream = new MemoryStream())
                 {
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
                     img.Save(stream, SaveFormat, false, 1024);  // KFreon: Smaller size for quicker loading
+                    //img.Save("R:\\hue.jpg", saveFormat, false, 1024);
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
@@ -237,30 +234,25 @@ namespace CSharpImageLibrary
             stopwatch.Reset();
         }
 
-        public void GotoSmallerMip()
-        {
-            if (MipIndex + 1 >= img.NumMipMaps)
-                return;
-            else
-                MipIndex++;
-
-            MipWidth /= 2;
-            MipHeight /= 2;
-        }
-
-        public void GotoLargerMip()
-        {
-            if (MipIndex == 0)
-                return;
-            else
-                MipIndex--;
-
-            MipHeight *= 2;
-            MipWidth *= 2;
-        }
-
         public async Task LoadImage(string path)
         {
+            // Load full size image
+            Task<List<object>> fullLoadingTask = Task.Run(() =>
+            {
+                ImageEngineImage fullimage = new ImageEngineImage(path);
+
+                List<BitmapSource> fullPreviews = new List<BitmapSource>();
+
+                for (int i = 0; i < fullimage.NumMipMaps; i++)
+                    fullPreviews.Add(fullimage.GeneratePreview(i));
+
+                List<object> bits = new List<object>();
+                bits.Add(fullimage);
+                bits.Add(fullPreviews);
+                return bits;
+            });
+
+
             SaveSuccess = null;
             Previews.Clear();
             SavePreview = null;
@@ -269,7 +261,12 @@ namespace CSharpImageLibrary
 
             stopwatch.Start();
 
-            img = await Task.Run(() => new ImageEngineImage(path));
+            img = await Task.Run(() => new ImageEngineImage(path, 64, false));
+            using (MemoryStream ms = new MemoryStream())
+            {
+                img.Save(ms, img.Format.InternalFormat, true);
+                //ImageEngine.GenerateThumbnailToFile(ms, "R:\\testing.dds", 64);
+            }
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");
@@ -277,16 +274,8 @@ namespace CSharpImageLibrary
             Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
             stopwatch.Restart();
 
-            MipWidth = img.Width;
-            MipHeight = img.Height;
-
             Previews.Add(img.GeneratePreview(0));
             MipIndex = 0;
-            Task.Run(() =>
-            {
-                for (int i = 1; i < img.NumMipMaps; i++)
-                    Previews.Add(img.GeneratePreview(i));
-            });
 
             stopwatch.Stop();
             Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
@@ -295,6 +284,33 @@ namespace CSharpImageLibrary
             OnPropertyChanged(nameof(ImagePath));
             OnPropertyChanged(nameof(Format));
             OnPropertyChanged(nameof(NumMipMaps));
+            OnPropertyChanged(nameof(Preview));
+            OnPropertyChanged(nameof(MipWidth));
+            OnPropertyChanged(nameof(MipHeight));
+
+            // KFreon: Get full image details
+            List<object> FullImageObjects = await fullLoadingTask;
+
+            double? oldMipWidth = MipWidth;
+
+            img = (ImageEngineImage)FullImageObjects[0];
+            Previews.Clear();
+            Previews.AddRange((List<BitmapSource>)FullImageObjects[1]);
+
+            for (int i = 0; i < Previews.Count; i++)
+            {
+                if (Previews[i].Width == oldMipWidth)
+                {
+                    MipIndex = i;
+                    break;
+                }
+            }
+
+            OnPropertyChanged(nameof(NumMipMaps));
+            OnPropertyChanged(nameof(Preview));
+            OnPropertyChanged(nameof(MipIndex));
+            OnPropertyChanged(nameof(MipWidth));
+            OnPropertyChanged(nameof(MipHeight));
         }
 
         internal bool Save()

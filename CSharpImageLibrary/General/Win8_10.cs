@@ -218,7 +218,17 @@ namespace CSharpImageLibrary.General
         {
             Width = (int)Math.Round(bmp.Width);
             Height = (int)Math.Round(bmp.Height);
-            return bmp.GetPixelsAsStream(Width, Height);
+            MemoryStream stream = null;
+            try
+            {
+                stream = bmp.GetPixelsAsStream(Width, Height);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.Message);
+            }
+
+            return stream;
         }
 
 
@@ -312,7 +322,7 @@ namespace CSharpImageLibrary.General
         internal static MipMap Resize(MipMap mipMap, double scale)
         {
             BitmapImage bmp = null;
-            using (MemoryStream ms = UsefulThings.RecyclableMemoryManager.GetStream())
+            using (MemoryStream ms = new MemoryStream())
             {
                 if (!SaveWithCodecs(mipMap.Data, ms, ImageEngineFormat.PNG, mipMap.Width, mipMap.Height))
                     return null;
@@ -321,7 +331,7 @@ namespace CSharpImageLibrary.General
             }
 
             //bmp = UsefulThings.WPF.Images.ResizeImage(bmp, width, height);
-            bmp = UsefulThings.WPF.Images.ScaleImage(bmp, scale);
+            bmp = (BitmapImage)UsefulThings.WPF.Images.ScaleImage(bmp, scale);
             int bmpWidth = (int)bmp.Width;
             int bmpHeight = (int)bmp.Height;
 

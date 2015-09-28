@@ -95,9 +95,9 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <param name="desiredMaxDimension">Max dimension to save.</param>
-        public ImageEngineImage(string imagePath, int desiredMaxDimension)
+        public ImageEngineImage(string imagePath, int desiredMaxDimension, bool enforceResize)
         {
-            LoadFromFile(imagePath, desiredMaxDimension);
+            LoadFromFile(imagePath, desiredMaxDimension, enforceResize);
         }
 
         /// <summary>
@@ -107,9 +107,9 @@ namespace CSharpImageLibrary.General
         /// <param name="stream">Full image stream.</param>
         /// <param name="extension">File extension of original image.</param>
         /// <param name="desiredMaxDimension">Maximum dimension.</param>
-        public ImageEngineImage(Stream stream, string extension, int desiredMaxDimension)
+        public ImageEngineImage(Stream stream, string extension, int desiredMaxDimension, bool enforceResize)
         {
-            LoadFromStream(stream, extension, desiredMaxDimension);
+            LoadFromStream(stream, extension, desiredMaxDimension, enforceResize);
         }
 
 
@@ -130,20 +130,20 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="imageFileData">Full image file data.</param>
         /// <param name="desiredMaxDimension">Maximum dimension.</param>
-        public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension)
+        public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension, bool enforceResize)
         {
             using (MemoryStream ms = RecyclableMemoryManager.GetStream(imageFileData))
                 LoadFromStream(ms, desiredMaxDimension: desiredMaxDimension);
         }
 
 
-        private void LoadFromFile(string imagePath, int desiredMaxDimension = 0)
+        private void LoadFromFile(string imagePath, int desiredMaxDimension = 0, bool enforceResize = true)
         {
             Format format = new Format();
             FilePath = imagePath;
 
             // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
-            MipMaps = ImageEngine.LoadImage(imagePath, out format, desiredMaxDimension);
+            MipMaps = ImageEngine.LoadImage(imagePath, out format, desiredMaxDimension, enforceResize);
 
 
             // KFreon: Can't pass properties as out :(
@@ -151,12 +151,12 @@ namespace CSharpImageLibrary.General
         }
 
         
-        private void LoadFromStream(Stream stream, string extension = null, int desiredMaxDimension = 0)
+        private void LoadFromStream(Stream stream, string extension = null, int desiredMaxDimension = 0, bool enforceResize = true)
         {
             Format format = new Format();
 
             // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
-            MipMaps = ImageEngine.LoadImage(stream, out format, extension, desiredMaxDimension);
+            MipMaps = ImageEngine.LoadImage(stream, out format, extension, desiredMaxDimension, enforceResize);
 
             Format = format;
         }
@@ -226,7 +226,7 @@ namespace CSharpImageLibrary.General
                 return;
 
             foreach (MipMap mipmap in MipMaps)
-                mipmap.Data.Dispose();
+                mipmap.Data?.Dispose();
         }
 
 
@@ -265,8 +265,6 @@ namespace CSharpImageLibrary.General
         /// <returns>WPF bitmap of largest mipmap.</returns>
         public BitmapSource GetWPFBitmap(int maxDimension = 0)
         {
-            int stride = 4 * Width;
-
             MipMap mip = MipMaps[0];
 
             if (maxDimension != 0)
@@ -282,6 +280,7 @@ namespace CSharpImageLibrary.General
                 }
             }
             
+            int stride = 4 * mip.Width;
 
             BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
             frame.Freeze();

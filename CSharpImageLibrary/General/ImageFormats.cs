@@ -118,6 +118,14 @@ namespace CSharpImageLibrary.General
             }
         }
 
+        public bool IsBlockCompressed
+        {
+            get
+            {
+                return BlockSize != 1;
+            }
+        }
+
 
         /// <summary>
         /// Size of a compressed block.
@@ -151,7 +159,7 @@ namespace CSharpImageLibrary.General
 
         private int GetBlockSize()
         {
-            int blocksize = -1;
+            int blocksize = 1;
             switch (InternalFormat)
             {
                 case ImageEngineFormat.DDS_ATI1:
@@ -212,7 +220,7 @@ namespace CSharpImageLibrary.General
         /// <param name="imgData">Stream containing entire image file. NOT just pixels.</param>
         /// <param name="extension">Extension of image file.</param>
         /// <returns>Format of image.</returns>
-        public static Format ParseFormat(Stream imgData, string extension)
+        public static Format ParseFormat(Stream imgData, string extension, ref DDS_HEADER header)
         {
             SupportedExtensions ext = SupportedExtensions.UNKNOWN;
 
@@ -253,7 +261,7 @@ namespace CSharpImageLibrary.General
             if (ext == SupportedExtensions.UNKNOWN)
                 return new Format();
 
-            return ParseFormat(imgData, ext);
+            return ParseFormat(imgData, ext, ref header);
         }
 
 
@@ -263,14 +271,13 @@ namespace CSharpImageLibrary.General
         /// <param name="imgData">Stream containing entire image. NOT just pixels.</param>
         /// <param name="extension">Type of file.</param>
         /// <returns>Format of image.</returns>
-        public static Format ParseFormat(Stream imgData, SupportedExtensions extension)
+        public static Format ParseFormat(Stream imgData, SupportedExtensions extension, ref DDS_HEADER header)
         {
             switch (extension)
             {
                 case SupportedExtensions.BMP:
                     return new Format(ImageEngineFormat.BMP);
                 case SupportedExtensions.DDS:
-                    DDS_HEADER header;
                     return ParseDDSFormat(imgData, out header);
                 case SupportedExtensions.JPG:
                     return new Format(ImageEngineFormat.JPG);
@@ -303,12 +310,12 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <returns>Format of image.</returns>
-        public static Format ParseFormat(string imagePath)
+        public static Format ParseFormat(string imagePath, ref DDS_HEADER header)
         {
             SupportedExtensions ext = ParseExtension(imagePath);
 
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return ParseFormat(fs, ext);
+                return ParseFormat(fs, ext, ref header);
         }
 
         /// <summary>
