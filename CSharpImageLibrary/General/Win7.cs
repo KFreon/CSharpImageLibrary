@@ -111,7 +111,7 @@ namespace CSharpImageLibrary.General
         {
             byte[] imgData = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap(bmp);
 
-            return UsefulThings.RecyclableMemoryManager.GetStream(imgData);
+            return new MemoryStream(imgData);
         }
         #endregion Loading
 
@@ -198,7 +198,8 @@ namespace CSharpImageLibrary.General
             bmp = UsefulThings.WinForms.Imaging.resizeImage(bmp, new Size(width, height));
             
             byte[] data = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap((Bitmap)bmp);
-            return new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(data), width, height);
+            bmp.Dispose();
+            return new MipMap(new MemoryStream(data), width, height);
         }
     }
 }

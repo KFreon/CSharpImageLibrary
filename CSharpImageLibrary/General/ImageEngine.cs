@@ -33,8 +33,8 @@ namespace CSharpImageLibrary.General
         /// </summary>
         static ImageEngine()
         {
-            //WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
-            WindowsWICCodecsAvailable = false;
+            WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            //WindowsWICCodecsAvailable = false;
         }
 
 
@@ -119,13 +119,9 @@ namespace CSharpImageLibrary.General
 
 
             // KFreon: Attempt to resize
-            var sizedMip = MipMaps.Where(m => m.Width > m.Height ? m.Width == desiredMaxDimension : m.Height == desiredMaxDimension);
-            if (sizedMip != null && sizedMip.Any())  // KFreon: If there's already a mip, return that.
-            {
-                var mip = sizedMip.First();
-                MipMaps.Clear();
-                MipMaps.Add(mip);
-            }
+            var sizedMips = MipMaps.Where(m => m.Width > m.Height ? m.Width <= desiredMaxDimension : m.Height <= desiredMaxDimension);
+            if (sizedMips != null && sizedMips.Any())  // KFreon: If there's already a mip, return that.
+                MipMaps = sizedMips.ToList();
             else if (enforceResize)
             {
                 // Get top mip and clear others.
@@ -133,26 +129,16 @@ namespace CSharpImageLibrary.General
                 MipMaps.Clear();
                 MemoryStream output = null;
 
-                if (WindowsWICCodecsAvailable)
-                {
-                    output = UsefulThings.RecyclableMemoryManager.GetStream((int)mip.Data.Length);
-                    int stride = 4 * mip.Width;
-                    JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-                    BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
-                    encoder.Frames.Add(frame);
-                    encoder.Save(output);
-                }
-                else
-                {
-                    System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(mip.Width, mip.Height);
-                    var data = bmp.LockBits(new System.Drawing.Rectangle(0, 0, mip.Width, mip.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                    byte[] pixels = new byte[mip.Data.Length];
-                    Marshal.Copy(data.Scan0, pixels, 0, (int)mip.Data.Length);
-                    bmp.UnlockBits(data);
+                int divisor = mip.Height < mip.Width ? mip.Width / desiredMaxDimension : mip.Height / desiredMaxDimension;
+                int newWidth = mip.Width == 1 ? 1 : mip.Width / divisor;
+                int newHeight = mip.Height == 1 ? 1 : mip.Height / divisor;
 
-                    output = UsefulThings.RecyclableMemoryManager.GetStream(pixels);
-                }
-                MipMap newmip = new MipMap(output, mip.Width, mip.Height);
+                if (WindowsWICCodecsAvailable)
+                    output = Win8_10.Resize(mip, 1f / divisor).Data;
+                else
+                    output = Win7.Resize(mip, newWidth, newHeight).Data;
+                
+                MipMap newmip = new MipMap(output, newWidth, newHeight);
 
                 MipMaps.Add(newmip);
             }
@@ -182,10 +168,11 @@ namespace CSharpImageLibrary.General
                 BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
-            if (maxDimension != 0)
+            if (maxDimension != 0 && maxDimension < newMips[0].Width && maxDimension < newMips[0].Height) 
             {
                 if (!UsefulThings.General.IsPowerOfTwo(maxDimension))
                     throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
+
 
                 // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
                 var validMipmap = newMips.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension));  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
@@ -208,7 +195,7 @@ namespace CSharpImageLibrary.General
                 DestroyMipMaps(newMips);
 
             if (temp.InternalFormat.ToString().Contains("DDS"))
-                return DDSGeneral.Save(MipMaps, destination, temp);
+                return DDSGeneral.Save(newMips, destination, temp);
             else
             {
                 // KFreon: Try saving with built in codecs
@@ -266,7 +253,7 @@ namespace CSharpImageLibrary.General
             Format format = new Format();
             var mipmaps = LoadImage(stream, out format, null, maxDimension, true);
 
-            MemoryStream ms = UsefulThings.RecyclableMemoryManager.GetStream();
+            MemoryStream ms = new MemoryStream();
             Save(mipmaps, ImageEngineFormat.JPG, ms, false);
 
             foreach (var mip in mipmaps)
@@ -285,17 +272,14 @@ namespace CSharpImageLibrary.General
         /// <returns>True on success.</returns>
         public static bool GenerateThumbnailToFile(Stream stream, string destination, int maxDimension)
         {
-            Format format = new Format();
-            var mipmaps = LoadImage(stream, out format, null, maxDimension, true);
+            using (ImageEngineImage img = new ImageEngineImage(stream, null, maxDimension, true))
+            {
+                bool success = false;
+                using (FileStream fs = new FileStream(destination, FileMode.Create))
+                    success = img.Save(fs, ImageEngineFormat.JPG, false);  // KFreon: Don't need to specify dimension here as it was done during loading
 
-            bool success = false;
-            using (FileStream fs = new FileStream(destination, FileMode.Create))
-                success = Save(mipmaps, ImageEngineFormat.JPG, fs, false);
-
-            foreach (var mip in mipmaps)
-                mip.Data.Dispose();
-
-            return success;
+                return success;
+            }                
         }
 
 

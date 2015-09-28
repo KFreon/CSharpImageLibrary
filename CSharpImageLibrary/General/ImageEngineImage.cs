@@ -226,7 +226,7 @@ namespace CSharpImageLibrary.General
                 return;
 
             foreach (MipMap mipmap in MipMaps)
-                mipmap.Data.Dispose();
+                mipmap.Data?.Dispose();
         }
 
 
@@ -265,8 +265,6 @@ namespace CSharpImageLibrary.General
         /// <returns>WPF bitmap of largest mipmap.</returns>
         public BitmapSource GetWPFBitmap(int maxDimension = 0)
         {
-            int stride = 4 * Width;
-
             MipMap mip = MipMaps[0];
 
             if (maxDimension != 0)
@@ -282,6 +280,7 @@ namespace CSharpImageLibrary.General
                 }
             }
             
+            int stride = 4 * mip.Width;
 
             BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
             frame.Freeze();

@@ -217,11 +217,12 @@ namespace CSharpImageLibrary
             stopwatch.Start();
             SavePreview = await Task.Run(() =>
             {
-                using (MemoryStream stream = UsefulThings.RecyclableMemoryManager.GetStream())
+                using (MemoryStream stream = new MemoryStream())
                 {
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
                     img.Save(stream, SaveFormat, false, 1024);  // KFreon: Smaller size for quicker loading
+                    //img.Save("R:\\hue.jpg", saveFormat, false, 1024);
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
@@ -260,7 +261,12 @@ namespace CSharpImageLibrary
 
             stopwatch.Start();
 
-            img = await Task.Run(() => new ImageEngineImage(path, 512, false));
+            img = await Task.Run(() => new ImageEngineImage(path, 64, false));
+            using (MemoryStream ms = new MemoryStream())
+            {
+                img.Save(ms, img.Format.InternalFormat, true);
+                //ImageEngine.GenerateThumbnailToFile(ms, "R:\\testing.dds", 64);
+            }
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");

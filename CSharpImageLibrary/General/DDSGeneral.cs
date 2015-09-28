@@ -296,7 +296,7 @@ namespace CSharpImageLibrary.General
         {
             int bitsPerScanLine = isBCd ? 4 * Width : Width;  // KFreon: Bits per image line.
 
-            MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerScanLine * 2);  // not accurate length requirements
+            MemoryStream mipmap = new MemoryStream(bitsPerScanLine * 2);  // not accurate length requirements
 
             // KFreon: Loop over rows and columns, doing extra moving if Block Compressed to accommodate texels.
             int texelCount = isBCd ? Height / 4 : Height;
@@ -338,8 +338,8 @@ namespace CSharpImageLibrary.General
 
         private static MemoryStream WriteMipLine(Stream pixelData, int Width, int Height, int bitsPerScanLine, bool isBCd, int rowIndex, Action<Stream, Stream, int, int> PixelWriter)
         {
-            MemoryStream CompressedLine = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerScanLine); // Not correct compressed size but it's close enough to not have it waste tonnes of time copying.
-            using (MemoryStream UncompressedLine = UsefulThings.RecyclableMemoryManager.GetStream(4 * bitsPerScanLine))
+            MemoryStream CompressedLine = new MemoryStream(bitsPerScanLine); // Not correct compressed size but it's close enough to not have it waste tonnes of time copying.
+            using (MemoryStream UncompressedLine = new MemoryStream(4 * bitsPerScanLine))
             {
                 lock (pixelData)
                 {
@@ -388,12 +388,12 @@ namespace CSharpImageLibrary.General
                     mipmap[count++] = 0xFF;
                 }
             }
-            return new MipMap(UsefulThings.RecyclableMemoryManager.GetStream(mipmap), mipWidth, mipHeight);
+            return new MipMap(new MemoryStream(mipmap), mipWidth, mipHeight);
         }
 
         private static MipMap ReadCompressedMipMap(Stream compressed, int mipWidth, int mipHeight, int blockSize, long mipOffset, Func<Stream, List<byte[]>> DecompressBlock)
         {
-            MemoryStream mipmap = UsefulThings.RecyclableMemoryManager.GetStream(4 * mipWidth * mipHeight);
+            MemoryStream mipmap = new MemoryStream(4 * mipWidth * mipHeight);
 
             // Loop over rows and columns NOT pixels
             int compressedLineSize = blockSize * mipWidth / 4;
@@ -460,18 +460,24 @@ namespace CSharpImageLibrary.General
                 mipOffset = EnsureMipInImage(compressed.Length, mipWidth, mipHeight, desiredMaxDimension, format, out tempEstimation);  // Update number of mips too
                 if (mipOffset > 128)
                 {
-                    compressed.Position = mipOffset;
-                    estimatedMips = tempEstimation;
 
                     double divisor = mipHeight > mipWidth ? mipHeight / desiredMaxDimension : mipWidth / desiredMaxDimension;
                     mipHeight = (int)(mipHeight / divisor);
                     mipWidth = (int)(mipWidth / divisor);
+
+                    if (mipWidth == 0 || mipHeight == 0)  // Reset as a dimension is too small to resize
+                    {
+                        mipHeight = header.dwHeight;
+                        mipWidth = header.dwWidth;
+                        mipOffset = 128;
+                    }
+                    else
+                        estimatedMips = tempEstimation + 1;  // cos it needs the extra one for the top?
                 }
                 else
-                {
                     mipOffset = 128;
-                    compressed.Position = mipOffset;
-                }
+
+                compressed.Position = mipOffset;
             }
 
 
@@ -522,7 +528,7 @@ namespace CSharpImageLibrary.General
                     {
                         // KFreon: Uncompressed, so can just read from stream.
                         int mipLength = mipWidth * mipHeight * 4;
-                        var mipStream = UsefulThings.RecyclableMemoryManager.GetStream(mipLength);
+                        var mipStream = new MemoryStream(mipLength);
                         mipStream.ReadFrom(compressed, mipLength);
                         mipmap = new MipMap(mipStream, mipWidth, mipHeight);
                     }
@@ -543,7 +549,8 @@ namespace CSharpImageLibrary.General
                 mipHeight /= 2;
 
             }
-
+            if (MipMaps.Count == 0)
+                Debugger.Break();
             return MipMaps;
         }
 
@@ -551,10 +558,10 @@ namespace CSharpImageLibrary.General
         {
             int bitsPerPixel = 4;
 
-            MemoryStream DecompressedLine = UsefulThings.RecyclableMemoryManager.GetStream(bitsPerScanLine * 4);
+            MemoryStream DecompressedLine = new MemoryStream(bitsPerScanLine * 4);
 
             // KFreon: Read compressed line into new stream for multithreading purposes
-            using (MemoryStream CompressedLine = UsefulThings.RecyclableMemoryManager.GetStream(compressedLineSize))
+            using (MemoryStream CompressedLine = new MemoryStream(compressedLineSize))
             {
                 lock (compressed)
                 {
@@ -567,6 +574,8 @@ namespace CSharpImageLibrary.General
 
                     // KFreon: Read compressed line
                     CompressedLine.ReadFrom(compressed, compressedLineSize);
+                    if (CompressedLine.Length < compressedLineSize)
+                        Debugger.Break();
                 }
                 CompressedLine.Position = 0;
 
@@ -1031,6 +1040,13 @@ namespace CSharpImageLibrary.General
         {
             // TODO: Is the other estimated mips required?
 
+            if (mainWidth <= desiredMaxDimension && mainHeight <= desiredMaxDimension)
+            {
+                numMipMaps = EstimateNumMipMaps(mainWidth, mainHeight);
+                return 128; // One mip only
+            }
+
+
 
             int divisor = 1;
             if (format.BlockSize > 1)
@@ -1054,7 +1070,7 @@ namespace CSharpImageLibrary.General
             numMipMaps = EstimateNumMipMaps((int)(mainWidth / newDimDivisor), (int)(mainHeight / newDimDivisor));
 
             // Should only occur when an image has no mips
-            if (streamLength < requiredOffset)
+            if (streamLength <= requiredOffset)
                 return -1;
 
             return requiredOffset;
@@ -1262,7 +1278,7 @@ namespace CSharpImageLibrary.General
                     Compressor = CompressBC4Block;
                     break;
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                    Compressor = CompressBC4Block;
+                    Compressor = CompressBC5Block;
                     break;
                 case ImageEngineFormat.DDS_DXT1:
                     Compressor = CompressBC1Block;
