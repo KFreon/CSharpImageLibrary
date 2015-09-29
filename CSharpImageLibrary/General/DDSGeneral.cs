@@ -515,7 +515,6 @@ namespace CSharpImageLibrary.General
                     throw new Exception("ahaaha");
             }
 
-
             // KFreon: Read mipmaps
             for (int m = 0; m < estimatedMips; m++)
             {
@@ -1049,8 +1048,9 @@ namespace CSharpImageLibrary.General
 
 
             int divisor = 1;
-            if (format.BlockSize > 1)
+            if (format.IsBlockCompressed)
                 divisor = 4;
+
 
             int dependentDimension = mainWidth > mainHeight ? mainWidth : mainHeight;
 
@@ -1058,8 +1058,26 @@ namespace CSharpImageLibrary.General
             if (mipIndex < -1)
                 throw new InvalidDataException($"Invalid dimensions for mipmapping. Got desired: {desiredMaxDimension} and dependent: {dependentDimension}");
 
-            double sumPart = mipIndex == -1 ? 0 : (1 / 3f) * Math.Pow(4,-mipIndex) * (Math.Pow(4, (mipIndex + 1)) - 1);
-            //double sumPart = double sumPart = Math.Pow(2, -mipIndex) * (Math.Pow(2, mipIndex + 1) - 1);
+
+
+            /*
+                Mipmapping halves both dimensions per mip down. Dimensions are then divided by 4 if block compressed as a texel is 4x4 pixels.
+                e.g. 4096 x 4096 block compressed texture with 8 byte blocks e.g. DXT1
+                Sizes of mipmaps:
+                    4096 / 4 x 4096 / 4 x 8
+                    (4096 / 4 / 2) x (4096 / 4 / 2) x 8
+                    (4096 / 4 / 2 / 2) x (4096 / 4 / 2 / 2) x 8
+
+                Pattern: Each dimension divided by 2 per mip size decreased.
+                Thus, total is divided by 4.
+                    Size of any mip = Sum(1/4^n) x divWidth x divHeight x blockSize,  
+                        where n is the desired mip (0 based), 
+                        divWidth and divHeight are the block compress adjusted dimensions (uncompressed textures lead to just original dimensions, block compressed are divided by 4)
+
+                Turns out the partial sum of the infinite sum: Sum(1/4^n) = 1/3 x (4 - 4^-n). Who knew right?
+            */
+            double sumPart = mipIndex == -1 ? 0 :                   
+                (1 / 3f) * (4 - Math.Pow(4, -mipIndex));
 
 
 

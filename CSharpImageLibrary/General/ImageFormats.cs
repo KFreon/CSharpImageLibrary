@@ -122,7 +122,7 @@ namespace CSharpImageLibrary.General
         {
             get
             {
-                return BlockSize != 1;
+                return BlockSize >= 8;
             }
         }
 
@@ -173,6 +173,10 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.DDS_ATI2_3Dc:
                     blocksize = 16;
                     break;
+                case ImageEngineFormat.DDS_V8U8:
+                    blocksize = 2;
+                    break;
+
             }
             return blocksize;
         }
