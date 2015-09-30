@@ -269,12 +269,12 @@ namespace CSharpImageLibrary.General
                 return estimatedMips;
 
             // KFreon: Half dimensions until one == 1.
-            MipMap[] newmips = new MipMap[estimatedMips];
-            Parallel.For(1, estimatedMips, item =>
+            MipMap[] newmips = new MipMap[estimatedMips - 1];   // -1 as 1x1 mip doesn't seem to work, thus not included in count
+            Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
             {
                 int index = item;
                 MipMap newmip = Resize(currentMip, 1f / Math.Pow(2, index));
-                newmips[index] = newmip;
+                newmips[index - 1] = newmip;
             });
             MipMaps.AddRange(newmips);
 

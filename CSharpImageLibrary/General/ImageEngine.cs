@@ -294,41 +294,29 @@ namespace CSharpImageLibrary.General
 
             if (format.Contains("dxt1", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_DXT1;
-
-            if (format.Contains("dxt2", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("dxt2", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_DXT2;
-
-            if (format.Contains("dxt3", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("dxt3", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_DXT3;
-
-            if (format.Contains("dxt4", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("dxt4", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_DXT4;
-
-            if (format.Contains("dxt5", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("dxt5", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_DXT5;
-
-            if (format.Contains("bmp", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("bmp", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.BMP;
-
-            if (format.Contains("argb", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("argb", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_ARGB;
-
-            if (format.Contains("ati1", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("ati1", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_ATI1;
-
-            if (format.Contains("ati2", StringComparison.OrdinalIgnoreCase) || format.Contains("3dc", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("ati2", StringComparison.OrdinalIgnoreCase) || format.Contains("3dc", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_ATI2_3Dc;
-
-            if (format.Contains("l8", StringComparison.OrdinalIgnoreCase) || format.Contains("g8", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("l8", StringComparison.OrdinalIgnoreCase) || format.Contains("g8", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_G8_L8;
-
-            if (format.Contains("v8u8", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("v8u8", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_V8U8;
-
-            if (format.Contains("jpg", StringComparison.OrdinalIgnoreCase) || format.Contains("jpeg", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("jpg", StringComparison.OrdinalIgnoreCase) || format.Contains("jpeg", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.JPG;
-
-            if (format.Contains("png", StringComparison.OrdinalIgnoreCase))
+            else if (format.Contains("png", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.PNG;
 
 

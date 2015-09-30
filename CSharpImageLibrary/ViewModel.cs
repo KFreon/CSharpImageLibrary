@@ -262,11 +262,6 @@ namespace CSharpImageLibrary
             stopwatch.Start();
 
             img = await Task.Run(() => new ImageEngineImage(path, 64, false));
-            using (MemoryStream ms = new MemoryStream())
-            {
-                img.Save(ms, img.Format.InternalFormat, true);
-                //ImageEngine.GenerateThumbnailToFile(ms, "R:\\testing.dds", 64);
-            }
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");

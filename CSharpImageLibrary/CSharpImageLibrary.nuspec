@@ -9,7 +9,7 @@
     <projectUrl>https://github.com/KFreon/CSharpImageLibrary</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Loads and saves standard images including DDS (all sorts and weird ones like V8U8, G8, etc. See full list on github.)</description>
-    <releaseNotes>Minor threading fixes. ATI2 fix.</releaseNotes>
+    <releaseNotes>Saving with mipmaps fixed.</releaseNotes>
     <copyright>Copyright KFreon 2015</copyright>
     <tags>Image DDS</tags>
   </metadata>
