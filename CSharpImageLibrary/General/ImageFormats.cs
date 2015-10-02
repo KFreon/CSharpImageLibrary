@@ -176,7 +176,9 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.DDS_V8U8:
                     blocksize = 2;
                     break;
-
+                case ImageEngineFormat.DDS_ARGB:
+                    blocksize = 4;
+                    break;
             }
             return blocksize;
         }

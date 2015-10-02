@@ -225,7 +225,7 @@ namespace CSharpImageLibrary.General
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.Message);
+                Debug.WriteLine(e.ToString());
             }
 
             return stream;
