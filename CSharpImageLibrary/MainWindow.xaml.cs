@@ -209,5 +209,16 @@ namespace CSharpImageLibrary
         {
             MessageBox.Show(vm.SavingFailedErrorMessage);
         }
+
+        private void ThisWindow_Drop(object sender, DragEventArgs e)
+        {
+            string[] filenames = (string[])(e.Data.GetData(DataFormats.FileDrop));
+            
+            // Only loads the first image dropped. Can only have the one image loaded, so why would people drop more than one...
+            // Come to think of it, I wonder if this can be filtered out in the DragEnter event? Like if more than one file is being dragged, indicate somehow that only one can be used.
+
+
+            vm.LoadImage(filenames[0]);
+        }
     }
 }

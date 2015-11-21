@@ -7,7 +7,7 @@
         xmlns:local="clr-namespace:CSharpImageLibrary.General"
         xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="Image Engine" Height="588.074" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown">
+        Title="Image Engine" Height="588.074" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True">
     <Grid x:Name="MainGrid">
         <Grid.Resources>
             <sys:Boolean x:Key="True">

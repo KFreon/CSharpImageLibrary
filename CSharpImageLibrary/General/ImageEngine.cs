@@ -94,6 +94,8 @@ namespace CSharpImageLibrary.General
                         MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
                     break;
                 case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_A8L8:
+                case ImageEngineFormat.DDS_RGB:
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
                 case ImageEngineFormat.DDS_G8_L8:

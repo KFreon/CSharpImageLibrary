@@ -90,6 +90,18 @@ namespace CSharpImageLibrary.General
         DDS_G8_L8 = 7,  // No specific value it seems
 
         /// <summary>
+        /// Alpha and single channel luminescence.
+        /// Uncompressed.
+        /// </summary>
+        DDS_A8L8 = 9,
+
+        /// <summary>
+        /// RGB. No alpha. 
+        /// Uncompressed.
+        /// </summary>
+        DDS_RGB = 10,
+
+        /// <summary>
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Normal (bump) Maps. Pair of 8 bit channels.
         /// </summary>
@@ -174,10 +186,14 @@ namespace CSharpImageLibrary.General
                     blocksize = 16;
                     break;
                 case ImageEngineFormat.DDS_V8U8:
+                case ImageEngineFormat.DDS_A8L8:
                     blocksize = 2;
                     break;
                 case ImageEngineFormat.DDS_ARGB:
                     blocksize = 4;
+                    break;
+                case ImageEngineFormat.DDS_RGB:
+                    blocksize = 3;
                     break;
             }
             return blocksize;
@@ -348,7 +364,6 @@ namespace CSharpImageLibrary.General
                 header = new DDS_HEADER();
                 Read_DDS_HEADER(header, reader);
 
-                
 
                 if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))
                     throw new Exception("DX10 not supported yet!");
@@ -365,9 +380,8 @@ namespace CSharpImageLibrary.General
                                header.ddspf.dwABitMask == 0x00)
                         format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
 
-
                     // KFreon: Test for L8/G8
-                    if (header.ddspf.dwABitMask == 0 &&
+                    else if (header.ddspf.dwABitMask == 0 &&
                             header.ddspf.dwBBitMask == 0 &&
                             header.ddspf.dwGBitMask == 0 &&
                             header.ddspf.dwRBitMask == 255 &&
@@ -375,6 +389,14 @@ namespace CSharpImageLibrary.General
                             header.ddspf.dwSize == 32 &&
                             header.ddspf.dwRGBBitCount == 8)
                         format = new Format(ImageEngineFormat.DDS_G8_L8);
+
+                    // KFreon: A8L8. This can probably be something else as well, but it seems to work for now
+                    else if (header.ddspf.dwRGBBitCount == 16)
+                        format = new Format(ImageEngineFormat.DDS_A8L8);
+
+                    // KFreon: RGB test.
+                    else if (header.ddspf.dwRGBBitCount == 24)
+                        format = new Format(ImageEngineFormat.DDS_RGB);
                 }
                 
             }

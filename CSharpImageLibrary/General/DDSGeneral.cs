@@ -381,11 +381,11 @@ namespace CSharpImageLibrary.General
             {
                 for (int x = 0; x < mipWidth; x++)
                 {
-                    List<byte> bgr = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
-                    mipmap[count++] = bgr[0];
-                    mipmap[count++] = bgr[1];
-                    mipmap[count++] = bgr[2];
-                    mipmap[count++] = 0xFF;
+                    List<byte> bgra = PixelReader(stream);  // KFreon: Reads pixel using a method specific to the format as provided
+                    mipmap[count++] = bgra[0];
+                    mipmap[count++] = bgra[1];
+                    mipmap[count++] = bgra[2];
+                    mipmap[count++] = bgra[3];
                 }
             }
             return new MipMap(new MemoryStream(mipmap), mipWidth, mipHeight);
@@ -431,16 +431,32 @@ namespace CSharpImageLibrary.General
             byte green = red;
             byte blue = red;  // KFreon: Same colour for other channels to make grayscale.
 
-            return new List<byte>() { blue, green, red };
+            return new List<byte>() { blue, green, red, 0xFF };
         }
 
         private static List<byte> ReadV8U8Pixel(Stream fileData)
         {
-            byte red = (byte)(fileData.ReadByte() - 130);  // KFreon: Don't really know why this 130 is here, but it gives the correct pixel values.
-            byte green = (byte)(fileData.ReadByte() - 130);
+            byte[] rg = fileData.ReadBytesFromStream(2);
+            byte red = (byte)(rg[0] - 130);  // KFreon: Don't really know why this 130 is here, but it gives the correct pixel values.
+            byte green = (byte)(rg[1] - 130);
             byte blue = 0xFF;
 
-            return new List<byte>() { blue, green, red };
+            return new List<byte>() { blue, green, red, 0xFF };
+        }
+
+        private static List<byte> ReadRGBPixel(Stream fileData)
+        {
+            var rgb = fileData.ReadBytesFromStream(3);
+            byte red = rgb[0];
+            byte green = rgb[1];
+            byte blue = rgb[2];
+            return new List<byte>() { red, green, blue, 0xFF };
+        }
+
+        private static List<byte> ReadA8L8Pixel(Stream fileData)
+        {
+            var al = fileData.ReadBytesFromStream(2);
+            return new List<byte>() { al[0], al[0], al[0], al[1] };
         }
 
         internal static List<MipMap> LoadDDS(Stream compressed, DDS_HEADER header, Format format, int desiredMaxDimension)
@@ -486,6 +502,12 @@ namespace CSharpImageLibrary.General
             Func<Stream, List<byte>> UncompressedPixelReader = null;
             switch (format.InternalFormat)
             {
+                case ImageEngineFormat.DDS_RGB:
+                    UncompressedPixelReader = ReadRGBPixel;
+                    break;
+                case ImageEngineFormat.DDS_A8L8:
+                    UncompressedPixelReader = ReadA8L8Pixel;
+                    break;
                 case ImageEngineFormat.DDS_ARGB:  // leave this one. It has a totally different reading method and is done later
                     break;
                 case ImageEngineFormat.DDS_ATI1:
@@ -523,18 +545,44 @@ namespace CSharpImageLibrary.General
                     mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, format.BlockSize, mipOffset, DecompressBCBlock);
                 else
                 {
+                    int mipLength = mipWidth * mipHeight;
+
+                    var mipStream = new MemoryStream(mipLength);
+                    long position = compressed.Position;
+                    List<byte> compdata = null;
+
                     if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                     {
                         // KFreon: Uncompressed, so can just read from stream.
-                        int mipLength = mipWidth * mipHeight * 4;
-                        var mipStream = new MemoryStream(mipLength);
-                        mipStream.ReadFrom(compressed, mipLength);
-                        mipmap = new MipMap(mipStream, mipWidth, mipHeight);
+                        mipStream = new MemoryStream(mipLength * 4);
+                        compressed.Position = position;
+                        mipStream.ReadFrom(compressed, mipLength * 4);
                     }
+                    /*else if (format.InternalFormat == ImageEngineFormat.DDS_RGB)
+                    {
+                        compdata = new List<byte>(compressed.ReadBytesFromStream((int)(mipLength * 3)));
+                        // Insert alpha. Done this way for speed.
+                        for (int i = 3; i < mipLength*4; i+=4)
+                            compdata.Insert(i, 0xFF);
+
+                        mipStream.Write(compdata.ToArray(compdata.Count), 0, compdata.Count);
+                    }
+                    else if (format.InternalFormat == ImageEngineFormat.DDS_A8L8)
+                    {
+                        compdata = new List<byte>(compressed.ReadBytesFromStream((int)(mipLength * 2)));
+                        int count = 0;
+                        for (int i = 0; i < mipLength; i++)
+                        {
+                            mipStream.Write(new byte[] { compdata[count], compdata[count], compdata[count], compdata[count+1] }, 0, 4);
+                            count += 2;
+                        }
+                    }*/
                     else
                         mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
+
+
                     if (mipmap == null)
-                        break;
+                        mipmap = new MipMap(mipStream, mipWidth, mipHeight);
                 }
 
                 if (mipmap.Data.Length == 0)
@@ -1292,6 +1340,12 @@ namespace CSharpImageLibrary.General
                         MipMaps[m].Data.WriteTo(Destination);
 
                     return true;
+                case ImageEngineFormat.DDS_A8L8:
+                    PixelWriter = WriteA8L8Pixel;
+                    break;
+                case ImageEngineFormat.DDS_RGB:
+                    PixelWriter = WriteRGBPixel;
+                    break;
                 case ImageEngineFormat.DDS_ATI1:
                     Compressor = CompressBC4Block;
                     break;
@@ -1356,6 +1410,22 @@ namespace CSharpImageLibrary.General
             var bytes = pixels.ReadBytesFromStream(2);
             writer.Write(bytes, 0, 2);
             pixels.Position++;    // No alpha
+        }
+
+        private static void WriteA8L8Pixel(Stream writer, Stream pixels, int unused1, int unused2)
+        {
+            // BGRA
+            // First 3 channels are the same value, so just use the last one.
+            pixels.Position += 2;
+            writer.ReadFrom(pixels, 2); 
+        }
+
+        private static void WriteRGBPixel(Stream writer, Stream pixels, int unused1, int unused2)
+        {
+            // BGRA
+            var bytes = pixels.ReadBytesFromStream(3);
+            writer.Write(bytes, 0, bytes.Length);
+            pixels.Position++;
         }
     }
 }

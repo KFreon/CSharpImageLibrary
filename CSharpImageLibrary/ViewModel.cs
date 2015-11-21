@@ -237,6 +237,7 @@ namespace CSharpImageLibrary
         public async Task LoadImage(string path)
         {
             // Load full size image
+            ////////////////////////////////////////////////////////////////////////////////////////
             Task<List<object>> fullLoadingTask = Task.Run(() =>
             {
                 ImageEngineImage fullimage = new ImageEngineImage(path);
@@ -251,6 +252,8 @@ namespace CSharpImageLibrary
                 bits.Add(fullPreviews);
                 return bits;
             });
+            ////////////////////////////////////////////////////////////////////////////////////////
+
 
 
             SaveSuccess = null;
@@ -261,7 +264,14 @@ namespace CSharpImageLibrary
 
             stopwatch.Start();
 
+
+
+            ////////////////////////////////////////////////////////////////////////////////////////
+            //img = await Task.Run(() => new ImageEngineImage(path));
             img = await Task.Run(() => new ImageEngineImage(path, 64, false));
+            ////////////////////////////////////////////////////////////////////////////////////////
+
+
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");
@@ -284,10 +294,9 @@ namespace CSharpImageLibrary
             OnPropertyChanged(nameof(MipHeight));
 
             // KFreon: Get full image details
+            ////////////////////////////////////////////////////////////////////////////////////////
             List<object> FullImageObjects = await fullLoadingTask;
-
             double? oldMipWidth = MipWidth;
-
             img = (ImageEngineImage)FullImageObjects[0];
             Previews.Clear();
             Previews.AddRange((List<BitmapSource>)FullImageObjects[1]);
@@ -300,6 +309,8 @@ namespace CSharpImageLibrary
                     break;
                 }
             }
+            ////////////////////////////////////////////////////////////////////////////////////////
+
 
             OnPropertyChanged(nameof(NumMipMaps));
             OnPropertyChanged(nameof(Preview));
