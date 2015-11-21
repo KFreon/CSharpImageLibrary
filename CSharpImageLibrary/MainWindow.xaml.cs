@@ -109,10 +109,7 @@ namespace CSharpImageLibrary
         private void FormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             vm.GenerateSavePreview();
-
-            // KFreon: Update format in auto generated SavePath ONLY IF it's unedited
-            if (e.RemovedItems.Count != 0 && vm.SavePath == vm.GetAutoSavePath((ImageEngineFormat)e.RemovedItems[0]))
-                vm.SavePath = vm.GetAutoSavePath((ImageEngineFormat)e.AddedItems[0]);
+            vm.SavePath = vm.GetAutoSavePath((ImageEngineFormat)e.AddedItems[0]);
         }
 
         private void OpenConvertPanel_Click(object sender, RoutedEventArgs e)

@@ -206,7 +206,27 @@ namespace CSharpImageLibrary
 
         internal string GetAutoSavePath(ImageEngineFormat newformat)
         {
-            return Path.GetDirectoryName(ImagePath) + "\\" + Path.GetFileNameWithoutExtension(ImagePath) + "_" + newformat + Path.GetExtension(ImagePath);
+            string newpath = null;
+            bool acceptablePath = false;
+            int count = 1;
+
+
+            string formatString = ImageFormats.GetExtensionOfFormat(newformat);
+
+            newpath = Path.GetDirectoryName(ImagePath) + "\\" + Path.GetFileNameWithoutExtension(ImagePath) + "." +
+                (newformat == ImageEngineFormat.Unknown ? Path.GetExtension(ImagePath) : formatString);
+
+
+            // KFreon: Check that path is not already taken
+            while (!acceptablePath)
+            {
+                if (File.Exists(newpath))
+                    newpath = Path.GetFileNameWithoutExtension(newpath) + "_" + count++ + Path.GetExtension(newpath);
+                else
+                    acceptablePath = true;
+            }
+            
+            return newpath;
         }
 
         internal async void GenerateSavePreview()
@@ -268,7 +288,7 @@ namespace CSharpImageLibrary
 
             ////////////////////////////////////////////////////////////////////////////////////////
             //img = await Task.Run(() => new ImageEngineImage(path));
-            img = await Task.Run(() => new ImageEngineImage(path, 64, false));
+            img = await Task.Run(() => new ImageEngineImage(path, 256, false));
             ////////////////////////////////////////////////////////////////////////////////////////
 
 

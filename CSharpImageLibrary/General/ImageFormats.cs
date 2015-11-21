@@ -426,10 +426,26 @@ namespace CSharpImageLibrary.General
         public static Format FindFormatInString(string stringWithFormatInIt)
         {
             foreach (var formatName in Enum.GetNames(typeof(ImageEngineFormat)))
-                if (stringWithFormatInIt.Contains(formatName, StringComparison.OrdinalIgnoreCase))
+                if (formatName.Contains(stringWithFormatInIt, StringComparison.OrdinalIgnoreCase))
                     return new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
 
             return new Format();
+        }
+
+        
+        /// <summary>
+        /// Gets file extension of supported surface formats.
+        /// Doesn't include preceding dot.
+        /// </summary>
+        /// <param name="format">Format to get file extension for.</param>
+        /// <returns>File extension without dot.</returns>
+        public static string GetExtensionOfFormat(ImageEngineFormat format)
+        {
+            string formatString = format.ToString();
+            if (formatString.Contains('_'))
+                formatString = "dds";
+
+            return formatString;
         }
     }
 }

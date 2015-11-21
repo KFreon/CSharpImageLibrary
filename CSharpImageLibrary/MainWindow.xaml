@@ -32,7 +32,7 @@
             <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
                 <Button x:Name="OpenConvertPanel" HorizontalAlignment="Right" Content="Convert >>" DockPanel.Dock="Right" VerticalAlignment="Bottom" Click="OpenConvertPanel_Click"/>
                 <StackPanel DockPanel.Dock="Bottom" Height="68" VerticalAlignment="Bottom" IsHitTestVisible="False">
-                    <TextBlock TextWrapping="WrapWithOverflow">
+                    <TextBlock>
                         <Run Text="Image Path:    " FontWeight="Bold"/>
                         <Run Text="{Binding ImagePath, Mode=OneWay}"/>
                     </TextBlock>
