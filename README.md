@@ -3,7 +3,6 @@ Image processing library written entirely in C#.
 This library uses built in Windows codecs as much as possible. This includes the new fancy Windows 8.1+ codecs for DXT1, 3, and 5 loading.
 For those not on Windows 8.1+, standard GDI+ codecs are used (System.Drawing.Bitmap)
 
-This library is INCOMPLETE. All I currently plan on doing with this is loading major image formats (mainly DDS) and saving/converting them including mipmapping.
 
 [Nuget Package](https://www.nuget.org/packages/CSharpImageLibrary/)
 
