@@ -90,9 +90,12 @@ namespace CSharpImageLibrary.General
                     int height = 0;
                     MemoryStream data = LoadMipMap(decoder.Frames[0], out width, out height);
                     var mip = new MipMap(data, width, height);
-                    double scale = decodeHeight != 0 ? decodeHeight * 1f / height: (decodeWidth != 0 ? decodeWidth * 1f / width : 0);
-                    if (scale == 0)
-                        throw new InvalidOperationException("No mips detected and no decodeWidth or decodeHeight specified. This is likely due to an invalid image or some weird error.");
+
+                    // KFreon: Keep aspect ratio. Take smallest scaling value. 
+                    double hScale = decodeHeight != 0 ? decodeHeight * 1f / height : 1;
+                    double wScale = decodeWidth != 0 ? decodeWidth * 1f / width : 1;
+
+                    double scale = hScale < wScale ? hScale : wScale;
 
                     mip = Resize(mip, scale);
                     mipmaps.Add(mip);
