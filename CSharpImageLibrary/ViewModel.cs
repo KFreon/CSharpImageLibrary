@@ -221,7 +221,7 @@ namespace CSharpImageLibrary
             while (!acceptablePath)
             {
                 if (File.Exists(newpath))
-                    newpath = Path.GetFileNameWithoutExtension(newpath) + "_" + count++ + Path.GetExtension(newpath);
+                    newpath = Path.Combine(Path.GetDirectoryName(newpath),  Path.GetFileNameWithoutExtension(newpath) + "_" + count++ + Path.GetExtension(newpath));
                 else
                     acceptablePath = true;
             }
