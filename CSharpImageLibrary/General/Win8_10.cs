@@ -224,7 +224,7 @@ namespace CSharpImageLibrary.General
             MemoryStream stream = null;
             try
             {
-                stream = bmp.GetPixelsAsStream(Width, Height);
+                stream = bmp.GetPixelsAsStream();
             }
             catch (Exception e)
             {
@@ -339,7 +339,7 @@ namespace CSharpImageLibrary.General
             int bmpWidth = (int)bmp.Width;
             int bmpHeight = (int)bmp.Height;
 
-            MemoryStream data = bmp.GetPixelsAsStream(bmpWidth, bmpHeight);
+            MemoryStream data = bmp.GetPixelsAsStream();
             return new MipMap(data, bmpWidth, bmpHeight);
         }
     }
