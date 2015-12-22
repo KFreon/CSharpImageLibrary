@@ -268,7 +268,8 @@ namespace CSharpImageLibrary.General
 
             // KFreon: Check if mips required
             int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
-            if ((estimatedMips + 1) == MipMaps.Count)  // +1 is cos estimatedMips is the number required to be generated, not the total
+            //if ((estimatedMips + 1) == MipMaps.Count)  // +1 is cos estimatedMips is the number required to be generated, not the total
+            if (MipMaps.Count > 1)
                 return estimatedMips;
 
             // KFreon: Half dimensions until one == 1.

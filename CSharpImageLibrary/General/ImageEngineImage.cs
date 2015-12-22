@@ -204,6 +204,10 @@ namespace CSharpImageLibrary.General
 
             // KFreon: NOTE: Seems to ignore alpha - pretty much ultra useful since premultiplying alpha often removes most of the image
             MipMap mip = MipMaps[index];
+            if (mip.Data == null)
+                return null;
+
+
             byte[] data = mip.Data.ToArray();
 
             int stride = 4 * mip.Width;
