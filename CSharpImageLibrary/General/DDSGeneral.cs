@@ -406,6 +406,7 @@ namespace CSharpImageLibrary.General
             else
             {
                 Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                //for (int rowr = 0; rowr < texelCount; rowr++)
                 {
                     int row = rowr;
                     using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, row, DecompressBlock))
@@ -549,7 +550,6 @@ namespace CSharpImageLibrary.General
 
                     var mipStream = new MemoryStream(mipLength);
                     long position = compressed.Position;
-                    List<byte> compdata = null;
 
                     if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                     {
@@ -558,25 +558,6 @@ namespace CSharpImageLibrary.General
                         compressed.Position = position;
                         mipStream.ReadFrom(compressed, mipLength * 4);
                     }
-                    /*else if (format.InternalFormat == ImageEngineFormat.DDS_RGB)
-                    {
-                        compdata = new List<byte>(compressed.ReadBytesFromStream((int)(mipLength * 3)));
-                        // Insert alpha. Done this way for speed.
-                        for (int i = 3; i < mipLength*4; i+=4)
-                            compdata.Insert(i, 0xFF);
-
-                        mipStream.Write(compdata.ToArray(compdata.Count), 0, compdata.Count);
-                    }
-                    else if (format.InternalFormat == ImageEngineFormat.DDS_A8L8)
-                    {
-                        compdata = new List<byte>(compressed.ReadBytesFromStream((int)(mipLength * 2)));
-                        int count = 0;
-                        for (int i = 0; i < mipLength; i++)
-                        {
-                            mipStream.Write(new byte[] { compdata[count], compdata[count], compdata[count], compdata[count+1] }, 0, 4);
-                            count += 2;
-                        }
-                    }*/
                     else
                         mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
 
@@ -1002,7 +983,7 @@ namespace CSharpImageLibrary.General
                 // KFreon: Interpolate other colours
                 for (int i = 2; i < 8; i++)
                 {
-                    double test = ((8 - i) * min + (i - 1) * max) / 7.0f;
+                    double test = min + (max - min) * (i - 1) / 7;
                     Colours[i] = (byte)test;
                 }
             }
@@ -1011,8 +992,9 @@ namespace CSharpImageLibrary.General
                 // KFreon: Interpolate other colours and add Opacity or something...
                 for (int i = 2; i < 6; i++)
                 {
-                    double test = ((8 - i) * min + (i - 1) * max) / 5.0f;
-                    Colours[i] = (byte)test;
+                    //double test = ((8 - i) * min + (i - 1) * max) / 5.0f;   // KFreon: "Linear interpolation". Serves me right for trusting a website without checking it...
+                    double extratest = min + (max - min) * (i - 1) / 5;
+                    Colours[i] = (byte)extratest;
                 }
                 Colours[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
                 Colours[7] = 255;
@@ -1218,14 +1200,26 @@ namespace CSharpImageLibrary.General
             byte[] red = DDSGeneral.Decompress8BitBlock(compressed, false);
             byte[] green = DDSGeneral.Decompress8BitBlock(compressed, false);
             List<byte[]> DecompressedBlock = new List<byte[]>();
-            DecompressedBlock.Add(red);
-            DecompressedBlock.Add(green);
-            DecompressedBlock.Add(new byte[16]);
+            
+            
 
             // KFreon: Alpha needs to be 255
             byte[] alpha = new byte[16];
+            byte[] blue = new byte[16];
             for (int i = 0; i < 16; i++)
+            {
                 alpha[i] = 0xFF;
+                /*double r = red[i] / 255.0;
+                double g = green[i] / 255.0;
+                double test = 1 - (r * g);
+                double anbs = Math.Sqrt(test);
+                double ans = anbs * 255.0;*/
+                blue[i] = (byte)0xFF;
+            }
+
+            DecompressedBlock.Add(blue);
+            DecompressedBlock.Add(green);
+            DecompressedBlock.Add(red);
             DecompressedBlock.Add(alpha);
 
             return DecompressedBlock;
