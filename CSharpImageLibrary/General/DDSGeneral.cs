@@ -270,9 +270,13 @@ namespace CSharpImageLibrary.General
 
                 for (int m = 0; m < MipMaps.Count; m++)
                 {
-                    MemoryStream mipmap = MipMaps[m].Data;
-                    using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
-                        compressed.WriteTo(Destination);
+                    unsafe
+                    {
+                        UnmanagedMemoryStream mipmap = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), MipMaps[m].Width * MipMaps[m].Height * 4);
+                        using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
+                            compressed.WriteTo(Destination);
+                    }
+                    
                 }
                 return true;
             }
@@ -388,12 +392,14 @@ namespace CSharpImageLibrary.General
                     mipmap[count++] = bgra[3];
                 }
             }
-            return new MipMap(new MemoryStream(mipmap), mipWidth, mipHeight);
+
+            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(mipmap, mipWidth, mipHeight));
         }
 
         private static MipMap ReadCompressedMipMap(Stream compressed, int mipWidth, int mipHeight, int blockSize, long mipOffset, Func<Stream, List<byte[]>> DecompressBlock)
         {
-            MemoryStream mipmap = new MemoryStream(4 * mipWidth * mipHeight);
+            //MemoryStream mipmap = new MemoryStream(4 * mipWidth * mipHeight);
+            byte[] mipmapData = new byte[4 * mipWidth * mipHeight];
 
             // Loop over rows and columns NOT pixels
             int compressedLineSize = blockSize * mipWidth / 4;
@@ -401,9 +407,7 @@ namespace CSharpImageLibrary.General
             ParallelOptions po = new ParallelOptions();
             po.MaxDegreeOfParallelism = -1;
             int texelCount = mipHeight / 4;
-            if (texelCount == 0)
-                mipmap.Write(new byte[mipWidth * mipHeight * 4], 0, mipWidth * mipHeight * 4);
-            else
+            if (texelCount != 0)
             {
                 Parallel.For(0, texelCount, po, (rowr, loopstate) =>
                 //for (int rowr = 0; rowr < texelCount; rowr++)
@@ -412,10 +416,11 @@ namespace CSharpImageLibrary.General
                     using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, row, DecompressBlock))
                     {
                         if (DecompressedLine != null)
-                            lock (mipmap)
+                            lock (mipmapData)
                             {
-                                mipmap.Position = rowr * bitsPerScanline * 4;
-                                DecompressedLine.WriteTo(mipmap);
+                                int index = row * bitsPerScanline * 4;
+                                DecompressedLine.Position = 0;
+                                DecompressedLine.Read(mipmapData, index, (int)DecompressedLine.Length);
                             }
                         else
                             loopstate.Break();
@@ -423,7 +428,7 @@ namespace CSharpImageLibrary.General
                 });
             }
 
-            return new MipMap(mipmap, mipWidth, mipHeight);
+            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(mipmapData, mipWidth, mipHeight));
         }
 
         private static List<byte> ReadG8_L8Pixel(Stream fileData)
@@ -546,38 +551,22 @@ namespace CSharpImageLibrary.General
                     mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, format.BlockSize, mipOffset, DecompressBCBlock);
                 else
                 {
-                    int mipLength = mipWidth * mipHeight;
+                    int mipLength = mipWidth * mipHeight * 4;
 
-                    var mipStream = new MemoryStream(mipLength);
+                    var array = new byte[mipLength];
                     long position = compressed.Position;
-
-                    
 
                     if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                     {
-                        // KFreon: Uncompressed, so can just read from stream.
-                        mipStream = new MemoryStream(mipLength * 4);
                         compressed.Position = position;
-                        mipStream.ReadFrom(compressed, mipLength * 4);
+                        compressed.Read(array, 0, array.Length);
                     }
                     else
                         mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
 
-                    MemoryStream ms = new MemoryStream((int)mipStream.Length);
-                    mipStream.Position = 0;
-                    ms.ReadFrom(mipStream, (int)mipStream.Length);
-                    StreamWriter fs = new StreamWriter("R:\\testing1.txt");
-                    foreach (byte b in ms.ToArray())
-                        fs.WriteLine(b);
-
-                    fs.Close();
-
                     if (mipmap == null)
-                        mipmap = new MipMap(mipStream, mipWidth, mipHeight);
+                        mipmap = new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(array, mipWidth, mipHeight));
                 }
-
-                if (mipmap.Data.Length == 0)
-                    break;  // why... --- KFreon: To handle weird cases where images are the wrong size.
 
                 MipMaps.Add(mipmap);
 
@@ -757,6 +746,8 @@ namespace CSharpImageLibrary.General
         internal static int[] CompressRGBFromTexel(byte[] texel, out int min, out int max)
         {
             int[] RGB = new int[16];
+            min = int.MaxValue;
+            max = int.MinValue;
             int count = 0;
             for (int i = 0; i < 64; i += 16) // texel row
             {
@@ -764,11 +755,15 @@ namespace CSharpImageLibrary.General
                 {
                     int pixelColour = BuildDXTColour(texel[i + j + 2], texel[i + j + 1], texel[i + j]);
                     RGB[count++] = pixelColour;
+                    if (pixelColour < min)
+                        min = pixelColour;
+                    if (pixelColour > max)
+                        max = pixelColour;
                 }
             }
 
-            min = RGB.Min();
-            max = RGB.Max();
+            /*min = RGB.Min();
+            max = RGB.Max();*/
 
             return RGB;
         }
@@ -825,13 +820,54 @@ namespace CSharpImageLibrary.General
                 for (int j = 0; j < 4; j++)
                 {
                     int colour = texelColours[i + j];
-                    int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
+                    int index = GetClosestValue(Colours, colour);
+
                     fourIndicies |= (byte)(index << (2 * j));
                 }
                 CompressedBlock[i / 4 + 4] = fourIndicies;
             }
 
             return CompressedBlock;
+        }
+
+        private static int GetClosestValue(int[] arr, int c)
+        {
+            int min = int.MaxValue;
+            int index = 0;
+            int minIndex = 0;
+            for(int i = 0; i < arr.Length; i++)
+            {
+                int check = arr[i] - c;
+                check = (check ^ (check >> 31)) - (check >> 31);
+                if (check < min)
+                {
+                    min = check;
+                    minIndex = index;
+                }
+
+                index++;
+            }
+            return minIndex;
+        }
+
+        private static int GetClosestValue(byte[] arr, byte c)
+        {
+            int min = int.MaxValue;
+            int index = 0;
+            int minIndex = 0;
+            for (int i = 0; i < arr.Length; i++)
+            {
+                int check = arr[i] - c;
+                check = (check ^ (check >> 7)) - (check >> 7);
+                if (check < min)
+                {
+                    min = check;
+                    minIndex = index;
+                }
+
+                index++;
+            }
+            return minIndex;
         }
 
         /// <summary>
@@ -864,11 +900,11 @@ namespace CSharpImageLibrary.General
             // Compress Pixels
             ulong line = 0;
             count = channel;
-            List<byte> indicies = new List<byte>();
+            List<int> indicies = new List<int>();
             for (int i = 0; i < 16; i++)
             {
                 byte colour = texel[count];
-                byte index = (byte)Colours.IndexOfMin(c => Math.Abs(colour - c));
+                int index = GetClosestValue(Colours, colour);
                 indicies.Add(index);
                 line |= (ulong)index << (i * 3); 
                 count += 4;  // Only need 1 channel
@@ -1340,8 +1376,14 @@ namespace CSharpImageLibrary.General
                     using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
                         DDSGeneral.Write_DDS_Header(header, writer);
 
-                    for (int m = 0; m < MipMaps.Count; m++)
-                        MipMaps[m].Data.WriteTo(Destination);
+                    unsafe
+                    {
+                        for (int m = 0; m < MipMaps.Count; m++)
+                        {
+                            var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height);
+                            stream.CopyTo(Destination);
+                        }
+                    }
 
                     return true;
                 case ImageEngineFormat.DDS_A8L8:

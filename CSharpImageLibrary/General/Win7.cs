@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using UsefulThings;
 
 namespace CSharpImageLibrary.General
@@ -66,7 +67,7 @@ namespace CSharpImageLibrary.General
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>BGRA Pixels as stream.</returns>
-        internal static MemoryStream LoadImageWithCodecs(string imageFile, out int Width, out int Height)
+        internal static WriteableBitmap LoadImageWithCodecs(string imageFile, out int Width, out int Height)
         {
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return LoadImageWithCodecs(fs, out Width, out Height, Path.GetExtension(imageFile));
@@ -81,7 +82,7 @@ namespace CSharpImageLibrary.General
         /// <param name="Height">Image Height.</param>
         /// <param name="extension"></param>
         /// <returns>BGRA Pixels as stream.</returns>
-        internal static MemoryStream LoadImageWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
+        internal static WriteableBitmap LoadImageWithCodecs(Stream stream, out int Width, out int Height, string extension = null)
         {
             Bitmap bmp = AttemptWindowsCodecs(stream);
 
@@ -91,27 +92,15 @@ namespace CSharpImageLibrary.General
             if (bmp == null)
                 return null;
 
-            MemoryStream imgData = LoadMipMap(bmp, extension);
+            byte[] imgData = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap(bmp);
 
             Width = bmp.Width;
             Height = bmp.Height;
 
             bmp.Dispose();
-            return imgData;
-        }
 
-
-        /// <summary>
-        /// Loads image with Windows GDI+ codecs.
-        /// </summary>
-        /// <param name="bmp">Bitmap to load.</param>
-        /// <param name="extension">Extension of original file. Leave null to guess.</param>
-        /// <returns>BGRA pixels as stream.</returns>
-        private static MemoryStream LoadMipMap(Bitmap bmp, string extension = null)
-        {
-            byte[] imgData = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap(bmp);
-
-            return new MemoryStream(imgData);
+            WriteableBitmap wb = UsefulThings.WPF.Images.CreateWriteableBitmap(imgData, Width, Height);
+            return wb;
         }
         #endregion Loading
 
@@ -165,9 +154,9 @@ namespace CSharpImageLibrary.General
         /// <param name="Width">Width of image.</param>
         /// <param name="Height">Height of image.</param>
         /// <returns>True on success.</returns>
-        internal static bool SaveWithCodecs(MemoryStream pixelsWithMips, Stream destination, ImageEngineFormat format, int Width, int Height)
+        internal static bool SaveWithCodecs(BitmapSource img, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
-            Bitmap bmp = UsefulThings.WinForms.Imaging.CreateBitmap(pixelsWithMips.ToArray(), Width, Height);
+            Bitmap bmp = UsefulThings.WinForms.Imaging.CreateBitmap(img);
 
             // KFreon: Get format
             System.Drawing.Imaging.ImageFormat imgformat = null;
@@ -194,12 +183,12 @@ namespace CSharpImageLibrary.General
 
         internal static MipMap Resize(MipMap mipMap, int width, int height)
         {
-            Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.Data.ToArray(), mipMap.Width, mipMap.Height);
+            Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.BaseImage);
             bmp = UsefulThings.WinForms.Imaging.resizeImage(bmp, new Size(width, height));
             
             byte[] data = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap((Bitmap)bmp);
             bmp.Dispose();
-            return new MipMap(new MemoryStream(data), width, height);
+            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(data, width, height));
         }
     }
 }

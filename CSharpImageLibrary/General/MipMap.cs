@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UsefulThings;
 using Microsoft.IO;
 using System.IO;
+using System.Windows.Media.Imaging;
 
 namespace CSharpImageLibrary.General
 {
@@ -15,9 +16,9 @@ namespace CSharpImageLibrary.General
     public class MipMap
     {
         /// <summary>
-        /// Pixels as stream.
+        /// Pixels in bitmap image.
         /// </summary>
-        public MemoryStream Data { get; set; }
+        public WriteableBitmap BaseImage { get; set; }
 
         /// <summary>
         /// Mipmap width.
@@ -36,11 +37,19 @@ namespace CSharpImageLibrary.General
         /// <param name="data">Raw pixels.</param>
         /// <param name="width">Mipmap width.</param>
         /// <param name="height">Mipmap height.</param>
-        public MipMap(MemoryStream data, int width, int height)
+        /*public MipMap(MemoryStream data, int width, int height)
         {
             Data = data;
             Width = UsefulThings.General.RoundToNearestPowerOfTwo(width);
             Height = UsefulThings.General.RoundToNearestPowerOfTwo(height);
+        }*/
+
+        public MipMap(BitmapSource baseimage)
+        {
+            BaseImage = new WriteableBitmap(baseimage);
+            BaseImage.Freeze();
+            Width = BaseImage.PixelWidth;
+            Height = BaseImage.PixelHeight;
         }
     }
 }

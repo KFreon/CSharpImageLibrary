@@ -80,7 +80,7 @@ namespace CSharpImageLibrary
         {
             get
             {
-                return Preview?.Width;
+                return Preview?.PixelWidth;
             }
         }
 
@@ -88,7 +88,7 @@ namespace CSharpImageLibrary
         {
             get
             {
-                return Preview?.Height;
+                return Preview?.PixelHeight;
             }
         }
 

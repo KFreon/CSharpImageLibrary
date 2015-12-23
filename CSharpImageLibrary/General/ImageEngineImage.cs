@@ -199,25 +199,10 @@ namespace CSharpImageLibrary.General
         /// <returns>BitmapImage of image.</returns>
         public BitmapSource GeneratePreview(int index)
         {
-            JpegBitmapEncoder encoder = new JpegBitmapEncoder();
-            encoder.QualityLevel = 100;
-
             // KFreon: NOTE: Seems to ignore alpha - pretty much ultra useful since premultiplying alpha often removes most of the image
             MipMap mip = MipMaps[index];
-            if (mip.Data == null)
-                return null;
 
-
-            byte[] data = mip.Data.ToArray();
-
-            int stride = 4 * mip.Width;
-            BitmapPalette palette = BitmapPalettes.Halftone256;
-            PixelFormat pixelformat = PixelFormats.Bgra32;           
-
-            // KFreon: Create a bitmap from raw pixel data
-            BitmapSource source = BitmapFrame.Create(mip.Width, mip.Height, 96, 96, pixelformat, palette, data, stride);
-            source.Freeze();
-            return source;
+            return mip.BaseImage;
         }
 
 
@@ -228,9 +213,6 @@ namespace CSharpImageLibrary.General
         {
             if (MipMaps == null)
                 return;
-
-            foreach (MipMap mipmap in MipMaps)
-                mipmap.Data?.Dispose();
         }
 
 
@@ -255,10 +237,9 @@ namespace CSharpImageLibrary.General
                     mip = ImageEngine.Resize(mip, scale);
                 }
             }
-            
 
-
-            return UsefulThings.WinForms.Imaging.CreateBitmap(mip.Data.ToArray(), mip.Width, mip.Height);
+            mip.BaseImage.Freeze();
+            return UsefulThings.WinForms.Imaging.CreateBitmap(mip.BaseImage);
         }
 
 
@@ -286,9 +267,8 @@ namespace CSharpImageLibrary.General
             
             int stride = 4 * mip.Width;
 
-            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(mip.Width, mip.Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, mip.Data.ToArray(), stride));
-            frame.Freeze();
-            return frame;
+            mip.BaseImage.Freeze();
+            return mip.BaseImage;
         }
     }
 }
