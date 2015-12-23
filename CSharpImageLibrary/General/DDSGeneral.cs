@@ -558,27 +558,11 @@ namespace CSharpImageLibrary.General
 
                     
 
-                    if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
-                    {
-                        // KFreon: Uncompressed, so can just read from stream.
-                        mipStream = new MemoryStream(mipLength * 4);
-                        compressed.Position = position;
-                        mipStream.ReadFrom(compressed, mipLength * 4);
-                    }
-                    else
+                    if (format.InternalFormat != ImageEngineFormat.DDS_ARGB)
                         mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
 
-                    MemoryStream ms = new MemoryStream((int)mipStream.Length);
-                    mipStream.Position = 0;
-                    ms.ReadFrom(mipStream, (int)mipStream.Length);
-                    StreamWriter fs = new StreamWriter("R:\\testing.txt");
-                    foreach (byte b in ms.ToArray())
-                        fs.WriteLine(b);
-
-                    fs.Close();
-
                     if (mipmap == null)
-                        mipmap = new MipMap(UsefulThings.WPF.Images.CreateWPFBitmap(mipStream));
+                        mipmap = new MipMap(UsefulThings.WPF.Images.CreateWPFBitmap(compressed));
                 }
 
                 //if (mipmap.Data.Length == 0)
