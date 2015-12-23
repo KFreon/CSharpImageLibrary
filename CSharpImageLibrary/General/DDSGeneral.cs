@@ -850,6 +850,26 @@ namespace CSharpImageLibrary.General
             return minIndex;
         }
 
+        private static int GetClosestValue(byte[] arr, byte c)
+        {
+            int min = int.MaxValue;
+            int index = 0;
+            int minIndex = 0;
+            for (int i = 0; i < arr.Length; i++)
+            {
+                int check = arr[i] - c;
+                check = (check ^ (check >> 7)) - (check >> 7);
+                if (check < min)
+                {
+                    min = check;
+                    minIndex = index;
+                }
+
+                index++;
+            }
+            return minIndex;
+        }
+
         /// <summary>
         /// Compresses single channel using Block Compression.
         /// </summary>
@@ -880,11 +900,11 @@ namespace CSharpImageLibrary.General
             // Compress Pixels
             ulong line = 0;
             count = channel;
-            List<byte> indicies = new List<byte>();
+            List<int> indicies = new List<int>();
             for (int i = 0; i < 16; i++)
             {
                 byte colour = texel[count];
-                byte index = (byte)Colours.IndexOfMin(c => Math.Abs(colour - c));
+                int index = GetClosestValue(Colours, colour);
                 indicies.Add(index);
                 line |= (ulong)index << (i * 3); 
                 count += 4;  // Only need 1 channel
