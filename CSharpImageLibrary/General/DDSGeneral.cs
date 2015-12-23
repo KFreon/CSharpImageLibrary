@@ -551,14 +551,7 @@ namespace CSharpImageLibrary.General
                     var mipStream = new MemoryStream(mipLength);
                     long position = compressed.Position;
 
-                    MemoryStream ms = new MemoryStream((int)compressed.Length);
-                    compressed.Position = 0;
-                    ms.ReadFrom(compressed, (int)compressed.Length);
-                    StreamWriter fs = new StreamWriter("R:\\testing1.txt");
-                    foreach (byte b in ms.ToArray())
-                        fs.WriteLine(b);
-
-                    fs.Close();
+                    
 
                     if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                     {
@@ -570,6 +563,14 @@ namespace CSharpImageLibrary.General
                     else
                         mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
 
+                    MemoryStream ms = new MemoryStream((int)mipStream.Length);
+                    mipStream.Position = 0;
+                    ms.ReadFrom(mipStream, (int)mipStream.Length);
+                    StreamWriter fs = new StreamWriter("R:\\testing1.txt");
+                    foreach (byte b in ms.ToArray())
+                        fs.WriteLine(b);
+
+                    fs.Close();
 
                     if (mipmap == null)
                         mipmap = new MipMap(mipStream, mipWidth, mipHeight);
