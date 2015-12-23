@@ -746,6 +746,8 @@ namespace CSharpImageLibrary.General
         internal static int[] CompressRGBFromTexel(byte[] texel, out int min, out int max)
         {
             int[] RGB = new int[16];
+            min = int.MaxValue;
+            max = int.MinValue;
             int count = 0;
             for (int i = 0; i < 64; i += 16) // texel row
             {
@@ -753,11 +755,15 @@ namespace CSharpImageLibrary.General
                 {
                     int pixelColour = BuildDXTColour(texel[i + j + 2], texel[i + j + 1], texel[i + j]);
                     RGB[count++] = pixelColour;
+                    if (pixelColour < min)
+                        min = pixelColour;
+                    if (pixelColour > max)
+                        max = pixelColour;
                 }
             }
 
-            min = RGB.Min();
-            max = RGB.Max();
+            /*min = RGB.Min();
+            max = RGB.Max();*/
 
             return RGB;
         }
@@ -814,13 +820,34 @@ namespace CSharpImageLibrary.General
                 for (int j = 0; j < 4; j++)
                 {
                     int colour = texelColours[i + j];
-                    int index = Colours.IndexOfMin(c => Math.Abs(colour - c));
+                    int index = GetClosestValue(Colours, colour);
+
                     fourIndicies |= (byte)(index << (2 * j));
                 }
                 CompressedBlock[i / 4 + 4] = fourIndicies;
             }
 
             return CompressedBlock;
+        }
+
+        private static int GetClosestValue(int[] arr, int c)
+        {
+            int min = int.MaxValue;
+            int index = 0;
+            int minIndex = 0;
+            for(int i = 0; i < arr.Length; i++)
+            {
+                int check = arr[i] - c;
+                check = (check ^ (check >> 31)) - (check >> 31);
+                if (check < min)
+                {
+                    min = check;
+                    minIndex = index;
+                }
+
+                index++;
+            }
+            return minIndex;
         }
 
         /// <summary>
