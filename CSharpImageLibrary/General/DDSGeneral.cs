@@ -556,6 +556,15 @@ namespace CSharpImageLibrary.General
                     var mipStream = new MemoryStream(mipLength);
                     long position = compressed.Position;
 
+                    MemoryStream ms = new MemoryStream((int)compressed.Length);
+                    compressed.Position = 0;
+                    ms.ReadFrom(compressed, (int)compressed.Length);
+                    StreamWriter fs = new StreamWriter("R:\\testing.txt");
+                    foreach (byte b in ms.ToArray())
+                        fs.WriteLine(b);
+
+                    fs.Close();
+
                     if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
                     {
                         // KFreon: Uncompressed, so can just read from stream.
