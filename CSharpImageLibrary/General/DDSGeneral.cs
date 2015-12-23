@@ -419,9 +419,8 @@ namespace CSharpImageLibrary.General
                             lock (mipmapData)
                             {
                                 int index = row * bitsPerScanline * 4;
-                                Console.WriteLine(index);
-                                for (int i = index; i < DecompressedLine.Length; i++)
-                                    DecompressedLine.Read(mipmapData, index, (int)DecompressedLine.Length);
+                                DecompressedLine.Position = 0;
+                                DecompressedLine.Read(mipmapData, index, (int)DecompressedLine.Length);
                             }
                         else
                             loopstate.Break();
