@@ -418,7 +418,8 @@ namespace CSharpImageLibrary.General
                         if (DecompressedLine != null)
                             lock (mipmapData)
                             {
-                                int index = rowr * bitsPerScanline * 4;
+                                int index = row * bitsPerScanline * 4;
+                                Console.WriteLine(index);
                                 for (int i = index; i < DecompressedLine.Length; i++)
                                     DecompressedLine.Read(mipmapData, index, (int)DecompressedLine.Length);
                             }
@@ -551,22 +552,22 @@ namespace CSharpImageLibrary.General
                     mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, format.BlockSize, mipOffset, DecompressBCBlock);
                 else
                 {
-                    int mipLength = mipWidth * mipHeight;
+                    int mipLength = mipWidth * mipHeight * 4;
 
-                    var mipStream = new MemoryStream(mipLength);
+                    var array = new byte[mipLength];
                     long position = compressed.Position;
 
-                    
-
-                    if (format.InternalFormat != ImageEngineFormat.DDS_ARGB)
+                    if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
+                    {
+                        compressed.Position = position;
+                        compressed.Read(array, 0, array.Length);
+                    }
+                    else
                         mipmap = ReadUncompressedMipMap(compressed, mipWidth, mipHeight, UncompressedPixelReader);
 
                     if (mipmap == null)
-                        mipmap = new MipMap(UsefulThings.WPF.Images.CreateWPFBitmap(compressed));
+                        mipmap = new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(array, mipWidth, mipHeight));
                 }
-
-                //if (mipmap.Data.Length == 0)
-                  //  break;  // why... --- KFreon: To handle weird cases where images are the wrong size.
 
                 MipMaps.Add(mipmap);
 
@@ -1337,7 +1338,6 @@ namespace CSharpImageLibrary.General
                             stream.CopyTo(Destination);
                         }
                     }
-                        
 
                     return true;
                 case ImageEngineFormat.DDS_A8L8:
