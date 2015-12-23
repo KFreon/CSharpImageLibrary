@@ -78,8 +78,8 @@ namespace CSharpImageLibrary.General
                     else
                     {
                         int width, height;
-                        var mipData = Win7.LoadImageWithCodecs(stream, out width, out height);
-                        var mip = new MipMap(mipData, width, height);
+                        var mipImage = Win7.LoadImageWithCodecs(stream, out width, out height);
+                        var mip = new MipMap(mipImage);
                         MipMaps = new List<MipMap>() { mip };
                     }
                     break;
@@ -129,20 +129,18 @@ namespace CSharpImageLibrary.General
                 // Get top mip and clear others.
                 var mip = MipMaps[0];
                 MipMaps.Clear();
-                MemoryStream output = null;
+                MipMap output = null;
 
                 int divisor = mip.Height < mip.Width ? mip.Width / desiredMaxDimension : mip.Height / desiredMaxDimension;
                 int newWidth = mip.Width == 1 ? 1 : mip.Width / divisor;
                 int newHeight = mip.Height == 1 ? 1 : mip.Height / divisor;
 
                 if (WindowsWICCodecsAvailable)
-                    output = Win8_10.Resize(mip, 1f / divisor).Data;
+                    output = Win8_10.Resize(mip, 1f / divisor);
                 else
-                    output = Win7.Resize(mip, newWidth, newHeight).Data;
-                
-                MipMap newmip = new MipMap(output, newWidth, newHeight);
+                    output = Win7.Resize(mip, newWidth, newHeight);
 
-                MipMaps.Add(newmip);
+                MipMaps.Add(output);
             }
             
 
@@ -203,9 +201,9 @@ namespace CSharpImageLibrary.General
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
                 if (WindowsWICCodecsAvailable)
-                    return Win8_10.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
+                    return Win8_10.SaveWithCodecs(mip.BaseImage, destination, format);
                 else
-                    return Win7.SaveWithCodecs(mip.Data, destination, format, mip.Width, mip.Height);
+                    return Win7.SaveWithCodecs(mip.BaseImage, destination, format, mip.Width, mip.Height);
             }
         }
 
@@ -257,9 +255,6 @@ namespace CSharpImageLibrary.General
 
             MemoryStream ms = new MemoryStream();
             Save(mipmaps, ImageEngineFormat.JPG, ms, false);
-
-            foreach (var mip in mipmaps)
-                mip.Data.Dispose();
 
             return ms;
         }

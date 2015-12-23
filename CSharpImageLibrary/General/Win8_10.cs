@@ -77,23 +77,17 @@ namespace CSharpImageLibrary.General
                         if (mipmap.Width > decodeWidth || mipmap.Height > decodeHeight)
                             continue;
 
-                    int width = 0;
-                    int height = 0;
-                    MemoryStream data = LoadMipMap(mipmap, out width, out height);
-                    mipmaps.Add(new MipMap(data, width, height));
+                    mipmaps.Add(new MipMap(mipmap));
                 }
 
                 if (mipmaps.Count == 0)
                 {
                     // KFreon: No mips, so resize largest
-                    int width = 0;
-                    int height = 0;
-                    MemoryStream data = LoadMipMap(decoder.Frames[0], out width, out height);
-                    var mip = new MipMap(data, width, height);
+                    var mip = new MipMap(decoder.Frames[0]);
 
                     // KFreon: Keep aspect ratio. Take smallest scaling value. 
-                    double hScale = decodeHeight != 0 ? decodeHeight * 1f / height : 1;
-                    double wScale = decodeWidth != 0 ? decodeWidth * 1f / width : 1;
+                    double hScale = decodeHeight != 0 ? decodeHeight * 1f / mip.Height : 1;
+                    double wScale = decodeWidth != 0 ? decodeWidth * 1f / mip.Width : 1;
 
                     double scale = hScale < wScale ? hScale : wScale;
 
@@ -108,10 +102,7 @@ namespace CSharpImageLibrary.General
                 if (bmp == null)
                     return null;
 
-                int width = 0;
-                int height = 0;
-                MemoryStream mipmap = LoadMipMap(bmp, out width, out height);
-                mipmaps.Add(new MipMap(mipmap, width, height));
+                mipmaps.Add(new MipMap(bmp));
             }
 
             return mipmaps;
@@ -211,31 +202,6 @@ namespace CSharpImageLibrary.General
 
 
         /// <summary>
-        /// Loads a WIC image as a mipmap.
-        /// </summary>
-        /// <param name="bmp">MipMap to load.</param>
-        /// <param name="Height">MipMap height</param>
-        /// <param name="Width">MipMap Width.</param>
-        /// <returns>BGRA pixel data as stream.</returns>
-        private static MemoryStream LoadMipMap(BitmapSource bmp, out int Width, out int Height)
-        {
-            Width = (int)Math.Round(bmp.Width);
-            Height = (int)Math.Round(bmp.Height);
-            MemoryStream stream = null;
-            try
-            {
-                stream = bmp.GetPixelsAsStream();
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.ToString());
-            }
-
-            return stream;
-        }
-
-
-        /// <summary>
         /// Loads useful information from an image file.
         /// </summary>
         /// <param name="imageFile">Path to image file.</param>
@@ -289,16 +255,13 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// Saves image using internal Codecs - DDS and mippables not supported.
         /// </summary>
-        /// <param name="pixels">BGRA pixels.</param>
+        /// <param name="image">Image as bmp source.</param>
         /// <param name="destination">Image stream to save to.</param>
         /// <param name="format">Destination image format.</param>
-        /// <param name="Width">Width of image.</param>
-        /// <param name="Height">Height of image.</param>
         /// <returns>True on success.</returns>
-        internal static bool SaveWithCodecs(MemoryStream pixels, Stream destination, ImageEngineFormat format, int Width, int Height)
+        internal static bool SaveWithCodecs(BitmapSource image, Stream destination, ImageEngineFormat format)
         {
-            int stride = 4 * Width;
-            BitmapFrame frame = BitmapFrame.Create(BitmapFrame.Create(Width, Height, 96, 96, PixelFormats.Bgra32, BitmapPalettes.Halftone256Transparent, pixels.ToArray(), stride));
+            BitmapFrame frame = BitmapFrame.Create(image);
 
             // KFreon: Choose encoder based on desired format.
             BitmapEncoder encoder = null;
@@ -325,22 +288,9 @@ namespace CSharpImageLibrary.General
 
         internal static MipMap Resize(MipMap mipMap, double scale)
         {
-            BitmapImage bmp = null;
-            using (MemoryStream ms = new MemoryStream())
-            {
-                if (!SaveWithCodecs(mipMap.Data, ms, ImageEngineFormat.PNG, mipMap.Width, mipMap.Height))
-                    return null;
-
-                bmp = UsefulThings.WPF.Images.CreateWPFBitmap(ms);
-            }
-
-            //bmp = UsefulThings.WPF.Images.ResizeImage(bmp, width, height);
-            bmp = (BitmapImage)UsefulThings.WPF.Images.ScaleImage(bmp, scale);
-            int bmpWidth = (int)bmp.Width;
-            int bmpHeight = (int)bmp.Height;
-
-            MemoryStream data = bmp.GetPixelsAsStream();
-            return new MipMap(data, bmpWidth, bmpHeight);
+            BitmapSource bmp = mipMap.BaseImage;
+            bmp = UsefulThings.WPF.Images.ScaleImage(bmp, scale);
+            return new MipMap(bmp);
         }
     }
 }

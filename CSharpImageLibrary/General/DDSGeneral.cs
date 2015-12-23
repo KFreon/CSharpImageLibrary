@@ -270,9 +270,13 @@ namespace CSharpImageLibrary.General
 
                 for (int m = 0; m < MipMaps.Count; m++)
                 {
-                    MemoryStream mipmap = MipMaps[m].Data;
-                    using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
-                        compressed.WriteTo(Destination);
+                    unsafe
+                    {
+                        UnmanagedMemoryStream mipmap = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), MipMaps[m].Width * MipMaps[m].Height * 4);
+                        using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
+                            compressed.WriteTo(Destination);
+                    }
+                    
                 }
                 return true;
             }
@@ -388,12 +392,14 @@ namespace CSharpImageLibrary.General
                     mipmap[count++] = bgra[3];
                 }
             }
-            return new MipMap(new MemoryStream(mipmap), mipWidth, mipHeight);
+
+            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(mipmap, mipWidth, mipHeight));
         }
 
         private static MipMap ReadCompressedMipMap(Stream compressed, int mipWidth, int mipHeight, int blockSize, long mipOffset, Func<Stream, List<byte[]>> DecompressBlock)
         {
-            MemoryStream mipmap = new MemoryStream(4 * mipWidth * mipHeight);
+            //MemoryStream mipmap = new MemoryStream(4 * mipWidth * mipHeight);
+            byte[] mipmapData = new byte[4 * mipWidth * mipHeight];
 
             // Loop over rows and columns NOT pixels
             int compressedLineSize = blockSize * mipWidth / 4;
@@ -401,9 +407,7 @@ namespace CSharpImageLibrary.General
             ParallelOptions po = new ParallelOptions();
             po.MaxDegreeOfParallelism = -1;
             int texelCount = mipHeight / 4;
-            if (texelCount == 0)
-                mipmap.Write(new byte[mipWidth * mipHeight * 4], 0, mipWidth * mipHeight * 4);
-            else
+            if (texelCount != 0)
             {
                 Parallel.For(0, texelCount, po, (rowr, loopstate) =>
                 //for (int rowr = 0; rowr < texelCount; rowr++)
@@ -412,10 +416,11 @@ namespace CSharpImageLibrary.General
                     using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, row, DecompressBlock))
                     {
                         if (DecompressedLine != null)
-                            lock (mipmap)
+                            lock (mipmapData)
                             {
-                                mipmap.Position = rowr * bitsPerScanline * 4;
-                                DecompressedLine.WriteTo(mipmap);
+                                int index = rowr * bitsPerScanline * 4;
+                                for (int i = index; i < DecompressedLine.Length; i++)
+                                    DecompressedLine.Read(mipmapData, index, (int)DecompressedLine.Length);
                             }
                         else
                             loopstate.Break();
@@ -423,7 +428,7 @@ namespace CSharpImageLibrary.General
                 });
             }
 
-            return new MipMap(mipmap, mipWidth, mipHeight);
+            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(mipmapData, mipWidth, mipHeight));
         }
 
         private static List<byte> ReadG8_L8Pixel(Stream fileData)
@@ -563,11 +568,11 @@ namespace CSharpImageLibrary.General
 
 
                     if (mipmap == null)
-                        mipmap = new MipMap(mipStream, mipWidth, mipHeight);
+                        mipmap = new MipMap(UsefulThings.WPF.Images.CreateWPFBitmap(mipStream));
                 }
 
-                if (mipmap.Data.Length == 0)
-                    break;  // why... --- KFreon: To handle weird cases where images are the wrong size.
+                //if (mipmap.Data.Length == 0)
+                  //  break;  // why... --- KFreon: To handle weird cases where images are the wrong size.
 
                 MipMaps.Add(mipmap);
 
@@ -1330,8 +1335,12 @@ namespace CSharpImageLibrary.General
                     using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
                         DDSGeneral.Write_DDS_Header(header, writer);
 
-                    for (int m = 0; m < MipMaps.Count; m++)
-                        MipMaps[m].Data.WriteTo(Destination);
+                    unsafe
+                    {
+                        for (int m = 0; m < MipMaps.Count; m++)
+                            new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height).CopyTo(Destination);
+                    }
+                        
 
                     return true;
                 case ImageEngineFormat.DDS_A8L8:

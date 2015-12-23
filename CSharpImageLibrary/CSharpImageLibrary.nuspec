@@ -9,7 +9,7 @@
     <projectUrl>https://github.com/KFreon/CSharpImageLibrary</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Loads and saves standard images including DDS (all sorts and weird ones like V8U8, G8, etc. See full list on github.)</description>
-    <releaseNotes>Fixed big bug with 8 bit channels.</releaseNotes>
+    <releaseNotes>Fixed quality and transparency. SLOW THOUGH.</releaseNotes>
     <copyright>Copyright KFreon 2015</copyright>
     <tags>Image DDS</tags>
   </metadata>
