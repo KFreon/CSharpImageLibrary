@@ -1338,7 +1338,10 @@ namespace CSharpImageLibrary.General
                     unsafe
                     {
                         for (int m = 0; m < MipMaps.Count; m++)
-                            new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height).CopyTo(Destination);
+                        {
+                            var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height);
+                            stream.CopyTo(Destination);
+                        }
                     }
                         
 
