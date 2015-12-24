@@ -194,17 +194,31 @@ namespace CSharpImageLibrary.General
             if (!GenerateMips)
                 DestroyMipMaps(newMips);
 
+            bool result = false;
             if (temp.InternalFormat.ToString().Contains("DDS"))
-                return DDSGeneral.Save(newMips, destination, temp);
+                result = DDSGeneral.Save(newMips, destination, temp);
             else
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
                 if (WindowsWICCodecsAvailable)
-                    return Win8_10.SaveWithCodecs(mip.BaseImage, destination, format);
+                    result = Win8_10.SaveWithCodecs(mip.BaseImage, destination, format);
                 else
-                    return Win7.SaveWithCodecs(mip.BaseImage, destination, format, mip.Width, mip.Height);
+                    result = Win7.SaveWithCodecs(mip.BaseImage, destination, format, mip.Width, mip.Height);
             }
+
+
+            // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+            destination.WriteByte(0);
+
+            return result;
         }
 
         
