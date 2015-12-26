@@ -18,7 +18,10 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// Pixels in bitmap image.
         /// </summary>
-        public WriteableBitmap BaseImage { get; set; }
+        public WriteableBitmap BaseImage
+        {
+            get; set;
+        }
 
         /// <summary>
         /// Mipmap width.
@@ -31,18 +34,6 @@ namespace CSharpImageLibrary.General
         public int Height { get; set; }
 
 
-        /// <summary>
-        /// Creates a mipmap from stream at a given width and height.
-        /// </summary>
-        /// <param name="data">Raw pixels.</param>
-        /// <param name="width">Mipmap width.</param>
-        /// <param name="height">Mipmap height.</param>
-        /*public MipMap(MemoryStream data, int width, int height)
-        {
-            Data = data;
-            Width = UsefulThings.General.RoundToNearestPowerOfTwo(width);
-            Height = UsefulThings.General.RoundToNearestPowerOfTwo(height);
-        }*/
 
         public MipMap(BitmapSource baseimage)
         {

@@ -156,7 +156,7 @@ namespace CSharpImageLibrary.General
         /// <returns>True on success.</returns>
         internal static bool SaveWithCodecs(BitmapSource img, Stream destination, ImageEngineFormat format, int Width, int Height)
         {
-            Bitmap bmp = UsefulThings.WinForms.Imaging.CreateBitmap(img);
+            Bitmap bmp = UsefulThings.WinForms.Imaging.CreateBitmap(img, false);
 
             // KFreon: Get format
             System.Drawing.Imaging.ImageFormat imgformat = null;
@@ -183,7 +183,7 @@ namespace CSharpImageLibrary.General
 
         internal static MipMap Resize(MipMap mipMap, int width, int height)
         {
-            Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.BaseImage);
+            Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.BaseImage, false);
             bmp = UsefulThings.WinForms.Imaging.resizeImage(bmp, new Size(width, height));
             
             byte[] data = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap((Bitmap)bmp);

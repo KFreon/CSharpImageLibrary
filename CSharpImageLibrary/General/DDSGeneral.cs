@@ -546,6 +546,11 @@ namespace CSharpImageLibrary.General
             // KFreon: Read mipmaps
             for (int m = 0; m < estimatedMips; m++)
             {
+                // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
+                if (mipWidth <= 0 || mipHeight <= 0)
+                    break;
+
+
                 MipMap mipmap = null;
                 if (format.IsBlockCompressed)
                     mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, format.BlockSize, mipOffset, DecompressBCBlock);

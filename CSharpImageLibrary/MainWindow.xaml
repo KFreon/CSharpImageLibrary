@@ -28,7 +28,10 @@
             <ColumnDefinition Width="563*" x:Name="SaveColumn"/>
         </Grid.ColumnDefinitions>
         <DockPanel Grid.Column="0">
-            <Button x:Name="LoadButton" DockPanel.Dock="Bottom" Content="Load" VerticalAlignment="Bottom" HorizontalAlignment="Center" Click="LoadButton_Click" FontSize="16"/>
+            <Grid DockPanel.Dock="Bottom">
+                <Button x:Name="LoadButton" Content="Load" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Click="LoadButton_Click" FontSize="16"/>
+                <CheckBox Content="Show alpha channel" IsChecked="{Binding ShowAlphaPreviews, Mode=TwoWay}" HorizontalAlignment="Left" VerticalContentAlignment="Center" DockPanel.Dock="Bottom"/>
+            </Grid>
             <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
                 <Button x:Name="OpenConvertPanel" HorizontalAlignment="Right" Content="Convert >>" DockPanel.Dock="Right" VerticalAlignment="Bottom" Click="OpenConvertPanel_Click"/>
                 <StackPanel DockPanel.Dock="Bottom" Height="68" VerticalAlignment="Bottom" IsHitTestVisible="False">

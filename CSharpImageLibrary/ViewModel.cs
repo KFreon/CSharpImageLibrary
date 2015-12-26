@@ -20,6 +20,19 @@ namespace CSharpImageLibrary
         public ImageEngineImage img { get; set; }
         Stopwatch stopwatch = new Stopwatch();
 
+        bool showAlphaPreviews = false;
+        public bool ShowAlphaPreviews
+        {
+            get
+            {
+                return showAlphaPreviews;
+            }
+            set
+            {
+                SetProperty(ref showAlphaPreviews, value);
+                UpdatePreviews();
+            }
+        }
 
         long saveElapsed = -1;
         public long SaveElapsedTime
@@ -36,6 +49,8 @@ namespace CSharpImageLibrary
 
         #region Original Image Properties
         public MTRangedObservableCollection<BitmapSource> Previews { get; set; }
+        List<BitmapSource> AlphaPreviews { get; set; }
+        List<BitmapSource> NonAlphaPreviews { get; set; }
 
         public int NumMipMaps
         {
@@ -213,15 +228,16 @@ namespace CSharpImageLibrary
 
             string formatString = ImageFormats.GetExtensionOfFormat(newformat);
 
-            newpath = Path.GetDirectoryName(ImagePath) + "\\" + Path.GetFileNameWithoutExtension(ImagePath) + "." +
+            string basepath = Path.GetDirectoryName(ImagePath) + "\\" + Path.GetFileNameWithoutExtension(ImagePath) + "." +
                 (newformat == ImageEngineFormat.Unknown ? Path.GetExtension(ImagePath) : formatString);
 
+            newpath = basepath;
 
             // KFreon: Check that path is not already taken
             while (!acceptablePath)
             {
                 if (File.Exists(newpath))
-                    newpath = Path.Combine(Path.GetDirectoryName(newpath),  Path.GetFileNameWithoutExtension(newpath) + "_" + count++ + Path.GetExtension(newpath));
+                    newpath = Path.Combine(Path.GetDirectoryName(basepath),  Path.GetFileNameWithoutExtension(basepath) + "_" + count++ + Path.GetExtension(basepath));
                 else
                     acceptablePath = true;
             }
@@ -262,14 +278,19 @@ namespace CSharpImageLibrary
             {
                 ImageEngineImage fullimage = new ImageEngineImage(path);
 
-                List<BitmapSource> fullPreviews = new List<BitmapSource>();
+                List<BitmapSource> alphas = new List<BitmapSource>();
+                List<BitmapSource> nonalphas= new List<BitmapSource>();
 
                 for (int i = 0; i < fullimage.NumMipMaps; i++)
-                    fullPreviews.Add(fullimage.GeneratePreview(i));
+                {
+                    alphas.Add(fullimage.GeneratePreview(i, true));
+                    nonalphas.Add(fullimage.GeneratePreview(i, false));
+                }
 
                 List<object> bits = new List<object>();
                 bits.Add(fullimage);
-                bits.Add(fullPreviews);
+                bits.Add(alphas);
+                bits.Add(nonalphas);
                 return bits;
             });
             ////////////////////////////////////////////////////////////////////////////////////////
@@ -299,7 +320,7 @@ namespace CSharpImageLibrary
             Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
             stopwatch.Restart();
 
-            Previews.Add(img.GeneratePreview(0));
+            Previews.Add(img.GeneratePreview(0, ShowAlphaPreviews));
             MipIndex = 0;
 
             stopwatch.Stop();
@@ -318,9 +339,13 @@ namespace CSharpImageLibrary
             List<object> FullImageObjects = await fullLoadingTask;
             double? oldMipWidth = MipWidth;
             img = (ImageEngineImage)FullImageObjects[0];
-            Previews.Clear();
-            Previews.AddRange((List<BitmapSource>)FullImageObjects[1]);
 
+            AlphaPreviews = (List<BitmapSource>)FullImageObjects[1];
+            NonAlphaPreviews = (List<BitmapSource>)FullImageObjects[2];
+
+            UpdatePreviews();
+
+            // KFreon: Set selected mip index
             for (int i = 0; i < Previews.Count; i++)
             {
                 if (Previews[i].Width == oldMipWidth)
@@ -337,6 +362,16 @@ namespace CSharpImageLibrary
             OnPropertyChanged(nameof(MipIndex));
             OnPropertyChanged(nameof(MipWidth));
             OnPropertyChanged(nameof(MipHeight));
+        }
+
+        private void UpdatePreviews()
+        {
+            if (AlphaPreviews == null || NonAlphaPreviews == null)
+                return; 
+
+            Previews.Clear();
+            Previews.AddRange(ShowAlphaPreviews ? AlphaPreviews : NonAlphaPreviews);
+            OnPropertyChanged(nameof(Preview));
         }
 
         internal bool Save()

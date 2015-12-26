@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -194,15 +195,26 @@ namespace CSharpImageLibrary.General
         }
 
         /// <summary>
-        /// TEMPORARY. Gets a preview.
+        /// Gets a preview.
         /// </summary>
+        /// <param name="ShowAlpha">False = Creates a preview without alpha.</param>
+        /// <param name="index">Index of mipmap to preview.</param>
         /// <returns>BitmapImage of image.</returns>
-        public BitmapSource GeneratePreview(int index)
+        public BitmapSource GeneratePreview(int index, bool ShowAlpha)
         {
             // KFreon: NOTE: Seems to ignore alpha - pretty much ultra useful since premultiplying alpha often removes most of the image
             MipMap mip = MipMaps[index];
 
-            return mip.BaseImage;
+            BitmapSource bmp;
+            if (ShowAlpha)
+                bmp = mip.BaseImage;
+            else
+                bmp = new FormatConvertedBitmap(mip.BaseImage, System.Windows.Media.PixelFormats.Bgr32, null, 0);
+
+            if (!bmp.IsFrozen)
+                bmp.Freeze();
+
+            return bmp;
         }
 
 
@@ -220,8 +232,10 @@ namespace CSharpImageLibrary.General
         /// Creates a GDI+ bitmap from largest mipmap.
         /// Does NOT require that image remains alive.
         /// </summary>
+        /// <param name="ignoreAlpha">True = Previews image without alpha channel.</param>
+        /// <param name="maxDimension">Largest size to display.</param>
         /// <returns>GDI+ bitmap of largest mipmap.</returns>
-        public System.Drawing.Bitmap GetGDIBitmap(int maxDimension = 0)
+        public System.Drawing.Bitmap GetGDIBitmap(bool ignoreAlpha, int maxDimension = 0)
         {
             MipMap mip = MipMaps[0];
 
@@ -239,9 +253,30 @@ namespace CSharpImageLibrary.General
             }
 
             mip.BaseImage.Freeze();
-            return UsefulThings.WinForms.Imaging.CreateBitmap(mip.BaseImage);
+            return UsefulThings.WinForms.Imaging.CreateBitmap(mip.BaseImage, ignoreAlpha);
         }
 
+
+        /// <summary>
+        /// Scales top mipmap and DESTROYS ALL OTHERS.
+        /// </summary>
+        /// <param name="DesiredDimension">Desired size of image.</param>
+        public void Resize(int DesiredDimension)
+        {
+            double scale = (double)DesiredDimension / (double)MipMaps[0].Width;  // TODO Do height too?
+            Resize(scale);
+        }
+
+
+        /// <summary>
+        /// Scales top mipmap and DESTROYS ALL OTHERS.
+        /// </summary>
+        /// <param name="scale">Scaling factor. </param>
+        public void Resize(double scale)
+        {
+            MipMaps[0] = ImageEngine.Resize(MipMaps[0], scale);
+            MipMaps.RemoveRange(1, NumMipMaps - 1);
+        }
 
         /// <summary>
         /// Creates a WPF Bitmap from largest mipmap.
