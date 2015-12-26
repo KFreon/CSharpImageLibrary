@@ -258,7 +258,6 @@ namespace CSharpImageLibrary
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
                     img.Save(stream, SaveFormat, false, 1024);  // KFreon: Smaller size for quicker loading
-                    //img.Save("R:\\hue.jpg", saveFormat, false, 1024);
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
