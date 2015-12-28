@@ -290,15 +290,23 @@ namespace CSharpImageLibrary.General
         internal static MipMap Resize(MipMap mipMap, double scale)
         {
             WriteableBitmap bmp = mipMap.BaseImage;
+            int origWidth = bmp.PixelWidth;
+            int origHeight = bmp.PixelHeight;
+            int origStride = origWidth * 4;
+            int newWidth = (int)(origWidth * scale);
+            int newHeight = (int)(origHeight * scale);
+            int newStride = newWidth * 4;
+
+
 
             // Pull out alpha since scaling with alpha doesn't work properly for some reason
-            WriteableBitmap alpha = new WriteableBitmap(bmp.PixelWidth, bmp.PixelHeight, 96, 96, PixelFormats.Bgr32, null);
+            WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
             unsafe
             {
                 int index = 3;
                 byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
                 byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
-                for(int i = 0; i < alpha.PixelWidth * alpha.PixelHeight * 3; i += 4)
+                for(int i = 0; i < origWidth * origHeight * 3; i += 4)
                 {
                     // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
                     alphaPtr[i] = mainPtr[index];
@@ -324,7 +332,7 @@ namespace CSharpImageLibrary.General
             {
                 byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
                 byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
-                for (int i = 3; i < resized.PixelWidth * resized.PixelHeight * 4; i += 4)
+                for (int i = 3; i < newStride; i += 4)
                     resizedPtr[i] = alphaPtr[i];
             }
 
