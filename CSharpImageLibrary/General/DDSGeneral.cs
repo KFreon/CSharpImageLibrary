@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UsefulThings;
 
@@ -692,16 +693,16 @@ namespace CSharpImageLibrary.General
         {
             int[] DecompressedBlock = new int[16];
 
-            ushort min;
-            ushort max;
+            ushort colour1;
+            ushort colour2;
             byte[] pixels;
             int[] Colours;
             using (BinaryReader reader = new BinaryReader(compressed, Encoding.Default, true))
             {
                 // Read min max colours
-                min = (ushort)reader.ReadInt16();
-                max = (ushort)reader.ReadInt16();
-                Colours = BuildRGBPalette(min, max, isDXT1, ReadDXTColour(min), ReadDXTColour(max));
+                colour1 = (ushort)reader.ReadInt16();
+                colour2 = (ushort)reader.ReadInt16();
+                Colours = BuildRGBPalette(colour1, colour2, isDXT1, ReadDXTColour(colour1), ReadDXTColour(colour2));
 
                 // Decompress pixels
                 pixels = reader.ReadBytes(4);
@@ -734,7 +735,7 @@ namespace CSharpImageLibrary.General
                 red[i] = rgb[0];
                 green[i] = rgb[1];
                 blue[i] = rgb[2];
-                alpha[i] = 0xFF;//(byte)(colour == 0 && max > min ? 0x0 : 0xFF);
+                alpha[i] = 0xFF;
             }
             return DecompressedChannels;
         }
@@ -742,18 +743,9 @@ namespace CSharpImageLibrary.General
 
 
         #region Block Compression
-        /// <summary>
-        /// Compresses RGB texel into DXT colours.
-        /// </summary>
-        /// <param name="texel">4x4 Texel to compress.</param>
-        /// <param name="min">Minimum Colour value.</param>
-        /// <param name="max">Maximum Colour value.</param>
-        /// <returns>DXT Colours</returns>
-        internal static int[] CompressRGBFromTexel(byte[] texel, out int min, out int max, out byte[] rgbmin, out byte[] rgbmax)
+        internal static int[] CompressRGBFromTexel(byte[] texel, out byte[] rgbmin, out byte[] rgbmax)
         {
             int[] RGB = new int[16];
-            min = int.MaxValue;
-            max = int.MinValue;
             int count = 0;
             byte rmin = 255, gmin = 255, bmin = 255;
             byte rmax = 0, gmax = 0, bmax = 0;
@@ -783,10 +775,6 @@ namespace CSharpImageLibrary.General
 
                     int pixelColour = BuildDXTColour(r, g, b);
                     RGB[count++] = pixelColour;
-                    if (pixelColour < min)
-                        min = pixelColour;
-                    else if (pixelColour > max)
-                        max = pixelColour;
                 }
             }
 
@@ -807,11 +795,12 @@ namespace CSharpImageLibrary.General
             byte[] CompressedBlock = new byte[8];
 
             // Get Min and Max colours
-            int min = 0;
-            int max = 0;
-            byte[] rgbmin = null;
-            byte[] rgbmax = null;
-            int[] texelColours = CompressRGBFromTexel(texel, out min, out max, out rgbmin, out rgbmax);
+            byte[] rgbmin;
+            byte[] rgbmax;
+            int[] texelColours = CompressRGBFromTexel(texel, out rgbmin, out rgbmax);
+
+            int min = BuildDXTColour(rgbmin[0], rgbmin[1], rgbmin[2]);
+            int max = BuildDXTColour(rgbmax[0], rgbmax[1], rgbmax[2]);
 
             if (isDXT1)
             {
@@ -828,19 +817,24 @@ namespace CSharpImageLibrary.General
                 }
             }
 
-
             // Write colours
             byte[] colour0 = BitConverter.GetBytes(min);
             byte[] colour1 = BitConverter.GetBytes(max);
 
-            CompressedBlock[0] = colour0[0];
+            /*CompressedBlock[0] = colour0[0];
             CompressedBlock[1] = colour0[1];
 
             CompressedBlock[2] = colour1[0];
-            CompressedBlock[3] = colour1[1];
+            CompressedBlock[3] = colour1[1];*/
+
+            CompressedBlock[0] = colour1[0];   // Max is the first one
+            CompressedBlock[1] = colour1[1];
+
+            CompressedBlock[2] = colour0[0];
+            CompressedBlock[3] = colour0[1];
 
             // Build interpolated palette
-            int[] Colours = BuildRGBPalette(min, max, isDXT1, rgbmin, rgbmax);
+            int[] Colours = BuildRGBPalette(max, min, isDXT1, rgbmin, rgbmax);
 
             // Compress pixels
             for (int i = 0; i < 16; i += 4) // each "row" of 4 pixels is a single byte
@@ -850,19 +844,16 @@ namespace CSharpImageLibrary.General
                 {
                     int colour = texelColours[i + j];
                     int index = GetClosestValue(Colours, colour);
-
-                    /*var orig = ReadDXTColour(colour);
-                    var nearest = ReadDXTColour(Colours[index]);
-                    Debug.WriteLine($"orig: {orig[0]} {orig[1]} {orig[2]}");
-                    Debug.WriteLine($"nearest: {nearest[0]} {nearest[1]} {nearest[2]}");*/
-                    Debug.WriteLine($"colour: {Colours[index]}");
-
                     fourIndicies |= (byte)(index << (2 * j));
+
+                    var rgb = ReadDXTColour(Colours[index]);
+                    Debug.Write($"{rgb[0]} {rgb[1]} {rgb[2]}   ");
                 }
-                CompressedBlock[i / 4 + 4] = fourIndicies;
                 Debug.WriteLine("");
+                CompressedBlock[i / 4 + 4] = fourIndicies;
             }
-            Debug.WriteLine("=============");
+            Debug.WriteLine("");
+            var test = DecompressBC1Block(new MemoryStream(CompressedBlock));
             return CompressedBlock;
         }
 
@@ -1021,7 +1012,12 @@ namespace CSharpImageLibrary.General
             byte g1 = GreenDecompressionConstants[g];
             byte b1 = RedBlueDecompressionConstants[b];
 
-            return new byte[3] { r1, g1, b1 };
+            byte testr = (byte)(r << 3);
+            byte testg = (byte)(g << 2);
+            byte testb = (byte)(b << 3);
+
+            //return new byte[3] { r1, g1, b1 };
+            return new byte[] { testr, testg, testb };
         }
 
 
@@ -1038,11 +1034,15 @@ namespace CSharpImageLibrary.General
             /*byte r1 = (byte)(Math.Round(r * 31f / 255f));
             byte g1 = (byte)(Math.Round(g * 63f / 255f));
             byte b1 = (byte)(Math.Round(b * 31f / 255f));*/
-            byte r1 = RedBlueCompressionConstants[r];
+            /*byte r1 = RedBlueCompressionConstants[r];
             byte g1 = GreenCompressionConstants[g];
-            byte b1 = RedBlueCompressionConstants[b];
+            byte b1 = RedBlueCompressionConstants[b];*/
 
-            return r1 << 11 | g1 << 5 | b1;
+            byte r1 = (byte)(r >> 3);
+            byte g1 = (byte)(g >> 2);
+            byte b1 = (byte)(b >> 3);
+
+            return (r1 << 11) | (g1 << 5) | (b1);
         }
 
 
@@ -1087,35 +1087,52 @@ namespace CSharpImageLibrary.General
 
         
 
-        /// <summary>
-        /// Builds a palette for RGB channels (DXT only)
-        /// </summary>
-        /// <param name="min">First main colour. Often actually the minumum.</param>
-        /// <param name="max">Second main colour. Often actually the maximum.</param>
-        /// <param name="isDXT1">true = use DXT1 format (1 bit alpha)</param>
-        /// <returns>4 Colours as integers.</returns>
-        public static int[] BuildRGBPalette(int min, int max, bool isDXT1, byte[] rgbmin, byte[] rgbmax)
+        
+        public static int[] BuildRGBPalette(int max, int min, bool isDXT1, byte[] rgbmin, byte[] rgbmax)
         {
             int[] Colours = new int[4];
-            Colours[0] = min;
-            Colours[1] = max;
+
+            byte rmin = rgbmin[0];
+            byte gmin = rgbmin[1];
+            byte bmin = rgbmin[2];
+
+            byte rmax = rgbmax[0];
+            byte gmax = rgbmax[1];
+            byte bmax = rgbmax[2];
+
+            Colours[1] = min;
+            Colours[0] = max;
+
+            var mins = ReadDXTColour(min);
+            var maxs = ReadDXTColour(max);
 
 
             // Interpolate other 2 colours
-            if (min > max || isDXT1)
-            {
-                var r = (byte)(2 / 3f * rgbmin[0] + 1 / 3f * rgbmax[0]);
-                var g = (byte)(2 / 3f * rgbmin[1] + 1 / 3f * rgbmax[1]);
-                var b = (byte)(2 / 3f * rgbmin[2] + 1 / 3f * rgbmax[2]);
+            /*if (min > max || isDXT1)
+            {*/
+                /*var r1 = (byte)(2 / 3f * rmin + 1 / 3f * rmax);
+                var g1 = (byte)(2 / 3f * gmin + 1 / 3f * gmax);
+                var b1 = (byte)(2 / 3f * bmin + 1 / 3f * bmax);
 
-                Colours[2] = BuildDXTColour(r, g, b);
+                var r2 = (byte)(1 / 3f * rmin + 2 / 3f * rmax);
+                var g2 = (byte)(1 / 3f * gmin + 2 / 3f * gmax);
+                var b2 = (byte)(1 / 3f * bmin + 2 / 3f * bmax);*/
 
-                r = (byte)(1 / 3f * rgbmin[0] + 2 / 3f * rgbmax[0]);
-                g = (byte)(1 / 3f * rgbmin[1] + 2 / 3f * rgbmax[1]);
-                b = (byte)(1 / 3f * rgbmin[2] + 2 / 3f * rgbmax[2]);
+                var r1 = (byte)(2 / 3f * mins[0] + 1 / 3f * maxs[0]);
+                var g1 = (byte)(2 / 3f * mins[1] + 1 / 3f * maxs[1]);
+                var b1 = (byte)(2 / 3f * mins[2] + 1 / 3f * maxs[2]);
 
-                Colours[3] = BuildDXTColour(r, g, b);
-            }
+                var r2 = (byte)(1 / 3f * mins[0] + 2 / 3f * maxs[0]);
+                var g2 = (byte)(1 / 3f * mins[1] + 2 / 3f * maxs[1]);
+                var b2 = (byte)(1 / 3f * mins[2] + 2 / 3f * maxs[2]);
+
+                Colours[2] = BuildDXTColour(r1, g1, b1);
+                Colours[3] = BuildDXTColour(r2, g2, b2);
+
+                /*Colours[2] = (int)(2 / 3f * min + 1 / 3f * max);
+                Colours[3] = (int)(1 / 3f * min + 2 / 3f * max);*/
+                
+            /*}
             else
             {
                 // KFreon: Only for dxt1
@@ -1125,7 +1142,7 @@ namespace CSharpImageLibrary.General
             
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;
-            }
+            }*/
             return Colours;
         }
         #endregion Palette/Colour
