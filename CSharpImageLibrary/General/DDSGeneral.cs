@@ -747,6 +747,10 @@ namespace CSharpImageLibrary.General
             int rgbmin = int.MaxValue;
             int rgbmax = int.MinValue;
 
+            byte rmin = 255, gmin = 255, bmin = 255;
+            byte rmax = 0, gmax = 0, bmax = 0;
+
+
 
             for (int i = 0; i < 64; i += 16) // texel row
             {
@@ -761,18 +765,23 @@ namespace CSharpImageLibrary.General
                     if (diff < rgbmin)
                     {
                         rgbmin = diff;
-                        min = BuildDXTColour(r, g, b);
+                        rmin = r;
+                        gmin = g;
+                        bmin = b;
                     }
                     else if (diff > rgbmax)
                     {
                         rgbmax = diff;
-                        max = BuildDXTColour(r, g, b);
+                        rmax = r;
+                        gmax = g;
+                        bmax = b;
                     }
 
                     RGB[count++] = BuildDXTColour(r, g, b);
                 }
             }
-
+            min = BuildDXTColour(rmin, gmin, bmin);
+            max = BuildDXTColour(rmax, gmax, bmax);
             return RGB;
         }
 
@@ -830,6 +839,12 @@ namespace CSharpImageLibrary.General
             // Build interpolated palette
             int[] Colours = BuildRGBPalette(Colour0, Colour1, isDXT1);
 
+            List<byte[]> PaletteColours = new List<byte[]>(4);
+            PaletteColours.Add(ReadDXTColour(Colours[0]));
+            PaletteColours.Add(ReadDXTColour(Colours[1]));
+            PaletteColours.Add(ReadDXTColour(Colours[2]));
+            PaletteColours.Add(ReadDXTColour(Colours[3]));
+
             // Compress pixels
             for (int i = 0; i < 16; i += 4) // each "row" of 4 pixels is a single byte
             {
@@ -837,29 +852,24 @@ namespace CSharpImageLibrary.General
                 for (int j = 0; j < 4; j++)
                 {
                     int colour = texelColours[i + j];
-                    int index = GetClosestValue(Colours, colour);
-                    var rgb = ReadDXTColour(Colours[index]);
-                    var orig = ReadDXTColour(colour);
-                    //Debug.WriteLine($"{i}, {j} = colour: {orig[0]} {orig[1]} {orig[2]}     Nearest: {rgb[0]} {rgb[1]} {rgb[2]}");
+                    int index = GetClosestValue(PaletteColours, colour);
                     fourIndicies |= (byte)(index << (2 * j));
                 }
                 CompressedBlock[i / 4 + 4] = fourIndicies;
             }
-            //Debug.WriteLine("");
-            //var test = DecompressBC1Block(new MemoryStream(CompressedBlock));
 
             return CompressedBlock;
         }
 
-        private static int GetClosestValue(int[] arr, int c)
+        private static int GetClosestValue(List<byte[]> PaletteColours, int c)
         {
             int test = int.MaxValue;
             int closest = 0;
             var rgbs = ReadDXTColour(c);
 
-            for (int i = 0; i < arr.Length; i++)
+            for (int i = 0; i < PaletteColours.Count; i++)
             {
-                var temprgbs = ReadDXTColour(arr[i]);
+                var temprgbs = PaletteColours[i];
                 int diff_r = rgbs[0] - temprgbs[0];
                 int diff_g = rgbs[1] - temprgbs[1];
                 int diff_b = rgbs[2] - temprgbs[2];
@@ -873,25 +883,6 @@ namespace CSharpImageLibrary.General
             }
 
             return closest;
-
-
-            //TODO
-            int min = int.MaxValue;
-            int index = 0;
-            int minIndex = 0;
-            for(int i = 0; i < arr.Length; i++)
-            {
-                int check = arr[i] - c;
-                check = (check ^ (check >> 31)) - (check >> 31);
-                if (check < min)
-                {
-                    min = check;
-                    minIndex = index;
-                }
-
-                index++;
-            }
-            return minIndex;
         }
 
         private static int GetClosestValue(byte[] arr, byte c)
@@ -1024,7 +1015,7 @@ namespace CSharpImageLibrary.General
             byte testr = (byte)(r << 3);
             byte testg = (byte)(g << 2);
             byte testb = (byte)(b << 3);
-            return new byte[] { testr, testg, testb };
+            return new byte[3] { testr, testg, testb };
         }
 
 
