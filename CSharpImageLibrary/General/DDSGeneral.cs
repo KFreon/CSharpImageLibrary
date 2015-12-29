@@ -309,8 +309,8 @@ namespace CSharpImageLibrary.General
             {
                 ParallelOptions po = new ParallelOptions();
                 po.MaxDegreeOfParallelism = -1;
-                //Parallel.For(0, texelCount, po, (rowr, loopstate) =>
-                for (int rowr=0;rowr<texelCount;rowr++)
+                Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                //for (int rowr=0;rowr<texelCount;rowr++)
                 {
                     int rowIndex = rowr;
                     using (var compressedLine = WriteMipLine(pixelData, Width, Height, bitsPerScanLine, isBCd, rowIndex, PixelWriter))
@@ -327,10 +327,10 @@ namespace CSharpImageLibrary.General
                                 compressedLine.WriteTo(mipmap);
                             }
                         }
-                        /*else
-                            loopstate.Break();*/
+                        else
+                            loopstate.Break();
                     }
-                }//);
+                });
             }
 
             return mipmap;
