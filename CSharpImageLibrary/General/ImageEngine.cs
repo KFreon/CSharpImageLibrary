@@ -34,7 +34,7 @@ namespace CSharpImageLibrary.General
         static ImageEngine()
         {
             WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
-            WindowsWICCodecsAvailable = false;
+            //WindowsWICCodecsAvailable = false;
         }
 
 

@@ -209,6 +209,8 @@ namespace CSharpImageLibrary
 
         private void ThisWindow_Drop(object sender, DragEventArgs e)
         {
+            ChangeConvertPanel(false);
+            isOpen = false;
             string[] filenames = (string[])(e.Data.GetData(DataFormats.FileDrop));
             
             // Only loads the first image dropped. Can only have the one image loaded, so why would people drop more than one...

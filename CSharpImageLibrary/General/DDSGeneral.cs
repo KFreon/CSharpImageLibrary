@@ -16,12 +16,6 @@ namespace CSharpImageLibrary.General
     /// </summary>
     public static class DDSGeneral
     {
-        private readonly static byte[] RedBlueDecompressionConstants = new byte[] { 0, 8, 16, 25, 33, 41, 49, 58, 66, 74, 82, 90, 99, 107, 115, 123, 132, 140, 148, 156, 165, 173, 181, 189, 197, 206, 214, 222, 230, 239, 247, 255, 7, 15, 24, 32, 40, 48, 57, 65, 73, 81, 89, 98, 106, 114, 122, 131, 139, 147, 155, 164, 172, 180, 188, 196, 205, 213, 221, 229, 238, 246, 254, 6, 14, 23, 31, 39, 47, 56, 64, 72, 80, 88, 97, 105, 113, 121, 130, 138, 146, 154, 163, 171, 179, 187, 195, 204, 212, 220, 228, 237, 245, 253, 5, 13, 22, 30, 38, 46, 55, 63, 71, 79, 87, 96, 104, 112, 120, 129, 137, 145, 153, 162, 170, 178, 186, 194, 203, 211, 219, 227, 236, 244, 252, 4, 12, 21, 29, 37, 45, 54, 62, 70, 78, 86, 95, 103, 111, 119, 128, 136, 144, 152, 161, 169, 177, 185, 193, 202, 210, 218, 226, 235, 243, 251, 3, 11, 20, 28, 36, 44, 53, 61, 69, 77, 85, 94, 102, 110, 118, 127, 135, 143, 151, 160, 168, 176, 184, 192, 201, 209, 217, 225, 234, 242, 250, 2, 10, 19, 27, 35, 43, 52, 60, 68, 76, 84, 93, 101, 109, 117, 126, 134, 142, 150, 159, 167, 175, 183, 191, 200, 208, 216, 224, 233, 241, 249, 1, 9, 18, 26, 34, 42, 51, 59, 67, 75, 83, 92, 100, 108, 116, 125, 133, 141, 149, 158, 166, 174, 182, 190, 199, 207, 215, 223, 232, 240, 248, 0, 8, 17, 25, 33, 41, 50 };
-        private readonly static byte[] GreenDecompressionConstants = new byte[] { 0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93, 97, 101, 105, 109, 113, 117, 121, 125, 130, 134, 138, 142, 146, 150, 154, 158, 162, 166, 170, 174, 178, 182, 186, 190, 194, 198, 202, 206, 210, 215, 219, 223, 227, 231, 235, 239, 243, 247, 251, 255, 3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 129, 133, 137, 141, 145, 149, 153, 157, 161, 165, 169, 173, 177, 181, 185, 189, 193, 197, 201, 205, 209, 214, 218, 222, 226, 230, 234, 238, 242, 246, 250, 254, 2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 43, 47, 51, 55, 59, 63, 67, 71, 75, 79, 83, 87, 91, 95, 99, 103, 107, 111, 115, 119, 123, 128, 132, 136, 140, 144, 148, 152, 156, 160, 164, 168, 172, 176, 180, 184, 188, 192, 196, 200, 204, 208, 213, 217, 221, 225, 229, 233, 237, 241, 245, 249, 253, 1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 42, 46, 50, 54, 58, 62, 66, 70, 74, 78, 82, 86, 90, 94, 98, 102, 106, 110, 114, 118, 122, 127, 131, 135, 139, 143, 147, 151, 155, 159, 163, 167, 171, 175, 179, 183, 187, 191, 195, 199, 203, 207, 212, 216, 220, 224, 228, 232, 236, 240, 244, 248, 252, 0, 4, 8 };
-        private readonly static byte[] RedBlueCompressionConstants = new byte[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 15, 15, 15, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 21, 21, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 27, 27, 27, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 31, 31, 31, 31, 31 };
-        private readonly static byte[] GreenCompressionConstants = new byte[] { 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 21, 22, 22, 22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29, 29, 29, 30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32, 33, 33, 33, 33, 34, 34, 34, 34, 35, 35, 35, 35, 36, 36, 36, 36, 37, 37, 37, 37, 38, 38, 38, 38, 39, 39, 39, 39, 40, 40, 40, 40, 41, 41, 41, 41, 42, 42, 42, 42, 42, 43, 43, 43, 43, 44, 44, 44, 44, 45, 45, 45, 45, 46, 46, 46, 46, 47, 47, 47, 47, 48, 48, 48, 48, 49, 49, 49, 49, 50, 50, 50, 50, 51, 51, 51, 51, 52, 52, 52, 52, 53, 53, 53, 53, 54, 54, 54, 54, 55, 55, 55, 55, 56, 56, 56, 56, 57, 57, 57, 57, 58, 58, 58, 58, 59, 59, 59, 59, 60, 60, 60, 60, 61, 61, 61, 61, 62, 62, 62, 62, 63, 63, 63 };
-
-
         #region Header Stuff
         /// <summary>
         /// Reads DDS header from file.
@@ -693,16 +687,16 @@ namespace CSharpImageLibrary.General
         {
             int[] DecompressedBlock = new int[16];
 
+            ushort colour0;
             ushort colour1;
-            ushort colour2;
             byte[] pixels;
             int[] Colours;
             using (BinaryReader reader = new BinaryReader(compressed, Encoding.Default, true))
             {
                 // Read min max colours
+                colour0 = (ushort)reader.ReadInt16();
                 colour1 = (ushort)reader.ReadInt16();
-                colour2 = (ushort)reader.ReadInt16();
-                Colours = BuildRGBPalette(colour1, colour2, isDXT1, ReadDXTColour(colour1), ReadDXTColour(colour2));
+                Colours = BuildRGBPalette(colour0, colour1, isDXT1);
 
                 // Decompress pixels
                 pixels = reader.ReadBytes(4);
@@ -743,12 +737,16 @@ namespace CSharpImageLibrary.General
 
 
         #region Block Compression
-        internal static int[] CompressRGBFromTexel(byte[] texel, out byte[] rgbmin, out byte[] rgbmax)
+        internal static int[] CompressRGBFromTexel(byte[] texel, out int min, out int max)
         {
             int[] RGB = new int[16];
             int count = 0;
-            byte rmin = 255, gmin = 255, bmin = 255;
-            byte rmax = 0, gmax = 0, bmax = 0;
+            min = int.MaxValue;
+            max = int.MinValue;
+
+            int rgbmin = int.MaxValue;
+            int rgbmax = int.MinValue;
+
 
             for (int i = 0; i < 64; i += 16) // texel row
             {
@@ -758,28 +756,23 @@ namespace CSharpImageLibrary.General
                     byte g = texel[i + j + 1];
                     byte b = texel[i + j];
 
-                    if (r > rmax)
-                        rmax = r;
-                    else if (r < rmin)
-                        rmin = r;
+                    int diff = r * r + g * g + b * b;
 
-                    if (g > gmax)
-                        gmax = g;
-                    else if (g < gmin)
-                        gmin = g;
+                    if (diff < rgbmin)
+                    {
+                        rgbmin = diff;
+                        min = BuildDXTColour(r, g, b);
+                    }
+                    else if (diff > rgbmax)
+                    {
+                        rgbmax = diff;
+                        max = BuildDXTColour(r, g, b);
+                    }
 
-                    if (b > bmax)
-                        bmax = b;
-                    else if (b < bmin)
-                        bmin = b;
-
-                    int pixelColour = BuildDXTColour(r, g, b);
-                    RGB[count++] = pixelColour;
+                    RGB[count++] = BuildDXTColour(r, g, b);
                 }
             }
 
-            rgbmin = new byte[] { rmin, gmin, bmin };
-            rgbmax = new byte[] { rmax, gmax, bmax };
             return RGB;
         }
 
@@ -795,46 +788,47 @@ namespace CSharpImageLibrary.General
             byte[] CompressedBlock = new byte[8];
 
             // Get Min and Max colours
-            byte[] rgbmin;
-            byte[] rgbmax;
-            int[] texelColours = CompressRGBFromTexel(texel, out rgbmin, out rgbmax);
+            int min, max;
+            int[] texelColours = CompressRGBFromTexel(texel, out min, out max);
 
-            int min = BuildDXTColour(rgbmin[0], rgbmin[1], rgbmin[2]);
-            int max = BuildDXTColour(rgbmax[0], rgbmax[1], rgbmax[2]);
-
+            bool hasAlpha = false;
             if (isDXT1)
             {
                 // KFreon: Check alpha (every 4 bytes)
                 for (int i = 3; i < texel.Length; i += 4)
                 {
-                    if (texel[i] != 0xFF) // Alpha found, switch min and max
+                    if (texel[i] != 0xFF)
                     {
-                        int temp = min;
-                        min = max;
-                        max = temp;
+                        hasAlpha = true;
                         break;
                     }
                 }
             }
 
+            // Default layout
+            int Colour0 = max;
+            int Colour1 = min;
+
+            // Swap layout if alpha channel present - adjusts palette construction later
+            if (hasAlpha)
+            {
+                Colour0 = min;
+                Colour1 = max;
+            }
+
             // Write colours
-            byte[] colour0 = BitConverter.GetBytes(min);
-            byte[] colour1 = BitConverter.GetBytes(max);
+            byte[] bits0 = BitConverter.GetBytes(Colour0);
+            byte[] bits1 = BitConverter.GetBytes(Colour1);
 
-            /*CompressedBlock[0] = colour0[0];
-            CompressedBlock[1] = colour0[1];
 
-            CompressedBlock[2] = colour1[0];
-            CompressedBlock[3] = colour1[1];*/
+            CompressedBlock[0] = bits0[0];
+            CompressedBlock[1] = bits0[1];
 
-            CompressedBlock[0] = colour1[0];   // Max is the first one
-            CompressedBlock[1] = colour1[1];
-
-            CompressedBlock[2] = colour0[0];
-            CompressedBlock[3] = colour0[1];
+            CompressedBlock[2] = bits1[0];
+            CompressedBlock[3] = bits1[1];
 
             // Build interpolated palette
-            int[] Colours = BuildRGBPalette(max, min, isDXT1, rgbmin, rgbmax);
+            int[] Colours = BuildRGBPalette(Colour0, Colour1, isDXT1);
 
             // Compress pixels
             for (int i = 0; i < 16; i += 4) // each "row" of 4 pixels is a single byte
@@ -844,21 +838,44 @@ namespace CSharpImageLibrary.General
                 {
                     int colour = texelColours[i + j];
                     int index = GetClosestValue(Colours, colour);
-                    fourIndicies |= (byte)(index << (2 * j));
-
                     var rgb = ReadDXTColour(Colours[index]);
-                    Debug.Write($"{rgb[0]} {rgb[1]} {rgb[2]}   ");
+                    var orig = ReadDXTColour(colour);
+                    //Debug.WriteLine($"{i}, {j} = colour: {orig[0]} {orig[1]} {orig[2]}     Nearest: {rgb[0]} {rgb[1]} {rgb[2]}");
+                    fourIndicies |= (byte)(index << (2 * j));
                 }
-                Debug.WriteLine("");
                 CompressedBlock[i / 4 + 4] = fourIndicies;
             }
-            Debug.WriteLine("");
-            var test = DecompressBC1Block(new MemoryStream(CompressedBlock));
+            //Debug.WriteLine("");
+            //var test = DecompressBC1Block(new MemoryStream(CompressedBlock));
+
             return CompressedBlock;
         }
 
         private static int GetClosestValue(int[] arr, int c)
         {
+            int test = int.MaxValue;
+            int closest = 0;
+            var rgbs = ReadDXTColour(c);
+
+            for (int i = 0; i < arr.Length; i++)
+            {
+                var temprgbs = ReadDXTColour(arr[i]);
+                int diff_r = rgbs[0] - temprgbs[0];
+                int diff_g = rgbs[1] - temprgbs[1];
+                int diff_b = rgbs[2] - temprgbs[2];
+                int diff = diff_r * diff_r + diff_g * diff_g + diff_b * diff_b;
+
+                if (diff < test)
+                {
+                    closest = i;
+                    test = diff;
+                }
+            }
+
+            return closest;
+
+
+            //TODO
             int min = int.MaxValue;
             int index = 0;
             int minIndex = 0;
@@ -1004,19 +1021,9 @@ namespace CSharpImageLibrary.General
 
 
             // Expand to 8 bit data
-            /*byte r1 = (byte)Math.Round(r * 255f / 31f);
-            byte g1 = (byte)Math.Round(g * 255f / 63f);
-            byte b1 = (byte)Math.Round(b * 255f / 31f);*/
-
-            byte r1 = RedBlueDecompressionConstants[r];
-            byte g1 = GreenDecompressionConstants[g];
-            byte b1 = RedBlueDecompressionConstants[b];
-
             byte testr = (byte)(r << 3);
             byte testg = (byte)(g << 2);
             byte testb = (byte)(b << 3);
-
-            //return new byte[3] { r1, g1, b1 };
             return new byte[] { testr, testg, testb };
         }
 
@@ -1031,13 +1038,6 @@ namespace CSharpImageLibrary.General
         private static int BuildDXTColour(byte r, byte g, byte b)
         {
             // Compress to 5:6:5
-            /*byte r1 = (byte)(Math.Round(r * 31f / 255f));
-            byte g1 = (byte)(Math.Round(g * 63f / 255f));
-            byte b1 = (byte)(Math.Round(b * 31f / 255f));*/
-            /*byte r1 = RedBlueCompressionConstants[r];
-            byte g1 = GreenCompressionConstants[g];
-            byte b1 = RedBlueCompressionConstants[b];*/
-
             byte r1 = (byte)(r >> 3);
             byte g1 = (byte)(g >> 2);
             byte b1 = (byte)(b >> 3);
@@ -1088,61 +1088,41 @@ namespace CSharpImageLibrary.General
         
 
         
-        public static int[] BuildRGBPalette(int max, int min, bool isDXT1, byte[] rgbmin, byte[] rgbmax)
+        public static int[] BuildRGBPalette(int Colour0, int Colour1, bool isDXT1)
         {
             int[] Colours = new int[4];
 
-            byte rmin = rgbmin[0];
-            byte gmin = rgbmin[1];
-            byte bmin = rgbmin[2];
+            Colours[0] = Colour0;
+            Colours[1] = Colour1;
 
-            byte rmax = rgbmax[0];
-            byte gmax = rgbmax[1];
-            byte bmax = rgbmax[2];
-
-            Colours[1] = min;
-            Colours[0] = max;
-
-            var mins = ReadDXTColour(min);
-            var maxs = ReadDXTColour(max);
+            var Colour0s = ReadDXTColour(Colour0);
+            var Colour1s = ReadDXTColour(Colour1);
 
 
             // Interpolate other 2 colours
-            /*if (min > max || isDXT1)
-            {*/
-                /*var r1 = (byte)(2 / 3f * rmin + 1 / 3f * rmax);
-                var g1 = (byte)(2 / 3f * gmin + 1 / 3f * gmax);
-                var b1 = (byte)(2 / 3f * bmin + 1 / 3f * bmax);
+            if (Colour0 > Colour1)
+            {
+                var r1 = (byte)(2f / 3f * Colour0s[0] + 1f / 3f * Colour1s[0]);
+                var g1 = (byte)(2f / 3f * Colour0s[1] + 1f / 3f * Colour1s[1]);
+                var b1 = (byte)(2f / 3f * Colour0s[2] + 1f / 3f * Colour1s[2]);
 
-                var r2 = (byte)(1 / 3f * rmin + 2 / 3f * rmax);
-                var g2 = (byte)(1 / 3f * gmin + 2 / 3f * gmax);
-                var b2 = (byte)(1 / 3f * bmin + 2 / 3f * bmax);*/
-
-                var r1 = (byte)(2 / 3f * mins[0] + 1 / 3f * maxs[0]);
-                var g1 = (byte)(2 / 3f * mins[1] + 1 / 3f * maxs[1]);
-                var b1 = (byte)(2 / 3f * mins[2] + 1 / 3f * maxs[2]);
-
-                var r2 = (byte)(1 / 3f * mins[0] + 2 / 3f * maxs[0]);
-                var g2 = (byte)(1 / 3f * mins[1] + 2 / 3f * maxs[1]);
-                var b2 = (byte)(1 / 3f * mins[2] + 2 / 3f * maxs[2]);
+                var r2 = (byte)(1f / 3f * Colour0s[0] + 2f / 3f * Colour1s[0]);
+                var g2 = (byte)(1f / 3f * Colour0s[1] + 2f / 3f * Colour1s[1]);
+                var b2 = (byte)(1f / 3f * Colour0s[2] + 2f / 3f * Colour1s[2]);
 
                 Colours[2] = BuildDXTColour(r1, g1, b1);
                 Colours[3] = BuildDXTColour(r2, g2, b2);
-
-                /*Colours[2] = (int)(2 / 3f * min + 1 / 3f * max);
-                Colours[3] = (int)(1 / 3f * min + 2 / 3f * max);*/
-                
-            /*}
+            }
             else
             {
                 // KFreon: Only for dxt1
-                var r = (byte)(1 / 2f * rgbmin[0] + 1 / 2f * rgbmax[0]);
-                var g = (byte)(1 / 2f * rgbmin[1] + 1 / 2f * rgbmax[1]);
-                var b = (byte)(1 / 2f * rgbmin[2] + 1 / 2f * rgbmax[2]);
+                var r = (byte)(1 / 2f * Colour0s[0] + 1 / 2f * Colour1s[0]);
+                var g = (byte)(1 / 2f * Colour0s[1] + 1 / 2f * Colour1s[1]);
+                var b = (byte)(1 / 2f * Colour0s[2] + 1 / 2f * Colour1s[2]);
             
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;
-            }*/
+            }
             return Colours;
         }
         #endregion Palette/Colour
