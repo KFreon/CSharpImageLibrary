@@ -470,6 +470,14 @@ namespace CSharpImageLibrary.General
             int estimatedMips = header.dwMipMapCount == 0 ? EstimateNumMipMaps(mipWidth, mipHeight) + 1 : header.dwMipMapCount;
             long mipOffset = 128;  // Includes header
 
+            // KFreon: Check number of mips is correct. i.e. For some reason, some images have more data than they should, so it can't detected it.
+            // So I check the number of mips possibly contained in the image based on size and compare it to how many it should have.
+            // Any image that is too short to contain all the mips it should loads only the top mip and ignores the "others".
+            int testest = 0;
+            var test = EnsureMipInImage(compressed.Length, mipWidth, mipHeight, 4, format, out testest, estimatedMips);  // Update number of mips too
+            if (test == -1)
+                estimatedMips = 1;
+
             // KFreon: Decide which mip to start loading at - going to just load a few mipmaps if asked instead of loading all, then choosing later. That's slow.
             if (desiredMaxDimension != 0 && estimatedMips > 1)
             {
@@ -542,7 +550,7 @@ namespace CSharpImageLibrary.General
             for (int m = 0; m < estimatedMips; m++)
             {
                 // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
-                if (mipWidth <= 0 || mipHeight <= 0)
+                if (mipWidth <= 0 || mipHeight <= 0 || compressed.Position >= compressed.Length)  // Needed cos it doesn't throw when reading past the end for some reason.
                     break;
 
 
@@ -1131,7 +1139,7 @@ namespace CSharpImageLibrary.General
             return (int)Math.Log(limitingDimension, 2); // There's 10 mipmaps besides the main top one.
         }
 
-        internal static long EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMaxDimension, Format format, out int numMipMaps)
+        internal static long EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMaxDimension, Format format, out int numMipMaps, double mipIndex = -1)
         {
             // TODO: Is the other estimated mips required?
 
@@ -1150,7 +1158,7 @@ namespace CSharpImageLibrary.General
 
             int dependentDimension = mainWidth > mainHeight ? mainWidth : mainHeight;
 
-            var mipIndex = Math.Log((dependentDimension / desiredMaxDimension), 2) - 1;
+            mipIndex = mipIndex == -1 ? Math.Log((dependentDimension / desiredMaxDimension), 2) - 1 : mipIndex;
             if (mipIndex < -1)
                 throw new InvalidDataException($"Invalid dimensions for mipmapping. Got desired: {desiredMaxDimension} and dependent: {dependentDimension}");
 
