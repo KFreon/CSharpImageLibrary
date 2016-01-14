@@ -271,7 +271,6 @@ namespace CSharpImageLibrary.General
                         using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
                             compressed.WriteTo(Destination);
                     }
-                    
                 }
                 return true;
             }
@@ -415,7 +414,7 @@ namespace CSharpImageLibrary.General
                             {
                                 int index = row * bitsPerScanline * 4;
                                 DecompressedLine.Position = 0;
-                                DecompressedLine.Read(mipmapData, index, (int)DecompressedLine.Length);
+                                DecompressedLine.Read(mipmapData, index, DecompressedLine.Length > mipmapData.Length ? mipmapData.Length : (int)DecompressedLine.Length);
                             }
                         else
                             loopstate.Break();
@@ -696,18 +695,40 @@ namespace CSharpImageLibrary.General
 
             ushort colour0;
             ushort colour1;
-            byte[] pixels;
-            int[] Colours;
-            using (BinaryReader reader = new BinaryReader(compressed, Encoding.Default, true))
-            {
-                // Read min max colours
-                colour0 = (ushort)reader.ReadInt16();
-                colour1 = (ushort)reader.ReadInt16();
-                Colours = BuildRGBPalette(colour0, colour1, isDXT1);
+            byte[] pixels = null;
+            int[] Colours = null;
 
-                // Decompress pixels
-                pixels = reader.ReadBytes(4);
+            List<byte[]> DecompressedChannels = new List<byte[]>(4);
+            byte[] red = new byte[16];
+            byte[] green = new byte[16];
+            byte[] blue = new byte[16];
+            byte[] alpha = new byte[16];
+            DecompressedChannels.Add(blue);
+            DecompressedChannels.Add(green);
+            DecompressedChannels.Add(red);
+            DecompressedChannels.Add(alpha);
+
+            try
+            {
+                using (BinaryReader reader = new BinaryReader(compressed, Encoding.Default, true))
+                {
+                    // Read min max colours
+                    colour0 = (ushort)reader.ReadInt16();
+                    colour1 = (ushort)reader.ReadInt16();
+                    Colours = BuildRGBPalette(colour0, colour1, isDXT1);
+
+                    // Decompress pixels
+                    pixels = reader.ReadBytes(4);
+                }
             }
+            catch (EndOfStreamException e)
+            {
+                Console.WriteLine();
+                // It's due to weird shaped mips at really low resolution. Like 2x4
+
+                return DecompressedChannels;
+            }
+            
 
                 
             for (int i = 0; i < 16; i += 4)
@@ -719,16 +740,6 @@ namespace CSharpImageLibrary.General
             }
 
             // KFreon: Decode into BGRA
-            List<byte[]> DecompressedChannels = new List<byte[]>(4);
-            byte[] red = new byte[16];
-            byte[] green = new byte[16];
-            byte[] blue = new byte[16];
-            byte[] alpha = new byte[16];
-            DecompressedChannels.Add(blue);
-            DecompressedChannels.Add(green);
-            DecompressedChannels.Add(red);
-            DecompressedChannels.Add(alpha);
-
             for (int i = 0; i < 16; i++)
             {
                 int colour = DecompressedBlock[i];
@@ -965,6 +976,39 @@ namespace CSharpImageLibrary.General
 
 
         /// <summary>
+        /// Ensures all Mipmaps are generated in MipMaps.
+        /// </summary>
+        /// <param name="MipMaps">MipMaps to check.</param>
+        /// <returns>Number of mipmaps present in MipMaps.</returns>
+        internal static int BuildMipMaps(List<MipMap> MipMaps)
+        {
+            if (MipMaps?.Count == 0)
+                return 0;
+
+            MipMap currentMip = MipMaps[0];
+
+            // KFreon: Check if mips required
+            int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
+            //if ((estimatedMips + 1) == MipMaps.Count)  // +1 is cos estimatedMips is the number required to be generated, not the total
+            if (MipMaps.Count > 1)
+                return estimatedMips;
+
+            // KFreon: Half dimensions until one == 1.
+            MipMap[] newmips = new MipMap[estimatedMips - 1];   // -1 as 1x1 mip doesn't seem to work, thus not included in count
+            Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
+            {
+                int index = item;
+                MipMap newmip;
+                newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index));
+                newmips[index - 1] = newmip;
+            });
+            MipMaps.AddRange(newmips);
+
+            return estimatedMips;
+        }
+
+
+        /// <summary>
         /// Gets 4x4 texel block from stream.
         /// </summary>
         /// <param name="pixelData">Image pixels.</param>
@@ -1192,7 +1236,7 @@ namespace CSharpImageLibrary.General
             numMipMaps = EstimateNumMipMaps((int)(mainWidth / newDimDivisor), (int)(mainHeight / newDimDivisor));
 
             // Should only occur when an image has no mips
-            if (streamLength <= requiredOffset)
+            if (streamLength < requiredOffset)
                 return -1;
 
             return requiredOffset;

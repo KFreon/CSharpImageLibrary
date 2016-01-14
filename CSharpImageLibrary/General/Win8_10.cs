@@ -222,38 +222,6 @@ namespace CSharpImageLibrary.General
 
 
         /// <summary>
-        /// Ensures all Mipmaps are generated in MipMaps.
-        /// </summary>
-        /// <param name="MipMaps">MipMaps to check.</param>
-        /// <returns>Number of mipmaps present in MipMaps.</returns>
-        internal static int BuildMipMaps(List<MipMap> MipMaps)
-        {
-            if (MipMaps?.Count == 0)
-                return 0;
-
-            MipMap currentMip = MipMaps[0];
-
-            // KFreon: Check if mips required
-            int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
-            //if ((estimatedMips + 1) == MipMaps.Count)  // +1 is cos estimatedMips is the number required to be generated, not the total
-            if (MipMaps.Count > 1)
-                return estimatedMips;
-
-            // KFreon: Half dimensions until one == 1.
-            MipMap[] newmips = new MipMap[estimatedMips - 1];   // -1 as 1x1 mip doesn't seem to work, thus not included in count
-            Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
-            {
-                int index = item;
-                MipMap newmip = Resize(currentMip, 1f / Math.Pow(2, index));
-                newmips[index - 1] = newmip;
-            });
-            MipMaps.AddRange(newmips);
-
-            return estimatedMips;
-        }
-
-
-        /// <summary>
         /// Saves image using internal Codecs - DDS and mippables not supported.
         /// </summary>
         /// <param name="image">Image as bmp source.</param>

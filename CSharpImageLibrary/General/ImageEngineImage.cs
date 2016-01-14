@@ -299,9 +299,6 @@ namespace CSharpImageLibrary.General
                     mip = ImageEngine.Resize(mip, scale);
                 }
             }
-            
-            int stride = 4 * mip.Width;
-
             mip.BaseImage.Freeze();
             return mip.BaseImage;
         }

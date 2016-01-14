@@ -106,45 +106,6 @@ namespace CSharpImageLibrary.General
 
 
         /// <summary>
-        /// Build mipmaps for image by scaling.
-        /// </summary>
-        /// <param name="MipMaps">Mipmaps to build with. Often only top mipmap exists, with others populated by this function.</param>
-        /// <returns>Number of mipmaps in image.</returns>
-        internal static int BuildMipMaps(List<MipMap> MipMaps)
-        {
-            if (MipMaps?.Count == 0)
-                return 0;
-
-            MipMap currentMip = MipMaps[0];
-
-            // KFreon: Check if mips required
-            int estimatedMips = DDSGeneral.EstimateNumMipMaps(currentMip.Width, currentMip.Height);
-            if ((estimatedMips + 1) == MipMaps.Count)  // +1 is cos estimatedMips is the number required to generate, not the total
-                return estimatedMips;
-
-            // KFreon: Setup dimensions
-            int determiningDimension = currentMip.Height > currentMip.Width ? currentMip.Width : currentMip.Height;
-            int newWidth = currentMip.Width;
-            int newHeight = currentMip.Height;
-
-            // KFreon: Half image dimensions until one dimension == 1
-            MipMap[] newmips = new MipMap[estimatedMips];
-            Parallel.For(0, estimatedMips, item =>
-            {
-                int index = item;
-                newWidth /= 2;
-                newHeight /= 2;
-
-                var mip = Resize(currentMip, newWidth, newHeight);
-                newmips[index] = mip;
-            });
-
-            MipMaps.AddRange(newmips);
-            return estimatedMips;
-        }
-
-
-        /// <summary>
         /// Save using Windows 7- GDI+ Codecs to stream.
         /// Only single level images supported.
         /// </summary>
@@ -181,8 +142,11 @@ namespace CSharpImageLibrary.General
             return true;
         }
 
-        internal static MipMap Resize(MipMap mipMap, int width, int height)
+        internal static MipMap Resize(MipMap mipMap, double scale)
         {
+            int width = (int)(mipMap.Width * scale);
+            int height = (int)(mipMap.Height * scale);
+
             Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.BaseImage, false);
             bmp = UsefulThings.WinForms.Imaging.resizeImage(bmp, new Size(width, height));
             

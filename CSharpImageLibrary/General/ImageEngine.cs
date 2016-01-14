@@ -132,13 +132,7 @@ namespace CSharpImageLibrary.General
                 MipMap output = null;
 
                 int divisor = mip.Height < mip.Width ? mip.Width / desiredMaxDimension : mip.Height / desiredMaxDimension;
-                int newWidth = mip.Width == 1 ? 1 : mip.Width / divisor;
-                int newHeight = mip.Height == 1 ? 1 : mip.Height / divisor;
-
-                if (WindowsWICCodecsAvailable)
-                    output = Win8_10.Resize(mip, 1f / divisor);
-                else
-                    output = Win7.Resize(mip, newWidth, newHeight);
+                Resize(mip, 1f / divisor);
 
                 MipMaps.Add(output);
             }
@@ -165,7 +159,7 @@ namespace CSharpImageLibrary.General
             List<MipMap> newMips = new List<MipMap>(MipMaps);
 
             if (temp.IsMippable && GenerateMips)
-                BuildMipMaps(newMips);
+                DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
             if (maxDimension != 0 && maxDimension < newMips[0].Width && maxDimension < newMips[0].Height) 
@@ -228,21 +222,7 @@ namespace CSharpImageLibrary.General
             if (WindowsWICCodecsAvailable)
                 return Win8_10.Resize(mipMap, scale);
             else
-                return Win7.Resize(mipMap, (int)(mipMap.Width * scale), (int)(mipMap.Height * scale));
-        }
-
-
-        /// <summary>
-        /// Builds mipmaps. Expects at least one mipmap in given list.
-        /// </summary>
-        /// <param name="MipMaps">List of Mipmaps, both existing and generated.</param>
-        /// <returns>Number of mips present (generated or otherwise)</returns>
-        private static int BuildMipMaps(List<MipMap> MipMaps)
-        {
-            if (WindowsWICCodecsAvailable)
-                return Win8_10.BuildMipMaps(MipMaps);
-            else
-                return Win7.BuildMipMaps(MipMaps);
+                return Win7.Resize(mipMap, scale);
         }
 
 
