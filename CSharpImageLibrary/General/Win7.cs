@@ -141,18 +141,5 @@ namespace CSharpImageLibrary.General
 
             return true;
         }
-
-        internal static MipMap Resize(MipMap mipMap, double scale)
-        {
-            int width = (int)(mipMap.Width * scale);
-            int height = (int)(mipMap.Height * scale);
-
-            Image bmp = UsefulThings.WinForms.Imaging.CreateBitmap(mipMap.BaseImage, false);
-            bmp = UsefulThings.WinForms.Imaging.resizeImage(bmp, new Size(width, height));
-            
-            byte[] data = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap((Bitmap)bmp);
-            bmp.Dispose();
-            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(data, width, height));
-        }
     }
 }

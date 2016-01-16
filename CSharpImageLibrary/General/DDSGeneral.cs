@@ -616,33 +616,41 @@ namespace CSharpImageLibrary.General
                 // KFreon: Read texels in row
                 for (int column = 0; column < mipWidth; column += 4)
                 {
-                    // decompress 
-                    List<byte[]> decompressed = DecompressBlock(CompressedLine);
-                    byte[] blue = decompressed[0];
-                    byte[] green = decompressed[1];
-                    byte[] red = decompressed[2];
-                    byte[] alpha = decompressed[3];
-
-
-                    // Write texel
-                    int TopLeft = column * bitsPerPixel;// + rowIndex * 4 * bitsPerScanLine;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
-                    DecompressedLine.Seek(TopLeft, SeekOrigin.Begin);
-                    byte[] block = new byte[16];
-                    for (int i = 0; i < 16; i += 4)
+                    try
                     {
-                        // BGRA
-                        for (int j = 0; j < 16; j += 4)
-                        {
-                            block[j] = blue[i + (j >> 2)];
-                            block[j + 1] = green[i + (j >> 2)];
-                            block[j + 2] = red[i + (j >> 2)];
-                            block[j + 3] = alpha[i + (j >> 2)];
-                        }
-                        DecompressedLine.Write(block, 0, 16);
+                        // decompress 
+                        List<byte[]> decompressed = DecompressBlock(CompressedLine);
+                        byte[] blue = decompressed[0];
+                        byte[] green = decompressed[1];
+                        byte[] red = decompressed[2];
+                        byte[] alpha = decompressed[3];
 
-                        // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
-                        DecompressedLine.Seek(bitsPerScanLine - bitsPerPixel * 4, SeekOrigin.Current);
+
+                        // Write texel
+                        int TopLeft = column * bitsPerPixel;// + rowIndex * 4 * bitsPerScanLine;  // Top left corner of texel IN BYTES (i.e. expanded pixels to 4 channels)
+                        DecompressedLine.Seek(TopLeft, SeekOrigin.Begin);
+                        byte[] block = new byte[16];
+                        for (int i = 0; i < 16; i += 4)
+                        {
+                            // BGRA
+                            for (int j = 0; j < 16; j += 4)
+                            {
+                                block[j] = blue[i + (j >> 2)];
+                                block[j + 1] = green[i + (j >> 2)];
+                                block[j + 2] = red[i + (j >> 2)];
+                                block[j + 3] = alpha[i + (j >> 2)];
+                            }
+                            DecompressedLine.Write(block, 0, 16);
+
+                            // Go one line of pixels down (bitsPerScanLine), then to the left side of the texel (4 pixels back from where it finished)
+                            DecompressedLine.Seek(bitsPerScanLine - bitsPerPixel * 4, SeekOrigin.Current);
+                        }
                     }
+                    catch
+                    {
+                        // Ignore. Most likely error reading smaller mips that don't behave
+                    }
+                    
                 }
             }
                 
@@ -995,13 +1003,14 @@ namespace CSharpImageLibrary.General
 
             // KFreon: Half dimensions until one == 1.
             MipMap[] newmips = new MipMap[estimatedMips - 1];   // -1 as 1x1 mip doesn't seem to work, thus not included in count
-            Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
+            //Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
+            for (int item = 1; item < estimatedMips; item++)
             {
                 int index = item;
                 MipMap newmip;
                 newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index));
                 newmips[index - 1] = newmip;
-            });
+            }//);
             MipMaps.AddRange(newmips);
 
             return estimatedMips;
