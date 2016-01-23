@@ -34,7 +34,7 @@ namespace CSharpImageLibrary.General
         static ImageEngine()
         {
             WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
-            WindowsWICCodecsAvailable = false;
+            //WindowsWICCodecsAvailable = false;
         }
 
 
@@ -132,7 +132,7 @@ namespace CSharpImageLibrary.General
                 MipMap output = null;
 
                 int divisor = mip.Height < mip.Width ? mip.Width / desiredMaxDimension : mip.Height / desiredMaxDimension;
-                Resize(mip, 1f / divisor);
+                output = Resize(mip, 1f / divisor);
 
                 MipMaps.Add(output);
             }
@@ -199,20 +199,84 @@ namespace CSharpImageLibrary.General
                     result = Win7.SaveWithCodecs(mip.BaseImage, destination, format, mip.Width, mip.Height);
             }
 
+            if (GenerateMips && temp.IsMippable)
+            {
+                // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
+                // Figure out how big the file should be and make it that size
+                // Calculate how many mips necessary - CAN'T just count newMips as it only contains useful mips. i.e. any dimension smaller than 4 is ignored.
+                int numMips = DDSGeneral.EstimateNumMipMaps(newMips[0].Width, newMips[0].Height);
 
-            // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
-            destination.WriteByte(0);
-            destination.WriteByte(0);
-            destination.WriteByte(0);
-            destination.WriteByte(0);
-            destination.WriteByte(0);
-            destination.WriteByte(0);
-            destination.WriteByte(0);
-            destination.WriteByte(0);
+                int size = 0;
+                int width = newMips[0].Width;
+                int height = newMips[0].Height;
+
+                int divisor = 1;
+                if (temp.IsBlockCompressed)
+                    divisor = 4;
+
+                while(width >= 1 && height >= 1)
+                {
+                    int tempWidth = width;
+                    int tempHeight = height;
+
+                    if (temp.IsBlockCompressed)
+                    {
+                        if (tempWidth < 4)
+                            tempWidth = 4;
+                        if (tempHeight < 4)
+                            tempHeight = 4;
+                    }
+                    
+
+                    size += tempWidth / divisor * tempHeight / divisor * temp.BlockSize;
+                    width /= 2;
+                    height /= 2;
+                }
+
+                if (size > destination.Length - 128)
+                {
+                    byte[] blanks = new byte[size - (destination.Length - 128)];
+                    destination.Write(blanks, 0, blanks.Length);
+                }
+            }
+
+            
 
             return result;
         }
 
+
+        internal static double ExpectedImageSize(double mipIndex, Format format, int baseWidth, int baseHeight)
+        {
+            /*
+                Mipmapping halves both dimensions per mip down. Dimensions are then divided by 4 if block compressed as a texel is 4x4 pixels.
+                e.g. 4096 x 4096 block compressed texture with 8 byte blocks e.g. DXT1
+                Sizes of mipmaps:
+                    4096 / 4 x 4096 / 4 x 8
+                    (4096 / 4 / 2) x (4096 / 4 / 2) x 8
+                    (4096 / 4 / 2 / 2) x (4096 / 4 / 2 / 2) x 8
+
+                Pattern: Each dimension divided by 2 per mip size decreased.
+                Thus, total is divided by 4.
+                    Size of any mip = Sum(1/4^n) x divWidth x divHeight x blockSize,  
+                        where n is the desired mip (0 based), 
+                        divWidth and divHeight are the block compress adjusted dimensions (uncompressed textures lead to just original dimensions, block compressed are divided by 4)
+
+                Turns out the partial sum of the infinite sum: Sum(1/4^n) = 1/3 x (4 - 4^-n). Who knew right?
+            */
+
+            int divisor = 1;
+            if (format.IsBlockCompressed)
+                divisor = 4;
+
+            double sumPart = mipIndex == -1 ? 0 :
+                (1 / 3f) * (4 - Math.Pow(4, -mipIndex));
+
+            double totalSize = 128 + (sumPart * format.BlockSize * (baseWidth / divisor) * (baseHeight / divisor));
+
+
+            return totalSize;
+        }
         
 
         internal static MipMap Resize(MipMap mipMap, double scale)

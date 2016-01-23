@@ -117,7 +117,7 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// Loads an image from a byte array.
         /// </summary>
-        /// <param name="imageFileData">Fully formatted image file data.</param>
+        /// <param name="imageFileData">Fully formatted image file data</param>
         public ImageEngineImage(byte[] imageFileData)
         {
             using (MemoryStream ms = new MemoryStream(imageFileData))
@@ -161,9 +161,6 @@ namespace CSharpImageLibrary.General
 
             Format = format;
         }
-
-
-        
 
 
         /// <summary>
