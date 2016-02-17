@@ -16,6 +16,8 @@ namespace CSharpImageLibrary.General
     /// </summary>
     public static class DDSGeneral
     {
+        static byte V8U8Adjust = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
+
         #region Header Stuff
         /// <summary>
         /// Reads DDS header from file.
@@ -309,6 +311,7 @@ namespace CSharpImageLibrary.General
                 ParallelOptions po = new ParallelOptions();
                 po.MaxDegreeOfParallelism = -1;
                 Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                //for (int rowr = 0; rowr < texelCount; rowr++)
                 {
                     int rowIndex = rowr;
                     using (var compressedLine = WriteMipLine(pixelData, Width, Height, bitsPerScanLine, isBCd, rowIndex, PixelWriter))
@@ -437,8 +440,8 @@ namespace CSharpImageLibrary.General
         private static List<byte> ReadV8U8Pixel(Stream fileData)
         {
             byte[] rg = fileData.ReadBytesFromStream(2);
-            byte red = (byte)(rg[0] - 130);  // KFreon: Don't really know why this 130 is here, but it gives the correct pixel values.
-            byte green = (byte)(rg[1] - 130);
+            byte red = (byte)(rg[0] - V8U8Adjust);
+            byte green = (byte)(rg[1] - V8U8Adjust);
             byte blue = 0xFF;
 
             return new List<byte>() { blue, green, red, 0xFF };
@@ -770,8 +773,8 @@ namespace CSharpImageLibrary.General
             min = int.MaxValue;
             max = int.MinValue;
 
-            int rgbmin = int.MaxValue;
-            int rgbmax = int.MinValue;
+            double rgbmin = int.MaxValue;
+            double rgbmax = int.MinValue;
 
             byte rmin = 255, gmin = 255, bmin = 255;
             byte rmax = 0, gmax = 0, bmax = 0;
@@ -786,18 +789,24 @@ namespace CSharpImageLibrary.General
                     byte g = texel[i + j + 1];
                     byte b = texel[i + j];
 
-                    int diff = r * r + g * g + b * b;
+                    //double diff = Math.Sqrt(r * r + g * g + b * b);
+                    /*double testr = r - rmin;
+                    double testg = g - gmin;
+                    double testb = b - bmin;
+                    double TESTDIFF = Math.Sqrt(testr * testr + testg * testg + testb * testb);*/
+                    //Console.WriteLine(TESTDIFF);
+                    int TESTDIFF = r + b + g;
 
-                    if (diff < rgbmin)
+                    if (TESTDIFF < rgbmin)
                     {
-                        rgbmin = diff;
+                        rgbmin = TESTDIFF;
                         rmin = r;
                         gmin = g;
                         bmin = b;
                     }
-                    else if (diff > rgbmax)
+                    else if (TESTDIFF > rgbmax)
                     {
-                        rgbmax = diff;
+                        rgbmax = TESTDIFF;
                         rmax = r;
                         gmax = g;
                         bmax = b;
@@ -806,7 +815,7 @@ namespace CSharpImageLibrary.General
                     RGB[count++] = BuildDXTColour(r, g, b);
                 }
             }
-            min = BuildDXTColour(rmin, gmin, bmin);
+            min = BuildDXTColour(rmin, gmin, bmin);   //MIN/MAX SWAPPED SOMEHOW?
             max = BuildDXTColour(rmax, gmax, bmax);
             return RGB;
         }
@@ -889,7 +898,7 @@ namespace CSharpImageLibrary.General
 
         private static int GetClosestValue(List<byte[]> PaletteColours, int c)
         {
-            int test = int.MaxValue;
+            double test = int.MaxValue;
             int closest = 0;
             var rgbs = ReadDXTColour(c);
 
@@ -899,7 +908,7 @@ namespace CSharpImageLibrary.General
                 int diff_r = rgbs[0] - temprgbs[0];
                 int diff_g = rgbs[1] - temprgbs[1];
                 int diff_b = rgbs[2] - temprgbs[2];
-                int diff = diff_r * diff_r + diff_g * diff_g + diff_b * diff_b;
+                double diff = Math.Sqrt(diff_r * diff_r + diff_g * diff_g + diff_b * diff_b);
 
                 if (diff < test)
                 {
@@ -1216,6 +1225,10 @@ namespace CSharpImageLibrary.General
             double newDimDivisor = limitingDimension * 1f / desiredMaxDimension;
             numMipMaps = EstimateNumMipMaps((int)(mainWidth / newDimDivisor), (int)(mainHeight / newDimDivisor));
 
+            // KFreon: Something wrong with the count here by 1 i.e. the estimate is 1 more than it should be 
+            if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
+                requiredOffset -= 2;
+
             // Should only occur when an image has no mips
             if (streamLength < requiredOffset)
                 return -1;
@@ -1506,8 +1519,12 @@ namespace CSharpImageLibrary.General
         {
             // BGRA
             pixels.Position++; // No blue
-            var bytes = pixels.ReadBytesFromStream(2);
-            writer.Write(bytes, 0, 2);
+            /*var bytes = pixels.ReadBytesFromStream(2);
+            writer.Write(bytes, 0, 2);*/
+
+            byte green = (byte)(pixels.ReadByte() + V8U8Adjust);
+            byte red = (byte)(pixels.ReadByte() + V8U8Adjust);
+            writer.Write(new byte[] { red, green }, 0, 2);
             pixels.Position++;    // No alpha
         }
 

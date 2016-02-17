@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
+using static CSharpImageLibrary.General.ImageEngine;
 
 namespace CSharpImageLibrary.General
 {
@@ -171,10 +172,10 @@ namespace CSharpImageLibrary.General
         /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <param name="desiredMaxDimension">Maximum value of either image dimension.</param>
         /// <returns>True if success.</returns>
-        public bool Save(string destination, ImageEngineFormat format, bool GenerateMips, int desiredMaxDimension = 0)
+        public bool Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0)
         {
             using (FileStream fs = new FileStream(destination, FileMode.Create))
-                return Save(fs, format, GenerateMips, desiredMaxDimension);
+                return Save(fs, format, GenerateMips, desiredMaxDimension, mipToSave);
         }
 
 
@@ -186,9 +187,9 @@ namespace CSharpImageLibrary.General
         /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <param name="desiredMaxDimension">Maximum value of either image dimension.</param>
         /// <returns>True if success</returns>
-        public bool Save(Stream destination, ImageEngineFormat format, bool GenerateMips, int desiredMaxDimension = 0)
+        public bool Save(Stream destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0)
         {
-            return ImageEngine.Save(MipMaps, format, destination, GenerateMips, desiredMaxDimension);
+            return ImageEngine.Save(MipMaps, format, destination, GenerateMips, desiredMaxDimension, mipToSave);
         }
 
         /// <summary>

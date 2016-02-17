@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using CSharpImageLibrary.General;
 using UsefulThings.WPF;
+using static CSharpImageLibrary.General.ImageEngine;
 
 namespace CSharpImageLibrary
 {
@@ -129,8 +130,8 @@ namespace CSharpImageLibrary
 
 
         #region Save Properties
-        bool generateMips = true;
-        public bool GenerateMipMaps
+        MipHandling generateMips = MipHandling.Default;
+        public MipHandling GenerateMipMaps
         {
             get
             {
@@ -257,7 +258,7 @@ namespace CSharpImageLibrary
                 {
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
-                    img.Save(stream, SaveFormat, false, 1024);  // KFreon: Smaller size for quicker loading
+                    img.Save(stream, SaveFormat, MipHandling.KeepTopOnly, 1024);  // KFreon: Smaller size for quicker loading
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
@@ -380,7 +381,7 @@ namespace CSharpImageLibrary
                 try
                 {
                     stopwatch.Start();
-                    img.Save(SavePath, SaveFormat, GenerateMipMaps);
+                    img.Save(SavePath, SaveFormat, generateMips);
                     stopwatch.Stop();
                     Debug.WriteLine($"Saved format: {SaveFormat} in {stopwatch.ElapsedMilliseconds} milliseconds.");
 

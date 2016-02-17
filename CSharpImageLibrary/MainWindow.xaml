@@ -6,6 +6,7 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:CSharpImageLibrary.General"
         xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
+        xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="Image Engine" Height="588.074" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True" Icon="ImageEngine.ico">
     <Grid x:Name="MainGrid">
@@ -99,7 +100,7 @@
                     <Canvas.RenderTransform>
                         <ScaleTransform ScaleX="1" ScaleY="1"/>
                     </Canvas.RenderTransform>
-                    
+
                     <Ellipse Fill="Red" Canvas.Top="2" Width="20" Height="20">
                         <Ellipse.Effect>
                             <DropShadowEffect ShadowDepth="1" BlurRadius="5"/>
@@ -114,14 +115,14 @@
                 </Canvas>
             </StackPanel>
             <DockPanel DockPanel.Dock="Bottom" LastChildFill="False" Margin="0,3">
-                <CheckBox Content="Generate Mipmaps?" IsChecked="{Binding GenerateMipMaps, Mode=TwoWay}" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                <ComboBox x:Name="MipSetting" DockPanel.Dock="Left" VerticalAlignment="Center" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding GenerateMipMaps, Mode=TwoWay}" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
                 <ComboBox x:Name="FormatComboBox" DockPanel.Dock="Right" SelectionChanged="FormatComboBox_SelectionChanged" ItemsSource="{Binding Source={StaticResource Formats}}" SelectedItem="{Binding SaveFormat, Mode=TwoWay}"/>
                 <Label Content="Format" DockPanel.Dock="Right"/>
             </DockPanel>
             <DockPanel DockPanel.Dock="Bottom" Margin="0,3">
                 <Label Content="Save path: " DockPanel.Dock="Left"/>
                 <Button x:Name="BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="BrowseButton_Click"/>
-                <TextBox Text="{Binding SavePath, Mode=TwoWay}" VerticalContentAlignment="Center"/>
+                <TextBox Text="{Binding SavePath, Mode=TwoWay}" VerticalContentAlignment="Center" KeyDown="TextBox_KeyDown"/>
             </DockPanel>
             <Image x:Name="SavePreviewer" Source="{Binding SavePreview}" Margin="0,0,0,5"/>
         </DockPanel>

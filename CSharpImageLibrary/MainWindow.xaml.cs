@@ -45,6 +45,7 @@ namespace CSharpImageLibrary
         {
             
             InitializeComponent();
+            RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.Fant);
             mainDispatcher = this.Dispatcher;
             DataContext = vm;
 
@@ -218,6 +219,12 @@ namespace CSharpImageLibrary
 
 
             vm.LoadImage(filenames[0]);
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+                SaveButton_Click(null, null);
         }
     }
 }

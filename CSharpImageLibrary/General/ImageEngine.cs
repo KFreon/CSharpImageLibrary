@@ -14,6 +14,32 @@ using System.Runtime.InteropServices;
 namespace CSharpImageLibrary.General
 {
     /// <summary>
+    /// Determines how Mipmaps are handled.
+    /// </summary>
+    public enum MipHandling
+    {
+        /// <summary>
+        /// If mips are present, they are used, otherwise regenerated.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// Keeps existing mips if existing. Doesn't generate new ones either way.
+        /// </summary>
+        KeepExisting,
+
+        /// <summary>
+        /// Removes old mips and generates new ones.
+        /// </summary>
+        GenerateNew,
+
+        /// <summary>
+        /// Removes all but the top mip. Used for single mip formats.
+        /// </summary>
+        KeepTopOnly
+    }
+
+    /// <summary>
     /// Provides main image functions
     /// </summary>
     public static class ImageEngine
@@ -148,15 +174,16 @@ namespace CSharpImageLibrary.General
         /// <param name="MipMaps">List of Mips to save.</param>
         /// <param name="format">Desired format.</param>
         /// <param name="destination">Stream to save to.</param>
-        /// <param name="GenerateMips">True = Generate mipmaps for mippable images. False = Destroys them.</param>
+        /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
         /// <returns>True on success.</returns>
-        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, bool GenerateMips, int maxDimension = 0)
+        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, MipHandling mipChoice, int maxDimension = 0, int mipToSave = 0)
         {
             Format temp = new Format(format);
             List<MipMap> newMips = new List<MipMap>(MipMaps);
 
-            if (temp.IsMippable && GenerateMips)
+            if (temp.IsMippable && mipChoice == MipHandling.GenerateNew)
                 DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
@@ -183,8 +210,24 @@ namespace CSharpImageLibrary.General
                 }
             }
 
-            if (!GenerateMips)
-                DestroyMipMaps(newMips);
+            if (mipChoice == MipHandling.KeepTopOnly)
+                DestroyMipMaps(newMips, mipToSave);
+
+
+
+
+            /*if (newMips.Count > 1)
+            {
+                PngBitmapEncoder enc = new PngBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(newMips[1].BaseImage));
+                using (FileStream fs = new FileStream("R:\\test.png", FileMode.Create))
+                    enc.Save(fs);
+            }*/
+            
+
+
+
+
 
             bool result = false;
             if (temp.InternalFormat.ToString().Contains("DDS"))
@@ -199,7 +242,7 @@ namespace CSharpImageLibrary.General
                     result = Win7.SaveWithCodecs(mip.BaseImage, destination, format, mip.Width, mip.Height);
             }
 
-            if (GenerateMips && temp.IsMippable)
+            if (mipChoice != MipHandling.KeepTopOnly && temp.IsMippable)
             {
                 // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
                 // Figure out how big the file should be and make it that size
@@ -310,14 +353,23 @@ namespace CSharpImageLibrary.General
             }
 
             FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
+            //RenderOptions.SetBitmapScalingMode(main, scaleMode);
 
             // Scale RGB and alpha
             ScaleTransform scaletransform = new ScaleTransform(scale, scale);
+            //RenderOptions.SetBitmapScalingMode(scaletransform, scaleMode);
+
             TransformedBitmap scaledMain = new TransformedBitmap(main, scaletransform);
+            //RenderOptions.SetBitmapScalingMode(scaledMain, scaleMode);
+
             TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
+            //RenderOptions.SetBitmapScalingMode(scaledAlpha, scaleMode);
+
 
             // Put alpha back in
             FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
+            //RenderOptions.SetBitmapScalingMode(newConv, scaleMode);
+
             WriteableBitmap resized = new WriteableBitmap(newConv);
             WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
             unsafe
@@ -337,9 +389,9 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="MipMaps">List of Mipmaps.</param>
         /// <returns>Number of mips present.</returns>
-        private static int DestroyMipMaps(List<MipMap> MipMaps)
+        private static int DestroyMipMaps(List<MipMap> MipMaps, int mipToSave)
         {
-            MipMaps.RemoveRange(1, MipMaps.Count - 1);
+            MipMaps.RemoveRange(mipToSave + 1, MipMaps.Count - 1);  // +1 because mipToSave is 0 based and we want to keep it
             return 1;
         }
 
@@ -354,7 +406,7 @@ namespace CSharpImageLibrary.General
             var mipmaps = LoadImage(stream, out format, null, maxDimension, true);
 
             MemoryStream ms = new MemoryStream();
-            Save(mipmaps, ImageEngineFormat.JPG, ms, false);
+            Save(mipmaps, ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly);
 
             return ms;
         }
@@ -373,7 +425,7 @@ namespace CSharpImageLibrary.General
             {
                 bool success = false;
                 using (FileStream fs = new FileStream(destination, FileMode.Create))
-                    success = img.Save(fs, ImageEngineFormat.JPG, false);  // KFreon: Don't need to specify dimension here as it was done during loading
+                    success = img.Save(fs, ImageEngineFormat.JPG, MipHandling.KeepTopOnly);  // KFreon: Don't need to specify dimension here as it was done during loading
 
                 return success;
             }                
