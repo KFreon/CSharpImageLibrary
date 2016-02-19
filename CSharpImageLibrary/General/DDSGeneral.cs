@@ -1500,17 +1500,24 @@ namespace CSharpImageLibrary.General
 
         private static byte[] TESTDITHER(byte[] texel)
         {
-            bool dither = true;
+            bool dither = false;
 
             RGBColour luminance = new RGBColour();
-            luminance.r = 31 * 0.2125f / 0.7154f;
+            /*luminance.r = 31 * 0.2125f / 0.7154f;
             luminance.g = 63;
-            luminance.b = 31 * 0.0721f / 0.7154f;
+            luminance.b = 31 * 0.0721f / 0.7154f;*/
+            luminance.r = 1;
+            luminance.g = 1;
+            luminance.b = 1;
 
             RGBColour luminanceInv = new RGBColour();
-            luminanceInv.r = 31*0.7154f / 0.2125f;
-            luminanceInv.g = 63;
-            luminanceInv.b = 31*0.7154f / 0.0721f;
+            /*luminanceInv.r = 0.7154f / (0.2125f * 31);
+            luminanceInv.g = 1/63f;
+            luminanceInv.b = 0.7154f / (0.0721f * 31);*/
+            luminanceInv.r = 1;
+            luminanceInv.g = 1;
+            luminanceInv.b = 1;
+
 
             RGBColour[] Colour = new RGBColour[16];
             RGBColour[] Error = new RGBColour[16];
@@ -1678,7 +1685,7 @@ namespace CSharpImageLibrary.General
             Array.Clear(Error, 0, Error.Length);  // Clear error for next bit
             uint dw = 0;
             index = 0;
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < texel.Length; i+=4)
             {
                 // Pull out rgb from texel
                 byte r = texel[i + 2];
@@ -1719,8 +1726,8 @@ namespace CSharpImageLibrary.General
                 if (3 != (index & 3))
                 {
                     Error[index + 1].r += Diff.r * (7.0f / 16.0f);
-                    Error[i + 1].g += Diff.g * (7.0f / 16.0f);
-                    Error[i + 1].b += Diff.b * (7.0f / 16.0f);
+                    Error[index + 1].g += Diff.g * (7.0f / 16.0f);
+                    Error[index + 1].b += Diff.b * (7.0f / 16.0f);
                 }
 
                 if (index < 12)
