@@ -310,8 +310,8 @@ namespace CSharpImageLibrary.General
             {
                 ParallelOptions po = new ParallelOptions();
                 po.MaxDegreeOfParallelism = -1;
-                Parallel.For(0, texelCount, po, (rowr, loopstate) =>
-                //for (int rowr = 0; rowr < texelCount; rowr++)
+                //Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                for (int rowr = 0; rowr < texelCount; rowr++)
                 {
                     int rowIndex = rowr;
                     using (var compressedLine = WriteMipLine(pixelData, Width, Height, bitsPerScanLine, isBCd, rowIndex, PixelWriter))
@@ -328,10 +328,10 @@ namespace CSharpImageLibrary.General
                                 compressedLine.WriteTo(mipmap);
                             }
                         }
-                        else
-                            loopstate.Break();
+                        /*else
+                            loopstate.Break();*/
                     }
-                });
+                }//);
             }
 
             return mipmap;
@@ -1075,9 +1075,12 @@ namespace CSharpImageLibrary.General
         private static byte[] ReadDXTColour(int colour)
         {
             // Read RGB 5:6:5 data
-            var b = (colour & 0x1F);
+            /*var b = (colour & 0x1F);
             var g = (colour & 0x7E0) >> 5;
-            var r = (colour & 0xF800) >> 11;
+            var r = (colour & 0xF800) >> 11;*/
+            var b = colour & 31;
+            var g = (colour >> 5) & 63;
+            var r = (colour >> 31) & 31;
 
 
             // Expand to 8 bit data
@@ -1263,31 +1266,57 @@ namespace CSharpImageLibrary.General
             public float r, g, b;
         }
         
-        private static RGBColour[] OptimiseRGB(byte[] texel)
+        static RGBColour Decode565(uint wColour)
+        {
+            RGBColour colour = new RGBColour();
+            colour.r = ((wColour >> 11) & 31) * (1f / 31f);
+            colour.g = ((wColour >> 5) & 63) * (1f / 63f);
+            colour.b = ((wColour >> 0) & 31) * (1f / 31f);
+
+            return colour;
+        }
+
+        static uint Encode565(RGBColour colour)
+        {
+            RGBColour temp = new RGBColour();
+            temp.r = (colour.r < 0f) ? 0f : (colour.r > 1f) ? 1f : colour.r;
+            temp.g = (colour.g < 0f) ? 0f : (colour.g > 1f) ? 1f : colour.g;
+            temp.b = (colour.b < 0f) ? 0f : (colour.b > 1f) ? 1f : colour.b;
+
+            return (uint)(temp.r * 31f + 0.5f) << 11 | (uint)(temp.g * 63f + 0.5f) << 5 | (uint)(temp.b * 31f + 0.5f);
+        }
+
+        static RGBColour ReadColourFromTexel(byte[] texel, int i)
+        {
+            // Pull out rgb from texel
+            byte r = texel[i + 2];
+            byte g = texel[i + 1];
+            byte b = texel[i];
+
+            // Create current pixel colour
+            RGBColour current = new RGBColour();
+            current.r = r / 255f;
+            current.g = g / 255f;
+            current.b = b / 255f;
+
+            return current;
+        }
+
+        private static RGBColour[] OptimiseRGB(RGBColour[] Colour)
         {
             float[] pC = { 1f, 2f / 3f, 1f / 3f, 0f };
             float[] pD = { 0f, 1f / 3f, 2f / 3f, 1f };
 
             // Find min max
             RGBColour X = new RGBColour();
-            X.r = 255f;
-            X.g = 255f;
-            X.b = 255f;
+            X.r = 0.2125f/0.7154f;
+            X.g = 1f;
+            X.b = 0.0721f / 0.7154f;
             RGBColour Y = new RGBColour();
 
-            for (int i = 0; i < texel.Length; i+=4)
+            for (int i = 0; i < Colour.Length; i++)
             {
-                // Pull out rgb from texel
-                byte r = texel[i + 2];
-                byte g = texel[i + 1];
-                byte b = texel[i];
-
-                // Create current pixel colour
-                RGBColour current = new RGBColour();
-                current.r = r;
-                current.g = g;
-                current.b = b;
-
+                RGBColour current = Colour[i];
 
                 // X = min, Y = max
                 if (current.r < X.r)
@@ -1317,12 +1346,23 @@ namespace CSharpImageLibrary.General
             diag.b = Y.b - X.b;
 
             float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b;
-            if (fDiag < 0)
+            if (fDiag < 1.175494351e-38F)
             {
-                return new RGBColour[] { X, Y };
+                RGBColour min1 = new RGBColour();
+                min1.r = X.r;
+                min1.g = X.g;
+                min1.b = X.b;
+
+                RGBColour max1 = new RGBColour();
+                max1.r = Y.r;
+                max1.g = Y.g;
+                max1.b = Y.b;
+
+
+                return new RGBColour[] { min1, max1 };
             }
 
-            float FdiagInv = 1 / fDiag;
+            float FdiagInv = 1f / fDiag;
 
             RGBColour Dir = new RGBColour();
             Dir.r = diag.r * FdiagInv;
@@ -1336,23 +1376,12 @@ namespace CSharpImageLibrary.General
 
             float[] fDir = new float[4];
             
-            for (int i = 0; i < texel.Length; i += 4)
+            for (int i = 0; i < Colour.Length; i++)
             {
-                // Pull out rgb from texel
-                byte r = texel[i + 2];
-                byte g = texel[i + 1];
-                byte b = texel[i];
-
-                // Create current pixel colour
-                RGBColour current = new RGBColour();
-                current.r = r;
-                current.g = g;
-                current.b = b;
-
                 RGBColour pt = new RGBColour();
-                pt.r = Dir.r * (current.r - Mid.r);
-                pt.g = Dir.g * (current.g - Mid.g);
-                pt.b = Dir.b * (current.b - Mid.b);
+                pt.r = Dir.r * (Colour[i].r - Mid.r);
+                pt.g = Dir.g * (Colour[i].g - Mid.g);
+                pt.b = Dir.b * (Colour[i].b - Mid.b);
 
                 float f = 0;
                 f = pt.r + pt.g + pt.b;
@@ -1395,7 +1424,18 @@ namespace CSharpImageLibrary.General
 
             if (fDiag < 1f / 4096f)
             {
-                return new RGBColour[] { X, Y };
+                RGBColour min1 = new RGBColour();
+                min1.r = X.r;
+                min1.g = X.g;
+                min1.b = X.b;
+
+                RGBColour max1 = new RGBColour();
+                max1.r = Y.r;
+                max1.g = Y.g;
+                max1.b = Y.b;
+
+
+                return new RGBColour[] { min1, max1 };
             }
 
             // newtons method for local min of sum of squares error.
@@ -1418,28 +1458,24 @@ namespace CSharpImageLibrary.General
                 Dir.b = Y.b - X.b;
 
                 float fLen = Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b;
+
+                if (fLen < (1f / 4096f))
+                    break;
+
                 float fScale = fsteps / fLen;
                 Dir.r *= fScale;
                 Dir.g *= fScale;
                 Dir.b *= fScale;
 
                 // Evaluate function and derivatives
-                float d2X, d2Y;
+                float d2X=0, d2Y=0;
                 RGBColour dX, dY;
-                d2X = d2Y = dX.r = dX.g = dX.b = dY.r = dY.g = dY.b = 0f;
+                dX = new RGBColour();
+                dY = new RGBColour();
 
-                for (int i = 0; i < texel.Length; i += 4)
+                for (int i = 0; i < Colour.Length; i++)
                 {
-                    // Pull out rgb from texel
-                    byte r = texel[i + 2];
-                    byte g = texel[i + 1];
-                    byte b = texel[i];
-
-                    // Create current pixel colour
-                    RGBColour current = new RGBColour();
-                    current.r = r;
-                    current.g = g;
-                    current.b = b;
+                    RGBColour current = Colour[i];
 
                     float fDot = (current.r - X.r) * Dir.r + (current.g - X.g) * Dir.g + (current.b - X.b) * Dir.b;
 
@@ -1459,12 +1495,12 @@ namespace CSharpImageLibrary.General
                     float fC = pC[iStep] * 1f / 8f;
                     float fD = pD[iStep] * 1f / 8f;
 
-                    d2X += fC * pC[iStep];
+                    d2X  += fC * pC[iStep];
                     dX.r += fC * diff.r;
                     dX.g += fC * diff.g;
                     dX.b += fC * diff.b;
 
-                    d2Y += fD * pD[iStep];
+                    d2Y  += fD * pD[iStep];
                     dY.r += fD * diff.r;
                     dY.g += fD * diff.g;
                     dY.b += fD * diff.b;
@@ -1495,28 +1531,53 @@ namespace CSharpImageLibrary.General
                 }
             }
 
-            return new RGBColour[] { X, Y };
+            RGBColour min = new RGBColour();
+            min.r = X.r;
+            min.g = X.g;
+            min.b = X.b;
+
+            RGBColour max = new RGBColour();
+            max.r = Y.r;
+            max.g = Y.g;
+            max.b = Y.b;
+
+
+            return new RGBColour[] { min, max };
         }
 
         private static byte[] TESTDITHER(byte[] texel)
         {
-            bool dither = false;
+            bool dither = true;
+            bool colourKey = true;
+
+            int uSteps = 4;
+
+            // Colour key
+            if (colourKey)
+            {
+                int uColourKey = 0;
+
+                // Alpha stuff - ignoring for now
+
+                uSteps = 4;
+            }
+
 
             RGBColour luminance = new RGBColour();
-            /*luminance.r = 31 * 0.2125f / 0.7154f;
-            luminance.g = 63;
-            luminance.b = 31 * 0.0721f / 0.7154f;*/
-            luminance.r = 1;
+            luminance.r = 0.2125f / 0.7154f;
+            luminance.g = 1f;
+            luminance.b = 0.0721f / 0.7154f;
+            /*luminance.r = 1;
             luminance.g = 1;
-            luminance.b = 1;
+            luminance.b = 1;*/
 
             RGBColour luminanceInv = new RGBColour();
-            /*luminanceInv.r = 0.7154f / (0.2125f * 31);
-            luminanceInv.g = 1/63f;
-            luminanceInv.b = 0.7154f / (0.0721f * 31);*/
-            luminanceInv.r = 1;
+            luminanceInv.r = 0.7154f / (0.2125f);
+            luminanceInv.g = 1f;
+            luminanceInv.b = 0.7154f / (0.0721f);
+            /*luminanceInv.r = 1;
             luminanceInv.g = 1;
-            luminanceInv.b = 1;
+            luminanceInv.b = 1;*/
 
 
             RGBColour[] Colour = new RGBColour[16];
@@ -1525,28 +1586,23 @@ namespace CSharpImageLibrary.General
             int index = 0;
             for (int i = 0; i < texel.Length; i += 4)
             {
-                // Pull out rgb from texel
-                byte r = texel[i + 2];
-                byte g = texel[i + 1];
-                byte b = texel[i];
+                RGBColour current = ReadColourFromTexel(texel, i);
 
-                // Create current pixel colour
-                RGBColour current = new RGBColour();
-                current.r = r;
-                current.g = g;
-                current.b = b;
-
-                // Adjust for accumulated error
-                // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
-                // Then, this error is distributed across the "next" few pixels and not the previous.
-                current.r += Error[index].r;
-                current.g += Error[index].g;
-                current.b += Error[index].b;
+                if (dither)
+                {
+                    // Adjust for accumulated error
+                    // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
+                    // Then, this error is distributed across the "next" few pixels and not the previous.
+                    current.r += Error[index].r;
+                    current.g += Error[index].g;
+                    current.b += Error[index].b;
+                }
+                
 
                 // 5:6:5 range adaptation?
-                Colour[index].r = (current.r * 31f + .5f) * 1f / 31f;
-                Colour[index].g = (current.g * 63f + .5f) * 1f / 63f;
-                Colour[index].b = (current.b * 31f + .5f) * 1f / 31f;
+                Colour[index].r = (int)(current.r * 31f + .5f) * 1f / 31f;
+                Colour[index].g = (int)(current.g * 63f + .5f) * 1f / 63f;
+                Colour[index].b = (int)(current.b * 31f + .5f) * 1f / 31f;
 
                 if (dither)
                 {
@@ -1559,9 +1615,9 @@ namespace CSharpImageLibrary.General
                     // If current pixel is not at the end of a row
                     if ((index & 3) != 3)
                     {
-                        Error[index + 1].r += diff.r * 7f / 16f;
-                        Error[index + 1].g += diff.g * 7f / 16f;
-                        Error[index + 1].b += diff.b * 7f / 16f;
+                        Error[index + 1].r += diff.r * (7f / 16f);
+                        Error[index + 1].g += diff.g * (7f / 16f);
+                        Error[index + 1].b += diff.b * (7f / 16f);
                     }
 
                     // If current pixel is not in bottom row
@@ -1570,21 +1626,21 @@ namespace CSharpImageLibrary.General
                         // If current pixel IS at end of row
                         if ((index & 3) != 0)
                         {
-                            Error[index + 3].r += diff.r * 3f / 16f;
-                            Error[index + 3].g += diff.g * 3f / 16f;
-                            Error[index + 3].b += diff.b * 3f / 16f;
+                            Error[index + 3].r += diff.r * (3f / 16f);
+                            Error[index + 3].g += diff.g * (3f / 16f);
+                            Error[index + 3].b += diff.b * (3f / 16f);
                         }
 
-                        Error[index + 4].r += diff.r * 5f / 16f;
-                        Error[index + 4].g += diff.g * 5f / 16f;
-                        Error[index + 4].b += diff.b * 5f / 16f;
+                        Error[index + 4].r += diff.r * (5f / 16f);
+                        Error[index + 4].g += diff.g * (5f / 16f);
+                        Error[index + 4].b += diff.b * (5f / 16f);
 
                         // If current pixel is not at end of row
                         if ((index & 3) != 3)
                         {
-                            Error[index + 5].r += diff.r * 1f / 16f;
-                            Error[index + 5].g += diff.g * 1f / 16f;
-                            Error[index + 5].b += diff.b * 1f / 16f;
+                            Error[index + 5].r += diff.r * (1f / 16f);
+                            Error[index + 5].g += diff.g * (1f / 16f);
+                            Error[index + 5].b += diff.b * (1f / 16f);
                         }
                     }
                 }
@@ -1604,7 +1660,7 @@ namespace CSharpImageLibrary.General
             ColourD = new RGBColour();
 
             // OPTIMISER
-            RGBColour[] minmax = OptimiseRGB(texel);
+            RGBColour[] minmax = OptimiseRGB(Colour);
             ColourA = minmax[0];
             ColourB = minmax[1];
 
@@ -1619,14 +1675,14 @@ namespace CSharpImageLibrary.General
 
 
             // Yeah...dunno
-            int wColourA = BuildDXTColour((byte)ColourC.r, (byte)ColourC.g, (byte)ColourC.b);
-            int wColourB = BuildDXTColour((byte)ColourD.r, (byte)ColourD.g, (byte)ColourD.b);
-            
-            if (wColourA == wColourB)
+            uint wColourA = Encode565(ColourC);
+            uint wColourB = Encode565(ColourD);
+
+            if (uSteps == 4 && wColourA == wColourB)
             {
                 var bits = new byte[8];
-                var c1 = BitConverter.GetBytes(wColourA);
-                var c2 = BitConverter.GetBytes(wColourB);
+                var c2 = BitConverter.GetBytes(wColourA);
+                var c1 = BitConverter.GetBytes(wColourB);  //////////////////////////////////////////////////// MIN MAX
                 bits[0] = c2[0];
                 bits[1] = c2[1];
 
@@ -1635,15 +1691,8 @@ namespace CSharpImageLibrary.General
                 return bits;
             }
 
-            var C = ReadDXTColour(wColourA);
-            ColourC.r = C[0];
-            ColourC.g = C[1];
-            ColourC.b = C[2];
-
-            var D = ReadDXTColour(wColourB);
-            ColourD.r = D[0];
-            ColourD.g = D[1];
-            ColourD.b = D[2];
+            ColourC = Decode565(wColourA);
+            ColourD = Decode565(wColourB);
 
             ColourA.r = ColourC.r * luminance.r;
             ColourA.g = ColourC.g * luminance.g;
@@ -1656,8 +1705,24 @@ namespace CSharpImageLibrary.General
 
 
             RGBColour[] step = new RGBColour[4];
-            step[0] = ColourB;
-            step[1] = ColourA;
+            uint Min = 0;
+            uint Max = 0;
+
+            if ((uSteps == 3) == (wColourA <= wColourB))
+            {
+                Min = wColourA;
+                Max = wColourB;
+                step[0] = ColourA;
+                step[1] = ColourB;
+            }
+            else
+            {
+                Min = wColourB;
+                Max = wColourA;
+                step[0] = ColourB;
+                step[1] = ColourA;
+            }
+            
             uint[] psteps = { 0, 2, 3, 1 };
 
             // "step" appears to be the palette as this is the interpolation
@@ -1675,7 +1740,8 @@ namespace CSharpImageLibrary.General
             Dir.g = step[1].g - step[0].g;
             Dir.b = step[1].b - step[0].b;
 
-            float fscale = (wColourA != wColourB) ? (3 / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
+            int fsteps = 3;
+            float fscale = (wColourA != wColourB) ? (fsteps / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
             Dir.r *= fscale;
             Dir.g *= fscale;
             Dir.b *= fscale;
@@ -1687,29 +1753,27 @@ namespace CSharpImageLibrary.General
             index = 0;
             for (int i = 0; i < texel.Length; i+=4)
             {
-                // Pull out rgb from texel
-                byte r = texel[i + 2];
-                byte g = texel[i + 1];
-                byte b = texel[i];
-
-                // Create current pixel colour
-                RGBColour current = new RGBColour();
-                current.r = r *luminance.r;
-                current.g = g * luminance.g;  // Luminescence again
-                current.b = b * luminance.b;
+                RGBColour current = ReadColourFromTexel(texel, i);
+                current.r *= luminance.r; 
+                current.g *= luminance.g; 
+                current.b *= luminance.b;
 
 
-                // Error again
-                current.r += Error[index].r;
-                current.g += Error[index].g;
-                current.b += Error[index].b;
+                if (dither)
+                {
+                    // Error again
+                    current.r += Error[index].r;
+                    current.g += Error[index].g;
+                    current.b += Error[index].b;
+                }
+                
 
                 float fdot = (current.r - step[0].r) * Dir.r + (current.g - step[0].g) * Dir.g + (current.b - step[0].b) * Dir.b;
 
                 uint iStep = 0;
                 if (fdot <= 0f)
                     iStep = 0;
-                else if (fdot >= 3)
+                else if (fdot >= fsteps)
                     iStep = 1;
                 else
                     iStep = psteps[(int)(fdot + .5f)];
@@ -1718,49 +1782,53 @@ namespace CSharpImageLibrary.General
 
 
                 // Dither again
-                RGBColour Diff;
-                Diff.r = 1f * (current.r - step[iStep].r);
-                Diff.g = 1f * (current.g - step[iStep].g);
-                Diff.b = 1f* (current.b - step[iStep].b);
-
-                if (3 != (index & 3))
+                if (dither)
                 {
-                    Error[index + 1].r += Diff.r * (7.0f / 16.0f);
-                    Error[index + 1].g += Diff.g * (7.0f / 16.0f);
-                    Error[index + 1].b += Diff.b * (7.0f / 16.0f);
-                }
-
-                if (index < 12)
-                {
-                    if ((index & 3) != 0)
-                    {
-                        Error[index + 3].r += Diff.r * (3.0f / 16.0f);
-                        Error[index + 3].g += Diff.g * (3.0f / 16.0f);
-                        Error[index + 3].b += Diff.b * (3.0f / 16.0f);
-                    }
-
-                    Error[index + 4].r += Diff.r * (5.0f / 16.0f);
-                    Error[index + 4].g += Diff.g * (5.0f / 16.0f);
-                    Error[index + 4].b += Diff.b * (5.0f / 16.0f);
+                    RGBColour Diff;
+                    Diff.r = 1f * (current.r - step[iStep].r);
+                    Diff.g = 1f * (current.g - step[iStep].g);
+                    Diff.b = 1f * (current.b - step[iStep].b);
 
                     if (3 != (index & 3))
                     {
-                        Error[index + 5].r += Diff.r * (1.0f / 16.0f);
-                        Error[index + 5].g += Diff.g * (1.0f / 16.0f);
-                        Error[index + 5].b += Diff.b * (1.0f / 16.0f);
+                        Error[index + 1].r += Diff.r * (7.0f / 16.0f);
+                        Error[index + 1].g += Diff.g * (7.0f / 16.0f);
+                        Error[index + 1].b += Diff.b * (7.0f / 16.0f);
+                    }
+
+                    if (index < 12)
+                    {
+                        if ((index & 3) != 0)
+                        {
+                            Error[index + 3].r += Diff.r * (3.0f / 16.0f);
+                            Error[index + 3].g += Diff.g * (3.0f / 16.0f);
+                            Error[index + 3].b += Diff.b * (3.0f / 16.0f);
+                        }
+
+                        Error[index + 4].r += Diff.r * (5.0f / 16.0f);
+                        Error[index + 4].g += Diff.g * (5.0f / 16.0f);
+                        Error[index + 4].b += Diff.b * (5.0f / 16.0f);
+
+                        if (3 != (index & 3))
+                        {
+                            Error[index + 5].r += Diff.r * (1.0f / 16.0f);
+                            Error[index + 5].g += Diff.g * (1.0f / 16.0f);
+                            Error[index + 5].b += Diff.b * (1.0f / 16.0f);
+                        }
                     }
                 }
+                
                 index = i / 4;
             }
 
             byte[] retval = new byte[8];
-            var colour1 = BitConverter.GetBytes(wColourA);
-            var colour2 = BitConverter.GetBytes(wColourB);
-            retval[0] = colour2[0];
-            retval[1] = colour2[1];
+            var colour1 = BitConverter.GetBytes(Min);
+            var colour2 = BitConverter.GetBytes(Max);
+            retval[0] = colour1[0];
+            retval[1] = colour1[1];
 
-            retval[2] = colour1[0];
-            retval[3] = colour1[1];
+            retval[2] = colour2[0];
+            retval[3] = colour2[1];
 
             var indicies = BitConverter.GetBytes(dw);
             retval[4] = indicies[0];
