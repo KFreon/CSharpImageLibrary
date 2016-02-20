@@ -310,8 +310,8 @@ namespace CSharpImageLibrary.General
             {
                 ParallelOptions po = new ParallelOptions();
                 po.MaxDegreeOfParallelism = -1;
-                //Parallel.For(0, texelCount, po, (rowr, loopstate) =>
-                for (int rowr = 0; rowr < texelCount; rowr++)
+                Parallel.For(0, texelCount, po, (rowr, loopstate) =>
+                //for (int rowr = 0; rowr < texelCount; rowr++)
                 {
                     int rowIndex = rowr;
                     using (var compressedLine = WriteMipLine(pixelData, Width, Height, bitsPerScanLine, isBCd, rowIndex, PixelWriter))
@@ -328,10 +328,10 @@ namespace CSharpImageLibrary.General
                                 compressedLine.WriteTo(mipmap);
                             }
                         }
-                        /*else
-                            loopstate.Break();*/
+                        else
+                            loopstate.Break();
                     }
-                }//);
+                });
             }
 
             return mipmap;
@@ -823,12 +823,14 @@ namespace CSharpImageLibrary.General
             byte r = texel[i + 2];
             byte g = texel[i + 1];
             byte b = texel[i];
+            byte a = texel[i + 3];
 
             // Create current pixel colour
             RGBColour current = new RGBColour();
             current.r = r / 255f;
             current.g = g / 255f;
             current.b = b / 255f;
+            current.a = a / 255f;
 
             return current;
         }
@@ -1076,6 +1078,7 @@ namespace CSharpImageLibrary.General
         {
             bool dither = true;
             int uSteps = 4;
+            float alphaRef = 0.8f;
 
             // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
             if (isDXT1)
@@ -1086,7 +1089,7 @@ namespace CSharpImageLibrary.General
                 for (int i = 0; i < texel.Length; i += 4)
                 {
                     RGBColour colour = ReadColourFromTexel(texel, i);
-                    if (colour.a < 0)
+                    if (colour.a < alphaRef)
                         uColourKey++;
                 }
 
@@ -1299,7 +1302,7 @@ namespace CSharpImageLibrary.General
                 index = i / 4;
                 RGBColour current = ReadColourFromTexel(texel, i);
 
-                if ((uSteps == 3) && (current.a < 0))
+                if ((uSteps == 3) && (current.a < alphaRef))
                 {
                     dw = (uint)((3 << 30) | (dw >> 2));
                     continue;
@@ -1486,14 +1489,14 @@ namespace CSharpImageLibrary.General
 
             // KFreon: Half dimensions until one == 1.
             MipMap[] newmips = new MipMap[estimatedMips - 1];   // -1 as 1x1 mip doesn't seem to work, thus not included in count
-            //Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
-            for (int item = 1; item < estimatedMips; item++)
+            Parallel.For(1, estimatedMips, item =>   // Starts at 1 to skip top mip
+            //for (int item = 1; item < estimatedMips; item++)
             {
                 int index = item;
                 MipMap newmip;
                 newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index));
                 newmips[index - 1] = newmip;
-            }//);
+            });
             MipMaps.AddRange(newmips);
 
             return estimatedMips;
