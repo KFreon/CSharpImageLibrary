@@ -1547,7 +1547,7 @@ namespace CSharpImageLibrary.General
 
         private static byte[] TESTDITHER(byte[] texel)
         {
-            bool dither = true;
+            bool dither = false;
             bool colourKey = true;
 
             int uSteps = 4;
@@ -1562,23 +1562,15 @@ namespace CSharpImageLibrary.General
                 uSteps = 4;
             }
 
-
             RGBColour luminance = new RGBColour();
             luminance.r = 0.2125f / 0.7154f;
             luminance.g = 1f;
             luminance.b = 0.0721f / 0.7154f;
-            /*luminance.r = 1;
-            luminance.g = 1;
-            luminance.b = 1;*/
 
             RGBColour luminanceInv = new RGBColour();
-            luminanceInv.r = 0.7154f / (0.2125f);
+            luminanceInv.r = 0.7154f / 0.2125f;
             luminanceInv.g = 1f;
-            luminanceInv.b = 0.7154f / (0.0721f);
-            /*luminanceInv.r = 1;
-            luminanceInv.g = 1;
-            luminanceInv.b = 1;*/
-
+            luminanceInv.b = 0.7154f / 0.0721f;
 
             RGBColour[] Colour = new RGBColour[16];
             RGBColour[] Error = new RGBColour[16];
@@ -1586,6 +1578,7 @@ namespace CSharpImageLibrary.General
             int index = 0;
             for (int i = 0; i < texel.Length; i += 4)
             {
+                index = i / 4;
                 RGBColour current = ReadColourFromTexel(texel, i);
 
                 if (dither)
@@ -1600,9 +1593,9 @@ namespace CSharpImageLibrary.General
                 
 
                 // 5:6:5 range adaptation?
-                Colour[index].r = (int)(current.r * 31f + .5f) * 1f / 31f;
-                Colour[index].g = (int)(current.g * 63f + .5f) * 1f / 63f;
-                Colour[index].b = (int)(current.b * 31f + .5f) * 1f / 31f;
+                Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
+                Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
+                Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
 
                 if (dither)
                 {
@@ -1648,8 +1641,6 @@ namespace CSharpImageLibrary.General
                 Colour[index].r *= luminance.r;
                 Colour[index].g *= luminance.g;
                 Colour[index].b *= luminance.b;
-
-                index = i / 4;
             }
 
             // Palette colours
@@ -1753,6 +1744,8 @@ namespace CSharpImageLibrary.General
             index = 0;
             for (int i = 0; i < texel.Length; i+=4)
             {
+                index = i / 4;
+
                 RGBColour current = ReadColourFromTexel(texel, i);
                 current.r *= luminance.r; 
                 current.g *= luminance.g; 
@@ -1817,8 +1810,6 @@ namespace CSharpImageLibrary.General
                         }
                     }
                 }
-                
-                index = i / 4;
             }
 
             byte[] retval = new byte[8];
