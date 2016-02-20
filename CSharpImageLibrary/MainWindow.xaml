@@ -88,7 +88,7 @@
                             <DropShadowEffect ShadowDepth="1" BlurRadius="5"/>
                         </Ellipse.Effect>
                     </Ellipse>
-                    <TextBlock Text="P" FontWeight="Bold" Foreground="White" FontFamily="Wingdings 2" Canvas.Left="2" Canvas.Top="4" FontSize="18.667">
+                    <TextBlock Text="ü" FontWeight="Bold" Foreground="White" FontFamily="Wingdings" Canvas.Left="2" Canvas.Top="4" FontSize="18.667">
                         <TextBlock.Effect>
                             <DropShadowEffect ShadowDepth="1"/>
                         </TextBlock.Effect>
@@ -106,7 +106,7 @@
                             <DropShadowEffect ShadowDepth="1" BlurRadius="5"/>
                         </Ellipse.Effect>
                     </Ellipse>
-                    <TextBlock Text="O" FontWeight="Bold" Foreground="White" FontFamily="Wingdings 2" Canvas.Left="4" Canvas.Top="4" FontSize="18.667">
+                    <TextBlock Text="û" FontWeight="Bold" Foreground="White" FontFamily="Wingdings" Canvas.Left="4" Canvas.Top="3" FontSize="18.667">
                         <TextBlock.Effect>
                             <DropShadowEffect ShadowDepth="1"/>
                         </TextBlock.Effect>
