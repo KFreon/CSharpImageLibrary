@@ -153,6 +153,8 @@ namespace CSharpImageLibrary
         {
             SaveFileDialog sfd = new SaveFileDialog();
             string filterstring = null;
+            string autoSavePath = vm.GetAutoSavePath(vm.SaveFormat);
+            sfd.FileName = Path.GetFileName(autoSavePath);
             switch (vm.SaveFormat)
             {
                 case ImageEngineFormat.BMP:

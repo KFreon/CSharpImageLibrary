@@ -32,6 +32,7 @@ namespace CSharpImageLibrary
             {
                 SetProperty(ref showAlphaPreviews, value);
                 UpdatePreviews();
+                OnPropertyChanged(nameof(SavePreview));
             }
         }
 
@@ -84,10 +85,10 @@ namespace CSharpImageLibrary
         {
             get
             {
-                if (Previews?.Count == 0 || MipIndex >= Previews?.Count)
+                if (Previews?.Count == 0 || MipIndex >= Previews?.Count + 1)
                     return null;
 
-                return Previews?[MipIndex];
+                return Previews?[MipIndex - 1];
             }
         }
 
@@ -108,7 +109,7 @@ namespace CSharpImageLibrary
             }
         }
 
-        int mipindex = 0;
+        int mipindex = 1;
         public int MipIndex
         {
             get
@@ -117,7 +118,7 @@ namespace CSharpImageLibrary
             }
             set
             {
-                if (value < 0 || value > NumMipMaps)
+                if (value < 0 || value >= NumMipMaps + 1)
                     return;
 
                 SetProperty(ref mipindex, value);
@@ -174,18 +175,15 @@ namespace CSharpImageLibrary
             }
         }
 
-        BitmapSource savePreview = null;
+        BitmapSource[] savePreviews = new BitmapSource[2];
         public BitmapSource SavePreview
         {
             get
             {
-                return savePreview;
-            }
-            set
-            {
-                SetProperty(ref savePreview, value);
+                return ShowAlphaPreviews ? savePreviews[0] : savePreviews[1];
             }
         }
+
 
         public bool IsSaveReady
         {
@@ -252,7 +250,7 @@ namespace CSharpImageLibrary
                 return;
 
             stopwatch.Start();
-            SavePreview = await Task.Run(() =>
+            savePreviews = await Task.Run(() =>
             {
                 using (MemoryStream stream = new MemoryStream())
                 {
@@ -262,12 +260,18 @@ namespace CSharpImageLibrary
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
-                        return previewimage.GetWPFBitmap();
+                    {
+                        BitmapSource[] tempImgs = new BitmapSource[2];
+                        tempImgs[0] = previewimage.GeneratePreview(0, true);
+                        tempImgs[1] = previewimage.GeneratePreview(0, false);
+                        return tempImgs;
+                    }
                 }
             });
             stopwatch.Stop();
             Debug.WriteLine($"Preview generation took {stopwatch.ElapsedMilliseconds}ms");
             stopwatch.Reset();
+            OnPropertyChanged(nameof(SavePreview));
         }
 
         public async Task LoadImage(string path)
@@ -299,7 +303,7 @@ namespace CSharpImageLibrary
 
             SaveSuccess = null;
             Previews.Clear();
-            SavePreview = null;
+            savePreviews = new BitmapSource[2];
             SavePath = null;
             SaveFormat = ImageEngineFormat.Unknown;
 
@@ -321,7 +325,7 @@ namespace CSharpImageLibrary
             stopwatch.Restart();
 
             Previews.Add(img.GeneratePreview(0, ShowAlphaPreviews));
-            MipIndex = 0;
+            MipIndex = 1;  // 1 based
 
             stopwatch.Stop();
             Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
@@ -350,7 +354,7 @@ namespace CSharpImageLibrary
             {
                 if (Previews[i].Width == oldMipWidth)
                 {
-                    MipIndex = i;
+                    MipIndex = i + 1;  // 1 based
                     break;
                 }
             }

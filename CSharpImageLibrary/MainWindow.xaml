@@ -14,6 +14,7 @@
             <sys:Boolean x:Key="True">
                 True
             </sys:Boolean>
+            <useful:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
             <useful:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
             <ObjectDataProvider MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}"
@@ -59,7 +60,7 @@
                 <Label Content="Mipmaps" FontWeight="Bold" DockPanel.Dock="Top"/>
                 <TextBlock Text="{Binding NumMipMaps, StringFormat=Max: {0}}" DockPanel.Dock="Top" HorizontalAlignment="Center"/>
                 <TextBlock Text="{Binding Value, ElementName=MipSlider, StringFormat=Selected: {0}}" DockPanel.Dock="Bottom" HorizontalAlignment="Center"/>
-                <Slider x:Name="MipSlider" Orientation="Vertical" HorizontalAlignment="Center" Interval="1" Minimum="0" Maximum="{Binding NumMipMaps}" TickFrequency="1" TickPlacement="TopLeft" IsSnapToTickEnabled="True" Value="{Binding MipIndex}"/>
+                <Slider x:Name="MipSlider" Orientation="Vertical" HorizontalAlignment="Center" Interval="1" Minimum="1" Maximum="{Binding NumMipMaps}" TickFrequency="1" TickPlacement="TopLeft" IsSnapToTickEnabled="True" Value="{Binding MipIndex}"/>
             </DockPanel>
             <Image Source="{Binding Preview}"/>
         </DockPanel>
@@ -116,6 +117,7 @@
             </StackPanel>
             <DockPanel DockPanel.Dock="Bottom" LastChildFill="False" Margin="0,3">
                 <ComboBox x:Name="MipSetting" DockPanel.Dock="Left" VerticalAlignment="Center" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding GenerateMipMaps, Mode=TwoWay}" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
+                <TextBlock x:Name="MipSettingDescription" DockPanel.Dock="Left" VerticalAlignment="Center" Text="{Binding ElementName=MipSetting, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" Foreground="Gray" IsEnabled="False" FontSize="10"/>
                 <ComboBox x:Name="FormatComboBox" DockPanel.Dock="Right" SelectionChanged="FormatComboBox_SelectionChanged" ItemsSource="{Binding Source={StaticResource Formats}}" SelectedItem="{Binding SaveFormat, Mode=TwoWay}"/>
                 <Label Content="Format" DockPanel.Dock="Right"/>
             </DockPanel>

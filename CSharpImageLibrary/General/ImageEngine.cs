@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
 using System.Runtime.InteropServices;
+using System.ComponentModel;
 
 namespace CSharpImageLibrary.General
 {
@@ -21,21 +22,25 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// If mips are present, they are used, otherwise regenerated.
         /// </summary>
+        [Description("If mips are present, they are used, otherwise regenerated.")]
         Default,
 
         /// <summary>
         /// Keeps existing mips if existing. Doesn't generate new ones either way.
         /// </summary>
+        [Description("Keeps existing mips if existing. Doesn't generate new ones either way.")]
         KeepExisting,
 
         /// <summary>
         /// Removes old mips and generates new ones.
         /// </summary>
+        [Description("Removes old mips and generates new ones.")]
         GenerateNew,
 
         /// <summary>
         /// Removes all but the top mip. Used for single mip formats.
         /// </summary>
+        [Description("Removes all but the top mip. Used for single mip formats.")]
         KeepTopOnly
     }
 
@@ -210,10 +215,24 @@ namespace CSharpImageLibrary.General
                 }
             }
 
-            if (mipChoice == MipHandling.KeepTopOnly)
+            // KFreon: Ensure we have a power of two for dimensions
+            double fixScale = 0;
+            if (!UsefulThings.General.IsPowerOfTwo(newMips[0].Width) || !UsefulThings.General.IsPowerOfTwo(newMips[0].Height))
+            {
+                int newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Width);
+                int newHeigh = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Height);
+
+                // KFreon: Assuming same scale in both dimensions...
+                fixScale = 1.0*newWidth / newMips[0].Width;
+
+                newMips[0] = Resize(newMips[0], fixScale);
+            }
+
+            if (fixScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
-
+            if (fixScale != 0 && temp.IsMippable && mipChoice != MipHandling.KeepTopOnly)
+                DDSGeneral.BuildMipMaps(newMips);
 
 
             /*if (newMips.Count > 1)
@@ -246,8 +265,6 @@ namespace CSharpImageLibrary.General
             {
                 // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
                 // Figure out how big the file should be and make it that size
-                // Calculate how many mips necessary - CAN'T just count newMips as it only contains useful mips. i.e. any dimension smaller than 4 is ignored.
-                int numMips = DDSGeneral.EstimateNumMipMaps(newMips[0].Width, newMips[0].Height);
 
                 int size = 0;
                 int width = newMips[0].Width;

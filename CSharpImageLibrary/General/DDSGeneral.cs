@@ -1074,11 +1074,10 @@ namespace CSharpImageLibrary.General
             return new RGBColour[] { min, max };
         }
 
-        private static byte[] CompressRGBTexel(byte[] texel, bool isDXT1)
+        private static byte[] CompressRGBTexel(byte[] texel, bool isDXT1, float alphaRef)
         {
             bool dither = true;
             int uSteps = 4;
-            float alphaRef = 0.8f;
 
             // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
             if (isDXT1)
@@ -1734,7 +1733,7 @@ namespace CSharpImageLibrary.General
         /// <returns>8 byte BC1 compressed block.</returns>
         private static byte[] CompressBC1Block(byte[] texel)
         {
-            return CompressRGBTexel(texel, true);
+            return CompressRGBTexel(texel, true, 0.8f);
         }
 
 
@@ -1879,7 +1878,7 @@ namespace CSharpImageLibrary.General
             byte[] Alpha = DDSGeneral.Compress8BitBlock(texel, 3, false);
 
             // Compress Colour
-            byte[] RGB = DDSGeneral.CompressRGBTexel(texel, false);
+            byte[] RGB = DDSGeneral.CompressRGBTexel(texel, false, 0f);
 
             return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
         }
@@ -1903,7 +1902,7 @@ namespace CSharpImageLibrary.General
             }
 
             // Compress Colour
-            byte[] RGB = DDSGeneral.CompressRGBTexel(texel, false);
+            byte[] RGB = DDSGeneral.CompressRGBTexel(texel, false, 0f);
 
             return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
         }
