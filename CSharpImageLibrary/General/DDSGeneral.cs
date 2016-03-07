@@ -1551,12 +1551,9 @@ namespace CSharpImageLibrary.General
         private static byte[] ReadDXTColour(int colour)
         {
             // Read RGB 5:6:5 data
-            /*var b = (colour & 0x1F);
+            var b = (colour & 0x1F);
             var g = (colour & 0x7E0) >> 5;
-            var r = (colour & 0xF800) >> 11;*/
-            var b = colour & 31;
-            var g = (colour >> 5) & 63;
-            var r = (colour >> 31) & 31;
+            var r = (colour & 0xF800) >> 11;
 
 
             // Expand to 8 bit data

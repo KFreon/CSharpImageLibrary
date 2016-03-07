@@ -276,30 +276,39 @@ namespace CSharpImageLibrary
 
         public async Task LoadImage(string path)
         {
-            // Load full size image
-            ////////////////////////////////////////////////////////////////////////////////////////
-            Task<List<object>> fullLoadingTask = Task.Run(() =>
+            bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
+
+
+
+            Task<List<object>> fullLoadingTask = null;
+            if (!testing)
             {
-                ImageEngineImage fullimage = new ImageEngineImage(path);
-
-                List<BitmapSource> alphas = new List<BitmapSource>();
-                List<BitmapSource> nonalphas= new List<BitmapSource>();
-
-                for (int i = 0; i < fullimage.NumMipMaps; i++)
+                // Load full size image
+                ////////////////////////////////////////////////////////////////////////////////////////
+                fullLoadingTask = Task.Run(() =>
                 {
-                    alphas.Add(fullimage.GeneratePreview(i, true));
-                    nonalphas.Add(fullimage.GeneratePreview(i, false));
-                }
+                    ImageEngineImage fullimage = new ImageEngineImage(path);
 
-                List<object> bits = new List<object>();
-                bits.Add(fullimage);
-                bits.Add(alphas);
-                bits.Add(nonalphas);
-                return bits;
-            });
-            ////////////////////////////////////////////////////////////////////////////////////////
+                    List<BitmapSource> alphas = new List<BitmapSource>();
+                    List<BitmapSource> nonalphas = new List<BitmapSource>();
 
-             
+                    for (int i = 0; i < fullimage.NumMipMaps; i++)
+                    {
+                        alphas.Add(fullimage.GeneratePreview(i, true));
+                        nonalphas.Add(fullimage.GeneratePreview(i, false));
+                    }
+
+                    List<object> bits = new List<object>();
+                    bits.Add(fullimage);
+                    bits.Add(alphas);
+                    bits.Add(nonalphas);
+                    return bits;
+                });
+                ////////////////////////////////////////////////////////////////////////////////////////
+            }
+
+
+
 
             SaveSuccess = null;
             Previews.Clear();
@@ -312,8 +321,10 @@ namespace CSharpImageLibrary
 
 
             ////////////////////////////////////////////////////////////////////////////////////////
-            //img = await Task.Run(() => new ImageEngineImage(path));
-            img = await Task.Run(() => new ImageEngineImage(path, 256, false));
+            if (testing)
+                img = await Task.Run(() => new ImageEngineImage(path));
+            else
+                img = await Task.Run(() => new ImageEngineImage(path, 256, false));
             ////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -340,24 +351,28 @@ namespace CSharpImageLibrary
 
             // KFreon: Get full image details
             ////////////////////////////////////////////////////////////////////////////////////////
-            List<object> FullImageObjects = await fullLoadingTask;
-            double? oldMipWidth = MipWidth;
-            img = (ImageEngineImage)FullImageObjects[0];
-
-            AlphaPreviews = (List<BitmapSource>)FullImageObjects[1];
-            NonAlphaPreviews = (List<BitmapSource>)FullImageObjects[2];
-
-            UpdatePreviews();
-
-            // KFreon: Set selected mip index
-            for (int i = 0; i < Previews.Count; i++)
+            if (!testing)
             {
-                if (Previews[i].Width == oldMipWidth)
+                List<object> FullImageObjects = await fullLoadingTask;
+                double? oldMipWidth = MipWidth;
+                img = (ImageEngineImage)FullImageObjects[0];
+
+                AlphaPreviews = (List<BitmapSource>)FullImageObjects[1];
+                NonAlphaPreviews = (List<BitmapSource>)FullImageObjects[2];
+
+                UpdatePreviews();
+
+                // KFreon: Set selected mip index
+                for (int i = 0; i < Previews.Count; i++)
                 {
-                    MipIndex = i + 1;  // 1 based
-                    break;
+                    if (Previews[i].Width == oldMipWidth)
+                    {
+                        MipIndex = i + 1;  // 1 based
+                        break;
+                    }
                 }
             }
+            
             ////////////////////////////////////////////////////////////////////////////////////////
 
 

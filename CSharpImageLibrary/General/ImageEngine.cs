@@ -188,7 +188,7 @@ namespace CSharpImageLibrary.General
             Format temp = new Format(format);
             List<MipMap> newMips = new List<MipMap>(MipMaps);
 
-            if (temp.IsMippable && mipChoice == MipHandling.GenerateNew)
+            if ((temp.IsMippable && mipChoice == MipHandling.GenerateNew) || (temp.IsMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
                 DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
