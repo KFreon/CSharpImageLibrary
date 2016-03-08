@@ -417,7 +417,9 @@ namespace CSharpImageLibrary.General
                             {
                                 int index = row * bitsPerScanline * 4;
                                 DecompressedLine.Position = 0;
-                                DecompressedLine.Read(mipmapData, index, DecompressedLine.Length > mipmapData.Length ? mipmapData.Length : (int)DecompressedLine.Length);
+                                int length = DecompressedLine.Length > mipmapData.Length ? mipmapData.Length : (int)DecompressedLine.Length;
+                                if (index + length <= mipmapData.Length)
+                                    DecompressedLine.Read(mipmapData, index, length);
                             }
                         else
                             loopstate.Break();
