@@ -425,11 +425,22 @@ namespace CSharpImageLibrary.General
         /// <returns>Format in string, or UNKNOWN otherwise.</returns>
         public static Format FindFormatInString(string stringWithFormatInIt)
         {
+            Format detectedFormat = new Format();
             foreach (var formatName in Enum.GetNames(typeof(ImageEngineFormat)))
-                if (formatName.Contains(stringWithFormatInIt, StringComparison.OrdinalIgnoreCase))
-                    return new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
+            {
+                string actualFormat = formatName.Replace("DDS_", "");
+                bool check = stringWithFormatInIt.Contains(actualFormat, StringComparison.OrdinalIgnoreCase);
 
-            return new Format();
+                if (actualFormat.Contains("3Dc"))
+                    check = stringWithFormatInIt.Contains("3dc", StringComparison.OrdinalIgnoreCase) || stringWithFormatInIt.Contains("ati2", StringComparison.OrdinalIgnoreCase);
+                else if (actualFormat.Contains("G8"))
+                    check = stringWithFormatInIt.Contains("G8", StringComparison.OrdinalIgnoreCase) || stringWithFormatInIt.Contains("L8", StringComparison.OrdinalIgnoreCase);
+
+                if (check)
+                    detectedFormat = new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
+            }
+
+            return detectedFormat;
         }
 
         
