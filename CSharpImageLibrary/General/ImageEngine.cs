@@ -226,26 +226,15 @@ namespace CSharpImageLibrary.General
                 fixScale = 1.0*newWidth / newMips[0].Width;
 
                 newMips[0] = Resize(newMips[0], fixScale);
+
             }
+
 
             if (fixScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
             if (fixScale != 0 && temp.IsMippable && mipChoice != MipHandling.KeepTopOnly)
                 DDSGeneral.BuildMipMaps(newMips);
-
-
-            /*if (newMips.Count > 1)
-            {
-                PngBitmapEncoder enc = new PngBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(newMips[1].BaseImage));
-                using (FileStream fs = new FileStream("R:\\test.png", FileMode.Create))
-                    enc.Save(fs);
-            }*/
-            
-
-
-
 
 
             bool result = false;
@@ -358,7 +347,7 @@ namespace CSharpImageLibrary.General
                 int index = 3;
                 byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
                 byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
-                for (int i = 0; i < origWidth * origHeight * 3; i += 4)
+                for (int i = 0; i < origWidth * origHeight * 4; i += 4)
                 {
                     // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
                     alphaPtr[i] = mainPtr[index];
@@ -369,31 +358,30 @@ namespace CSharpImageLibrary.General
                 }
             }
 
+
             FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
-            //RenderOptions.SetBitmapScalingMode(main, scaleMode);
+
+            
 
             // Scale RGB and alpha
             ScaleTransform scaletransform = new ScaleTransform(scale, scale);
-            //RenderOptions.SetBitmapScalingMode(scaletransform, scaleMode);
 
             TransformedBitmap scaledMain = new TransformedBitmap(main, scaletransform);
-            //RenderOptions.SetBitmapScalingMode(scaledMain, scaleMode);
 
             TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
-            //RenderOptions.SetBitmapScalingMode(scaledAlpha, scaleMode);
 
 
             // Put alpha back in
             FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
-            //RenderOptions.SetBitmapScalingMode(newConv, scaleMode);
 
             WriteableBitmap resized = new WriteableBitmap(newConv);
             WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
+
             unsafe
             {
                 byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
                 byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
-                for (int i = 3; i < newStride; i += 4)
+                for (int i = 3; i < newStride * newHeight; i += 4)
                     resizedPtr[i] = alphaPtr[i];
             }
 
