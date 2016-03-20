@@ -289,8 +289,6 @@ namespace CSharpImageLibrary.General
                 }
             }
 
-            
-
             return result;
         }
 
