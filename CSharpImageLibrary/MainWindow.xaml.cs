@@ -101,7 +101,7 @@ namespace CSharpImageLibrary
             isOpen = false;
 
             OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Supported Image Files|*.dds;*.jpg;*.png;*.jpeg;*.bmp";
+            ofd.Filter = "Supported Image Files|*.dds;*.jpg;*.png;*.jpeg;*.bmp;*.tga";
             ofd.Title = "Select image to load";
             if (ofd.ShowDialog() == true)
                 vm.LoadImage(ofd.FileName);
@@ -177,6 +177,9 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.PNG:
                     filterstring = "PNG Images|*.png";
+                    break;
+                case ImageEngineFormat.TGA:
+                    filterstring = "Targa Images|*.tga";
                     break;
             }
 

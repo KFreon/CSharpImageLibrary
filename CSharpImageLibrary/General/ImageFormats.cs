@@ -37,6 +37,11 @@ namespace CSharpImageLibrary.General
         BMP = 4,
 
         /// <summary>
+        /// Targa image. Multipage format. Can be used for mipmaps.
+        /// </summary>
+        TGA = 5,
+
+        /// <summary>
         /// (BC1) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Simple Non Alpha.
         /// </summary>
@@ -214,7 +219,8 @@ namespace CSharpImageLibrary.General
             JPG,
             BMP,
             PNG,
-            DDS
+            DDS,
+            TGA
         }
 
 
@@ -305,6 +311,8 @@ namespace CSharpImageLibrary.General
                     return new Format(ImageEngineFormat.JPG);
                 case SupportedExtensions.PNG:
                     return new Format(ImageEngineFormat.PNG);
+                case SupportedExtensions.TGA:
+                    return new Format(ImageEngineFormat.TGA);
             }
 
             return new Format();

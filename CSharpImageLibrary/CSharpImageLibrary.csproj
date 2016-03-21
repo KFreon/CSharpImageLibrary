@@ -92,6 +92,7 @@
     <Compile Include="General\DDSGeneral.cs" />
     <Compile Include="General\ImageEngineImage.cs" />
     <Compile Include="General\MipMap.cs" />
+    <Compile Include="General\Targa.cs" />
     <Compile Include="ViewModel.cs" />
     <Compile Include="General\Win7.cs" />
     <Compile Include="General\Win8_10.cs" />

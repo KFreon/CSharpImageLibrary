@@ -278,6 +278,10 @@ namespace CSharpImageLibrary
         {
             bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
 
+            //TargaImage tart = new TargaImage(path);
+            // Read tga from stream
+            // tga mips?
+            // tga dimensions etc
 
 
             Task<List<object>> fullLoadingTask = null;
@@ -381,6 +385,7 @@ namespace CSharpImageLibrary
             OnPropertyChanged(nameof(MipIndex));
             OnPropertyChanged(nameof(MipWidth));
             OnPropertyChanged(nameof(MipHeight));
+            OnPropertyChanged(nameof(img));
         }
 
         private void UpdatePreviews()

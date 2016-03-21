@@ -77,10 +77,10 @@ namespace CSharpImageLibrary.General
         /// <param name="Format">Detected format.</param>
         /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
         /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension, bool enforceResize)
+        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension, enforceResize);
+                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension, enforceResize, out header);
         }
 
 
@@ -92,10 +92,10 @@ namespace CSharpImageLibrary.General
         /// <param name="extension">File extension. Used to determine format more easily.</param>
         /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
         /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize)
+        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header)
         {
             // KFreon: See if image is built-in codec agnostic.
-            DDSGeneral.DDS_HEADER header = null;
+            header = null;
             Format = ImageFormats.ParseFormat(stream, extension, ref header);
             List<MipMap> MipMaps = null;
 
@@ -132,6 +132,8 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.DDS_G8_L8:
                 case ImageEngineFormat.DDS_V8U8:
                     MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
+                    break;
+                case ImageEngineFormat.TGA:
                     break;
                 default:
                     throw new InvalidDataException("Image format is unknown.");
@@ -406,7 +408,8 @@ namespace CSharpImageLibrary.General
         public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension)
         {
             Format format = new Format();
-            var mipmaps = LoadImage(stream, out format, null, maxDimension, true);
+            DDSGeneral.DDS_HEADER header = null;
+            var mipmaps = LoadImage(stream, out format, null, maxDimension, true, out header);
 
             MemoryStream ms = new MemoryStream();
             Save(mipmaps, ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly);

@@ -17,6 +17,77 @@ namespace CSharpImageLibrary.General
     /// </summary>
     public class ImageEngineImage : IDisposable
     {
+        enum DDSdwFlags
+        {
+            DDSD_CAPS = 0x1,            // Required
+            DDSD_HEIGHT = 0x2,          // Required
+            DDSD_WIDTH = 0x4,           // Required
+            DDSD_PITCH = 0x8,           // Required when Pitch is specified for uncompressed textures
+            DDSD_PIXELFORMAT = 0x1000,  // Required in all DDS
+            DDSD_MIPMAPCOUNT = 0x20000, // Required for a Mipmapped texture
+            DDSD_LINEARSIZE = 0x80000,  // Required when Pitch is specified
+            DDSD_DEPTH = 0x800000       // Required in Depth texture (Volume)
+        }
+
+        enum DDSdwCaps
+        {
+            DDSCAPS_COMPLEX = 0x8,      // Optional, must be specified on image that has more than one surface. (mipmap, cube, volume)
+            DDSCAPS_MIPMAP = 0x400000,  // Optional, should be set for mipmapped image
+            DDSCAPS_TEXTURE = 0x1000    // Required
+        }
+
+        enum DDS_PFdwFlags
+        {
+            DDPF_ALPHAPIXELS = 0x1,     // Texture has alpha - dwRGBAlphaBitMask has a value
+            DDPF_ALPHA = 0x2,           // Older flag indicating alpha channel in uncompressed data. dwRGBBitCount has alpha channel bitcount, dwABitMask has valid data.
+            DDPF_FOURCC = 0x4,          // Contains compressed RGB. dwFourCC has a value
+            DDPF_RGB = 0x40,            // Contains uncompressed RGB. dwRGBBitCount and RGB bitmasks have a value
+            DDPF_YUV = 0x200,           // Older flag indicating things set as YUV
+            DDPF_LUMINANCE = 0x20000    // Older flag for single channel uncompressed data
+        }
+
+        string EnumFlagStringify(Type enumType)
+        {
+            string flags = "";
+            if (header != null)
+            {
+                string[] names = Enum.GetNames(enumType);
+                int[] values = (int[])Enum.GetValues(enumType);
+                for (int i = 0; i < names.Length; i++)
+                {
+                    if ((header.dwFlags & values[i]) != 0)
+                        flags += $"[{names[i]}] ";
+                }
+            }
+            return flags;
+        }
+
+        public DDSGeneral.DDS_HEADER header { get; set; }
+        
+        public string HeaderdwFlags
+        {
+            get
+            {
+                return EnumFlagStringify(typeof(DDSdwFlags));
+            }
+        }
+
+        public string HeaderdwCaps
+        {
+            get
+            {
+                return EnumFlagStringify(typeof(DDSdwCaps));
+            }
+        }
+
+        public string HeaderPFdwFlags
+        {
+            get
+            {
+                return EnumFlagStringify(typeof(DDS_PFdwFlags));
+            }
+        }
+
         #region Properties
         /// <summary>
         /// Width of image.
@@ -145,10 +216,11 @@ namespace CSharpImageLibrary.General
             FilePath = imagePath;
 
             // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
-            MipMaps = ImageEngine.LoadImage(imagePath, out format, desiredMaxDimension, enforceResize);
-
+            DDSGeneral.DDS_HEADER tempheader = null;
+            MipMaps = ImageEngine.LoadImage(imagePath, out format, desiredMaxDimension, enforceResize, out tempheader);
 
             // KFreon: Can't pass properties as out :(
+            header = tempheader;
             Format = format;
         }
 
@@ -158,8 +230,9 @@ namespace CSharpImageLibrary.General
             Format format = new Format();
 
             // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
-            MipMaps = ImageEngine.LoadImage(stream, out format, extension, desiredMaxDimension, enforceResize);
-
+            DDSGeneral.DDS_HEADER tempheader = null;
+            MipMaps = ImageEngine.LoadImage(stream, out format, extension, desiredMaxDimension, enforceResize, out tempheader);
+            header = tempheader;
             Format = format;
         }
 

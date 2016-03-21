@@ -65,16 +65,19 @@ namespace CSharpImageLibrary.General
         /// </summary>
         public class DDS_HEADER
         {
-            public int dwSize;
-            public int dwFlags;
-            public int dwHeight;
-            public int dwWidth;
-            public int dwPitchOrLinearSize;
-            public int dwDepth;
-            public int dwMipMapCount;
+            public int dwSize { get; set; }
+            public int dwFlags { get; set; }
+            public int dwHeight { get; set; }
+            public int dwWidth { get; set; }
+            public int dwPitchOrLinearSize { get; set; }
+            public int dwDepth { get; set; }
+            public int dwMipMapCount { get; set; }
             public int[] dwReserved1 = new int[11];
-            public DDS_PIXELFORMAT ddspf = new DDS_PIXELFORMAT();
-            public int dwCaps;
+            public DDS_PIXELFORMAT ddspf
+            {
+                get; set;
+            } = new DDS_PIXELFORMAT();
+            public int dwCaps { get; set; }
             public int dwCaps2;
             public int dwCaps3;
             public int dwCaps4;
@@ -109,14 +112,14 @@ namespace CSharpImageLibrary.General
         /// </summary>
         public class DDS_PIXELFORMAT
         {
-            public int dwSize;
-            public int dwFlags;
-            public int dwFourCC;
-            public int dwRGBBitCount;
-            public uint dwRBitMask;
-            public uint dwGBitMask;
-            public uint dwBBitMask;
-            public uint dwABitMask;
+            public int dwSize { get; set; }
+            public int dwFlags { get; set; }
+            public int dwFourCC { get; set; }
+            public int dwRGBBitCount { get; set; }
+            public uint dwRBitMask { get; set; }
+            public uint dwGBitMask { get; set; }
+            public uint dwBBitMask { get; set; }
+            public uint dwABitMask { get; set; }
 
             public DDS_PIXELFORMAT()
             {
