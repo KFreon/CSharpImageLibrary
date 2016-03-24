@@ -249,6 +249,11 @@ namespace CSharpImageLibrary
             if (img == null || SaveFormat == ImageEngineFormat.Unknown)
                 return;
 
+
+            // KFreon: TGA saving not supported
+            if (img.Format.InternalFormat == ImageEngineFormat.TGA)
+                SaveFormat = ImageEngineFormat.PNG;
+
             stopwatch.Start();
             savePreviews = await Task.Run(() =>
             {
@@ -277,12 +282,6 @@ namespace CSharpImageLibrary
         public async Task LoadImage(string path)
         {
             bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
-
-            //TargaImage tart = new TargaImage(path);
-            // Read tga from stream
-            // tga mips?
-            // tga dimensions etc
-
 
             Task<List<object>> fullLoadingTask = null;
             if (!testing)

@@ -37,6 +37,7 @@ using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Windows.Media.Imaging;
 
 namespace CSharpImageLibrary.General
 {
@@ -377,6 +378,12 @@ namespace CSharpImageLibrary.General
         }
 
 
+        public void Save(MemoryStream ms, WriteableBitmap img)
+        {
+            TargaHeader header = new TargaHeader();
+        }
+
+
         /// <summary>
         /// Creates a new instance of the TargaImage object with strFileName as the image loaded.
         /// </summary>
@@ -391,33 +398,12 @@ namespace CSharpImageLibrary.General
                 {
                     this.strFileName = strFileName;
                     MemoryStream filestream = null;
-                    BinaryReader binReader = null;
                     byte[] filebytes = null;
 
                     // load the file as an array of bytes
                     filebytes = System.IO.File.ReadAllBytes(this.strFileName);
                     if (filebytes != null && filebytes.Length > 0)
-                    {
-                        // create a seekable memory stream of the file bytes
-                        using (filestream = new MemoryStream(filebytes))
-                        {
-                            if (filestream != null && filestream.Length > 0 && filestream.CanSeek == true)
-                            {
-                                // create a BinaryReader used to read the Targa file
-                                using (binReader = new BinaryReader(filestream))
-                                {
-                                    this.LoadTGAFooterInfo(binReader);
-                                    this.LoadTGAHeaderInfo(binReader);
-                                    this.LoadTGAExtensionArea(binReader);
-                                    this.LoadTGAImage(binReader);
-                                }
-                            }
-                            else
-                                throw new Exception(@"Error loading file, could not read file from disk.");
-
-                        }
-
-                    }
+                        filestream = LoadFromStream(filebytes);
                     else
                         throw new Exception(@"Error loading file, could not read file from disk.");
 
@@ -432,6 +418,37 @@ namespace CSharpImageLibrary.General
 
         }
 
+        public TargaImage(Stream stream):this() 
+        {
+            byte[] filebytes = new byte[stream.Length];
+            stream.Read(filebytes, 0, (int)stream.Length);
+            LoadFromStream(filebytes);
+        }
+
+        private MemoryStream LoadFromStream(byte[] filebytes)
+        {
+            MemoryStream filestream = null;
+            BinaryReader binReader = null;
+
+            // create a seekable memory stream of the file bytes
+            using (filestream = new MemoryStream(filebytes))
+            {
+                if (filestream != null && filestream.Length > 0 && filestream.CanSeek == true)
+                {
+                    // create a BinaryReader used to read the Targa file
+                    using (binReader = new BinaryReader(filestream))
+                    {
+                        this.LoadTGAFooterInfo(binReader);
+                        this.LoadTGAHeaderInfo(binReader);
+                        this.LoadTGAExtensionArea(binReader);
+                        this.LoadTGAImage(binReader);
+                    }
+                }
+                else
+                    throw new Exception(@"Error loading file, could not read file from disk.");
+            }
+            return filestream;
+        }
 
         /// <summary>
         /// Loads the Targa Footer information from the file.
@@ -500,7 +517,6 @@ namespace CSharpImageLibrary.General
 
 
         }
-
 
         /// <summary>
         /// Loads the Targa Header information from the file.

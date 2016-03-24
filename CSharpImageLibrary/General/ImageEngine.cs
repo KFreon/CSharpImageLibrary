@@ -134,6 +134,12 @@ namespace CSharpImageLibrary.General
                     MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
                     break;
                 case ImageEngineFormat.TGA:
+                    var img = new TargaImage(stream);
+                    byte[] pixels = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap(img.Image);
+                    WriteableBitmap wbmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, img.Image.Width, img.Image.Height);
+                    var mip1 = new MipMap(wbmp);
+                    MipMaps = new List<MipMap>() { mip1 };
+                    img.Dispose();
                     break;
                 default:
                     throw new InvalidDataException("Image format is unknown.");
