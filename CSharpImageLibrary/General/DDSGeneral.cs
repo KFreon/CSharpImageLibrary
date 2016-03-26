@@ -1734,7 +1734,7 @@ namespace CSharpImageLibrary.General
         /// <returns>8 byte BC1 compressed block.</returns>
         private static byte[] CompressBC1Block(byte[] texel)
         {
-            return CompressRGBTexel(texel, true, 0.8f);
+            return CompressRGBTexel(texel, true, 0.2f);
         }
 
 
