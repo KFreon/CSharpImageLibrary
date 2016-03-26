@@ -441,12 +441,21 @@ namespace CSharpImageLibrary.General
 
                 if (actualFormat.Contains("3Dc"))
                     check = stringWithFormatInIt.Contains("3dc", StringComparison.OrdinalIgnoreCase) || stringWithFormatInIt.Contains("ati2", StringComparison.OrdinalIgnoreCase);
-                else if (actualFormat.Contains("G8"))
-                    check = stringWithFormatInIt.Contains("G8", StringComparison.OrdinalIgnoreCase) || stringWithFormatInIt.Contains("L8", StringComparison.OrdinalIgnoreCase);
+                else if (actualFormat == "A8L8")
+                    check = stringWithFormatInIt.Contains("L8", StringComparison.OrdinalIgnoreCase) && !stringWithFormatInIt.Contains("G", StringComparison.OrdinalIgnoreCase);
+                else if (actualFormat == "G8_L8")
+                    check = !stringWithFormatInIt.Contains("A", StringComparison.OrdinalIgnoreCase) &&  stringWithFormatInIt.Contains("G8", StringComparison.OrdinalIgnoreCase);
+                else if (actualFormat.Contains("ARGB"))
+                    check = stringWithFormatInIt.Contains("A8R8G8B8", StringComparison.OrdinalIgnoreCase);
 
                 if (check)
                     detectedFormat = new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
+
+                if (detectedFormat.InternalFormat == ImageEngineFormat.DDS_A8L8)
+                    Debugger.Break();
             }
+
+            
 
             return detectedFormat;
         }
