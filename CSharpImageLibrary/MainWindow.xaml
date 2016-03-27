@@ -8,7 +8,7 @@
         xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="Image Engine" Height="647.074" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True" Icon="ImageEngine.ico">
+        Title="Image Engine" Height="689.296" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True" Icon="ImageEngine.ico">
     <Grid x:Name="MainGrid">
         <Grid.Resources>
             <sys:Boolean x:Key="True">
@@ -30,13 +30,24 @@
             <ColumnDefinition Width="563*" x:Name="SaveColumn"/>
         </Grid.ColumnDefinitions>
         <DockPanel Grid.Column="0">
-            <Grid DockPanel.Dock="Bottom">
-                <Button x:Name="LoadButton" Content="Load" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Click="LoadButton_Click" FontSize="16"/>
-                <CheckBox Content="Show alpha channel" IsChecked="{Binding ShowAlphaPreviews, Mode=TwoWay}" HorizontalAlignment="Left" VerticalContentAlignment="Center" DockPanel.Dock="Bottom"/>
-                <Button x:Name="OpenConvertPanel" HorizontalAlignment="Right" Content="Convert &gt;&gt;" VerticalAlignment="Bottom" Click="OpenConvertPanel_Click" Margin="0,0,9.667,2.333"/>
+            <Grid DockPanel.Dock="Bottom" Height="35">
+                <Button x:Name="LoadButton" Content="Load" DockPanel.Dock="Bottom" HorizontalAlignment="Center" VerticalAlignment="Center" Click="LoadButton_Click" FontSize="16"/>
+                <CheckBox x:Name="DDSHeaderCheckBox" Content="Show DDS Header info" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                <CheckBox Content="Show alpha channel" IsChecked="{Binding ShowAlphaPreviews, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Bottom" DockPanel.Dock="Bottom"/>
+                <Button x:Name="OpenConvertPanel" HorizontalAlignment="Right" Content="Convert &gt;&gt;" VerticalAlignment="Center" Click="OpenConvertPanel_Click" Margin="0,0,9.667,2.333"/>
             </Grid>
-            <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Height="95" Margin="0,0,-0.333,0">
+            <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Height="100" Margin="0,0,-0.333,0">
                 <StackPanel Height="68" VerticalAlignment="Top" IsHitTestVisible="False">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=DDSHeaderCheckBox, Path=IsChecked}" Value="true">
+                                    <Setter Property="Visibility" Value="Hidden"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
                     <TextBlock>
                         <Run Text="Image Path:    " FontWeight="Bold"/>
                         <Run Text="{Binding ImagePath, Mode=OneWay}"/>
@@ -54,16 +65,27 @@
                         <Run Text="{Binding MipHeight, Mode=OneWay}"/>
                     </TextBlock>
                 </StackPanel>
-                <StackPanel Margin="173,15,70.667,0">
+                <StackPanel>
                     <StackPanel.Resources>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="Gray"/>
-                            <Setter Property="FontSize" Value="6"/>
+                            <Setter Property="FontSize" Value="8"/>
                             <Setter Property="Opacity" Value=".5"/>
                         </Style>
                     </StackPanel.Resources>
 
-                    <TextBlock Text="Header" FontWeight="Bold" FontSize="8"/>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Hidden"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=DDSHeaderCheckBox, Path=IsChecked}" Value="true">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <TextBlock Text="Header" FontWeight="Bold" FontSize="9"/>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock>
                             <Run Text="dwSize: " FontWeight="Bold"/>

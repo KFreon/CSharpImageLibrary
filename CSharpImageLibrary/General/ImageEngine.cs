@@ -348,21 +348,30 @@ namespace CSharpImageLibrary.General
 
             // Pull out alpha since scaling with alpha doesn't work properly for some reason
             WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
-            unsafe
+            try
             {
-                int index = 3;
-                byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
-                byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
-                for (int i = 0; i < origWidth * origHeight * 4; i += 4)
+                unsafe
                 {
-                    // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
-                    alphaPtr[i] = mainPtr[index];
-                    alphaPtr[i + 1] = mainPtr[index];
-                    alphaPtr[i + 2] = mainPtr[index];
-                    alphaPtr[i + 3] = mainPtr[index];
-                    index += 4;
+                    int index = 3;
+                    byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
+                    byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
+                    for (int i = 0; i < origWidth * origHeight * 4; i += 4)
+                    {
+                        // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
+                        alphaPtr[i] = mainPtr[index];
+                        alphaPtr[i + 1] = mainPtr[index];
+                        alphaPtr[i + 2] = mainPtr[index];
+                        alphaPtr[i + 3] = mainPtr[index];
+                        index += 4;
+                    }
                 }
             }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.ToString());
+                throw;
+            }
+            
 
 
             FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
@@ -383,13 +392,22 @@ namespace CSharpImageLibrary.General
             WriteableBitmap resized = new WriteableBitmap(newConv);
             WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
 
-            unsafe
+            try
             {
-                byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
-                byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
-                for (int i = 3; i < newStride * newHeight; i += 4)
-                    resizedPtr[i] = alphaPtr[i];
+                unsafe
+                {
+                    byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
+                    byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
+                    for (int i = 3; i < newStride * newHeight; i += 4)
+                        resizedPtr[i] = alphaPtr[i];
+                }
             }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e.ToString());
+                throw;
+            }
+            
 
             return new MipMap(resized);
         }

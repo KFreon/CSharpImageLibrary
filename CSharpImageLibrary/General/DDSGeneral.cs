@@ -1922,14 +1922,23 @@ namespace CSharpImageLibrary.General
                     using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))
                         DDSGeneral.Write_DDS_Header(header, writer);
 
-                    unsafe
+                    try
                     {
-                        for (int m = 0; m < MipMaps.Count; m++)
+                        unsafe
                         {
-                            var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height);
-                            stream.CopyTo(Destination);
+                            for (int m = 0; m < MipMaps.Count; m++)
+                            {
+                                var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height);
+                                stream.CopyTo(Destination);
+                            }
                         }
                     }
+                    catch (Exception e)
+                    {
+                        Debug.WriteLine(e.ToString());
+                        throw;
+                    }
+                    
 
                     return true;
                 case ImageEngineFormat.DDS_A8L8:
