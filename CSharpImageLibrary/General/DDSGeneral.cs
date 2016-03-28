@@ -1735,13 +1735,7 @@ namespace CSharpImageLibrary.General
         private static byte[] CompressBC1Block(byte[] texel)
         {
             // Find suitable alpharef
-            float alpharef = 0.2f;
-            int sum = 0;
-            for (int i = 3; i < texel.Length; i += 4)
-                sum += texel[i];
-
-            alpharef = (float)(sum / (16.0*255));
-            //Debug.WriteLine(alpharef);
+            float alpharef = 0.2f
             return CompressRGBTexel(texel, true, alpharef);
         }
 
