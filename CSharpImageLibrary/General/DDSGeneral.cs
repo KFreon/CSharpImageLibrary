@@ -1735,7 +1735,7 @@ namespace CSharpImageLibrary.General
         private static byte[] CompressBC1Block(byte[] texel)
         {
             // Find suitable alpharef
-            float alpharef = 0.2f
+            float alpharef = 0.2f;
             return CompressRGBTexel(texel, true, alpharef);
         }
 
