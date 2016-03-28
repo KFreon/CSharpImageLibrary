@@ -1736,16 +1736,12 @@ namespace CSharpImageLibrary.General
         {
             // Find suitable alpharef
             float alpharef = 0.2f;
-            List<byte> alphas = new List<byte>();
+            int sum = 0;
             for (int i = 3; i < texel.Length; i += 4)
-                alphas.Add(texel[i]);
+                sum += texel[i];
 
-            byte max = alphas.Max();
-            byte min = alphas.Min();
-
-            if (min != max)
-                alpharef = (float)((max - min) / (float)byte.MaxValue);
-
+            alpharef = (float)(sum / (16.0*255));
+            //Debug.WriteLine(alpharef);
             return CompressRGBTexel(texel, true, alpharef);
         }
 
