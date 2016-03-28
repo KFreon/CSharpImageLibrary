@@ -8,7 +8,7 @@
         xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="Image Engine" Height="689.296" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True" Icon="ImageEngine.ico">
+        Title="Image Engine" Height="706.296" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True" Icon="ImageEngine.ico">
     <Grid x:Name="MainGrid">
         <Grid.Resources>
             <sys:Boolean x:Key="True">
@@ -36,49 +36,35 @@
                 <CheckBox Content="Show alpha channel" IsChecked="{Binding ShowAlphaPreviews, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Bottom" DockPanel.Dock="Bottom"/>
                 <Button x:Name="OpenConvertPanel" HorizontalAlignment="Right" Content="Convert &gt;&gt;" VerticalAlignment="Center" Click="OpenConvertPanel_Click" Margin="0,0,9.667,2.333"/>
             </Grid>
-            <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Height="100" Margin="0,0,-0.333,0">
+            <Grid DockPanel.Dock="Bottom" VerticalAlignment="Bottom" Height="117" Margin="0,0,-0.333,0">
                 <StackPanel Height="68" VerticalAlignment="Top" IsHitTestVisible="False">
                     <StackPanel.Style>
-                        <Style TargetType="StackPanel">
+                        <Style TargetType="{x:Type StackPanel}">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=DDSHeaderCheckBox, Path=IsChecked}" Value="true">
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=DDSHeaderCheckBox}" Value="true">
                                     <Setter Property="Visibility" Value="Hidden"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock>
-                        <Run Text="Image Path:    " FontWeight="Bold"/>
-                        <Run Text="{Binding ImagePath, Mode=OneWay}"/>
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="Format:    " FontWeight="Bold"/>
-                        <Run Text="{Binding Format, Mode=OneWay}"/>
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="Mipmap Width:    " FontWeight="Bold"/>
-                        <Run Text="{Binding MipWidth, Mode=OneWay}"/>
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="Mipmap Height:    " FontWeight="Bold"/>
-                        <Run Text="{Binding MipHeight, Mode=OneWay}"/>
-                    </TextBlock>
+                    <TextBlock><Run Text="Image Path:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding ImagePath, Mode=OneWay}"/></TextBlock>
+                    <TextBlock><Run Text="Format:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding Format, Mode=OneWay}"/></TextBlock>
+                    <TextBlock><Run Text="Mipmap Width:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding MipWidth, Mode=OneWay}"/></TextBlock>
+                    <TextBlock><Run Text="Mipmap Height:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding MipHeight, Mode=OneWay}"/></TextBlock>
                 </StackPanel>
                 <StackPanel>
                     <StackPanel.Resources>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="Gray"/>
-                            <Setter Property="FontSize" Value="8"/>
-                            <Setter Property="Opacity" Value=".5"/>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="FontSize" Value="10"/>
                         </Style>
                     </StackPanel.Resources>
 
                     <StackPanel.Style>
-                        <Style TargetType="StackPanel">
+                        <Style TargetType="{x:Type StackPanel}">
                             <Setter Property="Visibility" Value="Hidden"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=DDSHeaderCheckBox, Path=IsChecked}" Value="true">
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=DDSHeaderCheckBox}" Value="true">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -87,81 +73,39 @@
 
                     <TextBlock Text="Header" FontWeight="Bold" FontSize="9"/>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock>
-                            <Run Text="dwSize: " FontWeight="Bold"/>
-                            <Run Text="{Binding img.header.dwSize, Mode=OneWay}"/>
-                        </TextBlock>
+                        <TextBlock><Run Text="dwSize: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwSize, Mode=OneWay}"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="PitchOrLinearSize: " FontWeight="Bold"/>
-                            <Run Text="{Binding img.header.dwPitchOrLinearSize}"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="PitchOrLinearSize: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwPitchOrLinearSize}"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="Depth: " FontWeight="Bold"/>
-                            <Run Text="{Binding img.header.dwDepth}"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="Depth: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwDepth}"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="MipMapCount: " FontWeight="Bold"/>
-                            <Run Text="{Binding img.header.dwMipMapCount}"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="MipMapCount: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwMipMapCount}"/></TextBlock>
                     </StackPanel>
 
-                    <TextBlock>
-                        <Run Text="dwFlags: " FontWeight="Bold"/>
-                        <Run Text="{Binding img.HeaderdwFlags, Mode=OneWay}"/>
-                    </TextBlock>
+                    <TextBlock><Run Text="dwFlags: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.HeaderdwFlags, Mode=OneWay}"/></TextBlock>
 
-                    <TextBlock>
-                        <Run Text="dwCaps: " FontWeight="Bold"/>
-                        <Run Text="{Binding img.HeaderdwCaps, Mode=OneWay}"/>
-                    </TextBlock>
+                    <TextBlock><Run Text="dwCaps: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.HeaderdwCaps, Mode=OneWay}"/></TextBlock>
 
                     <TextBlock Text="Header PixelFormat" FontWeight="Bold" FontSize="8" FontStyle="Italic" Margin="0,10,0,0"/>
 
-                    <TextBlock>
-                        <Run Text="dwFlags: " FontWeight="Bold" FontStyle="Italic"/>
-                        <Run Text="{Binding img.HeaderPFdwFlags, Mode=OneWay}" FontStyle="Italic"/>
-                    </TextBlock>
+                    <TextBlock><Run Text="dwFlags: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.HeaderPFdwFlags, Mode=OneWay}" FontStyle="Italic"/></TextBlock>
 
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock>
-                            <Run Text="dwSize: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwSize}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock><Run Text="dwSize: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwSize}" FontStyle="Italic"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="dwFourCC: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwFourCC}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="dwFourCC: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwFourCC}" FontStyle="Italic"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="dwRGBBitCount: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwRGBBitCount}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="dwRGBBitCount: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwRGBBitCount}" FontStyle="Italic"/></TextBlock>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock>
-                            <Run Text="dwRBitMask: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwRBitMask}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock><Run Text="dwRBitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwRBitMask}" FontStyle="Italic"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="dwGBitMask: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwGBitMask}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="dwGBitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwGBitMask}" FontStyle="Italic"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="dwBBitMask: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwBBitMask}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="dwBBitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwBBitMask}" FontStyle="Italic"/></TextBlock>
 
-                        <TextBlock Margin="10,0,0,0">
-                            <Run Text="dwABitMask: " FontWeight="Bold" FontStyle="Italic"/>
-                            <Run Text="{Binding img.header.ddspf.dwABitMask}" FontStyle="Italic"/>
-                        </TextBlock>
+                        <TextBlock Margin="10,0,0,0"><Run Text="dwABitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwABitMask}" FontStyle="Italic"/></TextBlock>
                     </StackPanel>
 
                 </StackPanel>

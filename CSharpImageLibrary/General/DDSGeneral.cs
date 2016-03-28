@@ -1734,7 +1734,19 @@ namespace CSharpImageLibrary.General
         /// <returns>8 byte BC1 compressed block.</returns>
         private static byte[] CompressBC1Block(byte[] texel)
         {
-            return CompressRGBTexel(texel, true, 0.2f);
+            // Find suitable alpharef
+            float alpharef = 0.2f;
+            List<byte> alphas = new List<byte>();
+            for (int i = 3; i < texel.Length; i += 4)
+                alphas.Add(texel[i]);
+
+            byte max = alphas.Max();
+            byte min = alphas.Min();
+
+            if (min != max)
+                alpharef = (float)((max - min) / (float)byte.MaxValue);
+
+            return CompressRGBTexel(texel, true, alpharef);
         }
 
 
