@@ -75,12 +75,15 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <param name="Format">Detected format.</param>
+        /// <param name="enforceResize">True = image resized to desiredMaxDimension if no suitable mipmap.</param>
+        /// <param name="header">DDS header of image.</param>
         /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
+        /// <param name="mergeAlpha">True = Flattens alpha down, directly affecting RGB.</param>
         /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header)
+        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension, enforceResize, out header);
+                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension, enforceResize, out header, mergeAlpha);
         }
 
 
@@ -90,9 +93,12 @@ namespace CSharpImageLibrary.General
         /// <param name="stream">Full image stream.</param>
         /// <param name="Format">Detected format.</param>
         /// <param name="extension">File extension. Used to determine format more easily.</param>
+        /// <param name="mergeAlpha">ONLY valid when enforceResize is true. True = Flattens alpha down, directly affecting RGB.</param>
+        /// <param name="enforceResize">True = image resized to desiredMaxDimension if no suitable mipmap.</param>
+        /// <param name="header">DDS header of image.</param>
         /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
         /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header)
+        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
         {
             // KFreon: See if image is built-in codec agnostic.
             header = null;
@@ -171,7 +177,7 @@ namespace CSharpImageLibrary.General
                 MipMap output = null;
 
                 int divisor = mip.Height < mip.Width ? mip.Width / desiredMaxDimension : mip.Height / desiredMaxDimension;
-                output = Resize(mip, 1f / divisor);
+                output = Resize(mip, 1f / divisor, mergeAlpha);
 
                 MipMaps.Add(output);
             }
@@ -189,15 +195,16 @@ namespace CSharpImageLibrary.General
         /// <param name="destination">Stream to save to.</param>
         /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        /// <param name="mergeAlpha">True = alpha flattened down, directly affecting RGB.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
         /// <returns>True on success.</returns>
-        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, MipHandling mipChoice, int maxDimension = 0, int mipToSave = 0)
+        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, MipHandling mipChoice, bool mergeAlpha, int maxDimension = 0, int mipToSave = 0)
         {
             Format temp = new Format(format);
             List<MipMap> newMips = new List<MipMap>(MipMaps);
 
             if ((temp.IsMippable && mipChoice == MipHandling.GenerateNew) || (temp.IsMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
-                DDSGeneral.BuildMipMaps(newMips);
+                DDSGeneral.BuildMipMaps(newMips, mergeAlpha);
 
             // KFreon: Resize if asked
             if (maxDimension != 0 && maxDimension < newMips[0].Width && maxDimension < newMips[0].Height) 
@@ -219,7 +226,7 @@ namespace CSharpImageLibrary.General
                     double scale = maxDimension * 1f / (newMips[0].Width > newMips[0].Height ? newMips[0].Width: newMips[0].Height);
 
                     // KFreon: No mip. Resize.
-                    newMips[0] = Resize(newMips[0], scale);
+                    newMips[0] = Resize(newMips[0], scale, mergeAlpha);
                 }
             }
 
@@ -233,7 +240,7 @@ namespace CSharpImageLibrary.General
                 // KFreon: Assuming same scale in both dimensions...
                 fixScale = 1.0*newWidth / newMips[0].Width;
 
-                newMips[0] = Resize(newMips[0], fixScale);
+                newMips[0] = Resize(newMips[0], fixScale, mergeAlpha);
 
             }
 
@@ -242,7 +249,7 @@ namespace CSharpImageLibrary.General
                 DestroyMipMaps(newMips, mipToSave);
 
             if (fixScale != 0 && temp.IsMippable && mipChoice != MipHandling.KeepTopOnly)
-                DDSGeneral.BuildMipMaps(newMips);
+                DDSGeneral.BuildMipMaps(newMips, mergeAlpha);
 
 
             bool result = false;
@@ -334,7 +341,7 @@ namespace CSharpImageLibrary.General
         }
         
 
-        internal static MipMap Resize(MipMap mipMap, double scale)
+        internal static MipMap Resize(MipMap mipMap, double scale, bool mergeAlpha)
         {
             WriteableBitmap bmp = mipMap.BaseImage;
             int origWidth = bmp.PixelWidth;
@@ -346,67 +353,70 @@ namespace CSharpImageLibrary.General
 
 
 
-            // Pull out alpha since scaling with alpha doesn't work properly for some reason
             WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
-            try
+            if (!mergeAlpha)
             {
-                unsafe
+                // Pull out alpha since scaling with alpha doesn't work properly for some reason
+                try
                 {
-                    int index = 3;
-                    byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
-                    byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
-                    for (int i = 0; i < origWidth * origHeight * 4; i += 4)
+                    unsafe
                     {
-                        // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
-                        alphaPtr[i] = mainPtr[index];
-                        alphaPtr[i + 1] = mainPtr[index];
-                        alphaPtr[i + 2] = mainPtr[index];
-                        alphaPtr[i + 3] = mainPtr[index];
-                        index += 4;
+                        int index = 3;
+                        byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
+                        byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
+                        for (int i = 0; i < origWidth * origHeight * 4; i += 4)
+                        {
+                            // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
+                            alphaPtr[i] = mainPtr[index];
+                            alphaPtr[i + 1] = mainPtr[index];
+                            alphaPtr[i + 2] = mainPtr[index];
+                            alphaPtr[i + 3] = mainPtr[index];
+                            index += 4;
+                        }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.ToString());
-                throw;
+                catch (Exception e)
+                {
+                    Debug.WriteLine(e.ToString());
+                    throw;
+                }
             }
             
-
-
             FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
 
             
 
-            // Scale RGB and alpha
+            // Scale RGB
             ScaleTransform scaletransform = new ScaleTransform(scale, scale);
-
             TransformedBitmap scaledMain = new TransformedBitmap(main, scaletransform);
-
-            TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
 
 
             // Put alpha back in
             FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
-
             WriteableBitmap resized = new WriteableBitmap(newConv);
-            WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
 
-            try
+            if (!mergeAlpha)
             {
-                unsafe
+                TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
+                WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
+
+                try
                 {
-                    byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
-                    byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
-                    for (int i = 3; i < newStride * newHeight; i += 4)
-                        resizedPtr[i] = alphaPtr[i];
+                    unsafe
+                    {
+                        byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
+                        byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
+                        for (int i = 3; i < newStride * newHeight; i += 4)
+                            resizedPtr[i] = alphaPtr[i];
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine(e.ToString());
+                    throw;
                 }
             }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.ToString());
-                throw;
-            }
+            
             
 
             return new MipMap(resized);
@@ -429,14 +439,14 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="stream">Full image stream.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
-        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension)
+        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension, bool mergeAlpha = false)
         {
             Format format = new Format();
             DDSGeneral.DDS_HEADER header = null;
-            var mipmaps = LoadImage(stream, out format, null, maxDimension, true, out header);
+            var mipmaps = LoadImage(stream, out format, null, maxDimension, true, out header, mergeAlpha);
 
             MemoryStream ms = new MemoryStream();
-            Save(mipmaps, ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly);
+            Save(mipmaps, ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly, mergeAlpha);
 
             return ms;
         }

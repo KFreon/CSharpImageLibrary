@@ -203,7 +203,9 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="imageFileData">Full image file data.</param>
         /// <param name="desiredMaxDimension">Maximum dimension.</param>
-        public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension, bool enforceResize)
+        /// <param name="enforceResize">True = resizes to desiredMaxDimension if no suitable mipmap.</param>
+        /// <param name="mergeAlpha">ONLY valid when enforeResize = true. True = flattens alpha, directly affecting RGB.</param>
+        public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension, bool enforceResize, bool mergeAlpha = false)
         {
             using (MemoryStream ms = new MemoryStream(imageFileData))
                 LoadFromStream(ms, desiredMaxDimension: desiredMaxDimension);
@@ -217,7 +219,7 @@ namespace CSharpImageLibrary.General
 
             // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
             DDSGeneral.DDS_HEADER tempheader = null;
-            MipMaps = ImageEngine.LoadImage(imagePath, out format, desiredMaxDimension, enforceResize, out tempheader);
+            MipMaps = ImageEngine.LoadImage(imagePath, out format, desiredMaxDimension, enforceResize, out tempheader, false);
 
             // KFreon: Can't pass properties as out :(
             header = tempheader;
@@ -231,7 +233,7 @@ namespace CSharpImageLibrary.General
 
             // KFreon: Load image and save useful information including BGRA pixel data - may be processed from original into this form.
             DDSGeneral.DDS_HEADER tempheader = null;
-            MipMaps = ImageEngine.LoadImage(stream, out format, extension, desiredMaxDimension, enforceResize, out tempheader);
+            MipMaps = ImageEngine.LoadImage(stream, out format, extension, desiredMaxDimension, enforceResize, out tempheader, false);
             header = tempheader;
             Format = format;
         }
@@ -259,10 +261,12 @@ namespace CSharpImageLibrary.General
         /// <param name="format">Format to save as.</param>
         /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <param name="desiredMaxDimension">Maximum value of either image dimension.</param>
+        /// <param name="mergeAlpha">ONLY valid when desiredMaxDimension != 0. True = alpha flattened, directly affecting RGB.</param>
+        /// <param name="mipToSave">Selects a certain mip to save. 0 based.</param>
         /// <returns>True if success</returns>
-        public bool Save(Stream destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0)
+        public bool Save(Stream destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
-            return ImageEngine.Save(MipMaps, format, destination, GenerateMips, desiredMaxDimension, mipToSave);
+            return ImageEngine.Save(MipMaps, format, destination, GenerateMips, mergeAlpha, desiredMaxDimension, mipToSave);
         }
 
         /// <summary>
@@ -305,8 +309,9 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="ignoreAlpha">True = Previews image without alpha channel.</param>
         /// <param name="maxDimension">Largest size to display.</param>
+        /// <param name="mergeAlpha">ONLY valid when maxDimension is set. True = flattens alpha, directly affecting RGB.</param>
         /// <returns>GDI+ bitmap of largest mipmap.</returns>
-        public System.Drawing.Bitmap GetGDIBitmap(bool ignoreAlpha, int maxDimension = 0)
+        public System.Drawing.Bitmap GetGDIBitmap(bool ignoreAlpha, bool mergeAlpha, int maxDimension = 0)
         {
             MipMap mip = MipMaps[0];
 
@@ -319,7 +324,7 @@ namespace CSharpImageLibrary.General
                 else
                 {
                     double scale = maxDimension * 1f / (Height > Width ? Height : Width);
-                    mip = ImageEngine.Resize(mip, scale);
+                    mip = ImageEngine.Resize(mip, scale, mergeAlpha);
                 }
             }
 
@@ -332,10 +337,11 @@ namespace CSharpImageLibrary.General
         /// Scales top mipmap and DESTROYS ALL OTHERS.
         /// </summary>
         /// <param name="DesiredDimension">Desired size of image.</param>
-        public void Resize(int DesiredDimension)
+        /// <param name="mergeAlpha">True = flattens alpha, directly affecting RGB.</param>
+        public void Resize(int DesiredDimension, bool mergeAlpha)
         {
             double scale = (double)DesiredDimension / (double)MipMaps[0].Width;  // TODO Do height too?
-            Resize(scale);
+            Resize(scale, mergeAlpha);
         }
 
 
@@ -343,9 +349,10 @@ namespace CSharpImageLibrary.General
         /// Scales top mipmap and DESTROYS ALL OTHERS.
         /// </summary>
         /// <param name="scale">Scaling factor. </param>
-        public void Resize(double scale)
+        /// <param name="mergeAlpha">True = flattens alpha, directly affecting RGB.</param>
+        public void Resize(double scale, bool mergeAlpha)
         {
-            MipMaps[0] = ImageEngine.Resize(MipMaps[0], scale);
+            MipMaps[0] = ImageEngine.Resize(MipMaps[0], scale, mergeAlpha);
             MipMaps.RemoveRange(1, NumMipMaps - 1);
         }
 
@@ -353,8 +360,10 @@ namespace CSharpImageLibrary.General
         /// Creates a WPF Bitmap from largest mipmap.
         /// Does NOT require that image remains alive.
         /// </summary>
+        /// <param name="mergeAlpha">Only valid if maxDimension set. True = flattens alpha, directly affecting RGB.</param>
+        /// <param name="maxDimension">Resizes image or uses a mipmap if available.</param>
         /// <returns>WPF bitmap of largest mipmap.</returns>
-        public BitmapSource GetWPFBitmap(int maxDimension = 0)
+        public BitmapSource GetWPFBitmap(int maxDimension = 0, bool mergeAlpha = false)
         {
             MipMap mip = MipMaps[0];
 
@@ -367,7 +376,7 @@ namespace CSharpImageLibrary.General
                 else
                 {
                     double scale = maxDimension * 1f / (Height > Width ? Height : Width);
-                    mip = ImageEngine.Resize(mip, scale);
+                    mip = ImageEngine.Resize(mip, scale, mergeAlpha);
                 }
             }
             mip.BaseImage.Freeze();

@@ -92,7 +92,7 @@ namespace CSharpImageLibrary.General
 
                     double scale = hScale < wScale ? hScale : wScale;
 
-                    mip = ImageEngine.Resize(mip, scale);
+                    mip = ImageEngine.Resize(mip, scale, false);
                     mipmaps.Add(mip);
                 }
             }

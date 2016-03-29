@@ -1477,8 +1477,9 @@ namespace CSharpImageLibrary.General
         /// Ensures all Mipmaps are generated in MipMaps.
         /// </summary>
         /// <param name="MipMaps">MipMaps to check.</param>
+        /// <param name="mergeAlpha">True = flattens alpha, directly affecting RGB.</param>
         /// <returns>Number of mipmaps present in MipMaps.</returns>
-        internal static int BuildMipMaps(List<MipMap> MipMaps)
+        internal static int BuildMipMaps(List<MipMap> MipMaps, bool mergeAlpha)
         {
             if (MipMaps?.Count == 0)
                 return 0;
@@ -1497,7 +1498,7 @@ namespace CSharpImageLibrary.General
             {
                 int index = item;
                 MipMap newmip;
-                newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index));
+                newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index), mergeAlpha);
                 newmips[index - 1] = newmip;
             });
             MipMaps.AddRange(newmips);
