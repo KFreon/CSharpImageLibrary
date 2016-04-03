@@ -17,6 +17,7 @@ namespace CSharpImageLibrary.General
     public static class DDSGeneral
     {
         static byte V8U8Adjust = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
+        public static float DXT1AlphaThreshold = 0.2f;
 
         #region Header Stuff
         /// <summary>
@@ -1735,9 +1736,7 @@ namespace CSharpImageLibrary.General
         /// <returns>8 byte BC1 compressed block.</returns>
         private static byte[] CompressBC1Block(byte[] texel)
         {
-            // Find suitable alpharef
-            float alpharef = 0.2f;
-            return CompressRGBTexel(texel, true, alpharef);
+            return CompressRGBTexel(texel, true, DXT1AlphaThreshold);
         }
 
 

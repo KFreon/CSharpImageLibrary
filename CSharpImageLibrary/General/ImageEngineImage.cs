@@ -246,11 +246,13 @@ namespace CSharpImageLibrary.General
         /// <param name="format">Desired image format.</param>
         /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
         /// <param name="desiredMaxDimension">Maximum value of either image dimension.</param>
+        /// <param name="mergeAlpha">DXT1 only. True = Uses threshold value and alpha values to mask RGB.</param>
+        /// <param name="mipToSave">Index of mipmap to save as single image.</param>
         /// <returns>True if success.</returns>
-        public bool Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0)
+        public bool Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
             using (FileStream fs = new FileStream(destination, FileMode.Create))
-                return Save(fs, format, GenerateMips, desiredMaxDimension, mipToSave);
+                return Save(fs, format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);
         }
 
 

@@ -291,6 +291,31 @@
                 <ComboBox x:Name="FormatComboBox" DockPanel.Dock="Right" SelectionChanged="FormatComboBox_SelectionChanged" ItemsSource="{Binding Source={StaticResource Formats}}" SelectedItem="{Binding SaveFormat, Mode=TwoWay}"/>
                 <Label Content="Format" DockPanel.Dock="Right"/>
             </DockPanel>
+            <DockPanel x:Name="DXT1AlphaPanel" DockPanel.Dock="Bottom">
+                <DockPanel.Style>
+                    <Style TargetType="DockPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsDXT1AlphaVisible}" Value="true">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DockPanel.Style>
+                <DockPanel.Resources>
+                    <Style TargetType="CheckBox">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Margin" Value="5,0,10,0"/>
+                    </Style>
+                </DockPanel.Resources>
+                <Label Content="Alpha blending: "/>
+                <CheckBox Content="Remove" IsChecked="{Binding StripAlpha}"/>
+                <CheckBox Content="Flatten" IsChecked="{Binding FlattenBlend}"/>
+                <Label Content="Alpha Threshold:" IsEnabled="{Binding FlattenBlend}"/>
+                <TextBlock Text="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Right" VerticalAlignment="Center" IsEnabled="{Binding FlattenBlend}"/>
+                <Slider Minimum="0" Maximum="100" Value="{Binding DXT1AlphaThreshold, Mode=TwoWay}" DockPanel.Dock="Right" VerticalAlignment="Center" IsEnabled="{Binding FlattenBlend}"/>
+            </DockPanel>
             <DockPanel DockPanel.Dock="Bottom" Margin="0,3">
                 <Label Content="Save path: " DockPanel.Dock="Left"/>
                 <Button x:Name="BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="BrowseButton_Click"/>

@@ -21,6 +21,59 @@ namespace CSharpImageLibrary
         public ImageEngineImage img { get; set; }
         Stopwatch stopwatch = new Stopwatch();
 
+        public bool IsDXT1AlphaVisible
+        {
+            get
+            {
+                return SaveFormat == ImageEngineFormat.DDS_DXT1;
+            }
+        }
+
+        bool flattenBlend = true;
+        public bool FlattenBlend
+        {
+            get
+            {
+                return flattenBlend;
+            }
+            set
+            {
+                SetProperty(ref flattenBlend, value);
+                stripAlpha = !value;
+                OnPropertyChanged(nameof(StripAlpha));
+            }
+        }
+
+        bool stripAlpha = false;
+        public bool StripAlpha
+        {
+            get
+            {
+                return stripAlpha;
+            }
+            set
+            {
+                SetProperty(ref stripAlpha, value);
+                flattenBlend = !value;
+                OnPropertyChanged(nameof(FlattenBlend));
+            }
+        }
+        
+
+        public float DXT1AlphaThreshold
+        {
+            get
+            {
+                return DDSGeneral.DXT1AlphaThreshold*100f;
+            }
+            set
+            {
+                DDSGeneral.DXT1AlphaThreshold = value/100f;
+                OnPropertyChanged(nameof(DXT1AlphaThreshold));
+            }
+        }
+
+
         bool showAlphaPreviews = false;
         public bool ShowAlphaPreviews
         {
@@ -172,6 +225,7 @@ namespace CSharpImageLibrary
                 SaveSuccess = null;
                 SetProperty(ref saveFormat, value);
                 OnPropertyChanged(nameof(IsSaveReady));
+                OnPropertyChanged(nameof(IsDXT1AlphaVisible));
             }
         }
 
@@ -404,7 +458,7 @@ namespace CSharpImageLibrary
                 try
                 {
                     stopwatch.Start();
-                    img.Save(SavePath, SaveFormat, generateMips);
+                    img.Save(SavePath, SaveFormat, generateMips, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));
                     stopwatch.Stop();
                     Debug.WriteLine($"Saved format: {SaveFormat} in {stopwatch.ElapsedMilliseconds} milliseconds.");
 
