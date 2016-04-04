@@ -439,6 +439,7 @@ namespace CSharpImageLibrary.General
         /// </summary>
         /// <param name="stream">Full image stream.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        /// <param name="mergeAlpha">DXT1 only. True = Flatten alpha into RGB.</param>
         public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension, bool mergeAlpha = false)
         {
             Format format = new Format();
@@ -458,14 +459,15 @@ namespace CSharpImageLibrary.General
         /// <param name="stream">Fully formatted image stream.</param>
         /// <param name="destination">File path to save to.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        /// <param name="mergeAlpha">DXT1 only. True = Flatten alpha into RGB.</param>
         /// <returns>True on success.</returns>
-        public static bool GenerateThumbnailToFile(Stream stream, string destination, int maxDimension)
+        public static bool GenerateThumbnailToFile(Stream stream, string destination, int maxDimension, bool mergeAlpha = false)
         {
             using (ImageEngineImage img = new ImageEngineImage(stream, null, maxDimension, true))
             {
                 bool success = false;
                 using (FileStream fs = new FileStream(destination, FileMode.Create))
-                    success = img.Save(fs, ImageEngineFormat.JPG, MipHandling.KeepTopOnly);  // KFreon: Don't need to specify dimension here as it was done during loading
+                    success = img.Save(fs, ImageEngineFormat.JPG, MipHandling.KeepTopOnly, mergeAlpha: mergeAlpha);  // KFreon: Don't need to specify dimension here as it was done during loading
 
                 return success;
             }                

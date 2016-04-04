@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using CSharpImageLibrary.General;
 using UsefulThings.WPF;
 using static CSharpImageLibrary.General.ImageEngine;
@@ -20,6 +21,7 @@ namespace CSharpImageLibrary
     {
         public ImageEngineImage img { get; set; }
         Stopwatch stopwatch = new Stopwatch();
+        DispatcherTimer savePreviewUpdateTimer = new DispatcherTimer();
 
         public bool IsDXT1AlphaVisible
         {
@@ -41,6 +43,8 @@ namespace CSharpImageLibrary
                 SetProperty(ref flattenBlend, value);
                 stripAlpha = !value;
                 OnPropertyChanged(nameof(StripAlpha));
+                DDSGeneral.DXT1AlphaThreshold = blendValue;
+                GenerateSavePreview();
             }
         }
 
@@ -56,20 +60,25 @@ namespace CSharpImageLibrary
                 SetProperty(ref stripAlpha, value);
                 flattenBlend = !value;
                 OnPropertyChanged(nameof(FlattenBlend));
+                GenerateSavePreview();
+                DDSGeneral.DXT1AlphaThreshold = 0f;  // KFreon: Strips the alpha out 
             }
         }
-        
 
+        float blendValue = DDSGeneral.DXT1AlphaThreshold;
         public float DXT1AlphaThreshold
         {
             get
             {
+                DDSGeneral.DXT1AlphaThreshold = blendValue;
                 return DDSGeneral.DXT1AlphaThreshold*100f;
             }
             set
             {
                 DDSGeneral.DXT1AlphaThreshold = value/100f;
                 OnPropertyChanged(nameof(DXT1AlphaThreshold));
+                blendValue = value/100f;
+                savePreviewUpdateTimer.Start();
             }
         }
 
@@ -270,6 +279,18 @@ namespace CSharpImageLibrary
         public ViewModel()
         {
             Previews = new MTRangedObservableCollection<BitmapSource>();
+
+            // KFreon: Timer starts when alpha slider is updated, waits for a second of inaction before making new previews (inaction because it's restarted everytime the slider changes, and when it makes a preview, it stops itself)
+            savePreviewUpdateTimer.Interval = TimeSpan.FromSeconds(1);
+            savePreviewUpdateTimer.Tick += (s, b) =>
+            {
+                // KFreon: Delay regeneration if previous previews are still being generated
+                if (!stopwatch.IsRunning)
+                {
+                    GenerateSavePreview();
+                    savePreviewUpdateTimer.Stop();
+                }
+            };
         }
 
         internal string GetAutoSavePath(ImageEngineFormat newformat)
@@ -315,7 +336,7 @@ namespace CSharpImageLibrary
                 {
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
-                    img.Save(stream, SaveFormat, MipHandling.KeepTopOnly, 1024);  // KFreon: Smaller size for quicker loading
+                    img.Save(stream, SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))

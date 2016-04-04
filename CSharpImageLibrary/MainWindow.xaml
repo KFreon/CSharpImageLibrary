@@ -319,10 +319,23 @@
             <DockPanel DockPanel.Dock="Bottom" Margin="0,3">
                 <Label Content="Save path: " DockPanel.Dock="Left"/>
                 <Button x:Name="BrowseButton" Content="Browse" DockPanel.Dock="Right" Click="BrowseButton_Click"/>
-                <TextBox Text="{Binding SavePath, Mode=TwoWay}" VerticalContentAlignment="Center" KeyDown="TextBox_KeyDown"/>
+                <TextBox Text="{Binding SavePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" KeyDown="TextBox_KeyDown"/>
             </DockPanel>
             <Label Content="NOTE: This preview may be at a lower resolution to prevent preview delays." DockPanel.Dock="Bottom" Foreground="Red" HorizontalAlignment="Center" FontSize="8"/>
-            <Image x:Name="SavePreviewer" Source="{Binding SavePreview}" Margin="0,0,0,5" DockPanel.Dock="Top"/>
+            <Grid Margin="0,0,0,5" DockPanel.Dock="Top">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Background" Value="White"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=BlackCheckbox, Path=IsChecked}" Value="true">
+                                <Setter Property="Background" Value="Black"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Image x:Name="SavePreviewer" Source="{Binding SavePreview}" />
+            </Grid>
         </DockPanel>
     </Grid>
 
