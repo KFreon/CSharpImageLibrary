@@ -440,14 +440,17 @@ namespace CSharpImageLibrary.General
         /// <param name="stream">Full image stream.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
         /// <param name="mergeAlpha">DXT1 only. True = Flatten alpha into RGB.</param>
-        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension, bool mergeAlpha = false)
+        /// <param name="requireTransparency">True = uses PNG compression instead of JPG.</param>
+        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension, bool mergeAlpha = false, bool requireTransparency = false)
         {
             Format format = new Format();
             DDSGeneral.DDS_HEADER header = null;
             var mipmaps = LoadImage(stream, out format, null, maxDimension, true, out header, mergeAlpha);
 
             MemoryStream ms = new MemoryStream();
-            Save(mipmaps, ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly, mergeAlpha);
+            bool result = Save(mipmaps, requireTransparency ? ImageEngineFormat.PNG : ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly, mergeAlpha);
+            if (!result)
+                ms = null;
 
             return ms;
         }
