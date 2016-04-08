@@ -441,14 +441,15 @@ namespace CSharpImageLibrary
                 UpdatePreviews();
 
                 // KFreon: Set selected mip index
-                for (int i = 0; i < Previews.Count; i++)
+                /*for (int i = 0; i < Previews.Count; i++)
                 {
                     if (Previews[i].Width == oldMipWidth)
                     {
                         MipIndex = i + 1;  // 1 based
                         break;
                     }
-                }
+                }*/
+                MipIndex = 1;
             }
             
             ////////////////////////////////////////////////////////////////////////////////////////
