@@ -446,13 +446,13 @@ namespace CSharpImageLibrary.General
                 else if (actualFormat == "G8_L8")
                     check = !stringWithFormatInIt.Contains("A", StringComparison.OrdinalIgnoreCase) &&  stringWithFormatInIt.Contains("G8", StringComparison.OrdinalIgnoreCase);
                 else if (actualFormat.Contains("ARGB"))
-                    check = stringWithFormatInIt.Contains("A8R8G8B8", StringComparison.OrdinalIgnoreCase);
+                    check = stringWithFormatInIt.Contains("A8R8G8B8", StringComparison.OrdinalIgnoreCase) || stringWithFormatInIt.Contains("ARGB", StringComparison.OrdinalIgnoreCase);
 
                 if (check)
+                {
                     detectedFormat = new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
-
-                if (detectedFormat.InternalFormat == ImageEngineFormat.DDS_A8L8)
-                    Debugger.Break();
+                    break;
+                }
             }
 
             
