@@ -1526,7 +1526,12 @@ namespace CSharpImageLibrary.General
                 for (int h = 0; h < Height; h++)
                     for (int w = 0; w < Width; w++)
                         for (int i = 0; i < 4; i++)
-                            texel[count++] = (byte)pixelData.ReadByte();
+                        {
+                            if (count >= 64)
+                                return texel;
+                            else
+                                texel[count++] = (byte)pixelData.ReadByte();
+                        }
 
                 return texel;
             }

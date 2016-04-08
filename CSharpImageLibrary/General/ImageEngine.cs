@@ -96,9 +96,14 @@ namespace CSharpImageLibrary.General
         /// <param name="mergeAlpha">ONLY valid when enforceResize is true. True = Flattens alpha down, directly affecting RGB.</param>
         /// <param name="enforceResize">True = image resized to desiredMaxDimension if no suitable mipmap.</param>
         /// <param name="header">DDS header of image.</param>
-        /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
+        /// <param name="desiredMaxDimension">Largest dimension to load as. ASSUMES SQUARE.</param>
         /// <returns>List of Mipmaps.</returns>
         internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
+        {
+            return LoadImage(stream, out Format, extension, desiredMaxDimension, desiredMaxDimension, enforceResize, out header, mergeAlpha);
+        }
+
+        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int maxWidth, int maxHeight, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
         {
             // KFreon: See if image is built-in codec agnostic.
             header = null;
@@ -111,7 +116,7 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.JPG:
                 case ImageEngineFormat.PNG:
                     if (WindowsWICCodecsAvailable)
-                        MipMaps = Win8_10.LoadWithCodecs(stream, desiredMaxDimension, desiredMaxDimension, false);
+                        MipMaps = Win8_10.LoadWithCodecs(stream, maxWidth, maxHeight, false);
                     else
                     {
                         int width, height;
@@ -126,9 +131,9 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
                     if (WindowsWICCodecsAvailable)
-                        MipMaps = Win8_10.LoadWithCodecs(stream, desiredMaxDimension, desiredMaxDimension, true);
+                        MipMaps = Win8_10.LoadWithCodecs(stream, maxWidth, maxHeight, true);
                     else
-                        MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
+                        MipMaps = DDSGeneral.LoadDDS(stream, header, Format, maxHeight > maxWidth ? maxHeight : maxWidth);
                     break;
                 case ImageEngineFormat.DDS_ARGB:
                 case ImageEngineFormat.DDS_A8L8:
@@ -137,7 +142,7 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.DDS_ATI2_3Dc:
                 case ImageEngineFormat.DDS_G8_L8:
                 case ImageEngineFormat.DDS_V8U8:
-                    MipMaps = DDSGeneral.LoadDDS(stream, header, Format, desiredMaxDimension);
+                    MipMaps = DDSGeneral.LoadDDS(stream, header, Format, maxHeight > maxWidth ? maxHeight : maxWidth);
                     break;
                 case ImageEngineFormat.TGA:
                     var img = new TargaImage(stream);
@@ -154,19 +159,20 @@ namespace CSharpImageLibrary.General
             if (MipMaps == null || MipMaps.Count == 0)
                 throw new InvalidDataException("No mipmaps loaded.");
 
-            
+
             // KFreon: No resizing requested
-            if (desiredMaxDimension == 0)
+            if (maxHeight == 0 && maxWidth == 0)
                 return MipMaps;
 
             // KFreon: Test if we need to resize
             var top = MipMaps.First();
-            if (top.Width == desiredMaxDimension || top.Height == desiredMaxDimension)
+            if (top.Width == maxWidth || top.Height == maxHeight)
                 return MipMaps;
 
+            int max = maxWidth > maxHeight ? maxWidth : maxHeight;
 
             // KFreon: Attempt to resize
-            var sizedMips = MipMaps.Where(m => m.Width > m.Height ? m.Width <= desiredMaxDimension : m.Height <= desiredMaxDimension);
+            var sizedMips = MipMaps.Where(m => m.Width > m.Height ? m.Width <= max : m.Height <= max);
             if (sizedMips != null && sizedMips.Any())  // KFreon: If there's already a mip, return that.
                 MipMaps = sizedMips.ToList();
             else if (enforceResize)
@@ -176,7 +182,8 @@ namespace CSharpImageLibrary.General
                 MipMaps.Clear();
                 MipMap output = null;
 
-                int divisor = mip.Height < mip.Width ? mip.Width / desiredMaxDimension : mip.Height / desiredMaxDimension;
+                int divisor = mip.Width > mip.Height ? mip.Width / max : mip.Height / max;
+
                 output = Resize(mip, 1f / divisor, mergeAlpha);
 
                 MipMaps.Add(output);
@@ -438,14 +445,15 @@ namespace CSharpImageLibrary.General
         /// Generates a thumbnail image as quickly and efficiently as possible.
         /// </summary>
         /// <param name="stream">Full image stream.</param>
-        /// <param name="maxDimension">Maximum value for either image dimension.</param>
+        /// <param name="maxHeight">Max height to decode at. 0 means ignored, and aspect respected.</param>
+        /// <param name="maxWidth">Max width to decode at. 0 means ignored, and aspect respected.</param>
         /// <param name="mergeAlpha">DXT1 only. True = Flatten alpha into RGB.</param>
         /// <param name="requireTransparency">True = uses PNG compression instead of JPG.</param>
-        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxDimension, bool mergeAlpha = false, bool requireTransparency = false)
+        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxWidth, int maxHeight, bool mergeAlpha = false, bool requireTransparency = false)
         {
             Format format = new Format();
             DDSGeneral.DDS_HEADER header = null;
-            var mipmaps = LoadImage(stream, out format, null, maxDimension, true, out header, mergeAlpha);
+            var mipmaps = LoadImage(stream, out format, null, maxWidth, maxHeight, true, out header, mergeAlpha);
 
             MemoryStream ms = new MemoryStream();
             bool result = Save(mipmaps, requireTransparency ? ImageEngineFormat.PNG : ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly, mergeAlpha);
