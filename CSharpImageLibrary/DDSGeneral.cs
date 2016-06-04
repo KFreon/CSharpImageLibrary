@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UsefulThings;
 
-namespace CSharpImageLibrary.General
+namespace CSharpImageLibrary
 {
     /// <summary>
     /// Provides general functions specific to DDS format
@@ -517,7 +517,7 @@ namespace CSharpImageLibrary.General
 
             Func<Stream, List<byte[]>> DecompressBCBlock = null;
             Func<Stream, List<byte>> UncompressedPixelReader = null;
-            switch (format.InternalFormat)
+            switch (format.SurfaceFormat)
             {
                 case ImageEngineFormat.DDS_RGB:
                     UncompressedPixelReader = ReadRGBPixel;
@@ -572,7 +572,7 @@ namespace CSharpImageLibrary.General
                     var array = new byte[mipLength];
                     long position = compressed.Position;
 
-                    if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
+                    if (format.SurfaceFormat == ImageEngineFormat.DDS_ARGB)
                     {
                         compressed.Position = position;
                         compressed.Read(array, 0, array.Length);
@@ -1713,7 +1713,7 @@ namespace CSharpImageLibrary.General
             numMipMaps = EstimateNumMipMaps((int)(mainWidth / newDimDivisor), (int)(mainHeight / newDimDivisor));
 
             // KFreon: Something wrong with the count here by 1 i.e. the estimate is 1 more than it should be 
-            if (format.InternalFormat == ImageEngineFormat.DDS_ARGB)
+            if (format.SurfaceFormat == ImageEngineFormat.DDS_ARGB)
                 requiredOffset -= 2;
 
             // Should only occur when an image has no mips
@@ -1917,13 +1917,13 @@ namespace CSharpImageLibrary.General
 
         internal static bool Save(List<MipMap> MipMaps, Stream Destination, Format format)
         {
-            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, format.InternalFormat);
+            DDSGeneral.DDS_HEADER header = DDSGeneral.Build_DDS_Header(MipMaps.Count, MipMaps[0].Height, MipMaps[0].Width, format.SurfaceFormat);
 
             Func<byte[], byte[]> Compressor = null;
             Action<Stream, Stream, int, int> PixelWriter = null;
 
 
-            switch (format.InternalFormat)
+            switch (format.SurfaceFormat)
             {
                 case ImageEngineFormat.DDS_ARGB:   // Way different method
                     using (BinaryWriter writer = new BinaryWriter(Destination, Encoding.Default, true))

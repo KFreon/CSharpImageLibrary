@@ -12,7 +12,7 @@ using UsefulThings;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 
-namespace CSharpImageLibrary.General
+namespace CSharpImageLibrary
 {
     /// <summary>
     /// Determines how Mipmaps are handled.
@@ -64,7 +64,7 @@ namespace CSharpImageLibrary.General
         /// </summary>
         static ImageEngine()
         {
-            WindowsWICCodecsAvailable = Win8_10.WindowsCodecsPresent();
+            WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
             //WindowsWICCodecsAvailable = false;
         }
 
@@ -110,20 +110,12 @@ namespace CSharpImageLibrary.General
             Format = ImageFormats.ParseFormat(stream, extension, ref header);
             List<MipMap> MipMaps = null;
 
-            switch (Format.InternalFormat)
+            switch (Format.SurfaceFormat)
             {
                 case ImageEngineFormat.BMP:
                 case ImageEngineFormat.JPG:
                 case ImageEngineFormat.PNG:
-                    if (WindowsWICCodecsAvailable)
-                        MipMaps = Win8_10.LoadWithCodecs(stream, maxWidth, maxHeight, false);
-                    else
-                    {
-                        int width, height;
-                        var mipImage = Win7.LoadImageWithCodecs(stream, out width, out height);
-                        var mip = new MipMap(mipImage);
-                        MipMaps = new List<MipMap>() { mip };
-                    }
+                    MipMaps = WIC_Codecs.LoadWithCodecs(stream, maxWidth, maxHeight, false);
                     break;
                 case ImageEngineFormat.DDS_DXT1:
                 case ImageEngineFormat.DDS_DXT2:
@@ -131,7 +123,7 @@ namespace CSharpImageLibrary.General
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
                     if (WindowsWICCodecsAvailable)
-                        MipMaps = Win8_10.LoadWithCodecs(stream, maxWidth, maxHeight, true);
+                        MipMaps = WIC_Codecs.LoadWithCodecs(stream, maxWidth, maxHeight, true);
                     else
                         MipMaps = DDSGeneral.LoadDDS(stream, header, Format, maxHeight > maxWidth ? maxHeight : maxWidth);
                     break;
@@ -260,16 +252,14 @@ namespace CSharpImageLibrary.General
 
 
             bool result = false;
-            if (temp.InternalFormat.ToString().Contains("DDS"))
+            if (temp.SurfaceFormat.ToString().Contains("DDS"))
                 result = DDSGeneral.Save(newMips, destination, temp);
             else
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
                 if (WindowsWICCodecsAvailable)
-                    result = Win8_10.SaveWithCodecs(mip.BaseImage, destination, format);
-                else
-                    result = Win7.SaveWithCodecs(mip.BaseImage, destination, format, mip.Width, mip.Height);
+                    result = WIC_Codecs.SaveWithCodecs(mip.BaseImage, destination, format);
             }
 
             if (mipChoice != MipHandling.KeepTopOnly && temp.IsMippable)

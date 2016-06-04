@@ -8,9 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using CSharpImageLibrary.General;
 using UsefulThings.WPF;
-using static CSharpImageLibrary.General.ImageEngine;
 
 namespace CSharpImageLibrary
 {
@@ -131,7 +129,7 @@ namespace CSharpImageLibrary
         {
             get
             {
-                return img?.Format.InternalFormat.ToString();
+                return img?.Format.SurfaceFormat.ToString();
             }
         }
 
@@ -326,7 +324,7 @@ namespace CSharpImageLibrary
 
 
             // KFreon: TGA saving not supported
-            if (img.Format.InternalFormat == ImageEngineFormat.TGA)
+            if (img.Format.SurfaceFormat == ImageEngineFormat.TGA)
                 SaveFormat = ImageEngineFormat.PNG;
 
             stopwatch.Start();

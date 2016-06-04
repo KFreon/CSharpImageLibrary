@@ -89,13 +89,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="General\DDSGeneral.cs" />
-    <Compile Include="General\ImageEngineImage.cs" />
-    <Compile Include="General\MipMap.cs" />
-    <Compile Include="General\Targa.cs" />
+    <Compile Include="DDSGeneral.cs" />
+    <Compile Include="ImageEngineImage.cs" />
+    <Compile Include="MipMap.cs" />
+    <Compile Include="Targa.cs" />
     <Compile Include="ViewModel.cs" />
-    <Compile Include="General\Win7.cs" />
-    <Compile Include="General\Win8_10.cs" />
+    <Compile Include="WIC_Codecs.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -104,8 +103,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="General\ImageEngine.cs" />
-    <Compile Include="General\ImageFormats.cs" />
+    <Compile Include="ImageEngine.cs" />
+    <Compile Include="ImageFormats.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

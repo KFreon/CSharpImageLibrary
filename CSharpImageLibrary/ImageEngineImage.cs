@@ -8,9 +8,8 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
-using static CSharpImageLibrary.General.ImageEngine;
 
-namespace CSharpImageLibrary.General
+namespace CSharpImageLibrary
 {
     /// <summary>
     /// Represents an image. Can use Windows codecs if available.
@@ -139,6 +138,18 @@ namespace CSharpImageLibrary.General
         public string FilePath { get; private set; }
         #endregion Properties
 
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine($"File Path: {this.FilePath}");
+            sb.AppendLine($"Format: {this.Format.ToString()}");
+            sb.AppendLine($"Width x Height: {this.Width}x{this.Height}");
+            sb.AppendLine($"Num Mips: {this.NumMipMaps}");
+            sb.AppendLine($"Header: {this.header.ToString()}");
+
+            return sb.ToString();
+        }
 
         /// <summary>
         /// Creates a new ImageEngineImage from file.

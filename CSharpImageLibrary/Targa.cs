@@ -39,7 +39,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
 
-namespace CSharpImageLibrary.General
+namespace CSharpImageLibrary
 {
     internal static class TargaConstants
     {

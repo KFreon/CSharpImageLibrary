@@ -17,7 +17,7 @@ using System.Diagnostics;
 using System.Windows.Media.Animation;
 using System.IO;
 using System.Windows.Threading;
-using CSharpImageLibrary.General;
+
 
 namespace CSharpImageLibrary
 {
@@ -117,8 +117,8 @@ namespace CSharpImageLibrary
         {
             if (vm.img != null && !isOpen)  // only change stuff when opening
             {
-                vm.SaveFormat = vm.img.Format.InternalFormat;
-                vm.SavePath = vm.GetAutoSavePath(vm.img.Format.InternalFormat);
+                vm.SaveFormat = vm.img.Format.SurfaceFormat;
+                vm.SavePath = vm.GetAutoSavePath(vm.img.Format.SurfaceFormat);
             }
 
             ChangeConvertPanel(!isOpen);

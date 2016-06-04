@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        xmlns:local="clr-namespace:CSharpImageLibrary.General"
+        xmlns:local="clr-namespace:CSharpImageLibrary"
         xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"

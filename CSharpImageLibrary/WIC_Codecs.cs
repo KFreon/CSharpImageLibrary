@@ -11,12 +11,12 @@ using UsefulThings;
 using System.Windows.Media;
 using System.Windows;
 
-namespace CSharpImageLibrary.General
+namespace CSharpImageLibrary
 {
     /// <summary>
-    /// Provides native Windows codec functionality for Windows 8.1+
+    /// Provides native Windows codec functionality for Windows 8.1+.
     /// </summary>
-    internal static class Win8_10
+    internal static class WIC_Codecs
     {
         static bool WindowsCodecsAvailable = true;
 
@@ -49,6 +49,24 @@ namespace CSharpImageLibrary.General
 
 
         #region Loading
+        /// <summary>
+        /// Loads useful information from an image file.
+        /// </summary>
+        /// <param name="imageFile">Path to image file.</param>
+        /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
+        /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
+        /// <param name="isDDS">True = Image is a DDS.</param>
+        /// <returns>BGRA Pixel Data as stream.</returns>
+        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, bool isDDS)
+        {
+            if (!WindowsCodecsAvailable)
+                return null;
+
+            using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+                return LoadWithCodecs(fs, decodeWidth, decodeHeight, isDDS);
+        }
+
+
         /// <summary>
         /// Loads useful information from image stream using Windows 8.1+ codecs.
         /// </summary>
@@ -199,24 +217,6 @@ namespace CSharpImageLibrary.General
             }
 
             return img;
-        }
-
-
-        /// <summary>
-        /// Loads useful information from an image file.
-        /// </summary>
-        /// <param name="imageFile">Path to image file.</param>
-        /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
-        /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
-        /// <param name="isDDS">True = Image is a DDS.</param>
-        /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, bool isDDS)
-        {
-            if (!WindowsCodecsAvailable)
-                return null;
-
-            using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadWithCodecs(fs, decodeWidth, decodeHeight, isDDS);
         }
         #endregion Loading
 

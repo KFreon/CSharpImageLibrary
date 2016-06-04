@@ -5,10 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static CSharpImageLibrary.General.DDSGeneral;
 using UsefulThings;
+using static CSharpImageLibrary.DDSGeneral;
 
-namespace CSharpImageLibrary.General
+namespace CSharpImageLibrary
 {
     /// <summary>
     /// Indicates image format.
@@ -122,7 +122,7 @@ namespace CSharpImageLibrary.General
         /// <summary>
         /// Image format
         /// </summary>
-        public ImageEngineFormat InternalFormat;
+        public ImageEngineFormat SurfaceFormat;
 
         /// <summary>
         /// True = can have mipmaps.
@@ -131,7 +131,7 @@ namespace CSharpImageLibrary.General
         {
             get
             {
-                return InternalFormat.ToString().Contains("DDS");  // KFreon: Of the supported formats, only DDS' are mippable.
+                return SurfaceFormat.ToString().Contains("DDS");  // KFreon: Of the supported formats, only DDS' are mippable.
             }
         }
 
@@ -162,7 +162,7 @@ namespace CSharpImageLibrary.General
         /// <param name="format">Image format</param>
         public Format(ImageEngineFormat format)
         {
-            InternalFormat = format;
+            SurfaceFormat = format;
         }
 
         /// <summary>
@@ -171,13 +171,13 @@ namespace CSharpImageLibrary.General
         /// <returns>More useful description of object.</returns>
         public override string ToString()
         {
-            return $"Format: {InternalFormat}  IsMippable: {IsMippable}";
+            return $"Format: {SurfaceFormat}  IsMippable: {IsMippable}";
         }
 
         private int GetBlockSize()
         {
             int blocksize = 1;
-            switch (InternalFormat)
+            switch (SurfaceFormat)
             {
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_DXT1:
@@ -234,9 +234,9 @@ namespace CSharpImageLibrary.General
             Format format = new Format();
 
             if (!Enum.IsDefined(typeof(ImageEngineFormat), FourCC))
-                format.InternalFormat = ImageEngineFormat.DDS_ARGB; 
+                format.SurfaceFormat = ImageEngineFormat.DDS_ARGB; 
             else
-                format.InternalFormat = (ImageEngineFormat)FourCC;
+                format.SurfaceFormat = (ImageEngineFormat)FourCC;
 
             return format;
         }
@@ -378,7 +378,7 @@ namespace CSharpImageLibrary.General
 
                 format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
 
-                if (format.InternalFormat == ImageEngineFormat.Unknown || format.InternalFormat == ImageEngineFormat.DDS_ARGB)
+                if (format.SurfaceFormat == ImageEngineFormat.Unknown || format.SurfaceFormat == ImageEngineFormat.DDS_ARGB)
                 {
                     // KFreon: Apparently all these flags mean it's a V8U8 image...
                     if (header.ddspf.dwRGBBitCount == 0x10 &&
