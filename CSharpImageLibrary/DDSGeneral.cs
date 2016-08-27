@@ -312,10 +312,7 @@ namespace CSharpImageLibrary
             }
             else
             {
-                ParallelOptions po = new ParallelOptions();
-                po.MaxDegreeOfParallelism = -1;
-                Parallel.For(0, texelCount, po, (rowr, loopstate) =>
-                //for (int rowr = 0; rowr < texelCount; rowr++)
+                Action<int, ParallelLoopState> action = new Action<int, ParallelLoopState>((rowr, loopstate) =>
                 {
                     int rowIndex = rowr;
                     using (var compressedLine = WriteMipLine(pixelData, Width, Height, bitsPerScanLine, isBCd, rowIndex, PixelWriter))
@@ -332,10 +329,26 @@ namespace CSharpImageLibrary
                                 compressedLine.WriteTo(mipmap);
                             }
                         }
-                        else
+                        else if (ImageEngine.EnableThreading)
                             loopstate.Break();
+                        else if (!ImageEngine.EnableThreading)
+                            return;
                     }
                 });
+
+                // Decide whether to thread or not
+                if (ImageEngine.EnableThreading)
+                {
+                    ParallelOptions po = new ParallelOptions();
+                    po.MaxDegreeOfParallelism = -1;
+                    Parallel.For(0, texelCount, po, (rowr, loopstate) => action(rowr, loopstate));
+                }
+                else
+                {
+                    for (int rowr = 0; rowr < texelCount; rowr++)
+                        action(rowr, null);
+                }
+                
             }
 
             return mipmap;
@@ -405,13 +418,10 @@ namespace CSharpImageLibrary
             // Loop over rows and columns NOT pixels
             int compressedLineSize = blockSize * mipWidth / 4;
             int bitsPerScanline = 4 * (int)mipWidth;
-            ParallelOptions po = new ParallelOptions();
-            po.MaxDegreeOfParallelism = -1;
             int texelCount = mipHeight / 4;
             if (texelCount != 0)
             {
-                Parallel.For(0, texelCount, po, (rowr, loopstate) =>
-                //for (int rowr = 0; rowr < texelCount; rowr++)
+                Action<int, ParallelLoopState> action = new Action<int, ParallelLoopState>((rowr, loopstate) =>
                 {
                     int row = rowr;
                     using (MemoryStream DecompressedLine = ReadBCMipLine(compressed, mipHeight, mipWidth, bitsPerScanline, mipOffset, compressedLineSize, row, DecompressBlock))
@@ -425,10 +435,19 @@ namespace CSharpImageLibrary
                                 if (index + length <= mipmapData.Length)
                                     DecompressedLine.Read(mipmapData, index, length);
                             }
-                        else
+                        else if (ImageEngine.EnableThreading)
                             loopstate.Break();
+                        else if (!ImageEngine.EnableThreading)
+                            return;
                     }
                 });
+
+                if (ImageEngine.EnableThreading)
+                    Parallel.For(0, texelCount, (rowr, loopstate) => action(rowr, loopstate));
+                else
+                    for (int rowr = 0; rowr < texelCount; rowr++)
+                        action(rowr, null);
+
             }
 
             return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(mipmapData, mipWidth, mipHeight));
@@ -445,7 +464,7 @@ namespace CSharpImageLibrary
 
         private static List<byte> ReadV8U8Pixel(Stream fileData)
         {
-            byte[] rg = fileData.ReadBytesFromStream(2);
+            byte[] rg = fileData.ReadBytes(2);
             byte red = (byte)(rg[0] - V8U8Adjust);
             byte green = (byte)(rg[1] - V8U8Adjust);
             byte blue = 0xFF;
@@ -455,7 +474,7 @@ namespace CSharpImageLibrary
 
         private static List<byte> ReadRGBPixel(Stream fileData)
         {
-            var rgb = fileData.ReadBytesFromStream(3);
+            var rgb = fileData.ReadBytes(3);
             byte red = rgb[0];
             byte green = rgb[1];
             byte blue = rgb[2];
@@ -464,7 +483,7 @@ namespace CSharpImageLibrary
 
         private static List<byte> ReadA8L8Pixel(Stream fileData)
         {
-            var al = fileData.ReadBytesFromStream(2);
+            var al = fileData.ReadBytes(2);
             return new List<byte>() { al[0], al[0], al[0], al[1] };
         }
 
@@ -510,8 +529,9 @@ namespace CSharpImageLibrary
                 else
                     mipOffset = 128;
 
-                compressed.Position = mipOffset;
             }
+
+            compressed.Position = mipOffset;
 
 
 
@@ -559,8 +579,10 @@ namespace CSharpImageLibrary
             {
                 // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
                 if (mipWidth <= 0 || mipHeight <= 0 || compressed.Position >= compressed.Length)  // Needed cos it doesn't throw when reading past the end for some reason.
+                {
+                    Debugger.Break();
                     break;
-
+                }
 
                 MipMap mipmap = null;
                 if (format.IsBlockCompressed)
@@ -1494,16 +1516,23 @@ namespace CSharpImageLibrary
 
             // KFreon: Half dimensions until one == 1.
             MipMap[] newmips = new MipMap[estimatedMips];
-            Parallel.For(1, estimatedMips + 1, item =>   // Starts at 1 to skip top mip
-            //for (int item = 1; item < estimatedMips + 1; item++)
+
+            Action<int> action = new Action<int>(item =>
             {
                 int index = item;
                 MipMap newmip;
                 newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index), mergeAlpha);
                 newmips[index - 1] = newmip;
             });
-            MipMaps.AddRange(newmips);
 
+            // Start at 1 to skip top mip
+            if (ImageEngine.EnableThreading)
+                Parallel.For(1, estimatedMips + 1, item => action(item));
+            else
+                for (int item = 1; item < estimatedMips + 1; item++)
+                    action(item);
+
+            MipMaps.AddRange(newmips);
             return estimatedMips;
         }
 
@@ -2035,7 +2064,7 @@ namespace CSharpImageLibrary
         private static void WriteRGBPixel(Stream writer, Stream pixels, int unused1, int unused2)
         {
             // BGRA
-            var bytes = pixels.ReadBytesFromStream(3);
+            var bytes = pixels.ReadBytes(3);
             writer.Write(bytes, 0, bytes.Length);
             pixels.Position++;
         }

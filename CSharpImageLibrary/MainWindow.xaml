@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:CSharpImageLibrary"
-        xmlns:useful="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
+        xmlns:useful="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="Image Engine" Height="706.296" x:Name="ThisWindow" Width="1137.211" KeyDown="Window_KeyDown" Drop="ThisWindow_Drop" AllowDrop="True" Icon="ImageEngine.ico">

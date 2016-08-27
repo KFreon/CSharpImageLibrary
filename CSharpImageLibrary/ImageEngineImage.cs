@@ -223,6 +223,35 @@ namespace CSharpImageLibrary
         }
 
 
+        /// <summary>
+        /// Loads DDS that has no header - primarily for ME3Explorer. DDS data is standard, just without a header.
+        /// ASSUMES VALID DDS DATA. Also, single mipmap only.
+        /// </summary>
+        /// <param name="rawDDSData">Standard DDS data but lacking header.</param>
+        /// <param name="surfaceFormat">Surface format of DDS.</param>
+        /// <param name="width">Width of image.</param>
+        /// <param name="height">Height of image.</param>
+        public ImageEngineImage(byte[] rawDDSData, ImageEngineFormat surfaceFormat, int width, int height)
+        {
+            Format = new Format(surfaceFormat);
+            DDSGeneral.DDS_HEADER tempHeader = null;
+            MipMaps = ImageEngine.LoadImage(rawDDSData, surfaceFormat, width, height, out tempHeader);
+            header = tempHeader;
+        }
+
+
+        /// <summary>
+        /// Builds a DDS image from an existing mipmap.
+        /// </summary>
+        /// <param name="mip">Mip to base image on.</param>
+        /// <param name="DDSFormat">Format of mipmap.</param>
+        public ImageEngineImage(MipMap mip, ImageEngineFormat DDSFormat)
+        {
+            Format = new Format(DDSFormat);
+            MipMaps = new List<MipMap>() { mip };
+            header = DDSGeneral.Build_DDS_Header(1, mip.Height, mip.Width, DDSFormat);
+        }
+
         private void LoadFromFile(string imagePath, int desiredMaxDimension = 0, bool enforceResize = true)
         {
             Format format = new Format();
@@ -280,6 +309,12 @@ namespace CSharpImageLibrary
         public bool Save(Stream destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
             return ImageEngine.Save(MipMaps, format, destination, GenerateMips, mergeAlpha, desiredMaxDimension, mipToSave);
+        }
+
+
+        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
+        {
+            return ImageEngine.Save(MipMaps, format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);
         }
 
         /// <summary>
