@@ -61,6 +61,9 @@ namespace CSharpImageLibrary
             return flags;
         }
 
+        /// <summary>
+        /// DDS header if existing.
+        /// </summary>
         public DDSGeneral.DDS_HEADER header { get; set; }
         
         public string HeaderdwFlags
@@ -179,6 +182,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
         /// <param name="desiredMaxDimension">Max dimension to save.</param>
+        /// <param name="enforceResize">True = forcibly resizes image. False = attempts to find a suitably sized mipmap, but doesn't resize if none found.</param>
         public ImageEngineImage(string imagePath, int desiredMaxDimension, bool enforceResize)
         {
             LoadFromFile(imagePath, desiredMaxDimension, enforceResize);
@@ -191,6 +195,7 @@ namespace CSharpImageLibrary
         /// <param name="stream">Full image stream.</param>
         /// <param name="extension">File extension of original image.</param>
         /// <param name="desiredMaxDimension">Maximum dimension.</param>
+        /// <param name="enforceResize">True = forcibly resizes image. False = attempts to find a suitably sized mipmap, but doesn't resize if none found.</param>
         public ImageEngineImage(Stream stream, string extension, int desiredMaxDimension, bool enforceResize)
         {
             LoadFromStream(stream, extension, desiredMaxDimension, enforceResize);
@@ -214,7 +219,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imageFileData">Full image file data.</param>
         /// <param name="desiredMaxDimension">Maximum dimension.</param>
-        /// <param name="enforceResize">True = resizes to desiredMaxDimension if no suitable mipmap.</param>
+        /// <param name="enforceResize">True = forcibly resizes image. False = attempts to find a suitably sized mipmap, but doesn't resize if none found.</param>
         /// <param name="mergeAlpha">ONLY valid when enforeResize = true. True = flattens alpha, directly affecting RGB.</param>
         public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension, bool enforceResize, bool mergeAlpha = false)
         {
@@ -284,8 +289,8 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="destination">File to save to.</param>
         /// <param name="format">Desired image format.</param>
-        /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
-        /// <param name="desiredMaxDimension">Maximum value of either image dimension.</param>
+        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
+        /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="mergeAlpha">DXT1 only. True = Uses threshold value and alpha values to mask RGB.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
         /// <returns>True if success.</returns>
@@ -301,8 +306,8 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="destination">Stream to save to.</param>
         /// <param name="format">Format to save as.</param>
-        /// <param name="GenerateMips">True = Generates all mipmaps. False = Uses largest available Mipmap.</param>
-        /// <param name="desiredMaxDimension">Maximum value of either image dimension.</param>
+        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
+        /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="mergeAlpha">ONLY valid when desiredMaxDimension != 0. True = alpha flattened, directly affecting RGB.</param>
         /// <param name="mipToSave">Selects a certain mip to save. 0 based.</param>
         /// <returns>True if success</returns>
@@ -312,6 +317,15 @@ namespace CSharpImageLibrary
         }
 
 
+        /// <summary>
+        /// Saves fully formatted image in specified format to byte array.
+        /// </summary>
+        /// <param name="format">Format to save as.</param>
+        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
+        /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
+        /// <param name="mipToSave">Index of mipmap to save directly.</param>
+        /// <param name="mergeAlpha">ONLY valid when desiredMaxDimension != 0. True = alpha flattened, directly affecting RGB.</param>
+        /// <returns></returns>
         public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
             return ImageEngine.Save(MipMaps, format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);

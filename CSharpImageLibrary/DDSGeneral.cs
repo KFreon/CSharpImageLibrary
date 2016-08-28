@@ -17,6 +17,10 @@ namespace CSharpImageLibrary
     public static class DDSGeneral
     {
         static byte V8U8Adjust = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
+
+        /// <summary>
+        /// Value at which alpha is included in DXT1 conversions. i.e. pixels lower than this threshold are made 100% transparent, and pixels higher are made 100% opaque.
+        /// </summary>
         public static float DXT1AlphaThreshold = 0.2f;
 
         #region Header Stuff
