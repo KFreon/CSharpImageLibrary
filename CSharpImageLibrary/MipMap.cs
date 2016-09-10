@@ -34,7 +34,10 @@ namespace CSharpImageLibrary
         public int Height { get; set; }
 
 
-
+        /// <summary>
+        /// Creates a Mipmap object from a WPF image.
+        /// </summary>
+        /// <param name="baseimage">Image to base Mipmap on.</param>
         public MipMap(BitmapSource baseimage)
         {
             BaseImage = new WriteableBitmap(baseimage);

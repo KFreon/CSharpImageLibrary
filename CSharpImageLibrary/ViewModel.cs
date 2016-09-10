@@ -17,10 +17,16 @@ namespace CSharpImageLibrary
     /// </summary>
     public class ViewModel : ViewModelBase
     {
+        /// <summary>
+        /// Current image loaded.
+        /// </summary>
         public ImageEngineImage img { get; set; }
         Stopwatch stopwatch = new Stopwatch();
         DispatcherTimer savePreviewUpdateTimer = new DispatcherTimer();
 
+        /// <summary>
+        /// True = Alpha in DXT1 is merged with its RGB, showing how many applications display such an image.
+        /// </summary>
         public bool IsDXT1AlphaVisible
         {
             get
@@ -30,6 +36,9 @@ namespace CSharpImageLibrary
         }
 
         bool flattenBlend = true;
+        /// <summary>
+        /// True = Merge DXT1 alpha with RGB when saving, to permanently show how most applications display it.
+        /// </summary>
         public bool FlattenBlend
         {
             get
@@ -47,6 +56,9 @@ namespace CSharpImageLibrary
         }
 
         bool stripAlpha = false;
+        /// <summary>
+        /// Remove DXT1 alpha during saving, to just get the good stuff.
+        /// </summary>
         public bool StripAlpha
         {
             get
@@ -64,6 +76,9 @@ namespace CSharpImageLibrary
         }
 
         float blendValue = DDSGeneral.DXT1AlphaThreshold;
+        /// <summary>
+        /// Threshold for DXT1 alpha to determine whether pixel is transparent or not.
+        /// </summary>
         public float DXT1AlphaThreshold
         {
             get
@@ -82,6 +97,9 @@ namespace CSharpImageLibrary
 
 
         bool showAlphaPreviews = false;
+        /// <summary>
+        /// Determines whether user wants alpha displayed.
+        /// </summary>
         public bool ShowAlphaPreviews
         {
             get
@@ -97,6 +115,9 @@ namespace CSharpImageLibrary
         }
 
         long saveElapsed = -1;
+        /// <summary>
+        /// Elapsed time during saving.
+        /// </summary>
         public long SaveElapsedTime
         {
             get
@@ -110,10 +131,16 @@ namespace CSharpImageLibrary
         }
 
         #region Original Image Properties
+        /// <summary>
+        /// Currently selected image previews based on alpha settings. Gets swapped out when user changes between alpha and non-alpha display.
+        /// </summary>
         public MTRangedObservableCollection<BitmapSource> Previews { get; set; }
         List<BitmapSource> AlphaPreviews { get; set; }
         List<BitmapSource> NonAlphaPreviews { get; set; }
 
+        /// <summary>
+        /// Number of mipmaps in loaded image.
+        /// </summary>
         public int NumMipMaps
         {
             get
@@ -125,6 +152,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Format of currently loaded image.
+        /// </summary>
         public string Format
         {
             get
@@ -133,6 +163,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Path to loaded image.
+        /// </summary>
         public string ImagePath
         {
             get
@@ -141,6 +174,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Preview of image based on selected mipmap and alpha settings.
+        /// </summary>
         public BitmapSource Preview
         {
             get
@@ -152,7 +188,9 @@ namespace CSharpImageLibrary
             }
         }
 
-
+        /// <summary>
+        /// Width of selected mipmap.
+        /// </summary>
         public double? MipWidth
         {
             get
@@ -161,6 +199,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Height of selected mipmap.
+        /// </summary>
         public double? MipHeight
         {
             get
@@ -170,6 +211,9 @@ namespace CSharpImageLibrary
         }
 
         int mipindex = 1;
+        /// <summary>
+        /// Selected mip index.
+        /// </summary>
         public int MipIndex
         {
             get
@@ -192,6 +236,9 @@ namespace CSharpImageLibrary
 
         #region Save Properties
         MipHandling generateMips = MipHandling.Default;
+        /// <summary>
+        /// Determines what to do with mipmaps during saving.
+        /// </summary>
         public MipHandling GenerateMipMaps
         {
             get
@@ -206,6 +253,9 @@ namespace CSharpImageLibrary
         }
 
         string savePath = null;
+        /// <summary>
+        /// Path to save image to.
+        /// </summary>
         public string SavePath
         {
             get
@@ -221,6 +271,9 @@ namespace CSharpImageLibrary
         }
 
         ImageEngineFormat saveFormat = ImageEngineFormat.Unknown;
+        /// <summary>
+        /// Format to save image as.
+        /// </summary>
         public ImageEngineFormat SaveFormat
         {
             get
@@ -237,6 +290,9 @@ namespace CSharpImageLibrary
         }
 
         BitmapSource[] savePreviews = new BitmapSource[2];
+        /// <summary>
+        /// Preview of how image looks if it were saved with selected settings.
+        /// </summary>
         public BitmapSource SavePreview
         {
             get
@@ -245,7 +301,9 @@ namespace CSharpImageLibrary
             }
         }
 
-
+        /// <summary>
+        /// Indicator as to whether saving is allowed based on mandatory settings.
+        /// </summary>
         public bool IsSaveReady
         {
             get
@@ -254,12 +312,18 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Error message from saving.
+        /// </summary>
         public string SavingFailedErrorMessage
         {
             get; private set;
         }
 
         bool? saveSuccess = null;
+        /// <summary>
+        /// Indicates status of saving.
+        /// </summary>
         public bool? SaveSuccess
         {
             get
@@ -274,6 +338,9 @@ namespace CSharpImageLibrary
         #endregion Save Properties
 
 
+        /// <summary>
+        /// View model constructor.
+        /// </summary>
         public ViewModel()
         {
             Previews = new MTRangedObservableCollection<BitmapSource>();
@@ -352,6 +419,11 @@ namespace CSharpImageLibrary
             OnPropertyChanged(nameof(SavePreview));
         }
 
+        /// <summary>
+        /// Load image from path.
+        /// </summary>
+        /// <param name="path">Path to image to load.</param>
+        /// <returns>Nothing. Async needs task to await.</returns>
         public async Task LoadImage(string path)
         {
             bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.

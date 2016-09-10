@@ -377,7 +377,7 @@ namespace CSharpImageLibrary
             Dispose(false);
         }
 
-
+        
         public void Save(MemoryStream ms, WriteableBitmap img)
         {
             TargaHeader header = new TargaHeader();
@@ -418,7 +418,11 @@ namespace CSharpImageLibrary
 
         }
 
-        public TargaImage(Stream stream):this() 
+        /// <summary>
+        /// Creates TGA image from stream.
+        /// </summary>
+        /// <param name="stream">Stream containing image.</param>
+        public TargaImage(Stream stream) : this() 
         {
             byte[] filebytes = new byte[stream.Length];
             stream.Read(filebytes, 0, (int)stream.Length);

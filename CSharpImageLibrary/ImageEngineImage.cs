@@ -66,6 +66,9 @@ namespace CSharpImageLibrary
         /// </summary>
         public DDSGeneral.DDS_HEADER header { get; set; }
         
+        /// <summary>
+        /// DDS Header option flags.
+        /// </summary>
         public string HeaderdwFlags
         {
             get
@@ -74,6 +77,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// DDS Header extra option flags.
+        /// </summary>
         public string HeaderdwCaps
         {
             get
@@ -82,6 +88,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// DDS pixel format option flags.
+        /// </summary>
         public string HeaderPFdwFlags
         {
             get
@@ -141,6 +150,10 @@ namespace CSharpImageLibrary
         public string FilePath { get; private set; }
         #endregion Properties
 
+        /// <summary>
+        /// Gets string representation of ImageEngineImage.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();

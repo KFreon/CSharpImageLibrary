@@ -40,6 +40,7 @@ namespace CSharpImageLibrary
             }
             catch (Exception e)
             {
+                Debug.WriteLine(e.ToString());
                 WindowsCodecsAvailable = false;
                 return false;  // KFreon: Non decoding related error - Who knows...
             }

@@ -432,6 +432,8 @@ namespace CSharpImageLibrary
                 {
                     unsafe
                     {
+                        alpha.Lock();
+                        bmp.Lock();
                         int index = 3;
                         byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
                         byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
@@ -444,6 +446,9 @@ namespace CSharpImageLibrary
                             alphaPtr[i + 3] = mainPtr[index];
                             index += 4;
                         }
+
+                        alpha.Unlock();
+                        bmp.Unlock();
                     }
                 }
                 catch (Exception e)
@@ -475,10 +480,15 @@ namespace CSharpImageLibrary
                 {
                     unsafe
                     {
+                        resized.Lock();
+                        newAlpha.Lock();
                         byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
                         byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
                         for (int i = 3; i < newStride * newHeight; i += 4)
                             resizedPtr[i] = alphaPtr[i];
+
+                        resized.Unlock();
+                        newAlpha.Unlock();
                     }
                 }
                 catch (Exception e)
@@ -498,6 +508,7 @@ namespace CSharpImageLibrary
         /// Destroys mipmaps. Expects at least one mipmap in given list.
         /// </summary>
         /// <param name="MipMaps">List of Mipmaps.</param>
+        /// <param name="mipToSave">Index of mipmap to save. 1 based, i.e. top is 1.</param>
         /// <returns>Number of mips present.</returns>
         private static int DestroyMipMaps(List<MipMap> MipMaps, int mipToSave)
         {

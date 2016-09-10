@@ -70,24 +70,83 @@ namespace CSharpImageLibrary
         /// </summary>
         public class DDS_HEADER
         {
+            /// <summary>
+            /// Size of image. In bytes?
+            /// </summary>
             public int dwSize { get; set; }
+
+            /// <summary>
+            /// Option flags.
+            /// </summary>
             public int dwFlags { get; set; }
+
+            /// <summary>
+            /// Height of image.
+            /// </summary>
             public int dwHeight { get; set; }
+
+            /// <summary>
+            /// Width of image.
+            /// </summary>
             public int dwWidth { get; set; }
+
+            /// <summary>
+            /// Pitch or linear size. I think this is stride in Windows lingo?
+            /// </summary>
             public int dwPitchOrLinearSize { get; set; }
+
+            /// <summary>
+            /// Image depth. Usually not used.
+            /// </summary>
             public int dwDepth { get; set; }
+
+            /// <summary>
+            /// Number of mipmaps.
+            /// </summary>
             public int dwMipMapCount { get; set; }
+
+            /// <summary>
+            /// Not used, as per Windows DDS spec.
+            /// </summary>
             public int[] dwReserved1 = new int[11];
+
+            /// <summary>
+            /// Pixel format of DDS.
+            /// </summary>
             public DDS_PIXELFORMAT ddspf
             {
                 get; set;
             } = new DDS_PIXELFORMAT();
+
+            /// <summary>
+            /// More option flags.
+            /// </summary>
             public int dwCaps { get; set; }
+
+            /// <summary>
+            /// Don't think it's used.
+            /// </summary>
             public int dwCaps2;
+
+            /// <summary>
+            /// Don't think it's used.
+            /// </summary>
             public int dwCaps3;
+
+            /// <summary>
+            /// Don't think it's used.
+            /// </summary>
             public int dwCaps4;
+
+            /// <summary>
+            /// Not used as per Windows DDS spec.
+            /// </summary>
             public int dwReserved2;
 
+            /// <summary>
+            /// Provides a string representation of the DDS header.
+            /// </summary>
+            /// <returns></returns>
             public override string ToString()
             {
                 StringBuilder sb = new StringBuilder();
@@ -117,19 +176,59 @@ namespace CSharpImageLibrary
         /// </summary>
         public class DDS_PIXELFORMAT
         {
+            /// <summary>
+            /// Size in bytes?
+            /// </summary>
             public int dwSize { get; set; }
+
+            /// <summary>
+            /// Option flags.
+            /// </summary>
             public int dwFlags { get; set; }
+
+            /// <summary>
+            /// FourCC of DDS, i.e. DXT1, etc
+            /// </summary>
             public int dwFourCC { get; set; }
+
+            /// <summary>
+            /// RGB Channel width.
+            /// </summary>
             public int dwRGBBitCount { get; set; }
+
+            /// <summary>
+            /// Red bit mask. i.e. pixel is FF12AA22, so mask might be FF000000 and we get pure red.
+            /// </summary>
             public uint dwRBitMask { get; set; }
+
+            /// <summary>
+            /// Green bit mask. i.e. pixel is FF12AA22, so mask might be 00FF0000 and we get 00120000.
+            /// </summary>
             public uint dwGBitMask { get; set; }
+
+            /// <summary>
+            /// Blue bit mask. i.e. pixel is FF12AA22, so mask might be 0000FF00 and we get 0000AA00.
+            /// </summary>
             public uint dwBBitMask { get; set; }
+
+            /// <summary>
+            /// Alpha bit mask. i.e. pixel is FF12AA22, so mask might be 000000FF and we get 00000022.
+            /// </summary>
             public uint dwABitMask { get; set; }
 
+
+            /// <summary>
+            /// Format constructor.
+            /// </summary>
             public DDS_PIXELFORMAT()
             {
             }
 
+
+            /// <summary>
+            /// String representation of DDS pixel format.
+            /// </summary>
+            /// <returns></returns>
             public override string ToString()
             {
                 StringBuilder sb = new StringBuilder();
@@ -277,9 +376,12 @@ namespace CSharpImageLibrary
                 {
                     unsafe
                     {
+                        MipMaps[m].BaseImage.Lock();
                         UnmanagedMemoryStream mipmap = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), MipMaps[m].Width * MipMaps[m].Height * 4);
                         using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
                             compressed.WriteTo(Destination);
+
+                        MipMaps[m].BaseImage.Unlock();
                     }
                 }
                 return true;
@@ -766,7 +868,7 @@ namespace CSharpImageLibrary
             }
             catch (EndOfStreamException e)
             {
-                Console.WriteLine();
+                Debug.WriteLine(e.ToString());
                 // It's due to weird shaped mips at really low resolution. Like 2x4
 
                 return DecompressedChannels;
@@ -1667,7 +1769,13 @@ namespace CSharpImageLibrary
 
         
 
-        
+        /// <summary>
+        /// Builds an RGB palette from the min and max colours of a texel.
+        /// </summary>
+        /// <param name="Colour0">First colour, usually the min.</param>
+        /// <param name="Colour1">Second colour, usually the max.</param>
+        /// <param name="isDXT1">True = for DXT1 texels. Changes how the internals are calculated.</param>
+        /// <returns>Texel palette.</returns>
         public static int[] BuildRGBPalette(int Colour0, int Colour1, bool isDXT1)
         {
             int[] Colours = new int[4];
@@ -1968,8 +2076,10 @@ namespace CSharpImageLibrary
                         {
                             for (int m = 0; m < MipMaps.Count; m++)
                             {
+                                MipMaps[m].BaseImage.Lock();
                                 var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height);
                                 stream.CopyTo(Destination);
+                                MipMaps[m].BaseImage.Unlock();
                             }
                         }
                     }

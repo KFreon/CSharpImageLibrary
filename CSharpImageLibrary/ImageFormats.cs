@@ -135,6 +135,9 @@ namespace CSharpImageLibrary
             }
         }
 
+        /// <summary>
+        /// Indicates whether image is block compressed (DXT)
+        /// </summary>
         public bool IsBlockCompressed
         {
             get
@@ -215,11 +218,34 @@ namespace CSharpImageLibrary
         /// </summary>
         public enum SupportedExtensions
         {
+            /// <summary>
+            /// Format isn't known...
+            /// </summary>
             UNKNOWN,
+
+            /// <summary>
+            /// JPEG format. Good for small images, but is lossy, hence can have poor colours and artifacts at high compressions.
+            /// </summary>
             JPG,
+
+            /// <summary>
+            /// BMP bitmap. Lossless but exceedingly poor bytes for pixel ratio i.e. huge filesize for little image.
+            /// </summary>
             BMP,
+
+            /// <summary>
+            /// Supports transparency, decent compression. Use this unless you can't.
+            /// </summary>
             PNG,
+
+            /// <summary>
+            /// DirectDrawSurface image. DirectX image, supports mipmapping, fairly poor compression/artifacting. Good for video memory due to mipmapping.
+            /// </summary>
             DDS,
+
+            /// <summary>
+            /// Targa image.
+            /// </summary>
             TGA
         }
 
@@ -247,6 +273,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imgData">Stream containing entire image file. NOT just pixels.</param>
         /// <param name="extension">Extension of image file.</param>
+        /// <param name="header">DDS header of image this function will load.</param>
         /// <returns>Format of image.</returns>
         public static Format ParseFormat(Stream imgData, string extension, ref DDS_HEADER header)
         {
@@ -298,6 +325,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="imgData">Stream containing entire image. NOT just pixels.</param>
         /// <param name="extension">Type of file.</param>
+        /// <param name="header">DDS header of image this function will load.</param>
         /// <returns>Format of image.</returns>
         public static Format ParseFormat(Stream imgData, SupportedExtensions extension, ref DDS_HEADER header)
         {
@@ -339,6 +367,7 @@ namespace CSharpImageLibrary
         /// Gets image format of image file.
         /// </summary>
         /// <param name="imagePath">Path to image file.</param>
+        /// <param name="header">DDS header of image this function will load.</param>
         /// <returns>Format of image.</returns>
         public static Format ParseFormat(string imagePath, ref DDS_HEADER header)
         {
