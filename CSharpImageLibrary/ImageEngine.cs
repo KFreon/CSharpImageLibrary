@@ -433,7 +433,6 @@ namespace CSharpImageLibrary
                     unsafe
                     {
                         alpha.Lock();
-                        bmp.Lock();
                         int index = 3;
                         byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
                         byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
@@ -448,7 +447,6 @@ namespace CSharpImageLibrary
                         }
 
                         alpha.Unlock();
-                        bmp.Unlock();
                     }
                 }
                 catch (Exception e)

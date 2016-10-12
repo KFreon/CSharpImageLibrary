@@ -170,7 +170,7 @@ namespace CSharpImageLibrary
             }
         }
 
-        
+
         /// <summary>
         /// Contains information about DDS Pixel Format.
         /// </summary>
@@ -277,7 +277,7 @@ namespace CSharpImageLibrary
                     header.dwPitchOrLinearSize = (int)(Width * Height);
                     break;
                 case ImageEngineFormat.DDS_ATI1:
-                    header.dwFlags |= 0x80000;  
+                    header.dwFlags |= 0x80000;
                     header.dwPitchOrLinearSize = (int)(Width * Height / 2f);
                     break;
                 case ImageEngineFormat.DDS_G8_L8:
@@ -305,7 +305,7 @@ namespace CSharpImageLibrary
                     px.dwGBitMask = 0xFF00;
                     break;
             }
-            
+
 
             header.ddspf = px;
             return header;
@@ -376,12 +376,9 @@ namespace CSharpImageLibrary
                 {
                     unsafe
                     {
-                        MipMaps[m].BaseImage.Lock();
-                        UnmanagedMemoryStream mipmap = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), MipMaps[m].Width * MipMaps[m].Height * 4);
+                        using (UnmanagedMemoryStream mipmap = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), MipMaps[m].Width * MipMaps[m].Height * 4))
                         using (var compressed = WriteMipMap(mipmap, MipMaps[m].Width, MipMaps[m].Height, PixelWriter, isBCd))
                             compressed.WriteTo(Destination);
-
-                        MipMaps[m].BaseImage.Unlock();
                     }
                 }
                 return true;
@@ -454,7 +451,7 @@ namespace CSharpImageLibrary
                     for (int rowr = 0; rowr < texelCount; rowr++)
                         action(rowr, null);
                 }
-                
+
             }
 
             return mipmap;
@@ -594,7 +591,7 @@ namespace CSharpImageLibrary
         }
 
         internal static List<MipMap> LoadDDS(Stream compressed, DDS_HEADER header, Format format, int desiredMaxDimension)
-        {           
+        {
             List<MipMap> MipMaps = new List<MipMap>();
 
             int mipWidth = header.dwWidth;
@@ -787,10 +784,10 @@ namespace CSharpImageLibrary
                     {
                         // Ignore. Most likely error reading smaller mips that don't behave
                     }
-                    
+
                 }
             }
-                
+
             return DecompressedLine;
         }
         #endregion Loading
@@ -873,9 +870,9 @@ namespace CSharpImageLibrary
 
                 return DecompressedChannels;
             }
-            
 
-                
+
+
             for (int i = 0; i < 16; i += 4)
             {
                 //byte bitmask = (byte)compressed.ReadByte();
@@ -1586,7 +1583,7 @@ namespace CSharpImageLibrary
                 byte colour = texel[count];
                 int index = GetClosestValue(Colours, colour);
                 indicies.Add(index);
-                line |= (ulong)index << (i * 3); 
+                line |= (ulong)index << (i * 3);
                 count += 4;  // Only need 1 channel
             }
 
@@ -1682,7 +1679,7 @@ namespace CSharpImageLibrary
 
                 pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);  // Seek to next line of texel
             }
-                
+
 
             return texel;
         }
@@ -1767,7 +1764,7 @@ namespace CSharpImageLibrary
             return Colours;
         }
 
-        
+
 
         /// <summary>
         /// Builds an RGB palette from the min and max colours of a texel.
@@ -1807,14 +1804,14 @@ namespace CSharpImageLibrary
                 var r = (byte)(1 / 2f * Colour0s[0] + 1 / 2f * Colour1s[0]);
                 var g = (byte)(1 / 2f * Colour0s[1] + 1 / 2f * Colour1s[1]);
                 var b = (byte)(1 / 2f * Colour0s[2] + 1 / 2f * Colour1s[2]);
-            
+
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;
             }
             return Colours;
         }
         #endregion Palette/Colour
-        
+
 
         /// <summary>
         /// Estimates number of MipMaps for a given width and height EXCLUDING the top one.
@@ -1823,20 +1820,31 @@ namespace CSharpImageLibrary
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>Number of mipmaps expected for image.</returns>
-        internal static int EstimateNumMipMaps(int Width, int Height)
+        public static int EstimateNumMipMaps(int Width, int Height)
         {
             int limitingDimension = Width > Height ? Height : Width;
             return (int)Math.Log(limitingDimension, 2); // There's 10 mipmaps besides the main top one.
         }
 
-        internal static long EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMaxDimension, Format format, out int numMipMaps, double mipIndex = -1)
+        /// <summary>
+        /// Calculates whether a mipmap can be a part of the given image based on dimensions, format, and image data size.
+        /// </summary>
+        /// <param name="streamLength">Length of image data.</param>
+        /// <param name="mainWidth">Width of overall image.</param>
+        /// <param name="mainHeight">Height of overall image.</param>
+        /// <param name="desiredMaxDimension">Dimension of mip to find</param>
+        /// <param name="format">Format of image. Required as compressed formats take up varying space.</param>
+        /// <param name="numMipMaps">Number of detected mipmaps.</param>
+        /// <param name="mipIndex">Index of mip to check instead of desired dimension.</param>
+        /// <returns>Offset in stream of specified mip.</returns>
+        public static long EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMaxDimension, Format format, out int numMipMaps, double mipIndex = -1)
         {
             // TODO: Is the other estimated mips required?
 
             if (mainWidth <= desiredMaxDimension && mainHeight <= desiredMaxDimension)
             {
                 numMipMaps = EstimateNumMipMaps(mainWidth, mainHeight);
-                return 128; // One mip only
+                return 128; // Top mip indicated
             }
 
 
@@ -1940,8 +1948,8 @@ namespace CSharpImageLibrary
             byte[] red = DDSGeneral.Decompress8BitBlock(compressed, false);
             byte[] green = DDSGeneral.Decompress8BitBlock(compressed, false);
             List<byte[]> DecompressedBlock = new List<byte[]>();
-            
-            
+
+
 
             // KFreon: Alpha needs to be 255
             byte[] alpha = new byte[16];
@@ -2076,10 +2084,8 @@ namespace CSharpImageLibrary
                         {
                             for (int m = 0; m < MipMaps.Count; m++)
                             {
-                                MipMaps[m].BaseImage.Lock();
-                                var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height);
-                                stream.CopyTo(Destination);
-                                MipMaps[m].BaseImage.Unlock();
+                                using (var stream = new UnmanagedMemoryStream((byte*)MipMaps[m].BaseImage.BackBuffer.ToPointer(), 4 * MipMaps[m].Width * MipMaps[m].Height))
+                                    stream.CopyTo(Destination);
                             }
                         }
                     }
@@ -2088,7 +2094,7 @@ namespace CSharpImageLibrary
                         Debug.WriteLine(e.ToString());
                         throw;
                     }
-                    
+
 
                     return true;
                 case ImageEngineFormat.DDS_A8L8:
@@ -2127,7 +2133,7 @@ namespace CSharpImageLibrary
 
             // KFreon: Set to DDS pixel writer. Needs to be here or the Compressor function is null (due to inclusion or whatever it's called)
             if (PixelWriter == null)
-                PixelWriter = (writer, pixels, width, height) =>  
+                PixelWriter = (writer, pixels, width, height) =>
                 {
                     byte[] texel = DDSGeneral.GetTexel(pixels, width, height);
                     byte[] CompressedBlock = Compressor(texel);
@@ -2172,7 +2178,7 @@ namespace CSharpImageLibrary
             // BGRA
             // First 3 channels are the same value, so just use the last one.
             pixels.Position += 2;
-            writer.ReadFrom(pixels, 2); 
+            writer.ReadFrom(pixels, 2);
         }
 
         private static void WriteRGBPixel(Stream writer, Stream pixels, int unused1, int unused2)
