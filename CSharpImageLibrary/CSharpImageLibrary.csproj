@@ -89,6 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DDSGeneral.cs" />
+    <Compile Include="Headers\JPG_Header.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="MipMap.cs" />
     <Compile Include="Targa.cs" />
