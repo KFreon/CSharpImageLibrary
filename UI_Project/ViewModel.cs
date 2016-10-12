@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CSharpImageLibrary;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -10,7 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using UsefulThings.WPF;
 
-namespace CSharpImageLibrary
+namespace UI_Project
 {
     /// <summary>
     /// View model for the main Converter form

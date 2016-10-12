@@ -1,7 +1,7 @@
-﻿<Application x:Class="CSharpImageLibrary.App"
+﻿<Application x:Class="UI_Project.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:CSharpImageLibrary"
+             xmlns:local="clr-namespace:UI_Project"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
          

@@ -17,9 +17,9 @@ using System.Diagnostics;
 using System.Windows.Media.Animation;
 using System.IO;
 using System.Windows.Threading;
+using CSharpImageLibrary;
 
-
-namespace CSharpImageLibrary
+namespace UI_Project
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
