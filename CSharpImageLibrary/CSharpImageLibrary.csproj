@@ -88,8 +88,17 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DDSGeneral.cs" />
+    <Compile Include="DDS\DDSGeneral.cs" />
+    <Compile Include="DDS\DDS_BlockHelpers.cs" />
+    <Compile Include="DDS\DDS_Decoders.cs" />
+    <Compile Include="DDS\DDS_Encoders.cs" />
+    <Compile Include="Headers\AbstractHeader.cs" />
+    <Compile Include="Headers\BMP_Header.cs" />
+    <Compile Include="Headers\DDS_Header.cs" />
+    <Compile Include="Headers\GIF_Header.cs" />
     <Compile Include="Headers\JPG_Header.cs" />
+    <Compile Include="Headers\PNG_Header.cs" />
+    <Compile Include="Headers\TGA_Header.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="MipMap.cs" />
     <Compile Include="Targa.cs" />

@@ -1,12 +1,13 @@
-﻿using System;
+﻿using CSharpImageLibrary.Headers;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
-using static CSharpImageLibrary.DDSGeneral;
 
 namespace CSharpImageLibrary
 {
@@ -42,6 +43,11 @@ namespace CSharpImageLibrary
         TGA = 5,
 
         /// <summary>
+        /// Standard GIF Image handled by everything. 
+        /// </summary>
+        GIF = 6,
+
+        /// <summary>
         /// (BC1) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Simple Non Alpha.
         /// </summary>
@@ -70,6 +76,11 @@ namespace CSharpImageLibrary
         /// Used for Gradient Alpha. 
         /// </summary>
         DDS_DXT5 = 0x35545844,
+
+        /// <summary>
+        /// Fancy new DirectX 10+ format indicator. DX10 Header will contain true format.
+        /// </summary>
+        DDS_DX10 = 0x30315844,
 
         /// <summary>
         /// Uncompressed ARGB DDS.
@@ -110,7 +121,7 @@ namespace CSharpImageLibrary
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Normal (bump) Maps. Pair of 8 bit channels.
         /// </summary>
-        DDS_ATI2_3Dc = 0x32495441  // ATI2 backwards
+        DDS_ATI2_3Dc = 0x32495441,  // ATI2 backwards
     }
 
     /// <summary>
@@ -214,6 +225,51 @@ namespace CSharpImageLibrary
     public static class ImageFormats
     {
         /// <summary>
+        /// Get list of supported extensions in lower case.
+        /// </summary>
+        /// <returns>List of supported extensions.</returns>
+        public static List<string> GetSupportedExtensions()
+        {
+            return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "unknown").ToList();
+        }
+
+        /// <summary>
+        /// Get list of filter strings for dialog boxes of the Supported Images.
+        /// </summary>
+        /// <returns>List of filter strings.</returns>
+        public static List<string> GetSupportedExtensionsForDialogBox()
+        {
+            List<string> filters = new List<string>();
+            var names = GetSupportedExtensions();
+            foreach (var name in names)
+            {
+                var enumValue = (SupportedExtensions)Enum.Parse(typeof(SupportedExtensions), name);
+                var desc = UsefulThings.General.GetEnumDescription(enumValue);
+
+                filters.Add($"{desc}|*.{name}");
+            }
+
+            return filters;
+        }
+
+        /// <summary>
+        /// Get descriptions of supported images. Generally the description as would be seen in a SaveFileDialog.
+        /// </summary>
+        /// <returns>List of descriptions of supported images.</returns>
+        public static List<string> GetSupportedExtensionsDescriptions()
+        {
+            List<string> descriptions = new List<string>();
+            var names = GetSupportedExtensions();
+            foreach (var name in names)
+            {
+                var enumValue = (SupportedExtensions)Enum.Parse(typeof(SupportedExtensions), name);
+                descriptions.Add(UsefulThings.General.GetEnumDescription(enumValue));
+            }
+
+            return descriptions;
+        }
+
+        /// <summary>
         /// File extensions supported. Used to get initial format.
         /// </summary>
         public enum SupportedExtensions
@@ -221,32 +277,44 @@ namespace CSharpImageLibrary
             /// <summary>
             /// Format isn't known...
             /// </summary>
+            [Description("Unknown format")]
             UNKNOWN,
 
             /// <summary>
             /// JPEG format. Good for small images, but is lossy, hence can have poor colours and artifacts at high compressions.
             /// </summary>
+            [Description("Joint Photographic Images")]
             JPG,
 
             /// <summary>
             /// BMP bitmap. Lossless but exceedingly poor bytes for pixel ratio i.e. huge filesize for little image.
             /// </summary>
+            [Description("Bitmap Images")]
             BMP,
 
             /// <summary>
             /// Supports transparency, decent compression. Use this unless you can't.
             /// </summary>
+            [Description("Portable Network Graphic Images")]
             PNG,
 
             /// <summary>
             /// DirectDrawSurface image. DirectX image, supports mipmapping, fairly poor compression/artifacting. Good for video memory due to mipmapping.
             /// </summary>
+            [Description("DirectX Images")]
             DDS,
 
             /// <summary>
             /// Targa image.
             /// </summary>
-            TGA
+            [Description("Targa Images")]
+            TGA,
+
+            /// <summary>
+            /// Graphics Interchange Format images. Lossy compression, supports animation (this tool doesn't though), good for low numbers of colours.
+            /// </summary>
+            [Description("Graphics Interchange Images")]
+            GIF
         }
 
 
@@ -269,82 +337,53 @@ namespace CSharpImageLibrary
 
 
         /// <summary>
-        /// Gets image format from stream containing image file, along with extension of image file.
+        /// Determines image type via headers.
+        /// Keeps stream position.
         /// </summary>
-        /// <param name="imgData">Stream containing entire image file. NOT just pixels.</param>
-        /// <param name="extension">Extension of image file.</param>
-        /// <param name="header">DDS header of image this function will load.</param>
-        /// <returns>Format of image.</returns>
-        public static Format ParseFormat(Stream imgData, string extension, ref DDS_HEADER header)
+        /// <param name="imgData">Image data, incl header.</param>
+        /// <returns>Type of image.</returns>
+        public static SupportedExtensions DetermineImageType(Stream imgData)
         {
             SupportedExtensions ext = SupportedExtensions.UNKNOWN;
 
-            // KFreon: Attempt to determine from data
-            if (extension == null)
-            {
-                // KFreon: Save position and go back to start
-                long originalPos = imgData.Position;
-                imgData.Seek(0, SeekOrigin.Begin);
+            // KFreon: Save position and go back to start
+            long originalPos = imgData.Position;
+            imgData.Seek(0, SeekOrigin.Begin);
 
-                char l1 = (char)imgData.ReadByte();
-                char l2 = (char)imgData.ReadByte();
-                char l3 = (char)imgData.ReadByte();
-                char l4 = (char)imgData.ReadByte();
+            var bits = new byte[4];
+            imgData.Read(bits, 0, 4);
 
-                // BMP
-                if (l1 == 'B' && l2 == 'M') 
-                    ext = SupportedExtensions.BMP;
+            // BMP
+            if (BMP_Header.CheckIdentifier(bits)) 
+                ext = SupportedExtensions.BMP;
 
-                // PNG
-                if (l1 == 137 && l2 == 'P' && l3 == 'N' && l4 == 'G')  
-                    ext = SupportedExtensions.PNG;
+            // PNG
+            if (bits[0] == 137 && bits[1] == 'P' && bits[2] == 'N' && bits[3] == 'G')  
+                ext = SupportedExtensions.PNG;
 
-                // JPG
-                if (l1 == 0xFF && l2 == 0xD8 && l3 == 0xFF)
-                    ext = SupportedExtensions.JPG;
+            // JPG
+            if (bits[0] == 0xFF && bits[1] == 0xD8 && bits[3] == 0xFF)
+                ext = SupportedExtensions.JPG;
 
-                // DDS
-                if (l1 == 'D' && l2 == 'D' && l3 == 'S')
-                    ext = SupportedExtensions.DDS;
+            // DDS
+            if (bits[0] == 'D' && bits[1] == 'D' && bits[2] == 'S')
+                ext = SupportedExtensions.DDS;
 
-                // KFreon: Reset stream position
-                imgData.Seek(originalPos, SeekOrigin.Begin);
-            }
-            else
-                ext = ParseExtension(extension);
 
+            // GIF
+            if (bits[0] == 'G' && bits[1] == 'I' && bits[2] == 'F')
+                ext = SupportedExtensions.GIF;
+
+            // TGA (assumed if no other matches
             if (ext == SupportedExtensions.UNKNOWN)
-                return new Format();
+                ext = SupportedExtensions.TGA;
 
-            return ParseFormat(imgData, ext, ref header);
+            // KFreon: Reset stream position
+            imgData.Seek(originalPos, SeekOrigin.Begin);
+
+            return ext;
         }
 
-
-        /// <summary>
-        /// Gets Format of image.
-        /// </summary>
-        /// <param name="imgData">Stream containing entire image. NOT just pixels.</param>
-        /// <param name="extension">Type of file.</param>
-        /// <param name="header">DDS header of image this function will load.</param>
-        /// <returns>Format of image.</returns>
-        public static Format ParseFormat(Stream imgData, SupportedExtensions extension, ref DDS_HEADER header)
-        {
-            switch (extension)
-            {
-                case SupportedExtensions.BMP:
-                    return new Format(ImageEngineFormat.BMP);
-                case SupportedExtensions.DDS:
-                    return ParseDDSFormat(imgData, out header);
-                case SupportedExtensions.JPG:
-                    return new Format(ImageEngineFormat.JPG);
-                case SupportedExtensions.PNG:
-                    return new Format(ImageEngineFormat.PNG);
-                case SupportedExtensions.TGA:
-                    return new Format(ImageEngineFormat.TGA);
-            }
-
-            return new Format();
-        }
 
 
         /// <summary>
@@ -360,21 +399,6 @@ namespace CSharpImageLibrary
                 return SupportedExtensions.UNKNOWN;
 
             return ext;
-        }
-
-
-        /// <summary>
-        /// Gets image format of image file.
-        /// </summary>
-        /// <param name="imagePath">Path to image file.</param>
-        /// <param name="header">DDS header of image this function will load.</param>
-        /// <returns>Format of image.</returns>
-        public static Format ParseFormat(string imagePath, ref DDS_HEADER header)
-        {
-            SupportedExtensions ext = ParseExtension(imagePath);
-
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return ParseFormat(fs, ext, ref header);
         }
 
         /// <summary>

@@ -11,6 +11,7 @@ using System.Windows.Media.Imaging;
 using UsefulThings;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
+using CSharpImageLibrary.Headers;
 
 namespace CSharpImageLibrary
 {
@@ -58,9 +59,15 @@ namespace CSharpImageLibrary
         }
 
         /// <summary>
-        /// True = Loading and saving operations are threaded.
+        /// Enables threading of Loading and Saving operations to improve performance.
         /// </summary>
         public static bool EnableThreading { get; set; } = true;
+
+        /// <summary>
+        /// Enables GPU Accelerated encoding and decoding of all formats.
+        /// NOTE: WIC formats (jpg, bmp, png etc) probably already use GPU, but are not covered by this flag.
+        /// </summary>
+        public static bool EnableGPUAcceleration { get; set; }
 
         /// <summary>
         /// Constructor. Checks WIC status before any other operation.
@@ -68,176 +75,56 @@ namespace CSharpImageLibrary
         static ImageEngine()
         {
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
-            //WindowsWICCodecsAvailable = false;
+
+            // GPU testing
+            EnableGPUAcceleration = true;
         }
 
 
-        #region Loading
-        /// <summary>
-        /// Loads image from file.
-        /// </summary>
-        /// <param name="imagePath">Path to image file.</param>
-        /// <param name="Format">Detected format.</param>
-        /// <param name="enforceResize">True = image resized to desiredMaxDimension if no suitable mipmap.</param>
-        /// <param name="header">DDS header of image.</param>
-        /// <param name="desiredMaxDimension">Largest dimension to load as.</param>
-        /// <param name="mergeAlpha">True = Flattens alpha down, directly affecting RGB.</param>
-        /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(string imagePath, out Format Format, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
+        // NEW LOADING
+        internal static List<MipMap> LoadImage(Stream imageStream)
         {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadImage(fs, out Format, Path.GetExtension(imagePath), desiredMaxDimension, enforceResize, out header, mergeAlpha);
+            imageStream.Seek(0, SeekOrigin.Begin);
         }
 
-
-        /// <summary>
-        /// Loads image from stream.
-        /// </summary>
-        /// <param name="stream">Full image stream.</param>
-        /// <param name="Format">Detected format.</param>
-        /// <param name="extension">File extension. Used to determine format more easily.</param>
-        /// <param name="mergeAlpha">ONLY valid when enforceResize is true. True = Flattens alpha down, directly affecting RGB.</param>
-        /// <param name="enforceResize">True = image resized to desiredMaxDimension if no suitable mipmap.</param>
-        /// <param name="header">DDS header of image.</param>
-        /// <param name="desiredMaxDimension">Largest dimension to load as. ASSUMES SQUARE.</param>
-        /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int desiredMaxDimension, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
+        internal static AbstractHeader LoadHeader(MemoryStream stream)
         {
-            return LoadImage(stream, out Format, extension, desiredMaxDimension, desiredMaxDimension, enforceResize, out header, mergeAlpha);
-        }
+            stream.Seek(0, SeekOrigin.Begin);
 
+            // Determine type of image
+            ImageFormats.SupportedExtensions ext = ImageFormats.DetermineImageType(stream);
 
-        /// <summary>
-        /// Loads image from stream.
-        /// </summary>
-        /// <param name="stream">Full image stream.</param>
-        /// <param name="Format">Detected Format.</param>
-        /// <param name="extension">File Extension. Used to determine format more easily.</param>
-        /// <param name="maxWidth">Maximum width to allow when loading. Resized if enforceResize = true.</param>
-        /// <param name="maxHeight">Maximum height to allow when loading. Resized if enforceResize = true.</param>
-        /// <param name="enforceResize">True = Resizes image to match either maxWidth or maxHeight.</param>
-        /// <param name="header">DDS header of image.</param>
-        /// <param name="mergeAlpha">ONLY valid when enforceResize is true. True = Flattens alpha down, directly affecting RGB.</param>
-        /// <returns>List of Mipmaps.</returns>
-        internal static List<MipMap> LoadImage(Stream stream, out Format Format, string extension, int maxWidth, int maxHeight, bool enforceResize, out DDSGeneral.DDS_HEADER header, bool mergeAlpha)
-        {
-            // KFreon: See if image is built-in codec agnostic.
-            header = null;
-            Format = ImageFormats.ParseFormat(stream, extension, ref header);
-            List<MipMap> MipMaps = null;
-
-            switch (Format.SurfaceFormat)
+            // Parse header
+            AbstractHeader header = null;
+            switch (ext)
             {
-                case ImageEngineFormat.BMP:
-                case ImageEngineFormat.JPG:
-                case ImageEngineFormat.PNG:
-                    MipMaps = WIC_Codecs.LoadWithCodecs(stream, maxWidth, maxHeight, false);
+                case ImageFormats.SupportedExtensions.BMP:
+                    header = new BMP_Header();
                     break;
-                case ImageEngineFormat.DDS_DXT1:
-                case ImageEngineFormat.DDS_DXT2:
-                case ImageEngineFormat.DDS_DXT3:
-                case ImageEngineFormat.DDS_DXT4:
-                case ImageEngineFormat.DDS_DXT5:
-                    if (WindowsWICCodecsAvailable)
-                        MipMaps = WIC_Codecs.LoadWithCodecs(stream, maxWidth, maxHeight, true);
-                    else
-                        MipMaps = DDSGeneral.LoadDDS(stream, header, Format, maxHeight > maxWidth ? maxHeight : maxWidth);
+                case ImageFormats.SupportedExtensions.DDS:
+                    header = new DDS_Header();
                     break;
-                case ImageEngineFormat.DDS_ARGB:
-                case ImageEngineFormat.DDS_A8L8:
-                case ImageEngineFormat.DDS_RGB:
-                case ImageEngineFormat.DDS_ATI1:
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                case ImageEngineFormat.DDS_G8_L8:
-                case ImageEngineFormat.DDS_V8U8:
-                    MipMaps = DDSGeneral.LoadDDS(stream, header, Format, maxHeight > maxWidth ? maxHeight : maxWidth);
+                case ImageFormats.SupportedExtensions.JPG:
+                    header = new JPG_Header();
                     break;
-                case ImageEngineFormat.TGA:
-                    var img = new TargaImage(stream);
-                    byte[] pixels = UsefulThings.WinForms.Imaging.GetPixelDataFromBitmap(img.Image);
-                    WriteableBitmap wbmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, img.Image.Width, img.Image.Height);
-                    var mip1 = new MipMap(wbmp);
-                    MipMaps = new List<MipMap>() { mip1 };
-                    img.Dispose();
+                case ImageFormats.SupportedExtensions.PNG:
+                    header = new PNG_Header();
+                    break;
+                case ImageFormats.SupportedExtensions.TGA:
+                    header = new TGA_Header();
+                    break;
+                case ImageFormats.SupportedExtensions.GIF:
+                    header = new GIF_Header();
                     break;
                 default:
-                    throw new InvalidDataException("Image format is unknown.");
+                    throw new NotSupportedException("Image type unknown.");
             }
 
-            if (MipMaps == null || MipMaps.Count == 0)
-                throw new InvalidDataException("No mipmaps loaded.");
-
-
-            // KFreon: No resizing requested
-            if (maxHeight == 0 && maxWidth == 0)
-                return MipMaps;
-
-            // KFreon: Test if we need to resize
-            var top = MipMaps.First();
-            if (top.Width == maxWidth || top.Height == maxHeight)
-                return MipMaps;
-
-            int max = maxWidth > maxHeight ? maxWidth : maxHeight;
-
-            // KFreon: Attempt to resize
-            var sizedMips = MipMaps.Where(m => m.Width > m.Height ? m.Width <= max : m.Height <= max);
-            if (sizedMips != null && sizedMips.Any())  // KFreon: If there's already a mip, return that.
-                MipMaps = sizedMips.ToList();
-            else if (enforceResize)
-            {
-                // Get top mip and clear others.
-                var mip = MipMaps[0];
-                MipMaps.Clear();
-                MipMap output = null;
-
-                int divisor = mip.Width > mip.Height ? mip.Width / max : mip.Height / max;
-
-                output = Resize(mip, 1f / divisor, mergeAlpha);
-
-                MipMaps.Add(output);
-            }
-            return MipMaps;
+            return header;
         }
 
-        internal static List<MipMap> LoadImage(byte[] rawDDSData, ImageEngineFormat surfaceFormat, int width, int height, out DDSGeneral.DDS_HEADER header)
-        {
-            header = DDSGeneral.Build_DDS_Header(1, height, width, surfaceFormat);
-            List<MipMap> MipMaps = null;
 
-            // Create new fully formatted DDS i.e. one with a header.
-            MemoryStream stream = new MemoryStream();
-            BinaryWriter bw = new BinaryWriter(stream);
-            DDSGeneral.Write_DDS_Header(header, bw);
-            bw.Write(rawDDSData);
-
-            switch (surfaceFormat)
-            {
-                case ImageEngineFormat.DDS_DXT1:
-                case ImageEngineFormat.DDS_DXT2:
-                case ImageEngineFormat.DDS_DXT3:
-                case ImageEngineFormat.DDS_DXT4:
-                case ImageEngineFormat.DDS_DXT5:
-                    if (WindowsWICCodecsAvailable)
-                        MipMaps = WIC_Codecs.LoadWithCodecs(stream, 0, 0, true);
-                    else
-                        MipMaps = DDSGeneral.LoadDDS(stream, header, new Format(surfaceFormat), 0);
-                    break;
-                case ImageEngineFormat.DDS_ARGB:
-                case ImageEngineFormat.DDS_A8L8:
-                case ImageEngineFormat.DDS_RGB:
-                case ImageEngineFormat.DDS_ATI1:
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                case ImageEngineFormat.DDS_G8_L8:
-                case ImageEngineFormat.DDS_V8U8:
-                    MipMaps = DDSGeneral.LoadDDS(stream, header, new Format(surfaceFormat), 0);
-                    break;
-                default:
-                    throw new InvalidDataException("Image format is unknown.");
-            }
-            bw.Dispose(); // Also disposes MemoryStream
-            return MipMaps;
-        }
-        #endregion Loading
+        
 
 
 
@@ -422,10 +309,12 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
 
-
+            // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
+            bool alphaPresent = bmp.Format.ToString().Contains("a", StringComparison.OrdinalIgnoreCase);
+            Console.WriteLine("PixelFormat (for checking if alpha resize is going to work): " + bmp.Format);
 
             WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
-            if (!mergeAlpha)
+            if (alphaPresent && !mergeAlpha)
             {
                 // Pull out alpha since scaling with alpha doesn't work properly for some reason
                 try
@@ -433,7 +322,6 @@ namespace CSharpImageLibrary
                     unsafe
                     {
                         alpha.Lock();
-                        bmp.Lock();
                         int index = 3;
                         byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
                         byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
@@ -448,7 +336,6 @@ namespace CSharpImageLibrary
                         }
 
                         alpha.Unlock();
-                        bmp.Unlock();
                     }
                 }
                 catch (Exception e)
@@ -471,7 +358,7 @@ namespace CSharpImageLibrary
             FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
             WriteableBitmap resized = new WriteableBitmap(newConv);
 
-            if (!mergeAlpha)
+            if (alphaPresent && !mergeAlpha)
             {
                 TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
                 WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
