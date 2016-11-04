@@ -60,7 +60,7 @@ namespace CSharpImageLibrary
         /// <returns>BGRA Pixel Data as stream.</returns>
         internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, bool isDDS)
         {
-            if (!WindowsCodecsAvailable)
+            if (!WindowsCodecsAvailable) not good
                 return null;
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))

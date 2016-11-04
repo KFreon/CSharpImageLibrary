@@ -42,7 +42,7 @@ namespace CSharpImageLibrary.Headers
             {
                 get
                 {
-
+                    return ((DDSdwFlags)dwFlags).ToString();
                 }
             }
 
@@ -109,7 +109,7 @@ namespace CSharpImageLibrary.Headers
                 sb.AppendLine($"dwBBitMask: 0x{dwBBitMask.ToString("X")}");  // As Hex
                 sb.AppendLine($"dwABitMask: 0x{dwABitMask.ToString("X")}");  // As Hex
                 sb.AppendLine("--END DDS_PIXELFORMAT--");
-                return sb.ToString();
+                return Environment.NewLine + sb.ToString() + Environment.NewLine;
             }
         }
 
@@ -230,6 +230,15 @@ namespace CSharpImageLibrary.Headers
                 arraySize = BitConverter.ToUInt32(fullHeaderBlock, 140);
                 miscFlags2 = (DXGI_MiscFlags)BitConverter.ToInt32(fullHeaderBlock, 144);
             }
+
+            /// <summary>
+            /// Shows string description of additional DX10 header.
+            /// </summary>
+            /// <returns>String header.</returns>
+            public override string ToString()
+            {
+                return UsefulThings.General.StringifyObject(this, true);
+            }
         }
 
         /// <summary>
@@ -289,7 +298,7 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// DXGI/DX10 formats.
         /// </summary>
-        public enum DXGI_FORMAT
+        public enum DXGI_FORMAT : uint
         {
             DXGI_FORMAT_UNKNOWN = 0,
             DXGI_FORMAT_R32G32B32A32_TYPELESS = 1,
@@ -410,7 +419,7 @@ namespace CSharpImageLibrary.Headers
             DXGI_FORMAT_P208 = 130,
             DXGI_FORMAT_V208 = 131,
             DXGI_FORMAT_V408 = 132,
-            DXGI_FORMAT_FORCE_UINT = 0xffffffff
+            DXGI_FORMAT_FORCE_UINT = 0xffffffff,
         }
         #endregion DXGI/DX10
 
@@ -425,11 +434,14 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public int dwFlags { get; set; }
 
+        /// <summary>
+        /// String representation of Flags showing names.
+        /// </summary>
         public string dwFlagsString
         {
             get
             {
-
+                return ((DDSdwFlags)dwFlags).ToString();
             }
         }
 
@@ -470,7 +482,7 @@ namespace CSharpImageLibrary.Headers
         {
             get
             {
-                DDS_FlagStringify
+                // DDS_FlagStrinfiy
                 return ((DDSdwCaps)dwCaps).ToString();
             }
         }
@@ -528,6 +540,11 @@ namespace CSharpImageLibrary.Headers
             return flags;
         }
 
+        /// <summary>
+        /// Reads DDS header from stream.
+        /// </summary>
+        /// <param name="stream">Fully formatted DDS image.</param>
+        /// <returns>Header length.</returns>
         protected override long Load(Stream stream)
         {
             base.Load(stream);
@@ -580,11 +597,6 @@ namespace CSharpImageLibrary.Headers
                     return false;
 
             return true;
-        }
-
-        public override string ToString()
-        {
-            return base.ToString();as
         }
     }
 }

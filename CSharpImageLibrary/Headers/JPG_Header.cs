@@ -99,10 +99,5 @@ namespace CSharpImageLibrary.Headers
         {
             Load(stream);
         }
-
-        public override string ToString()
-        {
-            return base.ToString();asf
-        }
     }
 }

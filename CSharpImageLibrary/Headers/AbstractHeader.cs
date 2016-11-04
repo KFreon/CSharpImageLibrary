@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,8 +13,6 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public abstract class AbstractHeader
     {
-        internal static readonly long MaxHeaderSize = ;
-
         /// <summary>
         /// Format of image as seen by header.
         /// </summary>
@@ -38,6 +37,16 @@ namespace CSharpImageLibrary.Headers
         {
             stream.Seek(0, SeekOrigin.Begin);
             return 0;
+        }
+
+        /// <summary>
+        /// Provides string representation of header.
+        /// </summary>
+        /// <returns>String of header properties.</returns>
+        public override string ToString()
+        {
+            // Add some spacing for readability.
+            return UsefulThings.General.StringifyObject(this);
         }
     }
 }

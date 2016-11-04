@@ -526,7 +526,7 @@ namespace CSharpImageLibrary
         /// Loads the Targa Header information from the file.
         /// </summary>
         /// <param name="binReader">A BinaryReader that points the loaded file byte stream.</param>
-        private void LoadTGAHeaderInfo(BinaryReader binReader)
+        public static void LoadTGAHeaderInfo(BinaryReader binReader, TargaHeader objTargaHeader)
         {
 
             if (binReader != null && binReader.BaseStream != null && binReader.BaseStream.Length > 0 && binReader.BaseStream.CanSeek == true)
@@ -537,18 +537,18 @@ namespace CSharpImageLibrary
                     binReader.BaseStream.Seek(0, SeekOrigin.Begin);
 
                     // read the header properties from the file
-                    this.objTargaHeader.SetImageIDLength(binReader.ReadByte());
-                    this.objTargaHeader.SetColorMapType((ColorMapType)binReader.ReadByte());
-                    this.objTargaHeader.SetImageType((ImageType)binReader.ReadByte());
+                    objTargaHeader.SetImageIDLength(binReader.ReadByte());
+                    objTargaHeader.SetColorMapType((ColorMapType)binReader.ReadByte());
+                    objTargaHeader.SetImageType((ImageType)binReader.ReadByte());
 
-                    this.objTargaHeader.SetColorMapFirstEntryIndex(binReader.ReadInt16());
-                    this.objTargaHeader.SetColorMapLength(binReader.ReadInt16());
-                    this.objTargaHeader.SetColorMapEntrySize(binReader.ReadByte());
+                    objTargaHeader.SetColorMapFirstEntryIndex(binReader.ReadInt16());
+                    objTargaHeader.SetColorMapLength(binReader.ReadInt16());
+                    objTargaHeader.SetColorMapEntrySize(binReader.ReadByte());
 
-                    this.objTargaHeader.SetXOrigin(binReader.ReadInt16());
-                    this.objTargaHeader.SetYOrigin(binReader.ReadInt16());
-                    this.objTargaHeader.SetWidth(binReader.ReadInt16());
-                    this.objTargaHeader.SetHeight(binReader.ReadInt16());
+                    objTargaHeader.SetXOrigin(binReader.ReadInt16());
+                    objTargaHeader.SetYOrigin(binReader.ReadInt16());
+                    objTargaHeader.SetWidth(binReader.ReadInt16());
+                    objTargaHeader.SetHeight(binReader.ReadInt16());
 
                     byte pixeldepth = binReader.ReadByte();
                     switch (pixeldepth)
@@ -557,31 +557,29 @@ namespace CSharpImageLibrary
                         case 16:
                         case 24:
                         case 32:
-                            this.objTargaHeader.SetPixelDepth(pixeldepth);
+                            objTargaHeader.SetPixelDepth(pixeldepth);
                             break;
 
                         default:
-                            this.ClearAll();
                             throw new Exception("Targa Image only supports 8, 16, 24, or 32 bit pixel depths.");
                     }
 
 
                     byte ImageDescriptor = binReader.ReadByte();
-                    this.objTargaHeader.SetAttributeBits((byte)Utilities.GetBits(ImageDescriptor, 0, 4));
+                    objTargaHeader.SetAttributeBits((byte)Utilities.GetBits(ImageDescriptor, 0, 4));
 
-                    this.objTargaHeader.SetVerticalTransferOrder((VerticalTransferOrder)Utilities.GetBits(ImageDescriptor, 5, 1));
-                    this.objTargaHeader.SetHorizontalTransferOrder((HorizontalTransferOrder)Utilities.GetBits(ImageDescriptor, 4, 1));
+                    objTargaHeader.SetVerticalTransferOrder((VerticalTransferOrder)Utilities.GetBits(ImageDescriptor, 5, 1));
+                    objTargaHeader.SetHorizontalTransferOrder((HorizontalTransferOrder)Utilities.GetBits(ImageDescriptor, 4, 1));
 
                     // load ImageID value if any
-                    if (this.objTargaHeader.ImageIDLength > 0)
+                    if (objTargaHeader.ImageIDLength > 0)
                     {
-                        byte[] ImageIDValueBytes = binReader.ReadBytes(this.objTargaHeader.ImageIDLength);
-                        this.objTargaHeader.SetImageIDValue(System.Text.Encoding.ASCII.GetString(ImageIDValueBytes).TrimEnd('\0'));
+                        byte[] ImageIDValueBytes = binReader.ReadBytes(objTargaHeader.ImageIDLength);
+                        objTargaHeader.SetImageIDValue(System.Text.Encoding.ASCII.GetString(ImageIDValueBytes).TrimEnd('\0'));
                     }
                 }
                 catch (Exception ex)
                 {
-                    this.ClearAll();
                     throw ex;
                 }
 
@@ -589,16 +587,16 @@ namespace CSharpImageLibrary
                 // load color map if it's included and/or needed
                 // Only needed for UNCOMPRESSED_COLOR_MAPPED and RUN_LENGTH_ENCODED_COLOR_MAPPED
                 // image types. If color map is included for other file types we can ignore it.
-                if (this.objTargaHeader.ColorMapType == ColorMapType.COLOR_MAP_INCLUDED)
+                if (objTargaHeader.ColorMapType == ColorMapType.COLOR_MAP_INCLUDED)
                 {
-                    if (this.objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
-                        this.objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
+                    if (objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
+                        objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
                     {
-                        if (this.objTargaHeader.ColorMapLength > 0)
+                        if (objTargaHeader.ColorMapLength > 0)
                         {
                             try
                             {
-                                for (int i = 0; i < this.objTargaHeader.ColorMapLength; i++)
+                                for (int i = 0; i < objTargaHeader.ColorMapLength; i++)
                                 {
                                     int a = 0;
                                     int r = 0;
@@ -606,33 +604,32 @@ namespace CSharpImageLibrary
                                     int b = 0;
 
                                     // load each color map entry based on the ColorMapEntrySize value
-                                    switch (this.objTargaHeader.ColorMapEntrySize)
+                                    switch (objTargaHeader.ColorMapEntrySize)
                                     {
                                         case 15:
                                             byte[] color15 = binReader.ReadBytes(2);
                                             // remember that the bytes are stored in reverse oreder
-                                            this.objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color15[1], color15[0]));
+                                            objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color15[1], color15[0]));
                                             break;
                                         case 16:
                                             byte[] color16 = binReader.ReadBytes(2);
                                             // remember that the bytes are stored in reverse oreder
-                                            this.objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color16[1], color16[0]));
+                                            objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color16[1], color16[0]));
                                             break;
                                         case 24:
                                             b = Convert.ToInt32(binReader.ReadByte());
                                             g = Convert.ToInt32(binReader.ReadByte());
                                             r = Convert.ToInt32(binReader.ReadByte());
-                                            this.objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(r, g, b));
+                                            objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(r, g, b));
                                             break;
                                         case 32:
                                             a = Convert.ToInt32(binReader.ReadByte());
                                             b = Convert.ToInt32(binReader.ReadByte());
                                             g = Convert.ToInt32(binReader.ReadByte());
                                             r = Convert.ToInt32(binReader.ReadByte());
-                                            this.objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(a, r, g, b));
+                                            objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(a, r, g, b));
                                             break;
                                         default:
-                                            this.ClearAll();
                                             throw new Exception("TargaImage only supports ColorMap Entry Sizes of 15, 16, 24 or 32 bits.");
 
                                     }
@@ -642,7 +639,6 @@ namespace CSharpImageLibrary
                             }
                             catch (Exception ex)
                             {
-                                this.ClearAll();
                                 throw ex;
                             }
 
@@ -651,7 +647,6 @@ namespace CSharpImageLibrary
                         }
                         else
                         {
-                            this.ClearAll();
                             throw new Exception("Image Type requires a Color Map and Color Map Length is zero.");
                         }
                     }
@@ -660,10 +655,9 @@ namespace CSharpImageLibrary
                 }
                 else
                 {
-                    if (this.objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
-                        this.objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
+                    if (objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
+                        objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
                     {
-                        this.ClearAll();
                         throw new Exception("Image Type requires a Color Map and there was not a Color Map included in the file.");
                     }
                 }
@@ -672,7 +666,6 @@ namespace CSharpImageLibrary
             }
             else
             {
-                this.ClearAll();
                 throw new Exception(@"Error loading file, could not read file from disk.");
             }
         }

@@ -270,10 +270,5 @@ namespace CSharpImageLibrary.Headers
 
             return stream.Position;
         }
-
-        public override string ToString()
-        {
-            asf
-        }
     }
 }

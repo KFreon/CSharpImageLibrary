@@ -15,7 +15,7 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// Header Chunk containing specific PNG header information.
         /// </summary>
-        public struct PNGChunk
+        struct PNGChunk
         {
             /// <summary>
             /// Length of chunk.
@@ -129,6 +129,11 @@ namespace CSharpImageLibrary.Headers
             return true;
         }
 
+        /// <summary>
+        /// Loads PNG header from stream.
+        /// </summary>
+        /// <param name="stream">Fully formatted header stream. Position not relevant, but not reset.</param>
+        /// <returns>Header length.</returns>
         protected override long Load(Stream stream)
         {
             base.Load(stream);
@@ -150,14 +155,14 @@ namespace CSharpImageLibrary.Headers
             return -1;  // Since we don't know the length of the entire header, no point returning any value.
         }
 
+
+        /// <summary>
+        /// Reads the header from a PNG image.
+        /// </summary>
+        /// <param name="stream">Fully formatted PNG image.</param>
         public PNG_Header(Stream stream)
         {
             Load(stream);
-        }
-
-        public override string ToString()
-        {
-            return base.ToString();asf
         }
     }
 }
