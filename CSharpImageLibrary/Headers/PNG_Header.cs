@@ -103,11 +103,11 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// Image format.
         /// </summary>
-        public override Format Format
+        public override ImageEngineFormat Format
         {
             get
             {
-                throw new NotImplementedException();
+                return ImageEngineFormat.PNG;
             }
         }
 

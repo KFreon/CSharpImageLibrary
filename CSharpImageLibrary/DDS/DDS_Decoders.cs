@@ -10,117 +10,139 @@ namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_Decoders
     {
-        /// <summary>
-        /// Read an 8 byte BC1 compressed block from stream.
-        /// </summary>
-        /// <param name="compressed">BC1 compressed stream.</param>
-        /// <returns>BGRA channels.</returns>
-        private static List<byte[]> DecompressBC1Block(Stream compressed)
+        static byte V8U8Adjust = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
+
+        #region Compressed Readers
+        internal static void DecompressBC1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
-            return DDSGeneral.DecompressRGBBlock(compressed, true);
+            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, true);
         }
 
 
-        /// <summary>
-        /// Reads a 16 byte BC2 compressed block from stream.
-        /// </summary>
-        /// <param name="compressed">BC2 compressed stream.</param>
-        /// <returns>BGRA channels.</returns>
-        private static List<byte[]> DecompressBC2Block(Stream compressed)
+        
+        internal static void DecompressBC2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
-            // KFreon: Read alpha into byte[] for maximum speed? Might be cos it's a MemoryStream...
-            byte[] CompressedAlphas = new byte[8];
-            compressed.Read(CompressedAlphas, 0, 8);
-            int count = 0;
-
-            // KFreon: Read alpha
-            byte[] alpha = new byte[16];
-            for (int i = 0; i < 16; i += 2)
+            // KFreon: Decompress alpha
+            for (int i = 0; i < 8; i++)
             {
-                //byte twoAlphas = (byte)compressed.ReadByte();
-                byte twoAlphas = CompressedAlphas[count++];
-                for (int j = 0; j < 2; j++)
-                    alpha[i + j] = (byte)(twoAlphas << (j * 4));
+                // Line offset since texels are a 4x4 block, can't just write data contiguously
+                int lineOffset = i % 2 == 0 ? decompressedLineLength * (i / 2) : 0;
+                int alphaOffset = i * 8 + 3 + lineOffset; // Since each byte read contains two texels worth of alpha, need to skip two texels each time. 
+                destination[decompressedStart + alphaOffset] = (byte)(source[sourceStart + i] * 0xF0 >> 4);
+                destination[decompressedStart + alphaOffset + 4] = (byte)(source[sourceStart + i] * 0x0F);
             }
 
-
-            // KFreon: Organise output by adding alpha channel (channel read in RGB block is empty)
-            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed, false);
-            DecompressedBlock[3] = alpha;
-            return DecompressedBlock;
+            // +8 skips the above alpha, otherwise it's just a BC1 RGB block
+            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false);
         }
 
 
-        /// <summary>
-        /// Reads a 16 byte BC3 compressed block from stream.
-        /// </summary>
-        /// <param name="compressed">BC3 compressed image stream.</param>
-        /// <returns>List of BGRA channels.</returns>
-        private static List<byte[]> DecompressBC3Block(Stream compressed)
+        
+        internal static void DecompressBC3Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
-            byte[] alpha = DDSGeneral.Decompress8BitBlock(compressed, false);
-            List<byte[]> DecompressedBlock = DDSGeneral.DecompressRGBBlock(compressed, false);
-            DecompressedBlock[3] = alpha;
-            return DecompressedBlock;
+            // Alpha, +3 to select that channel.
+            DDS_BlockHelpers.Decompress8BitBlockByChannel(source, sourceStart, destination, decompressedStart + 3, decompressedLineLength, false);
+
+            // RGB
+            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false);
         }
 
 
-        /// <summary>
-        /// Decompresses ATI2 (BC5) block.
-        /// </summary>
-        /// <param name="compressed">Compressed data stream.</param>
-        /// <returns>16 pixel BGRA channels.</returns>
-        private static List<byte[]> DecompressATI2Block(Stream compressed)
+        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
-            byte[] red = DDSGeneral.Decompress8BitBlock(compressed, false);
-            byte[] green = DDSGeneral.Decompress8BitBlock(compressed, false);
-            List<byte[]> DecompressedBlock = new List<byte[]>();
+            // Red = +0
+            DDS_BlockHelpers.Decompress8BitBlockByChannel(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
 
+            // Green = +1
+            DDS_BlockHelpers.Decompress8BitBlockByChannel(source, sourceStart, destination, decompressedStart + 1, decompressedLineLength, false);
 
-
-            // KFreon: Alpha needs to be 255
-            byte[] alpha = new byte[16];
-            byte[] blue = new byte[16];
+            // KFreon: Alpha and blue need to be 255
             for (int i = 0; i < 16; i++)
             {
-                alpha[i] = 0xFF;
-                /*double r = red[i] / 255.0;
-                double g = green[i] / 255.0;
-                double test = 1 - (r * g);
-                double anbs = Math.Sqrt(test);
-                double ans = anbs * 255.0;*/
-                blue[i] = (byte)0xFF;
+                int lineOffset = i % 4 == 0 ? decompressedLineLength * (i / 4) : 0;
+                int fullOffset = decompressedStart + lineOffset + i * 4;
+                destination[fullOffset + 2] = 0xFF;  // Blue
+                destination[fullOffset + 3] = 0xFF;  // Alpha
             }
-
-            DecompressedBlock.Add(blue);
-            DecompressedBlock.Add(green);
-            DecompressedBlock.Add(red);
-            DecompressedBlock.Add(alpha);
-
-            return DecompressedBlock;
         }
 
-        /// <summary>
-        /// Decompresses an ATI1 (BC4) block.
-        /// </summary>
-        /// <param name="compressed">Compressed data stream.</param>
-        /// <returns>BGRA channels (16 bits each)</returns>
-        private static List<byte[]> DecompressATI1(Stream compressed)
+
+        internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
-            byte[] channel = DDSGeneral.Decompress8BitBlock(compressed, false);
-            List<byte[]> DecompressedBlock = new List<byte[]>();
+            byte[] channel = DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, false);
 
-            // KFreon: All channels are the same to make grayscale.
-            DecompressedBlock.Add(channel);
-            DecompressedBlock.Add(channel);
-            DecompressedBlock.Add(channel);
-
-            // KFreon: Alpha needs to be 255
-            byte[] alpha = new byte[16];
+            // KFreon: All channels are the same to make grayscale, and alpha needs to be 255.
             for (int i = 0; i < 16; i++)
-                alpha[i] = 0xFF;
-            DecompressedBlock.Add(alpha);
-            return DecompressedBlock;
+            {
+                int lineOffset = i % 4 == 0 ? decompressedLineLength * (i / 4) : 0;
+                int fullOffset = decompressedStart + lineOffset + i * 4;
+                destination[fullOffset] = channel[i]; // Red
+                destination[fullOffset + 1] = channel[i]; // Green
+                destination[fullOffset + 2] = channel[i];  // Blue
+                destination[fullOffset + 3] = 0xFF;  // Alpha
+            }
         }
+#endregion Compressed Readers
+
+        // TODO: Check RGBA ordering
+
+        #region Uncompressed Readers
+        internal static void ReadG8_L8Pixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
+        {
+            // KFreon: Same colour for other channels to make grayscale.
+            for (int i = 0; i < pixelCount; i += 4)
+            {
+                byte colour = source[sourceStart + i];
+                destination[i] = colour;
+                destination[i + 1] = colour;
+                destination[i + 2] = colour;
+                destination[i + 3] = 0xFF;
+            }
+        }
+
+        internal static void ReadV8U8Pixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
+        {
+            for(int i = 0; i < pixelCount; i += 4)
+            {
+                destination[i] = source[sourceStart + i - V8U8Adjust];
+                destination[i + 1] = source[sourceStart + i + 1 - V8U8Adjust];
+                destination[i + 2] = 0xFF;
+                destination[i + 3] = 0xFF;
+            }
+        }
+
+        internal static void ReadRGBPixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
+        {
+            for(int i = 0; i < pixelCount; i += 4)
+            {
+                destination[i] = source[sourceStart + i];
+                destination[i + 1] = source[sourceStart + i + 1];
+                destination[i + 2] = source[sourceStart + i + 2]; 
+                destination[i + 3] = 0xFF;
+            }
+        }
+        internal static void ReadARGBPixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
+        {
+            for (int i = 0; i < pixelCount; i += 4)
+            {
+                destination[i] = source[sourceStart + i];
+                destination[i + 1] = source[sourceStart + i + 1];
+                destination[i + 2] = source[sourceStart + i + 2];
+                destination[i + 3] = source[sourceStart + i + 3];
+            }
+        }
+
+        internal static void ReadA8L8Pixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
+        {
+            for (int i = 0; i < pixelCount; i += 4)
+            {
+                byte colour = source[sourceStart + i];
+                destination[i] = colour;
+                destination[i + 1] = colour;
+                destination[i + 2] = colour;
+                destination[i + 3] = source[sourceStart + i + 1];
+            }
+        }
+        #endregion Uncompressed Readers
     }
 }

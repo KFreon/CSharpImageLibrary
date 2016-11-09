@@ -38,6 +38,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
+using System.Diagnostics;
 
 namespace CSharpImageLibrary
 {
@@ -262,10 +263,10 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a new instance of the TargaImage object.
         /// </summary>
-        public TargaImage()
+        public TargaImage(TargaHeader prevHeader = null)
         {
             this.objTargaFooter = new TargaFooter();
-            this.objTargaHeader = new TargaHeader();
+            this.objTargaHeader = prevHeader ?? new TargaHeader();
             this.objTargaExtensionArea = new TargaExtensionArea();
             this.bmpTargaImage = null;
             this.bmpImageThumbnail = null;
@@ -422,7 +423,8 @@ namespace CSharpImageLibrary
         /// Creates TGA image from stream.
         /// </summary>
         /// <param name="stream">Stream containing image.</param>
-        public TargaImage(Stream stream) : this() 
+        /// <param name="prevHeader">TargaHeader if previously loaded.</param>
+        public TargaImage(Stream stream, TargaHeader prevHeader = null) : this(prevHeader) 
         {
             byte[] filebytes = new byte[stream.Length];
             stream.Read(filebytes, 0, (int)stream.Length);
@@ -443,7 +445,9 @@ namespace CSharpImageLibrary
                     using (binReader = new BinaryReader(filestream))
                     {
                         this.LoadTGAFooterInfo(binReader);
-                        this.LoadTGAHeaderInfo(binReader);
+                        if (Header.ImageType == ImageType.NO_IMAGE_DATA)
+                            LoadTGAHeaderInfo(binReader, Header);
+
                         this.LoadTGAExtensionArea(binReader);
                         this.LoadTGAImage(binReader);
                     }
@@ -1468,6 +1472,16 @@ namespace CSharpImageLibrary
 
             }
             disposed = true;
+        }
+
+        internal BitmapSource ToWPF()
+        {
+            var actual = GetPixelFormat();
+            Debugger.Break();
+            var bmp = new WriteableBitmap(Header.Width, Header.Height, 96,96, System.Windows.Media.PixelFormats.Bgra32, null);
+            bmp.WritePixels(new System.Windows.Int32Rect(0, 0, Header.Width, Header.Height), ImageByteHandle.AddrOfPinnedObject(), this.Stride, 0);
+            // TODO: Is there a problem if the image is disposed?
+            return bmp;
         }
 
 

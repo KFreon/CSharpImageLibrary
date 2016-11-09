@@ -85,7 +85,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Uncompressed ARGB DDS.
         /// </summary>
-        DDS_ARGB = 6,  // No specific value apparently
+        DDS_ARGB = GIF + 1,  // No specific value apparently
 
         /// <summary>
         /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
@@ -97,25 +97,25 @@ namespace CSharpImageLibrary
         /// Uncompressed pair of 8 bit channels.
         /// Used for Normal (bump) maps.
         /// </summary>
-        DDS_V8U8 = 8, 
+        DDS_V8U8 = DDS_ARGB + 1, 
 
         /// <summary>
         /// Pair of 8 bit channels.
         /// Used for Luminescence.
         /// </summary>
-        DDS_G8_L8 = 7,  // No specific value it seems
+        DDS_G8_L8 = DDS_V8U8 + 1,  // No specific value it seems
 
         /// <summary>
         /// Alpha and single channel luminescence.
         /// Uncompressed.
         /// </summary>
-        DDS_A8L8 = 9,
+        DDS_A8L8 = DDS_G8_L8 + 1,
 
         /// <summary>
         /// RGB. No alpha. 
         /// Uncompressed.
         /// </summary>
-        DDS_RGB = 10,
+        DDS_RGB = DDS_A8L8 + 1,
 
         /// <summary>
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
@@ -124,74 +124,44 @@ namespace CSharpImageLibrary
         DDS_ATI2_3Dc = 0x32495441,  // ATI2 backwards
     }
 
+
     /// <summary>
-    /// Indicates image format and whether it's a mippable format or not.
+    /// Provides format functionality
     /// </summary>
-    [DebuggerDisplay("{ToString()}")]
-    public struct Format
+    public static class ImageFormats
     {
         /// <summary>
-        /// Image format
+        /// Determines if given format supports mipmapping.
         /// </summary>
-        public ImageEngineFormat SurfaceFormat;
-
-        /// <summary>
-        /// True = can have mipmaps.
-        /// </summary>
-        public bool IsMippable
+        /// <param name="format">Image format to check.</param>
+        /// <returns></returns>
+        public static bool IsFormatMippable(ImageEngineFormat format)
         {
-            get
-            {
-                return SurfaceFormat.ToString().Contains("DDS");  // KFreon: Of the supported formats, only DDS' are mippable.
-            }
+            return format.ToString().Contains("DDS");
         }
 
         /// <summary>
-        /// Indicates whether image is block compressed (DXT)
+        /// Determines if format is a block compressed format.
         /// </summary>
-        public bool IsBlockCompressed
+        /// <param name="format">DDS Surface Format.</param>
+        /// <returns>True if block compressed.</returns>
+        public static bool IsBlockCompressed(ImageEngineFormat format)
         {
-            get
-            {
-                return BlockSize >= 8;
-            }
+            return GetBlockSize(format) >= 8;
         }
 
 
         /// <summary>
-        /// Size of a compressed block.
-        /// Returns -1 if format is not block compressed
+        /// Gets block size of DDS format.
+        /// Number of channels if not compressed.
+        /// 1 if not a DDS format.
         /// </summary>
-        public int BlockSize
-        {
-            get
-            {
-                return GetBlockSize();
-            }
-        }
-
-        /// <summary>
-        /// Initialises a Format with an image format.
-        /// </summary>
-        /// <param name="format">Image format</param>
-        public Format(ImageEngineFormat format)
-        {
-            SurfaceFormat = format;
-        }
-
-        /// <summary>
-        /// Displays useful information about state of object.
-        /// </summary>
-        /// <returns>More useful description of object.</returns>
-        public override string ToString()
-        {
-            return $"Format: {SurfaceFormat}  IsMippable: {IsMippable}";
-        }
-
-        private int GetBlockSize()
+        /// <param name="format">DDS format to test.</param>
+        /// <returns>Number of blocks/channels in format.</returns>
+        public static int GetBlockSize(ImageEngineFormat format)
         {
             int blocksize = 1;
-            switch (SurfaceFormat)
+            switch (format)
             {
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_DXT1:
@@ -217,13 +187,7 @@ namespace CSharpImageLibrary
             }
             return blocksize;
         }
-    }
 
-    /// <summary>
-    /// Provides format functionality
-    /// </summary>
-    public static class ImageFormats
-    {
         /// <summary>
         /// Get list of supported extensions in lower case.
         /// </summary>
@@ -317,25 +281,6 @@ namespace CSharpImageLibrary
             GIF
         }
 
-
-        /// <summary>
-        /// Converts a DDS FourCC to a Format.
-        /// </summary>
-        /// <param name="FourCC">DDS FourCC to check.</param>
-        /// <returns>Format specified by FourCC. Otherwise ARGB.</returns>
-        public static Format ParseFourCC(int FourCC)
-        {
-            Format format = new Format();
-
-            if (!Enum.IsDefined(typeof(ImageEngineFormat), FourCC))
-                format.SurfaceFormat = ImageEngineFormat.DDS_ARGB; 
-            else
-                format.SurfaceFormat = (ImageEngineFormat)FourCC;
-
-            return format;
-        }
-
-
         /// <summary>
         /// Determines image type via headers.
         /// Keeps stream position.
@@ -358,20 +303,20 @@ namespace CSharpImageLibrary
                 ext = SupportedExtensions.BMP;
 
             // PNG
-            if (bits[0] == 137 && bits[1] == 'P' && bits[2] == 'N' && bits[3] == 'G')  
+            if (PNG_Header.CheckIdentifier(bits))  
                 ext = SupportedExtensions.PNG;
 
             // JPG
-            if (bits[0] == 0xFF && bits[1] == 0xD8 && bits[3] == 0xFF)
+            if (JPG_Header.CheckIdentifier(bits))
                 ext = SupportedExtensions.JPG;
 
             // DDS
-            if (bits[0] == 'D' && bits[1] == 'D' && bits[2] == 'S')
+            if (DDS_Header.CheckIdentifier(bits))
                 ext = SupportedExtensions.DDS;
 
 
             // GIF
-            if (bits[0] == 'G' && bits[1] == 'I' && bits[2] == 'F')
+            if (GIF_Header.CheckIdentifier(bits))
                 ext = SupportedExtensions.GIF;
 
             // TGA (assumed if no other matches
@@ -383,7 +328,6 @@ namespace CSharpImageLibrary
 
             return ext;
         }
-
 
 
         /// <summary>
@@ -401,92 +345,15 @@ namespace CSharpImageLibrary
             return ext;
         }
 
-        /// <summary>
-        /// Reads DDS format from DDS Header. 
-        /// Not guaranteed to work. Format 'optional' in header.
-        /// </summary>
-        /// <param name="stream">Stream containing full image file. NOT just pixels.</param>
-        /// <param name="header">DDS Header information.</param>
-        /// <returns>Format of DDS.</returns>
-        internal static Format ParseDDSFormat(Stream stream, out DDS_HEADER header)
-        {
-            Format format = new Format(ImageEngineFormat.DDS_ARGB);
-
-            stream.Seek(0, SeekOrigin.Begin);
-            using (BinaryReader reader = new BinaryReader(stream, Encoding.Default, true))
-            {
-                header = null;
-
-                // KFreon: Check image is a DDS
-                int Magic = reader.ReadInt32();
-                if (Magic != 0x20534444)
-                    return new Format();  // KFreon: Not a DDS
-
-                header = new DDS_HEADER();
-                Read_DDS_HEADER(header, reader);
-
-
-                if (((header.ddspf.dwFlags & 0x00000004) != 0) && (header.ddspf.dwFourCC == 0x30315844 /*DX10*/))
-                    throw new Exception("DX10 not supported yet!");
-
-                format = ImageFormats.ParseFourCC(header.ddspf.dwFourCC);
-
-                if (format.SurfaceFormat == ImageEngineFormat.Unknown || format.SurfaceFormat == ImageEngineFormat.DDS_ARGB)
-                {
-                    // KFreon: Apparently all these flags mean it's a V8U8 image...
-                    if (header.ddspf.dwRGBBitCount == 0x10 &&
-                               header.ddspf.dwRBitMask == 0xFF &&
-                               header.ddspf.dwGBitMask == 0xFF00 &&
-                               header.ddspf.dwBBitMask == 0x00 &&
-                               header.ddspf.dwABitMask == 0x00)
-                        format = new Format(ImageEngineFormat.DDS_V8U8);  // KFreon: V8U8
-
-                    // KFreon: Test for L8/G8
-                    else if (header.ddspf.dwABitMask == 0 &&
-                            header.ddspf.dwBBitMask == 0 &&
-                            header.ddspf.dwGBitMask == 0 &&
-                            header.ddspf.dwRBitMask == 255 &&
-                            header.ddspf.dwFlags == 131072 &&
-                            header.ddspf.dwSize == 32 &&
-                            header.ddspf.dwRGBBitCount == 8)
-                        format = new Format(ImageEngineFormat.DDS_G8_L8);
-
-                    // KFreon: A8L8. This can probably be something else as well, but it seems to work for now
-                    else if (header.ddspf.dwRGBBitCount == 16)
-                        format = new Format(ImageEngineFormat.DDS_A8L8);
-
-                    // KFreon: RGB test.
-                    else if (header.ddspf.dwRGBBitCount == 24)
-                        format = new Format(ImageEngineFormat.DDS_RGB);
-                }
-                
-            }
-            return format;
-        }
-
-        /// <summary>
-        /// Reads DDS format from header given a filename.
-        /// </summary>
-        /// <param name="imagePath">Image filename.</param>
-        /// <returns>Format of image.</returns>
-        public static Format ParseDDSFormat(string imagePath)
-        {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                DDS_HEADER header;
-                return ParseDDSFormat(fs, out header);
-            }
-        }
-
 
         /// <summary>
         /// Searches for a format within a string. Good for automatic file naming.
         /// </summary>
         /// <param name="stringWithFormatInIt">String containing format somewhere in it.</param>
         /// <returns>Format in string, or UNKNOWN otherwise.</returns>
-        public static Format FindFormatInString(string stringWithFormatInIt)
+        public static ImageEngineFormat FindFormatInString(string stringWithFormatInIt)
         {
-            Format detectedFormat = new Format();
+            ImageEngineFormat detectedFormat = ImageEngineFormat.Unknown;
             foreach (var formatName in Enum.GetNames(typeof(ImageEngineFormat)))
             {
                 string actualFormat = formatName.Replace("DDS_", "");
@@ -503,12 +370,10 @@ namespace CSharpImageLibrary
 
                 if (check)
                 {
-                    detectedFormat = new Format((ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName));
+                    detectedFormat = (ImageEngineFormat)Enum.Parse(typeof(ImageEngineFormat), formatName);
                     break;
                 }
-            }
-
-            
+            }            
 
             return detectedFormat;
         }

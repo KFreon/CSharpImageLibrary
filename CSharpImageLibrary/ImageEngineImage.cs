@@ -90,110 +90,6 @@ namespace CSharpImageLibrary
             return sb.ToString();
         }
 
-        #region Constructors
-        /// <summary>
-        /// Creates a new ImageEngineImage from file.
-        /// </summary>
-        /// <param name="imagePath">Path to image file.</param>
-        public ImageEngineImage(string imagePath)
-        {
-            LoadFromFile(imagePath);
-        }
-
-
-        /// <summary>
-        /// Creates new ImageEngineImage from stream.
-        /// Does NOT require that stream remains alive.
-        /// </summary>
-        /// <param name="stream">Image to load.</param>
-        /// <param name="extension">Extension of original file.</param>
-        public ImageEngineImage(Stream stream, string extension = null)
-        {
-            LoadFromStream(stream, extension);
-        }
-
-
-        /// <summary>
-        /// Loads an image from a file and scales (aspect safe) to a maximum size.
-        /// e.g. 1024x512, desiredMaxDimension = 128 ===> Image is scaled to 128x64.
-        /// </summary>
-        /// <param name="imagePath">Path to image file.</param>
-        /// <param name="desiredMaxDimension">Max dimension to save.</param>
-        /// <param name="enforceResize">True = forcibly resizes image. False = attempts to find a suitably sized mipmap, but doesn't resize if none found.</param>
-        public ImageEngineImage(string imagePath, int desiredMaxDimension, bool enforceResize)
-        {
-            LoadFromFile(imagePath, desiredMaxDimension, enforceResize);
-        }
-
-        /// <summary>
-        /// Loads an image from a stream and scales (aspect safe) to a maximum size. Does NOT require that stream remains alive.
-        /// e.g. 1024x512, desiredMaxDimension = 128 ===> Image is scaled to 128x64.
-        /// </summary>
-        /// <param name="stream">Full image stream.</param>
-        /// <param name="extension">File extension of original image.</param>
-        /// <param name="desiredMaxDimension">Maximum dimension.</param>
-        /// <param name="enforceResize">True = forcibly resizes image. False = attempts to find a suitably sized mipmap, but doesn't resize if none found.</param>
-        public ImageEngineImage(Stream stream, string extension, int desiredMaxDimension, bool enforceResize)
-        {
-            LoadFromStream(stream, extension, desiredMaxDimension, enforceResize);
-        }
-
-
-        /// <summary>
-        /// Loads an image from a byte array.
-        /// </summary>
-        /// <param name="imageFileData">Fully formatted image file data</param>
-        public ImageEngineImage(byte[] imageFileData)
-        {
-            using (MemoryStream ms = new MemoryStream(imageFileData))
-                LoadFromStream(ms);
-        }
-
-        /// <summary>
-        /// Loads an image from a byte array and scales (aspect safe) to a maximum size.
-        /// e.g. 1024x512, desiredMaxDimension = 128 ===> Image is scaled to 128x64.
-        /// </summary>
-        /// <param name="imageFileData">Full image file data.</param>
-        /// <param name="desiredMaxDimension">Maximum dimension.</param>
-        /// <param name="enforceResize">True = forcibly resizes image. False = attempts to find a suitably sized mipmap, but doesn't resize if none found.</param>
-        /// <param name="mergeAlpha">ONLY valid when enforeResize = true. True = flattens alpha, directly affecting RGB.</param>
-        public ImageEngineImage(byte[] imageFileData, int desiredMaxDimension, bool enforceResize, bool mergeAlpha = false)
-        {
-            using (MemoryStream ms = new MemoryStream(imageFileData))
-                LoadFromStream(ms, desiredMaxDimension: desiredMaxDimension);
-        }
-
-
-        /// <summary>
-        /// Loads DDS that has no header - primarily for ME3Explorer. DDS data is standard, just without a header.
-        /// ASSUMES VALID DDS DATA. Also, single mipmap only.
-        /// </summary>
-        /// <param name="rawDDSData">Standard DDS data but lacking header.</param>
-        /// <param name="surfaceFormat">Surface format of DDS.</param>
-        /// <param name="width">Width of image.</param>
-        /// <param name="height">Height of image.</param>
-        public ImageEngineImage(byte[] rawDDSData, ImageEngineFormat surfaceFormat, int width, int height)
-        {
-            Format = new Format(surfaceFormat);
-            DDSGeneral.DDS_HEADER tempHeader = null;
-            MipMaps = ImageEngine.LoadImage(rawDDSData, surfaceFormat, width, height, out tempHeader);
-            header = tempHeader;
-        }
-
-
-        /// <summary>
-        /// Builds a DDS image from an existing mipmap.
-        /// </summary>
-        /// <param name="mip">Mip to base image on.</param>
-        /// <param name="DDSFormat">Format of mipmap.</param>
-        public ImageEngineImage(MipMap mip, ImageEngineFormat DDSFormat)
-        {
-            Format = new Format(DDSFormat);
-            MipMaps = new List<MipMap>() { mip };
-            header = DDSGeneral.Build_DDS_Header(1, mip.Height, mip.Width, DDSFormat);
-        }
-        #endregion Constructors
-
         async Task LoadAsync(string imagePath)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open))
@@ -205,6 +101,7 @@ namespace CSharpImageLibrary
             // Read Header
             using (MemoryStream headerStream = new MemoryStream())
             {
+                fs.Seek(0, SeekOrigin.Begin);
                 headerStream.ReadFrom(fs, AbstractHeader.MaxHeaderSize);
 
                 // Begin reading of full image
@@ -228,8 +125,6 @@ namespace CSharpImageLibrary
             Header = ImageEngine.LoadHeader(stream);
             MipMaps = ImageEngine.LoadImage(stream);
         }
-
-        
 
         #region Savers
         /// <summary>

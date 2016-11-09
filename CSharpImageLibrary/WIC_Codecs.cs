@@ -56,15 +56,16 @@ namespace CSharpImageLibrary
         /// <param name="imageFile">Path to image file.</param>
         /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
+        /// <param name="scale">DOMINANT. decodeWidth and decodeHeight ignored if this is > 0. Amount to scale by. Range 0-1.</param>
         /// <param name="isDDS">True = Image is a DDS.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, bool isDDS)
+        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, double scale, bool isDDS)
         {
-            if (!WindowsCodecsAvailable) not good
+            if (isDDS && !WindowsCodecsAvailable)
                 return null;
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadWithCodecs(fs, decodeWidth, decodeHeight, isDDS);
+                return LoadWithCodecs(fs, decodeWidth, decodeHeight, scale, isDDS);
         }
 
 
@@ -75,42 +76,48 @@ namespace CSharpImageLibrary
         /// <param name="decodeWidth">Width to decode as. Aspect ratio unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode as. Aspect ratio unchanged if decodeWidth = 0.</param>
         /// <param name="isDDS">True = image is a DDS.</param>
+        /// <param name="scale">DOMINANT. DecodeWidth and DecodeHeight ignored if this is > 0. Amount to scale by. Range 0-1.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static List<MipMap> LoadWithCodecs(Stream stream, int decodeWidth, int decodeHeight, bool isDDS)
+        internal static List<MipMap> LoadWithCodecs(Stream stream, int decodeWidth, int decodeHeight, double scale, bool isDDS)
         {
-            if (!WindowsCodecsAvailable)
+            if (isDDS && !WindowsCodecsAvailable)
                 return null;
 
+            bool alternateDecodeDimensions = decodeHeight != 0 || decodeWidth != 0 || scale != 0;
+            int alternateWidth = decodeWidth;
+            int alternateHeight = decodeHeight;
+
             List<MipMap> mipmaps = new List<MipMap>();
-            bool alternateDecodeDimensions = decodeWidth != 0 || decodeHeight != 0;
 
             if (isDDS)
             {
                 // KFreon: Attempt to load any mipmaps
                 stream.Seek(0, SeekOrigin.Begin);
                 var decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnDemand);
-                
+
+                // Setup alternateDimensions if required
+                if (scale != 0)
+                {
+                    alternateHeight = (int)(decoder.Frames[0].Height * scale);
+                    alternateWidth = (int)(decoder.Frames[0].Width * scale);
+                }
+
                 foreach (var mipmap in decoder.Frames)
                 {
                     // KFreon: Skip mipmaps that are too big if asked to load a smaller image
                     if (alternateDecodeDimensions)
-                        if (mipmap.Width > decodeWidth || mipmap.Height > decodeHeight)
+                    {
+                        if (mipmap.Width > alternateWidth || mipmap.Height > alternateHeight)
                             continue;
+                    }
 
                     mipmaps.Add(new MipMap(mipmap));
                 }
 
                 if (mipmaps.Count == 0)
                 {
-                    // KFreon: No mips, so resize largest
+                    // KFreon: Image has no mips, so resize largest
                     var mip = new MipMap(decoder.Frames[0]);
-
-                    // KFreon: Keep aspect ratio. Take smallest scaling value. 
-                    double hScale = decodeHeight != 0 ? decodeHeight * 1f / mip.Height : 1;
-                    double wScale = decodeWidth != 0 ? decodeWidth * 1f / mip.Width : 1;
-
-                    double scale = hScale < wScale ? hScale : wScale;
-
                     mip = ImageEngine.Resize(mip, scale, false);
                     mipmaps.Add(mip);
                 }
@@ -118,7 +125,7 @@ namespace CSharpImageLibrary
             else
             {
                 // KFreon: No Mipmaps
-                BitmapImage bmp = AttemptUsingWindowsCodecs(stream, decodeWidth, decodeHeight);
+                BitmapImage bmp = AttemptUsingWindowsCodecs(stream, alternateWidth, alternateHeight);
                 if (bmp == null)
                     return null;
 

@@ -187,13 +187,13 @@ namespace CSharpImageLibrary.Headers
         }
 
         /// <summary>
-        /// Format of image.
+        /// Image Format.
         /// </summary>
-        public override Format Format
+        public override ImageEngineFormat Format
         {
             get
             {
-                throw new NotImplementedException();
+                return ImageEngineFormat.BMP;
             }
         }
 

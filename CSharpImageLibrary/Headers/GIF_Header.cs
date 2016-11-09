@@ -144,13 +144,13 @@ namespace CSharpImageLibrary.Headers
         #endregion Properties
 
         /// <summary>
-        /// Format of this image.
+        /// Image format.
         /// </summary>
-        public override Format Format
+        public override ImageEngineFormat Format
         {
             get
             {
-                throw new NotImplementedException();
+                return ImageEngineFormat.GIF;
             }
         }
 

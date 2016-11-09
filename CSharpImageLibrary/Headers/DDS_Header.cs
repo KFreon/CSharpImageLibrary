@@ -488,18 +488,6 @@ namespace CSharpImageLibrary.Headers
         }
 
         /// <summary>
-        /// Surface format of image.
-        /// e.g. DXT1, V8U8
-        /// </summary>
-        public override Format Format
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        /// <summary>
         /// Don't think it's used.
         /// </summary>
         public int dwCaps2;
@@ -524,6 +512,18 @@ namespace CSharpImageLibrary.Headers
         /// Additional header for newer DX10 images.
         /// </summary>
         public DDS_DXGI_DX10_Additional DX10_DXGI_AdditionalHeader { get; private set; }
+
+        /// <summary>
+        /// Surface format of DDS.
+        /// e.g. DXT1, V8U8, etc
+        /// </summary>
+        public override ImageEngineFormat Format
+        {
+            get
+            {
+                return DetermineDDSSurfaceFormat(this);
+            }
+        }
 
         string DDS_FlagStringify(Type enumType)
         {
@@ -588,6 +588,66 @@ namespace CSharpImageLibrary.Headers
         public DDS_Header(Stream stream)
         {
             Load(stream);
+        }
+        
+
+        /// <summary>
+        /// Determines friendly format from FourCC, with additional DXGI/DX10 format.
+        /// </summary>
+        /// <param name="fourCC">FourCC of DDS (DXT1-5)</param>
+        /// <param name="additionalDX10"></param>
+        /// <returns>Friendly format.</returns>
+        static ImageEngineFormat ParseFourCC(FourCC fourCC, DXGI_FORMAT additionalDX10 = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+        {
+            if (fourCC == FourCC.DX10)
+                return ImageEngineFormat.DDS_DX10; // TODO: Need to add these at some point.
+
+            if (Enum.IsDefined(typeof(ImageEngineFormat), fourCC))
+                return (ImageEngineFormat)fourCC;
+            else
+                return ImageEngineFormat.DDS_ARGB;
+        }
+
+        /// <summary>
+        /// Determines DDS Surface Format given the header.
+        /// </summary>
+        /// <param name="header">Fully loaded DDS Header.</param>
+        /// <returns>Friendly format.</returns>
+        public static ImageEngineFormat DetermineDDSSurfaceFormat(DDS_Header header)
+        {
+            ImageEngineFormat format = ParseFourCC(header.ddspf.dwFourCC, header.DX10_DXGI_AdditionalHeader.dxgiFormat);
+
+            // Since ARGB is the default, need to do further checks to determine uncompressed formats.
+            if (format == ImageEngineFormat.DDS_ARGB)
+            {
+                // KFreon: Apparently all these flags mean it's a V8U8 image...
+                if (header.ddspf.dwRGBBitCount == 0x10 &&
+                           header.ddspf.dwRBitMask == 0xFF &&
+                           header.ddspf.dwGBitMask == 0xFF00 &&
+                           header.ddspf.dwBBitMask == 0x00 &&
+                           header.ddspf.dwABitMask == 0x00)
+                    format = ImageEngineFormat.DDS_V8U8; 
+
+                // KFreon: Test for L8/G8
+                else if (header.ddspf.dwABitMask == 0 &&
+                        header.ddspf.dwBBitMask == 0 &&
+                        header.ddspf.dwGBitMask == 0 &&
+                        header.ddspf.dwRBitMask == 255 &&
+                        header.ddspf.dwFlags == 131072 &&
+                        header.ddspf.dwSize == 32 &&
+                        header.ddspf.dwRGBBitCount == 8)
+                    format = ImageEngineFormat.DDS_G8_L8;
+
+                // KFreon: A8L8. This can probably be something else as well, but it seems to work for now
+                else if (header.ddspf.dwRGBBitCount == 16)
+                    format = ImageEngineFormat.DDS_A8L8;
+
+                // KFreon: RGB test.
+                else if (header.ddspf.dwRGBBitCount == 24)
+                    format = ImageEngineFormat.DDS_RGB;
+            }
+
+            return format;
         }
 
         internal static bool CheckIdentifier(byte[] IDBlock)

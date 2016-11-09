@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CSharpImageLibrary.ImageFormats;
 
 namespace CSharpImageLibrary.Headers
 {
@@ -14,9 +15,14 @@ namespace CSharpImageLibrary.Headers
     public abstract class AbstractHeader
     {
         /// <summary>
+        /// Maximum header size of any supported image.
+        /// </summary>
+        public const int MaxHeaderSize = 1024; // Maybe nice neat powers of 2 is good? Only actually needs to be 808.
+
+        /// <summary>
         /// Format of image as seen by header.
         /// </summary>
-        public abstract Format Format { get; }
+        public abstract ImageEngineFormat Format { get; }
 
         /// <summary>
         /// Width of image.

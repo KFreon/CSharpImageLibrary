@@ -3,126 +3,97 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CSharpImageLibrary.DDS.DDSGeneral;
+using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
 
 namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_Encoders
     {
-        /// <summary>
-        /// Compress texel to 8 byte BC1 compressed block.
-        /// </summary>
-        /// <param name="texel">4x4 BGRA group of pixels.</param>
-        /// <returns>8 byte BC1 compressed block.</returns>
-        private static byte[] CompressBC1Block(byte[] texel)
+        static byte V8U8Adjust = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
+
+
+        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
-            return CompressRGBTexel(texel, true, DXT1AlphaThreshold);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, DXT1AlphaThreshold);
         }
 
-        /// <summary>
-        /// Compresses texel to 16 byte BC5 block.
-        /// </summary>
-        /// <param name="texel">4x4 BGRA set of pixels.</param>
-        /// <returns>16 byte BC5 block.</returns>
-        private static byte[] CompressBC5Block(byte[] texel)
-        {
-            byte[] red = DDSGeneral.Compress8BitBlock(texel, 2, false);
-            byte[] green = DDSGeneral.Compress8BitBlock(texel, 1, false);
 
-            return red.Concat(green).ToArray(red.Length + green.Length);
-        }
-
-        /// <summary>
-        /// Compress texel to 8 byte BC4 compressed block.
-        /// </summary>
-        /// <param name="texel">4x4 BGRA set of pixels.</param>
-        /// <returns>8 byte BC4 compressed block.</returns>
-        private static byte[] CompressBC4Block(byte[] texel)
-        {
-            return DDSGeneral.Compress8BitBlock(texel, 2, false);
-        }
-
-        /// <summary>
-        /// Compress texel to 16 byte BC3 compressed block.
-        /// </summary>
-        /// <param name="texel">4x4 BGRA set of pixels.</param>
-        /// <returns>16 byte BC3 compressed block.</returns>
-        private static byte[] CompressBC3Block(byte[] texel)
+        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
             // Compress Alpha
-            byte[] Alpha = DDSGeneral.Compress8BitBlock(texel, 3, false);
-
-            // Compress Colour
-            byte[] RGB = DDSGeneral.CompressRGBTexel(texel, false, 0f);
-
-            return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
-        }
-
-        /// <summary>
-        /// Compress texel to 16 byte BC2 compressed block.
-        /// </summary>
-        /// <param name="texel">4x4 BGRA set of pixels.</param>
-        /// <returns>16 byte BC2 compressed block.</returns>
-        private static byte[] CompressBC2Block(byte[] texel)
-        {
-            // Compress Alpha
-            byte[] Alpha = new byte[8];
-            for (int i = 3; i < 64; i += 8)  // Only read alphas
+            int position = sourcePosition + 3;  // Only want to read alphas
+            for (int i = 0; i < 16; i++) 
             {
-                byte twoAlpha = 0;
-                for (int j = 0; j < 8; j += 4)
-                    twoAlpha |= (byte)(texel[i + j] << j);
-                Alpha[i / 8] = twoAlpha;
+                for (int j = 0; j < 2; j++)
+                {
+                    destination[destPosition + i + j] = (byte)(imgData[position] << 4 | imgData[position + 4]);
+                    position += 8;
+                }
+
+                sourcePosition += sourceLineLength;
             }
 
             // Compress Colour
-            byte[] RGB = DDSGeneral.CompressRGBTexel(texel, false, 0f);
-
-            return Alpha.Concat(RGB).ToArray(Alpha.Length + RGB.Length);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f);
         }
 
-        private static void WriteG8_L8Pixel(Stream writer, Stream pixels, int unused1, int unused2)
-        {
-            // BGRA
-            byte[] colours = new byte[3];
-            pixels.Read(colours, 0, 3);
-            pixels.Position++;  // Skip alpha
 
+        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        {
+            // Compress Alpha
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 3, false);
+
+            // Compress Colour
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f);
+        }
+
+        
+        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        {
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
+        }
+
+        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        {
+            // Red: Channel 2, 0 destination offset
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
+
+            // Green: Channel 1, 8 destination offset to be after Red.
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 1, false);
+        }
+       
+
+        internal static void WriteG8_L8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        {
             // KFreon: Weight colours to look proper. Dunno if this affects things but anyway...Got weightings from ATi Compressonator
-            int b1 = (int)(colours[0] * 3 * 0.082);
-            int g1 = (int)(colours[1] * 3 * 0.6094);
-            int r1 = (int)(colours[2] * 3 * 0.3086);
+            int b1 = (int)(imgData[sourcePosition] * 3 * 0.082);
+            int g1 = (int)(imgData[sourcePosition + 1] * 3 * 0.6094);
+            int r1 = (int)(imgData[sourcePosition + 2] * 3 * 0.3086);
 
             int test = (int)((b1 + g1 + r1) / 3f);
-            writer.WriteByte((byte)test);
+            destination[destPosition] = (byte)test;
         }
 
-        private static void WriteV8U8Pixel(Stream writer, Stream pixels, int unused1, int unused2)
+        internal static void WriteV8U8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
-            // BGRA
-            pixels.Position++; // No blue
-            /*var bytes = pixels.ReadBytesFromStream(2);
-            writer.Write(bytes, 0, 2);*/
-
-            byte green = (byte)(pixels.ReadByte() + V8U8Adjust);
-            byte red = (byte)(pixels.ReadByte() + V8U8Adjust);
-            writer.Write(new byte[] { red, green }, 0, 2);
-            pixels.Position++;    // No alpha
+            // No blue
+            destination[destPosition] = (byte)(imgData[sourcePosition + 1] + V8U8Adjust);  // Green
+            destination[destPosition + 1] = (byte)(imgData[sourcePosition + 2] + V8U8Adjust);  // Red
         }
 
-        private static void WriteA8L8Pixel(Stream writer, Stream pixels, int unused1, int unused2)
+        internal static void WriteA8L8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
-            // BGRA
             // First 3 channels are the same value, so just use the last one.
-            pixels.Position += 2;
-            writer.ReadFrom(pixels, 2);
+            destination[destPosition] = imgData[sourcePosition + 2];
+            destination[destPosition + 1] = imgData[sourcePosition + 3];
         }
 
-        private static void WriteRGBPixel(Stream writer, Stream pixels, int unused1, int unused2)
+        internal static void WriteRGBPixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
-            // BGRA
-            var bytes = pixels.ReadBytes(3);
-            writer.Write(bytes, 0, bytes.Length);
-            pixels.Position++;
+            destination[destPosition] = imgData[sourcePosition];
+            destination[destPosition + 1] = imgData[sourcePosition + 1];
+            destination[destPosition + 2] = imgData[sourcePosition + 2];
         }
     }
 }

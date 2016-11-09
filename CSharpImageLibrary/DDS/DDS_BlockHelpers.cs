@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -317,10 +319,12 @@ namespace CSharpImageLibrary.DDS
             return new RGBColour[] { min, max };
         }
 
-        private static byte[] CompressRGBTexel(byte[] texel, bool isDXT1, float alphaRef)
+        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, float alphaRef)
         {
             bool dither = true;
             int uSteps = 4;
+
+            int position = sourcePosition;
 
             // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
             if (isDXT1)
@@ -328,27 +332,27 @@ namespace CSharpImageLibrary.DDS
                 int uColourKey = 0;
 
                 // Alpha stuff
-                for (int i = 0; i < texel.Length; i += 4)
+                for (int i = 0; i < 16; i++)
                 {
-                    RGBColour colour = ReadColourFromTexel(texel, i);
-                    if (colour.a < alphaRef)
-                        uColourKey++;
+                    for (int j = 0; j < 4; j++)
+                    {
+                        RGBColour colour = ReadColourFromTexel(imgData, position);
+                        if (colour.a < alphaRef)
+                            uColourKey++;
+                        position+=4;
+                    }
+
+                    position += sourceLineLength;
                 }
 
                 if (uColourKey == 16)
                 {
                     // Entire texel is transparent
 
-                    byte[] retval1 = new byte[8];
-                    retval1[2] = byte.MaxValue;
-                    retval1[3] = byte.MaxValue;
+                    for (int i = 0; i < 8; i++)
+                        destination[destPosition + i] = byte.MaxValue;
 
-                    retval1[4] = byte.MaxValue;
-                    retval1[5] = byte.MaxValue;
-                    retval1[6] = byte.MaxValue;
-                    retval1[7] = byte.MaxValue;
-
-                    return retval1;
+                    return;
                 }
 
                 uSteps = uColourKey > 0 ? 3 : 4;
@@ -357,72 +361,79 @@ namespace CSharpImageLibrary.DDS
             RGBColour[] Colour = new RGBColour[16];
             RGBColour[] Error = new RGBColour[16];
 
-            int index = 0;
-            for (int i = 0; i < texel.Length; i += 4)
+            // Some kind of colour adjustment. Not sure what it does, especially if it wasn't dithering...
+            position = sourcePosition;
+            for (int i = 0; i < 16; i++)
             {
-                index = i / 4;
-                RGBColour current = ReadColourFromTexel(texel, i);
-
-                if (dither)
+                for (int j = 0; j < 4; j++)
                 {
-                    // Adjust for accumulated error
-                    // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
-                    // Then, this error is distributed across the "next" few pixels and not the previous.
-                    current.r += Error[index].r;
-                    current.g += Error[index].g;
-                    current.b += Error[index].b;
-                }
+                    RGBColour current = ReadColourFromTexel(imgData, position);
 
-
-                // 5:6:5 range adaptation?
-                Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
-                Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
-                Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
-
-                if (dither)
-                {
-                    // Calculate difference between current pixel colour and adapted pixel colour?
-                    RGBColour diff = new RGBColour();
-                    diff.r = current.a * (byte)(current.r - Colour[index].r);
-                    diff.g = current.a * (byte)(current.g - Colour[index].g);
-                    diff.b = current.a * (byte)(current.b - Colour[index].b);
-
-                    // If current pixel is not at the end of a row
-                    if ((index & 3) != 3)
+                    if (dither)
                     {
-                        Error[index + 1].r += diff.r * (7f / 16f);
-                        Error[index + 1].g += diff.g * (7f / 16f);
-                        Error[index + 1].b += diff.b * (7f / 16f);
+                        // Adjust for accumulated error
+                        // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
+                        // Then, this error is distributed across the "next" few pixels and not the previous.
+                        current.r += Error[i].r;
+                        current.g += Error[i].g;
+                        current.b += Error[i].b;
                     }
 
-                    // If current pixel is not in bottom row
-                    if (index < 12)
+
+                    // 5:6:5 range adaptation?
+                    Colour[i].r = (int)(current.r * 31f + .5f) * (1f / 31f);
+                    Colour[i].g = (int)(current.g * 63f + .5f) * (1f / 63f);
+                    Colour[i].b = (int)(current.b * 31f + .5f) * (1f / 31f);
+
+                    if (dither)
                     {
-                        // If current pixel IS at end of row
-                        if ((index & 3) != 0)
+                        // Calculate difference between current pixel colour and adapted pixel colour?
+                        RGBColour diff = new RGBColour();
+                        diff.r = current.a * (byte)(current.r - Colour[i].r);
+                        diff.g = current.a * (byte)(current.g - Colour[i].g);
+                        diff.b = current.a * (byte)(current.b - Colour[i].b);
+
+                        // If current pixel is not at the end of a row
+                        if ((i & 3) != 3)
                         {
-                            Error[index + 3].r += diff.r * (3f / 16f);
-                            Error[index + 3].g += diff.g * (3f / 16f);
-                            Error[index + 3].b += diff.b * (3f / 16f);
+                            Error[i + 1].r += diff.r * (7f / 16f);
+                            Error[i + 1].g += diff.g * (7f / 16f);
+                            Error[i + 1].b += diff.b * (7f / 16f);
                         }
 
-                        Error[index + 4].r += diff.r * (5f / 16f);
-                        Error[index + 4].g += diff.g * (5f / 16f);
-                        Error[index + 4].b += diff.b * (5f / 16f);
-
-                        // If current pixel is not at end of row
-                        if ((index & 3) != 3)
+                        // If current pixel is not in bottom row
+                        if (i < 12)
                         {
-                            Error[index + 5].r += diff.r * (1f / 16f);
-                            Error[index + 5].g += diff.g * (1f / 16f);
-                            Error[index + 5].b += diff.b * (1f / 16f);
+                            // If current pixel IS at end of row
+                            if ((i & 3) != 0)
+                            {
+                                Error[i + 3].r += diff.r * (3f / 16f);
+                                Error[i + 3].g += diff.g * (3f / 16f);
+                                Error[i + 3].b += diff.b * (3f / 16f);
+                            }
+
+                            Error[i + 4].r += diff.r * (5f / 16f);
+                            Error[i + 4].g += diff.g * (5f / 16f);
+                            Error[i + 4].b += diff.b * (5f / 16f);
+
+                            // If current pixel is not at end of row
+                            if ((i & 3) != 3)
+                            {
+                                Error[i + 5].r += diff.r * (1f / 16f);
+                                Error[i + 5].g += diff.g * (1f / 16f);
+                                Error[i + 5].b += diff.b * (1f / 16f);
+                            }
                         }
                     }
+
+                    Colour[i].r *= Luminance.r;
+                    Colour[i].g *= Luminance.g;
+                    Colour[i].b *= Luminance.b;
+
+                    position += 4;
                 }
 
-                Colour[index].r *= Luminance.r;
-                Colour[index].g *= Luminance.g;
-                Colour[index].b *= Luminance.b;
+                position += sourceLineLength;
             }
 
             // Palette colours
@@ -453,15 +464,15 @@ namespace CSharpImageLibrary.DDS
 
             if (uSteps == 4 && wColourA == wColourB)
             {
-                var bits = new byte[8];
                 var c2 = BitConverter.GetBytes(wColourA);
                 var c1 = BitConverter.GetBytes(wColourB);  //////////////////////////////////////////////////// MIN MAX
-                bits[0] = c2[0];
-                bits[1] = c2[1];
 
-                bits[2] = c1[0];
-                bits[3] = c1[1];
-                return bits;
+                destination[destPosition] = c2[0];
+                destination[destPosition + 1] = c2[1];
+
+                destination[destPosition + 2] = c1[0];
+                destination[destPosition + 3] = c1[1];
+                return;
             }
 
             ColourC = Decode565(wColourA);
@@ -538,104 +549,108 @@ namespace CSharpImageLibrary.DDS
             // Encoding colours apparently
             Array.Clear(Error, 0, Error.Length);  // Clear error for next bit
             uint dw = 0;
-            index = 0;
-            for (int i = 0; i < texel.Length; i += 4)
+            position = sourcePosition;
+            for (int i = 0; i < 16; i++)
             {
-                index = i / 4;
-                RGBColour current = ReadColourFromTexel(texel, i);
-
-                if ((uSteps == 3) && (current.a < alphaRef))
+                for (int j = 0; j < 4; j++)
                 {
-                    dw = (uint)((3 << 30) | (dw >> 2));
-                    continue;
-                }
+                    RGBColour current = ReadColourFromTexel(imgData, position);
 
-                current.r *= Luminance.r;
-                current.g *= Luminance.g;
-                current.b *= Luminance.b;
-
-
-                if (dither)
-                {
-                    // Error again
-                    current.r += Error[index].r;
-                    current.g += Error[index].g;
-                    current.b += Error[index].b;
-                }
-
-
-                float fdot = (current.r - step[0].r) * Dir.r + (current.g - step[0].g) * Dir.g + (current.b - step[0].b) * Dir.b;
-
-                uint iStep = 0;
-                if (fdot <= 0f)
-                    iStep = 0;
-                else if (fdot >= fsteps)
-                    iStep = 1;
-                else
-                    iStep = psteps[(int)(fdot + .5f)];
-
-                dw = (iStep << 30) | (dw >> 2);   // THIS  IS THE MAGIC here. This is the "list" of indicies. Somehow...
-
-
-                // Dither again
-                if (dither)
-                {
-                    // Calculate difference between current pixel colour and adapted pixel colour?
-                    RGBColour diff = new RGBColour();
-                    diff.r = current.a * (byte)(current.r - step[iStep].r);
-                    diff.g = current.a * (byte)(current.g - step[iStep].g);
-                    diff.b = current.a * (byte)(current.b - step[iStep].b);
-
-                    // If current pixel is not at the end of a row
-                    if ((index & 3) != 3)
+                    if ((uSteps == 3) && (current.a < alphaRef))
                     {
-                        Error[index + 1].r += diff.r * (7f / 16f);
-                        Error[index + 1].g += diff.g * (7f / 16f);
-                        Error[index + 1].b += diff.b * (7f / 16f);
+                        dw = (uint)((3 << 30) | (dw >> 2));
+                        continue;
                     }
 
-                    // If current pixel is not in bottom row
-                    if (index < 12)
+                    current.r *= Luminance.r;
+                    current.g *= Luminance.g;
+                    current.b *= Luminance.b;
+
+
+                    if (dither)
                     {
-                        // If current pixel IS at end of row
-                        if ((index & 3) != 0)
+                        // Error again
+                        current.r += Error[i].r;
+                        current.g += Error[i].g;
+                        current.b += Error[i].b;
+                    }
+
+
+                    float fdot = (current.r - step[0].r) * Dir.r + (current.g - step[0].g) * Dir.g + (current.b - step[0].b) * Dir.b;
+
+                    uint iStep = 0;
+                    if (fdot <= 0f)
+                        iStep = 0;
+                    else if (fdot >= fsteps)
+                        iStep = 1;
+                    else
+                        iStep = psteps[(int)(fdot + .5f)];
+
+                    dw = (iStep << 30) | (dw >> 2);   // THIS  IS THE MAGIC here. This is the "list" of indicies. Somehow...
+
+
+                    // Dither again
+                    if (dither)
+                    {
+                        // Calculate difference between current pixel colour and adapted pixel colour?
+                        RGBColour diff = new RGBColour();
+                        diff.r = current.a * (byte)(current.r - step[iStep].r);
+                        diff.g = current.a * (byte)(current.g - step[iStep].g);
+                        diff.b = current.a * (byte)(current.b - step[iStep].b);
+
+                        // If current pixel is not at the end of a row
+                        if ((i & 3) != 3)
                         {
-                            Error[index + 3].r += diff.r * (3f / 16f);
-                            Error[index + 3].g += diff.g * (3f / 16f);
-                            Error[index + 3].b += diff.b * (3f / 16f);
+                            Error[i + 1].r += diff.r * (7f / 16f);
+                            Error[i + 1].g += diff.g * (7f / 16f);
+                            Error[i + 1].b += diff.b * (7f / 16f);
                         }
 
-                        Error[index + 4].r += diff.r * (5f / 16f);
-                        Error[index + 4].g += diff.g * (5f / 16f);
-                        Error[index + 4].b += diff.b * (5f / 16f);
-
-                        // If current pixel is not at end of row
-                        if ((index & 3) != 3)
+                        // If current pixel is not in bottom row
+                        if (i < 12)
                         {
-                            Error[index + 5].r += diff.r * (1f / 16f);
-                            Error[index + 5].g += diff.g * (1f / 16f);
-                            Error[index + 5].b += diff.b * (1f / 16f);
+                            // If current pixel IS at end of row
+                            if ((i & 3) != 0)
+                            {
+                                Error[i + 3].r += diff.r * (3f / 16f);
+                                Error[i + 3].g += diff.g * (3f / 16f);
+                                Error[i + 3].b += diff.b * (3f / 16f);
+                            }
+
+                            Error[i + 4].r += diff.r * (5f / 16f);
+                            Error[i + 4].g += diff.g * (5f / 16f);
+                            Error[i + 4].b += diff.b * (5f / 16f);
+
+                            // If current pixel is not at end of row
+                            if ((i & 3) != 3)
+                            {
+                                Error[i + 5].r += diff.r * (1f / 16f);
+                                Error[i + 5].g += diff.g * (1f / 16f);
+                                Error[i + 5].b += diff.b * (1f / 16f);
+                            }
                         }
                     }
+
+                    position += 4;
                 }
+
+                position += sourceLineLength;
             }
 
-            byte[] retval = new byte[8];
             var colour1 = BitConverter.GetBytes(Min);
             var colour2 = BitConverter.GetBytes(Max);
-            retval[0] = colour1[0];
-            retval[1] = colour1[1];
 
-            retval[2] = colour2[0];
-            retval[3] = colour2[1];
+            destination[destPosition] = colour1[0];
+            destination[destPosition + 1] = colour1[1];
+
+            destination[destPosition + 2] = colour2[0];
+            destination[destPosition + 3] = colour2[1];
 
             var indicies = BitConverter.GetBytes(dw);
-            retval[4] = indicies[0];
-            retval[5] = indicies[1];
-            retval[6] = indicies[2];
-            retval[7] = indicies[3];
-
-            return retval;
+            destination[destPosition + 4] = indicies[0];
+            destination[destPosition + 5] = indicies[1];
+            destination[destPosition + 6] = indicies[2];
+            destination[destPosition + 7] = indicies[3];
         }
         #endregion RGB DXT
 
@@ -659,22 +674,16 @@ namespace CSharpImageLibrary.DDS
             return minIndex;
         }
 
-        /// <summary>
-        /// Compresses single channel using Block Compression.
-        /// </summary>
-        /// <param name="texel">4 channel Texel to compress.</param>
-        /// <param name="channel">0-3 (BGRA)</param>
-        /// <param name="isSigned">true = uses alpha range -255 -- 255, else 0 -- 255</param>
-        /// <returns>8 byte compressed texel.</returns>
-        public static byte[] Compress8BitBlock(byte[] texel, int channel, bool isSigned)
+        
+        public static void Compress8BitBlock(byte[] source, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, int channel, bool isSigned)
         {
             // KFreon: Get min and max
             byte min = byte.MaxValue;
             byte max = byte.MinValue;
-            int count = channel;
+            int count = sourcePosition + channel;
             for (int i = 0; i < 16; i++)
             {
-                byte colour = texel[count];
+                byte colour = source[count];
                 if (colour > max)
                     max = colour;
                 else if (colour < min)
@@ -688,51 +697,62 @@ namespace CSharpImageLibrary.DDS
 
             // Compress Pixels
             ulong line = 0;
-            count = channel;
+            count = sourcePosition + channel;
             List<int> indicies = new List<int>();
             for (int i = 0; i < 16; i++)
             {
-                byte colour = texel[count];
+                byte colour = source[count];
                 int index = GetClosestValue(Colours, colour);
                 indicies.Add(index);
                 line |= (ulong)index << (i * 3);
                 count += 4;  // Only need 1 channel
             }
 
-            byte[] CompressedBlock = new byte[8];
             byte[] compressed = BitConverter.GetBytes(line);
-            CompressedBlock[0] = min;
-            CompressedBlock[1] = max;
+            destination[destPosition] = min;
+            destination[destPosition + 1] = max;
             for (int i = 2; i < 8; i++)
-                CompressedBlock[i] = compressed[i - 2];
-
-            return CompressedBlock;
+                destination[destPosition + i] = compressed[i - 2];
         }
         #endregion Block Compression
 
         #region Block Decompression
-        /// <summary>
-        /// Decompresses an 8 bit channel.
-        /// </summary>
-        /// <param name="compressed">Compressed image data.</param>
-        /// <param name="isSigned">true = use signed alpha range (-254 -- 255), false = 0 -- 255</param>
-        /// <returns>Single channel decompressed (16 bits).</returns>
-        internal static byte[] Decompress8BitBlock(Stream compressed, bool isSigned)
+        
+        internal static void Decompress8BitBlockByChannel(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isSigned)
         {
-            byte[] DecompressedBlock = new byte[16];
-
             // KFreon: Read min and max colours (not necessarily in that order)
-            byte[] block = new byte[8];
-            compressed.Read(block, 0, 8);
-
-            byte min = block[0];
-            byte max = block[1];
+            byte min = source[sourceStart];
+            byte max = source[sourceStart + 1];
 
             byte[] Colours = Build8BitPalette(min, max, isSigned);
 
             // KFreon: Decompress pixels
-            ulong bitmask = (ulong)block[2] << 0 | (ulong)block[3] << 8 | (ulong)block[4] << 16 |   // KFreon: Read all 6 compressed bytes into single 
-                (ulong)block[5] << 24 | (ulong)block[6] << 32 | (ulong)block[7] << 40;
+            ulong bitmask = (ulong)source[sourceStart + 2] << 0 | (ulong)source[sourceStart + 3] << 8 | (ulong)source[sourceStart + 4] << 16 |   // KFreon: Read all 6 compressed bytes into single.
+                (ulong)source[sourceStart + 5] << 24 | (ulong)source[sourceStart + 6] << 32 | (ulong)source[sourceStart + 7] << 40;
+
+
+            // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
+            for (int i = 0; i < 16; i++)
+            {
+                int lineOffset = i % 4 == 0 ? decompressedLineLength * (i / 4) : 0;
+                destination[decompressedStart + lineOffset + i * 4] = (byte)Colours[bitmask >> (i * 3) & 0x7];
+            }
+        }
+
+        
+        internal static byte[] Decompress8BitBlock(byte[] source, int sourceStart, bool isSigned)
+        {
+            byte[] DecompressedBlock = new byte[16];
+
+            // KFreon: Read min and max colours (not necessarily in that order)
+            byte min = source[sourceStart];
+            byte max = source[sourceStart + 1];
+
+            byte[] Colours = Build8BitPalette(min, max, isSigned);
+
+            // KFreon: Decompress pixels
+            ulong bitmask = (ulong)source[sourceStart + 2] << 0 | (ulong)source[sourceStart + 3] << 8 | (ulong)source[sourceStart + 4] << 16 |   // KFreon: Read all 6 compressed bytes into single.
+                (ulong)source[sourceStart + 5] << 24 | (ulong)source[sourceStart + 6] << 32 | (ulong)source[sourceStart + 7] << 40;
 
 
             // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
@@ -742,77 +762,57 @@ namespace CSharpImageLibrary.DDS
             return DecompressedBlock;
         }
 
-        /// <summary>
-        /// Decompresses a 3 channel (RGB) block.
-        /// </summary>
-        /// <param name="compressed">Compressed image data.</param>
-        /// <param name="isDXT1">True = DXT1, otherwise false.</param>
-        /// <returns>16 pixel BGRA channels.</returns>
-        internal static List<byte[]> DecompressRGBBlock(Stream compressed, bool isDXT1)
-        {
-            int[] DecompressedBlock = new int[16];
 
+        internal static void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1)
+        {
             ushort colour0;
             ushort colour1;
-            byte[] pixels = null;
             int[] Colours = null;
 
-            List<byte[]> DecompressedChannels = new List<byte[]>(4);
-            byte[] red = new byte[16];
-            byte[] green = new byte[16];
-            byte[] blue = new byte[16];
-            byte[] alpha = new byte[16];
-            DecompressedChannels.Add(blue);
-            DecompressedChannels.Add(green);
-            DecompressedChannels.Add(red);
-            DecompressedChannels.Add(alpha);
-
+            // Build colour palette
             try
             {
-                using (BinaryReader reader = new BinaryReader(compressed, Encoding.Default, true))
-                {
-                    // Read min max colours
-                    colour0 = (ushort)reader.ReadInt16();
-                    colour1 = (ushort)reader.ReadInt16();
-                    Colours = BuildRGBPalette(colour0, colour1, isDXT1);
-
-                    // Decompress pixels
-                    pixels = reader.ReadBytes(4);
-                }
+                // Read min max colours
+                colour0 = (ushort)BitConverter.ToInt16(source, sourcePosition);
+                colour1 = (ushort)BitConverter.ToInt16(source, sourcePosition + 2);
+                Colours = BuildRGBPalette(colour0, colour1, isDXT1);
             }
             catch (EndOfStreamException e)
             {
-                Debug.WriteLine(e.ToString());
                 // It's due to weird shaped mips at really low resolution. Like 2x4
-
-                return DecompressedChannels;
+                Debug.WriteLine(e.ToString());
             }
 
-
-
-            for (int i = 0; i < 16; i += 4)
+            // Use palette to decompress pixel colours
+            for (int i = 0; i < 4; i++)
             {
-                //byte bitmask = (byte)compressed.ReadByte();
-                byte bitmask = pixels[i / 4];
+                byte bitmask = source[(sourcePosition + 4) + i];  // sourcePos + 4 is to skip the colours at the start of the texel.
                 for (int j = 0; j < 4; j++)
-                    DecompressedBlock[i + j] = Colours[bitmask >> (2 * j) & 0x03];
-            }
+                {
+                    int destPos = destinationStart + j + (i * destinationLineLength);
+                    UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos);
 
-            // KFreon: Decode into BGRA
-            for (int i = 0; i < 16; i++)
-            {
-                int colour = DecompressedBlock[i];
-                var rgb = ReadDXTColour(colour);
-                red[i] = rgb[0];
-                green[i] = rgb[1];
-                blue[i] = rgb[2];
-                alpha[i] = 0xFF;
+                    if (isDXT1)
+                        destination[destPos + 3] = 0xFF;
+                }
             }
-            return DecompressedChannels;
         }
         #endregion
 
         #region Palette/Colour
+        /// <summary>
+        /// Reads a packed DXT colour into RGB
+        /// </summary>
+        /// <param name="colour">Colour to convert to RGB</param>
+        /// <returns>RGB bytes</returns>
+        private static void UnpackDXTColour(int colour, byte[] destination, int position)
+        {
+            // Read RGB 5:6:5 data, expand to 8 bit.
+            destination[position] = (byte)((colour & 0xF800) >> 8);
+            destination[position + 1] = (byte)((colour & 0x7E0) >> 3);
+            destination[position + 2] = (byte)((colour & 0x1F) << 3);
+        }
+
         /// <summary>
         /// Reads a packed DXT colour into RGB
         /// </summary>
@@ -938,49 +938,5 @@ namespace CSharpImageLibrary.DDS
             return Colours;
         }
         #endregion Palette/Colour
-
-        /// <summary>
-        /// Gets 4x4 texel block from stream.
-        /// </summary>
-        /// <param name="pixelData">Image pixels.</param>
-        /// <param name="Width">Width of image.</param>
-        /// <param name="Height">Height of image.</param>
-        /// <returns>4x4 texel.</returns>
-        internal static byte[] GetTexel(Stream pixelData, int Width, int Height)
-        {
-            byte[] texel = new byte[16 * 4]; // 16 pixels, 4 bytes per pixel
-
-            // KFreon: Edge case for when dimensions are too small for texel
-            int count = 0;
-            if (Width < 4 || Height < 4)
-            {
-                for (int h = 0; h < Height; h++)
-                    for (int w = 0; w < Width; w++)
-                        for (int i = 0; i < 4; i++)
-                        {
-                            if (count >= 64)
-                                return texel;
-                            else
-                                texel[count++] = (byte)pixelData.ReadByte();
-                        }
-
-                return texel;
-            }
-
-            // KFreon: Normal operation. Read 4x4 texel row by row.
-            int bitsPerScanLine = 4 * Width;
-            for (int i = 0; i < 64; i += 16)  // pixel rows
-            {
-                pixelData.Read(texel, i, 16);
-                /*for (int j = 0; j < 16; j += 4)  // pixels in row
-                    for (int k = 0; k < 4; k++) // BGRA
-                        texel[i + j + k] = (byte)pixelData.ReadByte();*/
-
-                pixelData.Seek(bitsPerScanLine - 4 * 4, SeekOrigin.Current);  // Seek to next line of texel
-            }
-
-
-            return texel;
-        }
     }
 }

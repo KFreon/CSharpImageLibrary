@@ -80,11 +80,50 @@ namespace CSharpImageLibrary
             EnableGPUAcceleration = true;
         }
 
-
-        // NEW LOADING
-        internal static List<MipMap> LoadImage(Stream imageStream)
+        internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int decodeWidth, int decodeHeight, double scale)
         {
             imageStream.Seek(0, SeekOrigin.Begin);
+            List<MipMap> MipMaps = null;
+
+            int maxDimension = decodeHeight > decodeWidth ? decodeHeight : decodeWidth;
+
+            switch (header.Format)
+            {
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, true);
+                    break;
+                case ImageEngineFormat.DDS_G8_L8:
+                case ImageEngineFormat.DDS_RGB:
+                case ImageEngineFormat.DDS_V8U8:
+                case ImageEngineFormat.DDS_A8L8:
+                case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    MipMaps = DDS.DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
+                    break;
+                case ImageEngineFormat.GIF:
+                case ImageEngineFormat.JPG:
+                case ImageEngineFormat.PNG:
+                case ImageEngineFormat.BMP:
+                    MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, false);
+                    break;
+                case ImageEngineFormat.TGA:
+                    var tga = new TargaImage(imageStream, ((TGA_Header)header).header);
+                    BitmapSource img = tga.ToWPF();
+                    MipMaps = new List<MipMap>() { new MipMap(img) };
+                    tga.Dispose();
+                    break;
+                case ImageEngineFormat.DDS_DX10:
+                    throw new FormatException("DX10/DXGI not supported properly yet.");
+                default:
+                    throw new FormatException($"Format unknown: {header.Format}.");
+            }
+
+            return MipMaps;
         }
 
         internal static AbstractHeader LoadHeader(MemoryStream stream)
@@ -99,22 +138,22 @@ namespace CSharpImageLibrary
             switch (ext)
             {
                 case ImageFormats.SupportedExtensions.BMP:
-                    header = new BMP_Header();
+                    header = new BMP_Header(stream);
                     break;
                 case ImageFormats.SupportedExtensions.DDS:
-                    header = new DDS_Header();
+                    header = new DDS_Header(stream);
                     break;
                 case ImageFormats.SupportedExtensions.JPG:
-                    header = new JPG_Header();
+                    header = new JPG_Header(stream);
                     break;
                 case ImageFormats.SupportedExtensions.PNG:
-                    header = new PNG_Header();
+                    header = new PNG_Header(stream);
                     break;
                 case ImageFormats.SupportedExtensions.TGA:
-                    header = new TGA_Header();
+                    header = new TGA_Header(stream);
                     break;
                 case ImageFormats.SupportedExtensions.GIF:
-                    header = new GIF_Header();
+                    header = new GIF_Header(stream);
                     break;
                 default:
                     throw new NotSupportedException("Image type unknown.");
@@ -122,10 +161,6 @@ namespace CSharpImageLibrary
 
             return header;
         }
-
-
-        
-
 
 
         /// <summary>
@@ -266,37 +301,7 @@ namespace CSharpImageLibrary
             }
         }
 
-        internal static double ExpectedImageSize(double mipIndex, Format format, int baseWidth, int baseHeight)
-        {
-            /*
-                Mipmapping halves both dimensions per mip down. Dimensions are then divided by 4 if block compressed as a texel is 4x4 pixels.
-                e.g. 4096 x 4096 block compressed texture with 8 byte blocks e.g. DXT1
-                Sizes of mipmaps:
-                    4096 / 4 x 4096 / 4 x 8
-                    (4096 / 4 / 2) x (4096 / 4 / 2) x 8
-                    (4096 / 4 / 2 / 2) x (4096 / 4 / 2 / 2) x 8
-
-                Pattern: Each dimension divided by 2 per mip size decreased.
-                Thus, total is divided by 4.
-                    Size of any mip = Sum(1/4^n) x divWidth x divHeight x blockSize,  
-                        where n is the desired mip (0 based), 
-                        divWidth and divHeight are the block compress adjusted dimensions (uncompressed textures lead to just original dimensions, block compressed are divided by 4)
-
-                Turns out the partial sum of the infinite sum: Sum(1/4^n) = 1/3 x (4 - 4^-n). Who knew right?
-            */
-
-            int divisor = 1;
-            if (format.IsBlockCompressed)
-                divisor = 4;
-
-            double sumPart = mipIndex == -1 ? 0 :
-                (1 / 3f) * (4 - Math.Pow(4, -mipIndex));
-
-            double totalSize = 128 + (sumPart * format.BlockSize * (baseWidth / divisor) * (baseHeight / divisor));
-
-
-            return totalSize;
-        }
+        
         
 
         internal static MipMap Resize(MipMap mipMap, double scale, bool mergeAlpha)
