@@ -12,6 +12,7 @@ using UsefulThings;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
 using CSharpImageLibrary.Headers;
+using CSharpImageLibrary.DDS;
 
 namespace CSharpImageLibrary
 {
@@ -168,18 +169,16 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="MipMaps">List of Mips to save.</param>
         /// <param name="format">Desired format.</param>
-        /// <param name="destination">Stream to save to.</param>
         /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
         /// <param name="mergeAlpha">True = alpha flattened down, directly affecting RGB.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
         /// <returns>True on success.</returns>
-        internal static bool Save(List<MipMap> MipMaps, ImageEngineFormat format, Stream destination, MipHandling mipChoice, bool mergeAlpha, int maxDimension = 0, int mipToSave = 0)
+        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, bool mergeAlpha, int maxDimension = 0, int mipToSave = 0)
         {
-            Format temp = new Format(format);
             List<MipMap> newMips = new List<MipMap>(MipMaps);
-
-            if ((temp.IsMippable && mipChoice == MipHandling.GenerateNew) || (temp.IsMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
+            bool isMippable = ImageFormats.IsFormatMippable(format);
+            if ((isMippable && mipChoice == MipHandling.GenerateNew) || (isMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
                 DDSGeneral.BuildMipMaps(newMips, mergeAlpha);
 
             // KFreon: Resize if asked
@@ -187,7 +186,6 @@ namespace CSharpImageLibrary
             {
                 if (!UsefulThings.General.IsPowerOfTwo(maxDimension))
                     throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
-
 
                 // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
                 var validMipmap = newMips.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension));  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
@@ -215,31 +213,29 @@ namespace CSharpImageLibrary
 
                 // KFreon: Assuming same scale in both dimensions...
                 fixScale = 1.0*newWidth / newMips[0].Width;
-
                 newMips[0] = Resize(newMips[0], fixScale, mergeAlpha);
-
             }
-
 
             if (fixScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
-            if (fixScale != 0 && temp.IsMippable && mipChoice != MipHandling.KeepTopOnly)
+            if (fixScale != 0 && isMippable && mipChoice != MipHandling.KeepTopOnly)
                 DDSGeneral.BuildMipMaps(newMips, mergeAlpha);
 
 
-            bool result = false;
-            if (temp.SurfaceFormat.ToString().Contains("DDS"))
-                result = DDSGeneral.Save(newMips, destination, temp);
+            byte[] destination = null;
+            if (format.ToString().Contains("DDS"))
+                destination = DDSGeneral.Save(newMips, format);
             else
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
                 if (WindowsWICCodecsAvailable)
-                    result = WIC_Codecs.SaveWithCodecs(mip.BaseImage, destination, format);
+                    destination = WIC_Codecs.SaveWithCodecs(mip.BaseImage, format).ToArray();
             }
 
-            if (mipChoice != MipHandling.KeepTopOnly && temp.IsMippable)
+            // TODO: Do I still need this.
+            /*if (mipChoice != MipHandling.KeepTopOnly && isMippable)
             {
                 // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
                 // Figure out how big the file should be and make it that size
@@ -249,7 +245,7 @@ namespace CSharpImageLibrary
                 int height = newMips[0].Height;
 
                 int divisor = 1;
-                if (temp.IsBlockCompressed)
+                if (ImageFormats.IsBlockCompressed(format))
                     divisor = 4;
 
                 while(width >= 1 && height >= 1)
@@ -257,7 +253,7 @@ namespace CSharpImageLibrary
                     int tempWidth = width;
                     int tempHeight = height;
 
-                    if (temp.IsBlockCompressed)
+                    if (ImageFormats.IsBlockCompressed(format))
                     {
                         if (tempWidth < 4)
                             tempWidth = 4;
@@ -266,7 +262,7 @@ namespace CSharpImageLibrary
                     }
                     
 
-                    size += tempWidth / divisor * tempHeight / divisor * temp.BlockSize;
+                    size += tempWidth / divisor * tempHeight / divisor * ImageFormats.GetBlockSize(format);
                     width /= 2;
                     height /= 2;
                 }
@@ -276,32 +272,10 @@ namespace CSharpImageLibrary
                     byte[] blanks = new byte[size - (destination.Length - 128)];
                     destination.Write(blanks, 0, blanks.Length);
                 }
-            }
+            }*/
 
-            return result;
-        }
-
-
-        /// <summary>
-        /// Saves image to byte[].
-        /// </summary>
-        /// <param name="MipMaps">Mipmaps to save.</param>
-        /// <param name="format">Format to save image as.</param>
-        /// <param name="generateMips">Determines how to handle mipmaps.</param>
-        /// <param name="desiredMaxDimension">Maximum dimension to allow. Resizes if required.</param>
-        /// <param name="mipToSave">Mipmap to save. If > 0, all other mipmaps removed, and this mipmap saved.</param>
-        /// <param name="mergeAlpha">True = Flattens alpha into RGB.</param>
-        /// <returns>Byte[] containing fully formatted image.</returns>
-        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling generateMips, int desiredMaxDimension, int mipToSave, bool mergeAlpha)
-        {
-            using (MemoryStream ms = new MemoryStream())
-            {
-                Save(MipMaps, format, ms, generateMips, mergeAlpha, desiredMaxDimension, mipToSave);
-                return ms.ToArray();
-            }
-        }
-
-        
+            return destination;
+        }      
         
 
         internal static MipMap Resize(MipMap mipMap, double scale, bool mergeAlpha)

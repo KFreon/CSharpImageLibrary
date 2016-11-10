@@ -19,7 +19,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        
+        // TODO: Check that this does premultiplied alpha and stuff
         internal static void DecompressBC2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
             // KFreon: Decompress alpha
@@ -37,7 +37,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        
+        // TODO: Check that this does premultiplied
         internal static void DecompressBC3Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
         {
             // Alpha, +3 to select that channel.

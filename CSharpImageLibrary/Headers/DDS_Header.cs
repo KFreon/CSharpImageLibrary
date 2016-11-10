@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -33,7 +34,7 @@ namespace CSharpImageLibrary.Headers
             /// <summary>
             /// Option flags.
             /// </summary>
-            public int dwFlags { get; set; }
+            public DDS_PFdwFlags dwFlags { get; set; }
 
             /// <summary>
             /// String version of flags showing names of each.
@@ -42,7 +43,7 @@ namespace CSharpImageLibrary.Headers
             {
                 get
                 {
-                    return ((DDSdwFlags)dwFlags).ToString();
+                    return ((DDS_PFdwFlags)dwFlags).ToString();
                 }
             }
 
@@ -83,7 +84,7 @@ namespace CSharpImageLibrary.Headers
             public DDS_PIXELFORMAT(byte[] temp)
             {
                 dwSize = BitConverter.ToInt32(temp, 72);
-                dwFlags = BitConverter.ToInt32(temp, 76);
+                dwFlags = (DDS_PFdwFlags)BitConverter.ToInt32(temp, 76);
                 dwFourCC = (FourCC)BitConverter.ToInt32(temp, 80);
                 dwRGBBitCount = BitConverter.ToInt32(temp, 84);
                 dwRBitMask = BitConverter.ToUInt32(temp, 88);
@@ -120,6 +121,11 @@ namespace CSharpImageLibrary.Headers
         public enum FourCC
         {
             /// <summary>
+            /// Used when FourCC is unknown.
+            /// </summary>
+            Unknown = 0,
+
+            /// <summary>
             /// (BC1) Block Compressed Texture. Compresses 4x4 texels.
             /// Used for Simple Non Alpha.
             /// </summary>
@@ -155,6 +161,7 @@ namespace CSharpImageLibrary.Headers
             DX10 = 0x30315844,
         }
 
+        [Flags]
         public enum DDSdwFlags
         {
             DDSD_CAPS = 0x1,            // Required
@@ -167,6 +174,7 @@ namespace CSharpImageLibrary.Headers
             DDSD_DEPTH = 0x800000       // Required in Depth texture (Volume)
         }
 
+        [Flags]
         public enum DDSdwCaps
         {
             DDSCAPS_COMPLEX = 0x8,      // Optional, must be specified on image that has more than one surface. (mipmap, cube, volume)
@@ -174,13 +182,41 @@ namespace CSharpImageLibrary.Headers
             DDSCAPS_TEXTURE = 0x1000    // Required
         }
 
+        /// <summary>
+        /// Denotes PixelFormat flags. Settings that indicate how pixels are shown.
+        /// </summary>
+        [Flags]
         public enum DDS_PFdwFlags
         {
+            /// <summary>
+            /// Texture contains alpha. i.e. dwRGBAlphaBitmapMask contains valid data.
+            /// </summary>
             DDPF_ALPHAPIXELS = 0x1,     // Texture has alpha - dwRGBAlphaBitMask has a value
-            DDPF_ALPHA = 0x2,           // Older flag indicating alpha channel in uncompressed data. dwRGBBitCount has alpha channel bitcount, dwABitMask has valid data.
-            DDPF_FOURCC = 0x4,          // Contains compressed RGB. dwFourCC has a value
-            DDPF_RGB = 0x40,            // Contains uncompressed RGB. dwRGBBitCount and RGB bitmasks have a value
-            DDPF_YUV = 0x200,           // Older flag indicating things set as YUV
+
+            /// <summary>
+            /// Used in some older files for alpha channel only uncompressed data. i.e. dwRGBBitCount contains alpha channel bitcount, dwABitMask contains valid data.
+            /// </summary>
+            DDPF_ALPHA = 0x2,
+
+            /// <summary>
+            /// Contains compressed RGB. dwFourCC has a value
+            /// </summary>       
+            DDPF_FOURCC = 0x4,
+
+            /// <summary>
+            /// Contains uncompressed RGB. dwRGBBitCount and RGB bitmasks have a value
+            /// </summary>
+            DDPF_RGB = 0x40,            
+
+            /// <summary>
+            /// Used in some old files for YUV uncompressed data. i.e. dwRGBBitCount contains YUV bitcount, dwRBitMask contains Y mask, dwGBitMask contains U mask, dwBBitMask contains V mask.
+            /// YUV is a weird colourspace. Y = intensity, UV = colour. Y = 0-1 (0-255), U,V = -0.5-0.5 (-128-127) or 0-255.
+            /// </summary>
+            DDPF_YUV = 0x200,           
+
+            /// <summary>
+            /// Old flag for single channel colour uncompressed. dwRGBBitCount contains luminescence channel bit count, dwRBitMask contains channel mask. Can combine with DDPF_ALPHAPIXELS for 2 channel DDS file.
+            /// </summary>
             DDPF_LUMINANCE = 0x20000    // Older flag for single channel uncompressed data
         }
         #endregion Standard Enums and Structs
@@ -271,6 +307,8 @@ namespace CSharpImageLibrary.Headers
             /// </summary>
             DDS_ALPHA_MODE_CUSTOM = 4,
         }
+
+        
 
         /// <summary>
         /// Indicates type of DXGI/DX10 texture.
@@ -432,7 +470,7 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// Option flags.
         /// </summary>
-        public int dwFlags { get; set; }
+        public DDSdwFlags dwFlags { get; set; }
 
         /// <summary>
         /// String representation of Flags showing names.
@@ -473,7 +511,7 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// More option flags.
         /// </summary>
-        public int dwCaps { get; set; }
+        public DDSdwCaps dwCaps { get; set; }
 
         /// <summary>
         /// String version showing flag names.
@@ -533,7 +571,7 @@ namespace CSharpImageLibrary.Headers
             int[] values = (int[])Enum.GetValues(enumType);
             for (int i = 0; i < names.Length; i++)
             {
-                if ((dwFlags & values[i]) != 0)
+                if (((int)dwFlags & values[i]) != 0)
                     flags += $"[{names[i]}] ";
             }
             
@@ -556,7 +594,7 @@ namespace CSharpImageLibrary.Headers
 
             // Start header
             dwSize = BitConverter.ToInt32(temp, 4);
-            dwFlags = BitConverter.ToInt32(temp, 8);
+            dwFlags = (DDSdwFlags)BitConverter.ToInt32(temp, 8);
             Height = BitConverter.ToInt32(temp, 12);
             Width = BitConverter.ToInt32(temp, 16);
             dwPitchOrLinearSize = BitConverter.ToInt32(temp, 20);
@@ -568,7 +606,7 @@ namespace CSharpImageLibrary.Headers
             // DDS PixelFormat
             ddspf = new DDS_PIXELFORMAT(temp);
 
-            dwCaps = BitConverter.ToInt32(temp, 104);
+            dwCaps = (DDSdwCaps)BitConverter.ToInt32(temp, 104);
             dwCaps2 = BitConverter.ToInt32(temp, 108);
             dwCaps3 = BitConverter.ToInt32(temp, 112);
             dwCaps4 = BitConverter.ToInt32(temp, 116);
@@ -589,6 +627,79 @@ namespace CSharpImageLibrary.Headers
         {
             Load(stream);
         }
+
+        /// <summary>
+        /// Creates a DDS header from a set of information.
+        /// </summary>
+        /// <param name="Mips">Number of mipmaps.</param>
+        /// <param name="Height">Height of top mipmap.</param>
+        /// <param name="Width">Width of top mipmap.</param>
+        /// <param name="surfaceformat">Format header represents.</param>
+        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
+        {
+            dwSize = 124;
+            dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
+            this.Width = Width;
+            this.Height = Height;
+            dwCaps = DDSdwCaps.DDSCAPS_TEXTURE | (Mips == 1 ? 0 : DDSdwCaps.DDSCAPS_COMPLEX | DDSdwCaps.DDSCAPS_MIPMAP);
+            dwMipMapCount = Mips == 1 ? 1 : Mips;
+
+            DDS_PIXELFORMAT px = new DDS_PIXELFORMAT();
+            px.dwSize = 32;
+            px.dwFourCC = ParseFormatToFourCC(surfaceformat);
+
+            if (px.dwFourCC != FourCC.Unknown)
+                px.dwFlags = DDS_PFdwFlags.DDPF_FOURCC;
+
+            switch (surfaceformat)
+            {
+                // TODO: Check bit masks.
+                #region Compressed
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    dwFlags |= DDSdwFlags.DDSD_LINEARSIZE;
+                    dwPitchOrLinearSize = (int)(Width * Height);  
+                    break;
+                case ImageEngineFormat.DDS_ATI1:
+                    dwFlags |= DDSdwFlags.DDSD_LINEARSIZE;
+                    dwPitchOrLinearSize = (int)(Width * Height / 2f);
+                    break;
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    // TODO: Any flags, masks for these?
+                    Debugger.Break();
+                    break;
+                #endregion Compressed
+
+                #region Uncompressed
+                case ImageEngineFormat.DDS_G8_L8:
+                    px.dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
+                    dwPitchOrLinearSize = Width * 8; // TODO: pitch, maybe?
+                    dwFlags |= DDSdwFlags.DDSD_PITCH;
+                    px.dwRGBBitCount = 8;
+                    px.dwRBitMask = 0xF;
+                    break;
+                case ImageEngineFormat.DDS_ARGB:
+                    px.dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                    px.dwRGBBitCount = 32;
+                    px.dwRBitMask = 0x00FF0000;
+                    px.dwGBitMask = 0x0000FF00;
+                    px.dwBBitMask = 0x000000FF;
+                    px.dwABitMask = 0xFF000000;
+                    break;
+                case ImageEngineFormat.DDS_V8U8:
+                    px.dwRGBBitCount = 16;
+                    px.dwRBitMask = 0x00FF;
+                    px.dwGBitMask = 0xFF00;
+                    break;
+                #endregion Uncompressed
+            }
+
+
+            ddspf = px;
+        }
         
 
         /// <summary>
@@ -608,6 +719,14 @@ namespace CSharpImageLibrary.Headers
                 return ImageEngineFormat.DDS_ARGB;
         }
 
+        static FourCC ParseFormatToFourCC(ImageEngineFormat format)
+        {
+            if (Enum.IsDefined(typeof(FourCC), format))
+                return (FourCC)format;
+            else
+                return FourCC.Unknown;
+        }
+
         /// <summary>
         /// Determines DDS Surface Format given the header.
         /// </summary>
@@ -621,8 +740,8 @@ namespace CSharpImageLibrary.Headers
             if (format == ImageEngineFormat.DDS_ARGB)
             {
                 // KFreon: Apparently all these flags mean it's a V8U8 image...
-                if (header.ddspf.dwRGBBitCount == 0x10 &&
-                           header.ddspf.dwRBitMask == 0xFF &&
+                if (header.ddspf.dwRGBBitCount == 16 &&
+                           header.ddspf.dwRBitMask == 0x00FF &&
                            header.ddspf.dwGBitMask == 0xFF00 &&
                            header.ddspf.dwBBitMask == 0x00 &&
                            header.ddspf.dwABitMask == 0x00)
@@ -632,9 +751,8 @@ namespace CSharpImageLibrary.Headers
                 else if (header.ddspf.dwABitMask == 0 &&
                         header.ddspf.dwBBitMask == 0 &&
                         header.ddspf.dwGBitMask == 0 &&
-                        header.ddspf.dwRBitMask == 255 &&
-                        header.ddspf.dwFlags == 131072 &&
-                        header.ddspf.dwSize == 32 &&
+                        header.ddspf.dwRBitMask == 0xF && 
+                        header.ddspf.dwFlags == DDS_PFdwFlags.DDPF_LUMINANCE &&
                         header.ddspf.dwRGBBitCount == 8)
                     format = ImageEngineFormat.DDS_G8_L8;
 
@@ -645,6 +763,8 @@ namespace CSharpImageLibrary.Headers
                 // KFreon: RGB test.
                 else if (header.ddspf.dwRGBBitCount == 24)
                     format = ImageEngineFormat.DDS_RGB;
+
+                // TODO: Better checks. Need to test against a few tools.
             }
 
             return format;
@@ -657,6 +777,52 @@ namespace CSharpImageLibrary.Headers
                     return false;
 
             return true;
+        }
+
+        /// <summary>
+        /// Writes header to destination array starting at index.
+        /// </summary>
+        /// <param name="destination">Array to write header to.</param>
+        /// <param name="index">Index in destination to start writing at.</param>
+        public void WriteToArray(byte[] destination, int index)
+        {
+            List<byte> headerData = new List<byte>(150);
+
+            // KFreon: Write magic number ("DDS")
+            headerData.AddRange(BitConverter.GetBytes(0x20534444));
+
+            // KFreon: Write all header fields regardless of filled or not
+            headerData.AddRange(BitConverter.GetBytes(dwSize));
+            headerData.AddRange(BitConverter.GetBytes((int)dwFlags));
+            headerData.AddRange(BitConverter.GetBytes(Height));
+            headerData.AddRange(BitConverter.GetBytes(Width));
+            headerData.AddRange(BitConverter.GetBytes(dwPitchOrLinearSize));
+            headerData.AddRange(BitConverter.GetBytes(dwDepth));
+            headerData.AddRange(BitConverter.GetBytes(dwMipMapCount));
+
+            // KFreon: Write reserved1
+            for (int i = 0; i < 11; i++)
+                headerData.AddRange(BitConverter.GetBytes((int)0));
+
+            // KFreon: Write PIXELFORMAT
+            headerData.AddRange(BitConverter.GetBytes(ddspf.dwSize));
+            headerData.AddRange(BitConverter.GetBytes((int)ddspf.dwFlags));
+            headerData.AddRange(BitConverter.GetBytes((int)ddspf.dwFourCC));
+            headerData.AddRange(BitConverter.GetBytes(ddspf.dwRGBBitCount));
+            headerData.AddRange(BitConverter.GetBytes(ddspf.dwRBitMask));
+            headerData.AddRange(BitConverter.GetBytes(ddspf.dwGBitMask));
+            headerData.AddRange(BitConverter.GetBytes(ddspf.dwBBitMask));
+            headerData.AddRange(BitConverter.GetBytes(ddspf.dwABitMask));
+
+
+            headerData.AddRange(BitConverter.GetBytes((int)dwCaps));
+            headerData.AddRange(BitConverter.GetBytes(dwCaps2));
+            headerData.AddRange(BitConverter.GetBytes(dwCaps3));
+            headerData.AddRange(BitConverter.GetBytes(dwCaps4));
+            headerData.AddRange(BitConverter.GetBytes(dwReserved2));
+
+
+            headerData.CopyTo(destination, index);
         }
     }
 }

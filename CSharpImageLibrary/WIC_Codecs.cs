@@ -233,10 +233,9 @@ namespace CSharpImageLibrary
         /// Saves image using internal Codecs - DDS and mippables not supported.
         /// </summary>
         /// <param name="image">Image as bmp source.</param>
-        /// <param name="destination">Image stream to save to.</param>
         /// <param name="format">Destination image format.</param>
         /// <returns>True on success.</returns>
-        internal static bool SaveWithCodecs(BitmapSource image, Stream destination, ImageEngineFormat format)
+        internal static MemoryStream SaveWithCodecs(BitmapSource image, ImageEngineFormat format)
         {
             BitmapFrame frame = BitmapFrame.Create(image);
 
@@ -259,8 +258,9 @@ namespace CSharpImageLibrary
             }
 
             encoder.Frames.Add(frame);
-            encoder.Save(destination);
-            return true;
+            MemoryStream ms = new MemoryStream(image.PixelWidth * image.PixelHeight * 4);  // Big enough to reduce memory copying.
+            encoder.Save(ms);
+            return ms;
         }
     }
 }

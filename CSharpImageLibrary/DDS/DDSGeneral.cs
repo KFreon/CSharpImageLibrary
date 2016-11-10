@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using UsefulThings;
 
 namespace CSharpImageLibrary.DDS
@@ -197,6 +198,83 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion Loading
 
+        #region Saving
+        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat)
+        {
+            // Set compressor
+            Action<byte[], int, int, byte[], int> compressor = null;
+            switch (saveFormat)
+            {
+                case ImageEngineFormat.DDS_A8L8:
+                    compressor = DDS_Encoders.WriteA8L8Pixel;
+                    break;
+                case ImageEngineFormat.DDS_ARGB:
+                    compressor = DDS_Encoders.WriteARGBPixel;
+                    break;
+                case ImageEngineFormat.DDS_ATI1:
+                    compressor = DDS_Encoders.CompressBC4Block;
+                    break;
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    compressor = DDS_Encoders.CompressBC5Block;
+                    break;
+                case ImageEngineFormat.DDS_DX10:
+                    Debugger.Break();
+                    break; // TODO: NOT SUPPORTED YET. DX10
+                case ImageEngineFormat.DDS_DXT1:
+                    compressor = DDS_Encoders.CompressBC1Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                    compressor = DDS_Encoders.CompressBC2Block;
+                    break;
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                    compressor = DDS_Encoders.CompressBC3Block;
+                    break;
+                case ImageEngineFormat.DDS_G8_L8:
+                    compressor = DDS_Encoders.WriteG8_L8Pixel;
+                    break;
+                case ImageEngineFormat.DDS_RGB:
+                    compressor = DDS_Encoders.WriteRGBPixel;
+                    break;
+                case ImageEngineFormat.DDS_V8U8:
+                    compressor = DDS_Encoders.WriteV8U8Pixel;
+                    break;
+                default:
+                    throw new FormatException($"Format not known as a DDS format: {saveFormat}.");
+            }
+
+            // +1 to get the full size, not just the offset of the last mip.
+            int fullSize = GetMipOffset(mipMaps.Count + 1, saveFormat, mipMaps[0].Width, mipMaps[0].Height);
+            byte[] destination = new byte[fullSize];
+
+            // Create header and write to destination
+            DDS_Header header = new DDS_Header(mipMaps.Count, mipMaps[0].Height, mipMaps[0].Width, saveFormat);
+            header.WriteToArray(destination, 0);
+
+            int mipOffset = 128;
+            foreach(MipMap mipmap in mipMaps)
+            {
+                if (ImageFormats.IsBlockCompressed(saveFormat))
+                    WriteCompressedMipMap(destination, mipOffset, mipmap.BaseImage, compressor);
+                else
+                    WriteUncompressedMipMap(destination, mipOffset, mipmap.BaseImage, compressor);
+            }
+
+            return destination;
+        }
+
+
+        unsafe static void WriteCompressedMipMap(byte[] destination, int mipOffset, BitmapSource mipmap, Action<byte[], int, int, byte[], int> compressor)
+        {
+
+        }
+
+        unsafe static void WriteUncompressedMipMap(byte[] destination, int mipOffset, BitmapSource mipmap, Action<byte[], int, int, byte[], int> compressor)
+        {
+
+        }
+        #endregion Saving
 
         #region Mipmap Management
         /// <summary>

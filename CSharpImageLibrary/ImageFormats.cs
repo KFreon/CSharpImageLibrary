@@ -100,7 +100,7 @@ namespace CSharpImageLibrary
         DDS_V8U8 = DDS_ARGB + 1, 
 
         /// <summary>
-        /// Pair of 8 bit channels.
+        /// Single 8 bit channel.
         /// Used for Luminescence.
         /// </summary>
         DDS_G8_L8 = DDS_V8U8 + 1,  // No specific value it seems

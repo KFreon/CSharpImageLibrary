@@ -19,6 +19,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
+        // TODO: Check that this does premultiplied alpha dnd stuff.
         internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
             // Compress Alpha
@@ -38,7 +39,7 @@ namespace CSharpImageLibrary.DDS
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f);
         }
 
-
+        // TODO: Check if this does premultiplied
         internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
             // Compress Alpha
@@ -94,6 +95,14 @@ namespace CSharpImageLibrary.DDS
             destination[destPosition] = imgData[sourcePosition];
             destination[destPosition + 1] = imgData[sourcePosition + 1];
             destination[destPosition + 2] = imgData[sourcePosition + 2];
+        }
+
+        internal static void WriteARGBPixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        {
+            destination[destPosition] = imgData[sourcePosition];
+            destination[destPosition + 1] = imgData[sourcePosition + 1];
+            destination[destPosition + 2] = imgData[sourcePosition + 2];
+            destination[destPosition + 3] = imgData[sourcePosition + 3];
         }
     }
 }
