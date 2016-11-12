@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CSharpImageLibrary.Headers;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -26,6 +27,7 @@ namespace CSharpImageLibrary.DDS
             for (int i = 0; i < 8; i++)
             {
                 // Line offset since texels are a 4x4 block, can't just write data contiguously
+                // TODO: Why is it %2? Should be 4 like everything else.
                 int lineOffset = i % 2 == 0 ? decompressedLineLength * (i / 2) : 0;
                 int alphaOffset = i * 8 + 3 + lineOffset; // Since each byte read contains two texels worth of alpha, need to skip two texels each time. 
                 destination[decompressedStart + alphaOffset] = (byte)(source[sourceStart + i] * 0xF0 >> 4);
@@ -84,10 +86,33 @@ namespace CSharpImageLibrary.DDS
         }
 #endregion Compressed Readers
 
-        // TODO: Check RGBA ordering
-
         #region Uncompressed Readers
-        internal static void ReadG8_L8Pixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
+        internal static void ReadUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_Header header)
+        {
+            switch (header.ddspf.dwRGBBitCount)
+            {
+                case 8:
+                    Read8BitUncompressed(source, sourceStart, destination, pixelCount, header.ddspf);
+                    break;
+                case 16:
+                case 32:
+                    break; // TODO: Finish uncompressed readers
+            }
+        }
+
+        static void Read8BitUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf)
+        {
+            for(int i = 0; i < pixelCount; i++)
+            {
+                byte colour = source[sourceStart + i];
+                destination[i] = (byte)(colour & ddspf.dwRBitMask);
+                destination[i + 1] = (byte)(colour & ddspf.dwGBitMask);
+                destination[i + 2] = (byte)(colour & ddspf.dwBBitMask);
+                destination[i + 3] = (byte)(colour & ddspf.dwABitMask);  // TODO: Check this works
+            }
+        }
+
+        /*internal static void ReadG8_L8Pixel(byte[] source, int sourceStart, byte[] destination, int pixelCount)
         {
             // KFreon: Same colour for other channels to make grayscale.
             for (int i = 0; i < pixelCount; i += 4)
@@ -142,7 +167,7 @@ namespace CSharpImageLibrary.DDS
                 destination[i + 2] = colour;
                 destination[i + 3] = source[sourceStart + i + 1];
             }
-        }
+        }*/
         #endregion Uncompressed Readers
     }
 }

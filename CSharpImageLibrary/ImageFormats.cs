@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using UsefulThings;
 
 namespace CSharpImageLibrary
@@ -150,6 +151,10 @@ namespace CSharpImageLibrary
             return GetBlockSize(format) >= 8;
         }
 
+        public static bool IsAlphaPresent(PixelFormat format)
+        {
+            return format.ToString().Contains("a", StringComparison.OrdinalIgnoreCase);
+        }
 
         /// <summary>
         /// Gets block size of DDS format.
@@ -186,6 +191,28 @@ namespace CSharpImageLibrary
                     break;
             }
             return blocksize;
+        }
+
+        public static List<int> CreateMasks(ImageEngineFormat format)
+        {
+            int R = 0;
+            int G = 0;
+            int B = 0;
+            int A = 0;
+
+            switch (format)
+            {
+                case ImageEngineFormat.DDS_V8U8:
+                    R = 0xF0;
+                    G = 0x0F;
+                    break;
+            }
+            return null;
+        }
+
+        public static List<int> CreateMasks(int bitCount, int numChannels)
+        {
+            return null;
         }
 
         /// <summary>

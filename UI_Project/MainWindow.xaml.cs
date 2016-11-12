@@ -117,8 +117,8 @@ namespace UI_Project
         {
             if (vm.img != null && !isOpen)  // only change stuff when opening
             {
-                vm.SaveFormat = vm.img.Format.SurfaceFormat;
-                vm.SavePath = vm.GetAutoSavePath(vm.img.Format.SurfaceFormat);
+                vm.SaveFormat = vm.img.Format;
+                vm.SavePath = vm.GetAutoSavePath(vm.img.Format);
             }
 
             ChangeConvertPanel(!isOpen);

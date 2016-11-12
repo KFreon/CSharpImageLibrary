@@ -111,13 +111,14 @@ namespace CSharpImageLibrary
                             continue;
                     }
 
-                    mipmaps.Add(new MipMap(mipmap));
+                    mipmaps.Add(new MipMap(mipmap.GetPixels(), mipmap.PixelWidth, mipmap.PixelHeight, ImageFormats.IsAlphaPresent(mipmap.Format)));
                 }
 
                 if (mipmaps.Count == 0)
                 {
                     // KFreon: Image has no mips, so resize largest
-                    var mip = new MipMap(decoder.Frames[0]);
+                    var frame = decoder.Frames[0];
+                    var mip = new MipMap(frame.GetPixels(), frame.PixelWidth, frame.PixelHeight, ImageFormats.IsAlphaPresent(frame.Format));
                     mip = ImageEngine.Resize(mip, scale, false);
                     mipmaps.Add(mip);
                 }
@@ -129,7 +130,7 @@ namespace CSharpImageLibrary
                 if (bmp == null)
                     return null;
 
-                mipmaps.Add(new MipMap(bmp));
+                mipmaps.Add(new MipMap(bmp.GetPixels(), bmp.PixelWidth, bmp.PixelHeight, ImageFormats.IsAlphaPresent(bmp.Format)));
             }
 
             return mipmaps;
@@ -232,11 +233,11 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Saves image using internal Codecs - DDS and mippables not supported.
         /// </summary>
-        /// <param name="image">Image as bmp source.</param>
         /// <param name="format">Destination image format.</param>
         /// <returns>True on success.</returns>
-        internal static MemoryStream SaveWithCodecs(BitmapSource image, ImageEngineFormat format)
+        internal static MemoryStream SaveWithCodecs(byte[] imageData, ImageEngineFormat format, int width, int height)
         {
+            var image = UsefulThings.WPF.Images.CreateWriteableBitmap(imageData, width, height);
             BitmapFrame frame = BitmapFrame.Create(image);
 
             // KFreon: Choose encoder based on desired format.

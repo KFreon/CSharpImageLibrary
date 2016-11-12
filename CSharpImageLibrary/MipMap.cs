@@ -16,9 +16,14 @@ namespace CSharpImageLibrary
     public class MipMap
     {
         /// <summary>
+        /// Indicates whether mipmap has an alpha channel.
+        /// </summary>
+        public bool AlphaPresent { get; set; }
+
+        /// <summary>
         /// Pixels in bitmap image.
         /// </summary>
-        public WriteableBitmap BaseImage
+        public byte[] Pixels
         {
             get; set;
         }
@@ -37,13 +42,22 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a Mipmap object from a WPF image.
         /// </summary>
-        /// <param name="baseimage">Image to base Mipmap on.</param>
-        public MipMap(BitmapSource baseimage)
+        public MipMap(byte[] pixels, int width, int height, bool alphaPresent)
         {
-            BaseImage = new WriteableBitmap(baseimage);
-            BaseImage.Freeze();
-            Width = BaseImage.PixelWidth;
-            Height = BaseImage.PixelHeight;
+            Pixels = pixels;
+            Width = width;
+            Height = height;
+            AlphaPresent = alphaPresent;
+        }
+
+
+        /// <summary>
+        /// Creates a WPF image from this mipmap.
+        /// </summary>
+        /// <returns>WritableBitmap of image.</returns>
+        public WriteableBitmap ToImage()
+        {
+            return UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);
         }
     }
 }

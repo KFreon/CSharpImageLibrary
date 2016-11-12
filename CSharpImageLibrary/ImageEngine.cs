@@ -71,6 +71,11 @@ namespace CSharpImageLibrary
         public static bool EnableGPUAcceleration { get; set; }
 
         /// <summary>
+        /// Determines how many threads to use. -1 is infinite.
+        /// </summary>
+        public static int NumThreads { get; internal set; } = -1;
+
+        /// <summary>
         /// Constructor. Checks WIC status before any other operation.
         /// </summary>
         static ImageEngine()
@@ -81,12 +86,13 @@ namespace CSharpImageLibrary
             EnableGPUAcceleration = true;
         }
 
-        internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int decodeWidth, int decodeHeight, double scale)
+        internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int maxDimension, double scale)
         {
             imageStream.Seek(0, SeekOrigin.Begin);
             List<MipMap> MipMaps = null;
 
-            int maxDimension = decodeHeight > decodeWidth ? decodeHeight : decodeWidth;
+            int decodeWidth = header.Width > header.Height ? maxDimension : 0;
+            int decodeHeight = header.Width < header.Height ? maxDimension : 0;
 
             switch (header.Format)
             {
@@ -114,8 +120,7 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.TGA:
                     var tga = new TargaImage(imageStream, ((TGA_Header)header).header);
-                    BitmapSource img = tga.ToWPF();
-                    MipMaps = new List<MipMap>() { new MipMap(img) };
+                    MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, false) };  // TODO: Check if TGA Supports alpha, and if this class does as well.
                     tga.Dispose();
                     break;
                 case ImageEngineFormat.DDS_DX10:
@@ -127,7 +132,7 @@ namespace CSharpImageLibrary
             return MipMaps;
         }
 
-        internal static AbstractHeader LoadHeader(MemoryStream stream)
+        internal static AbstractHeader LoadHeader(Stream stream)
         {
             stream.Seek(0, SeekOrigin.Begin);
 
@@ -231,7 +236,7 @@ namespace CSharpImageLibrary
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
                 if (WindowsWICCodecsAvailable)
-                    destination = WIC_Codecs.SaveWithCodecs(mip.BaseImage, format).ToArray();
+                    destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height).ToArray();
             }
 
             // TODO: Do I still need this.
@@ -280,17 +285,15 @@ namespace CSharpImageLibrary
 
         internal static MipMap Resize(MipMap mipMap, double scale, bool mergeAlpha)
         {
-            WriteableBitmap bmp = mipMap.BaseImage;
-            int origWidth = bmp.PixelWidth;
-            int origHeight = bmp.PixelHeight;
+            int origWidth = mipMap.Width;
+            int origHeight = mipMap.Height;
             int origStride = origWidth * 4;
             int newWidth = (int)(origWidth * scale);
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
 
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
-            bool alphaPresent = bmp.Format.ToString().Contains("a", StringComparison.OrdinalIgnoreCase);
-            Console.WriteLine("PixelFormat (for checking if alpha resize is going to work): " + bmp.Format);
+            bool alphaPresent = mipMap.AlphaPresent;
 
             WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
             if (alphaPresent && !mergeAlpha)
@@ -303,14 +306,13 @@ namespace CSharpImageLibrary
                         alpha.Lock();
                         int index = 3;
                         byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
-                        byte* mainPtr = (byte*)bmp.BackBuffer.ToPointer();
                         for (int i = 0; i < origWidth * origHeight * 4; i += 4)
                         {
                             // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
-                            alphaPtr[i] = mainPtr[index];
-                            alphaPtr[i + 1] = mainPtr[index];
-                            alphaPtr[i + 2] = mainPtr[index];
-                            alphaPtr[i + 3] = mainPtr[index];
+                            alphaPtr[i] = mipMap.Pixels[index];
+                            alphaPtr[i + 1] = mipMap.Pixels[index];
+                            alphaPtr[i + 2] = mipMap.Pixels[index];
+                            alphaPtr[i + 3] = mipMap.Pixels[index];
                             index += 4;
                         }
 
@@ -323,7 +325,8 @@ namespace CSharpImageLibrary
                     throw;
                 }
             }
-            
+
+            var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
             FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
 
             
@@ -364,9 +367,7 @@ namespace CSharpImageLibrary
                 }
             }
             
-            
-
-            return new MipMap(resized);
+            return new MipMap(resized.GetPixels(), newWidth, newHeight, alphaPresent);
         }
 
 
@@ -380,49 +381,6 @@ namespace CSharpImageLibrary
         {
             MipMaps.RemoveRange(mipToSave + 1, MipMaps.Count - 1);  // +1 because mipToSave is 0 based and we want to keep it
             return 1;
-        }
-
-        /// <summary>
-        /// Generates a thumbnail image as quickly and efficiently as possible.
-        /// </summary>
-        /// <param name="stream">Full image stream.</param>
-        /// <param name="maxHeight">Max height to decode at. 0 means ignored, and aspect respected.</param>
-        /// <param name="maxWidth">Max width to decode at. 0 means ignored, and aspect respected.</param>
-        /// <param name="mergeAlpha">DXT1 only. True = Flatten alpha into RGB.</param>
-        /// <param name="requireTransparency">True = uses PNG compression instead of JPG.</param>
-        public static MemoryStream GenerateThumbnailToStream(Stream stream, int maxWidth, int maxHeight, bool mergeAlpha = false, bool requireTransparency = false)
-        {
-            Format format = new Format();
-            DDSGeneral.DDS_HEADER header = null;
-            var mipmaps = LoadImage(stream, out format, null, maxWidth, maxHeight, true, out header, mergeAlpha);
-
-            MemoryStream ms = new MemoryStream();
-            bool result = Save(mipmaps, requireTransparency ? ImageEngineFormat.PNG : ImageEngineFormat.JPG, ms, MipHandling.KeepTopOnly, mergeAlpha, maxHeight > maxWidth ? maxHeight : maxWidth);
-            if (!result)
-                ms = null;
-
-            return ms;
-        }
-
-
-        /// <summary>
-        /// Generates a thumbnail of image and saves it to a file.
-        /// </summary>
-        /// <param name="stream">Fully formatted image stream.</param>
-        /// <param name="destination">File path to save to.</param>
-        /// <param name="maxDimension">Maximum value for either image dimension.</param>
-        /// <param name="mergeAlpha">DXT1 only. True = Flatten alpha into RGB.</param>
-        /// <returns>True on success.</returns>
-        public static bool GenerateThumbnailToFile(Stream stream, string destination, int maxDimension, bool mergeAlpha = false)
-        {
-            using (ImageEngineImage img = new ImageEngineImage(stream, null, maxDimension, true))
-            {
-                bool success = false;
-                using (FileStream fs = new FileStream(destination, FileMode.Create))
-                    success = img.Save(fs, ImageEngineFormat.JPG, MipHandling.KeepTopOnly, mergeAlpha: mergeAlpha, desiredMaxDimension: maxDimension);
-
-                return success;
-            }                
         }
 
 

@@ -57,9 +57,9 @@ namespace CSharpImageLibrary
         }
 
         /// <summary>
-        /// Format of image and whether it's mippable.
+        /// Format of image.
         /// </summary>
-        public Format Format { get; private set; }
+        public ImageEngineFormat Format { get; private set; }
 
         
         /// <summary>
@@ -72,6 +72,29 @@ namespace CSharpImageLibrary
         /// </summary>
         public string FilePath { get; private set; }
         #endregion Properties
+
+        /// <summary>
+        /// Creates an image supporting many formats including DDS.
+        /// There doesn't need to be an async for this as they exist here to improve disk performance.
+        /// </summary>
+        /// <param name="stream">Stream containing image.</param>
+        /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
+        public ImageEngineImage(MemoryStream stream, int maxDimension = 0)
+        {
+            Load(stream, maxDimension);
+        }
+
+
+        /// <summary>
+        /// Creates an image supporting many formats including DDS.
+        /// There is an async method for this <see cref="LoadAsync(string, int)"/>
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="maxDimension"></param>
+        public ImageEngineImage(string path, int maxDimension = 0)
+        {
+            LoadAsync(path, maxDimension).Wait();
+        }
 
         /// <summary>
         /// Gets string representation of ImageEngineImage.
@@ -90,13 +113,26 @@ namespace CSharpImageLibrary
             return sb.ToString();
         }
 
-        async Task LoadAsync(string imagePath)
+        /// <summary>
+        /// Loads an image asynchronosly.
+        /// </summary>
+        /// <param name="imagePath">Path to image.</param>
+        /// <param name="maxDimension">Maximum dimension of image to load. Good for mipmapped images, otherwise resizes.</param>
+        /// <returns></returns>
+        public async Task LoadAsync(string imagePath, int maxDimension = 0)
         {
             using (FileStream fs = new FileStream(imagePath, FileMode.Open))
-                await LoadAsync(fs);
+                await LoadAsync(fs, maxDimension);
         }
 
-        async Task LoadAsync(FileStream fs)
+        /// <summary>
+        /// Loads an image asynchronosly.
+        /// Stream position is not relevent, and stream is not reset by method.
+        /// </summary>
+        /// <param name="fs">Filestream containing image.</param>
+        /// <param name="maxDimension">Maximum dimension of image to load. Good for mipmapped images, otherwise resizes.</param>
+        /// <returns></returns>
+        public async Task LoadAsync(FileStream fs, int maxDimension = 0)
         {
             // Read Header
             using (MemoryStream headerStream = new MemoryStream())
@@ -115,15 +151,15 @@ namespace CSharpImageLibrary
 
                     // Read full image
                     await fullReadTask;
-                    MipMaps = ImageEngine.LoadImage(fullImage);
+                    MipMaps = ImageEngine.LoadImage(fullImage, Header, maxDimension, 0);
                 }
             }
         }
 
-        void Load(MemoryStream stream)
+        void Load(MemoryStream stream, int maxDimension)
         {
             Header = ImageEngine.LoadHeader(stream);
-            MipMaps = ImageEngine.LoadImage(stream);
+            MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0);
         }
 
         #region Savers
@@ -136,27 +172,10 @@ namespace CSharpImageLibrary
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="mergeAlpha">DXT1 only. True = Uses threshold value and alpha values to mask RGB.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
-        /// <returns>True if success.</returns>
-        public bool Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
+        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
-            using (FileStream fs = new FileStream(destination, FileMode.Create))
-                return Save(fs, format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);
-        }
-
-
-        /// <summary>
-        /// Saves fully formatted image in specified format to stream.
-        /// </summary>
-        /// <param name="destination">Stream to save to.</param>
-        /// <param name="format">Format to save as.</param>
-        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
-        /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
-        /// <param name="mergeAlpha">ONLY valid when desiredMaxDimension != 0. True = alpha flattened, directly affecting RGB.</param>
-        /// <param name="mipToSave">Selects a certain mip to save. 0 based.</param>
-        /// <returns>True if success</returns>
-        public bool Save(Stream destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
-        {
-            return ImageEngine.Save(MipMaps, format, destination, GenerateMips, mergeAlpha, desiredMaxDimension, mipToSave);
+            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);
+            File.WriteAllBytes(destination, data);
         }
 
 
@@ -171,7 +190,7 @@ namespace CSharpImageLibrary
         /// <returns></returns>
         public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
-            return ImageEngine.Save(MipMaps, format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);
+            return ImageEngine.Save(MipMaps, format, GenerateMips, mergeAlpha, desiredMaxDimension, mipToSave);
         }
         #endregion Savers
 
@@ -190,10 +209,17 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="ShowAlpha">Only valid if maxDimension set. True = flattens alpha, directly affecting RGB.</param>
         /// <param name="maxDimension">Resizes image or uses a mipmap if available.</param>
+        /// <param name="mipIndex">Index of mipmap to retrieve.</param>
         /// <returns>WPF bitmap of largest mipmap.</returns>
-        public BitmapSource GetWPFBitmap(int maxDimension = 0, bool ShowAlpha = false)
+        public BitmapSource GetWPFBitmap(int maxDimension = 0, bool ShowAlpha = false, int mipIndex = 0)
         {
-            MipMap mip = MipMaps[0];
+            MipMap mip = MipMaps[mipIndex];
+            return GetWPFBitmap(mip, maxDimension, ShowAlpha);
+        }
+
+
+        BitmapSource GetWPFBitmap(MipMap mip, int maxDimension, bool ShowAlpha)
+        {
             BitmapSource bmp = null;
 
             if (maxDimension != 0)
@@ -202,50 +228,21 @@ namespace CSharpImageLibrary
                 var sizedMip = MipMaps.Where(m => (m.Height == maxDimension && m.Width <= maxDimension) || (m.Width == maxDimension && m.Height <= maxDimension));
                 if (sizedMip.Any())
                 {
-                    if (ShowAlpha)
-                        bmp = sizedMip.First().BaseImage;
-                    else
-                        bmp = new FormatConvertedBitmap(sizedMip.First().BaseImage, System.Windows.Media.PixelFormats.Bgr32, null, 0);
+                    var mip1 = sizedMip.First();
+                    bmp = mip1.ToImage();
+                    if (!ShowAlpha)
+                        bmp = new FormatConvertedBitmap(bmp, System.Windows.Media.PixelFormats.Bgr32, null, 0);
                 }
                 else
                 {
                     double scale = maxDimension * 1f / (Height > Width ? Height : Width);
                     mip = ImageEngine.Resize(mip, scale, ShowAlpha);
-                    bmp = mip.BaseImage;
+                    bmp = mip.ToImage();
                 }
             }
 
             bmp.Freeze();
             return bmp;
-        }
-
-        /// <summary>
-        /// Creates a GDI+ bitmap from largest mipmap.
-        /// Does NOT require that image remains alive.
-        /// </summary>
-        /// <param name="ignoreAlpha">True = Previews image without alpha channel.</param>
-        /// <param name="maxDimension">Largest size to display.</param>
-        /// <param name="mergeAlpha">ONLY valid when maxDimension is set. True = flattens alpha, directly affecting RGB.</param>
-        /// <returns>GDI+ bitmap of largest mipmap.</returns>
-        public System.Drawing.Bitmap GetGDIBitmap(bool ignoreAlpha, bool mergeAlpha, int maxDimension = 0)
-        {
-            MipMap mip = MipMaps[0];
-
-            if (maxDimension != 0)
-            {
-                // Choose a mip of the correct size, if available.
-                var sizedMip = MipMaps.Where(m => (m.Height == maxDimension && m.Width <= maxDimension) || (m.Width == maxDimension && m.Height <= maxDimension));
-                if (sizedMip.Any())
-                    mip = sizedMip.First();
-                else
-                {
-                    double scale = maxDimension * 1f / (Height > Width ? Height : Width);
-                    mip = ImageEngine.Resize(mip, scale, mergeAlpha);
-                }
-            }
-
-            mip.BaseImage.Freeze();
-            return UsefulThings.WinForms.Imaging.CreateBitmap(mip.BaseImage, ignoreAlpha);
         }
 
 

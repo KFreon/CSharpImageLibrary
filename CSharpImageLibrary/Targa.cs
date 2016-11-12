@@ -250,6 +250,8 @@ namespace CSharpImageLibrary
         private string strFileName = string.Empty;
         private int intStride = 0;
         private int intPadding = 0;
+        public byte[] ImageData = null;
+        public ColorPalette Palette = null;
         private GCHandle ImageByteHandle;
         private GCHandle ThumbnailByteHandle;
         private System.Collections.Generic.List<System.Collections.Generic.List<byte>> rows = new System.Collections.Generic.List<System.Collections.Generic.List<byte>>();
@@ -312,10 +314,10 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Gets a Bitmap representation of the loaded file.
         /// </summary>
-        public Bitmap Image
+        /*public Bitmap Image
         {
             get { return this.bmpTargaImage; }
-        }
+        }*/
 
         /// <summary>
         /// Gets the thumbnail of the loaded file if there is one in the file.
@@ -1040,13 +1042,13 @@ namespace CSharpImageLibrary
             this.intPadding = this.intStride - ((((int)this.objTargaHeader.Width * (int)this.objTargaHeader.PixelDepth) + 7) / 8);
 
             // get the image data bytes
-            byte[] bimagedata = this.LoadImageBytes(binReader);
+            ImageData = this.LoadImageBytes(binReader);
 
             // since the Bitmap constructor requires a poiter to an array of image bytes
             // we have to pin down the memory used by the byte array and use the pointer 
             // of this pinned memory to create the Bitmap.
             // This tells the Garbage Collector to leave the memory alone and DO NOT touch it.
-            this.ImageByteHandle = GCHandle.Alloc(bimagedata, GCHandleType.Pinned);
+            this.ImageByteHandle = GCHandle.Alloc(ImageData, GCHandleType.Pinned);
 
             // make sure we don't have a phantom Bitmap
             if (this.bmpTargaImage != null)
@@ -1073,6 +1075,9 @@ namespace CSharpImageLibrary
                                             pf,
                                             this.ImageByteHandle.AddrOfPinnedObject());
 
+            Palette = bmpTargaImage.Palette;
+            ImageByteHandle.Free();
+
 
             this.LoadThumbnail(binReader, pf);
 
@@ -1081,9 +1086,6 @@ namespace CSharpImageLibrary
             // load the color map into the Bitmap, if it exists
             if (this.objTargaHeader.ColorMap.Count > 0)
             {
-                // get the Bitmap's current palette
-                ColorPalette pal = this.bmpTargaImage.Palette;
-
                 // loop trough each color in the loaded file's color map
                 for (int i = 0; i < this.objTargaHeader.ColorMap.Count; i++)
                 {
@@ -1091,21 +1093,12 @@ namespace CSharpImageLibrary
                     if (this.objTargaExtensionArea.AttributesType == 0 ||
                         this.objTargaExtensionArea.AttributesType == 1)
                         // use 255 for alpha ( 255 = opaque/visible ) so we can see the image
-                        pal.Entries[i] = Color.FromArgb(255, this.objTargaHeader.ColorMap[i].R, this.objTargaHeader.ColorMap[i].G, this.objTargaHeader.ColorMap[i].B);
+                        Palette.Entries[i] = Color.FromArgb(255, this.objTargaHeader.ColorMap[i].R, this.objTargaHeader.ColorMap[i].G, this.objTargaHeader.ColorMap[i].B);
 
                     else
                         // use whatever value is there
-                        pal.Entries[i] = this.objTargaHeader.ColorMap[i];
+                        Palette.Entries[i] = this.objTargaHeader.ColorMap[i];
 
-                }
-
-                // set the new palette back to the Bitmap object
-                this.bmpTargaImage.Palette = pal;
-
-                // set the palette to the thumbnail also, if there is one
-                if (this.bmpImageThumbnail != null)
-                {
-                    this.bmpImageThumbnail.Palette = pal;
                 }
             }
             else
@@ -1116,28 +1109,13 @@ namespace CSharpImageLibrary
                 if (this.objTargaHeader.PixelDepth == 8 && (this.objTargaHeader.ImageType == ImageType.UNCOMPRESSED_BLACK_AND_WHITE ||
                     this.objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_BLACK_AND_WHITE))
                 {
-                    // get the current palette
-                    ColorPalette pal = this.bmpTargaImage.Palette;
-
                     // create the Greyscale palette
                     for (int i = 0; i < 256; i++)
                     {
-                        pal.Entries[i] = Color.FromArgb(i, i, i);
-                    }
-
-                    // set the new palette back to the Bitmap object
-                    this.bmpTargaImage.Palette = pal;
-
-                    // set the palette to the thumbnail also, if there is one
-                    if (this.bmpImageThumbnail != null)
-                    {
-                        this.bmpImageThumbnail.Palette = pal;
+                        Palette.Entries[i] = Color.FromArgb(i, i, i);
                     }
                 }
-
-
             }
-
         }
 
         /// <summary>
@@ -1323,9 +1301,9 @@ namespace CSharpImageLibrary
 
                     if (data != null && data.Length > 0)
                     {
-                        this.ThumbnailByteHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
+                        /*this.ThumbnailByteHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
                         this.bmpImageThumbnail = new Bitmap(iWidth, iHeight, iStride, pfPixelFormat,
-                                                        this.ThumbnailByteHandle.AddrOfPinnedObject());
+                                                        this.ThumbnailByteHandle.AddrOfPinnedObject());*/
 
                     }
 
@@ -1377,22 +1355,6 @@ namespace CSharpImageLibrary
             this.row.Clear();
             this.strFileName = string.Empty;
 
-        }
-
-        /// <summary>
-        /// Loads a Targa image file into a Bitmap object.
-        /// </summary>
-        /// <param name="sFileName">The Targa image filename</param>
-        /// <returns>A Bitmap object with the Targa image loaded into it.</returns>
-        public static Bitmap LoadTargaImage(string sFileName)
-        {
-            Bitmap b = null;
-            using (TargaImage ti = new TargaImage(sFileName))
-            {
-                b = new Bitmap(ti.Image);
-            }
-
-            return b;
         }
 
         #region IDisposable Members
@@ -1478,8 +1440,8 @@ namespace CSharpImageLibrary
         {
             var actual = GetPixelFormat();
             Debugger.Break();
-            var bmp = new WriteableBitmap(Header.Width, Header.Height, 96,96, System.Windows.Media.PixelFormats.Bgra32, null);
-            bmp.WritePixels(new System.Windows.Int32Rect(0, 0, Header.Width, Header.Height), ImageByteHandle.AddrOfPinnedObject(), this.Stride, 0);
+            var bmp = new WriteableBitmap(Header.Width, Header.Height, 96,96, System.Windows.Media.PixelFormats.Bgra32, UsefulThings.WPF.Images.ConvertGDIPaletteToWPF(Palette));
+            bmp.WritePixels(new System.Windows.Int32Rect(0, 0, Header.Width, Header.Height), ImageData, this.Stride, 0);
             // TODO: Is there a problem if the image is disposed?
             return bmp;
         }

@@ -1,4 +1,5 @@
 ﻿using CSharpImageLibrary;
+using CSharpImageLibrary.DDS;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -160,7 +161,7 @@ namespace UI_Project
         {
             get
             {
-                return img?.Format.SurfaceFormat.ToString();
+                return img?.Format.ToString();
             }
         }
 
@@ -392,7 +393,7 @@ namespace UI_Project
 
 
             // KFreon: TGA saving not supported
-            if (img.Format.SurfaceFormat == ImageEngineFormat.TGA)
+            if (img.Format == ImageEngineFormat.TGA)
                 SaveFormat = ImageEngineFormat.PNG;
 
             stopwatch.Start();
@@ -402,14 +403,14 @@ namespace UI_Project
                 {
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
-                    img.Save(stream, SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
+                    img.Save(SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
                     watch.Stop();
                     Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
                     using (ImageEngineImage previewimage = new ImageEngineImage(stream))
                     {
                         BitmapSource[] tempImgs = new BitmapSource[2];
-                        tempImgs[0] = previewimage.GeneratePreview(0, true);
-                        tempImgs[1] = previewimage.GeneratePreview(0, false);
+                        tempImgs[0] = previewimage.GetWPFBitmap(ShowAlpha: true);
+                        tempImgs[1] = previewimage.GetWPFBitmap(ShowAlpha: false);
                         return tempImgs;
                     }
                 }
@@ -443,8 +444,8 @@ namespace UI_Project
 
                     for (int i = 0; i < fullimage.NumMipMaps; i++)
                     {
-                        alphas.Add(fullimage.GeneratePreview(i, true));
-                        nonalphas.Add(fullimage.GeneratePreview(i, false));
+                        alphas.Add(fullimage.GetWPFBitmap(ShowAlpha: true, mipIndex: i));
+                        nonalphas.Add(fullimage.GetWPFBitmap(ShowAlpha: false, mipIndex: i));
                     }
 
                     List<object> bits = new List<object>();
@@ -473,7 +474,7 @@ namespace UI_Project
             if (testing)
                 img = await Task.Run(() => new ImageEngineImage(path));
             else
-                img = await Task.Run(() => new ImageEngineImage(path, 256, false));
+                img = await Task.Run(() => new ImageEngineImage(path, 256));
             ////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -484,7 +485,7 @@ namespace UI_Project
             Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
             stopwatch.Restart();
 
-            Previews.Add(img.GeneratePreview(0, ShowAlphaPreviews));
+            Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
             MipIndex = 1;  // 1 based
 
             stopwatch.Stop();

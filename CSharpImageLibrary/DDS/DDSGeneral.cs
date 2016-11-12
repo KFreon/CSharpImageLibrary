@@ -25,13 +25,14 @@ namespace CSharpImageLibrary.DDS
 
 
         #region Loading
-        private static MipMap ReadUncompressedMipMap(MemoryStream stream, int mipOffset, int mipWidth, int mipHeight, Action<byte[], int, byte[], int> PixelReader)
+        private static MipMap ReadUncompressedMipMap(MemoryStream stream, int mipOffset, int mipWidth, int mipHeight, DDS_Header header)
         {
             byte[] data = stream.GetBuffer();
             byte[] mipmap = new byte[mipHeight * mipWidth * 4];
-            PixelReader(data, mipOffset, mipmap, mipHeight * mipWidth);
+            DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, header);
 
-            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(mipmap, mipWidth, mipHeight));
+            bool alphaPresent = header.ddspf.dwABitMask != 0;
+            return new MipMap(mipmap, mipWidth, mipHeight, alphaPresent);
         }
 
         private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int blockSize, int mipOffset, DDS_Header header, Action<byte[], int, byte[], int, int> DecompressBlock)
@@ -69,7 +70,7 @@ namespace CSharpImageLibrary.DDS
                         action(index, null);
             }
 
-            return new MipMap(UsefulThings.WPF.Images.CreateWriteableBitmap(decompressedData, mipWidth, mipHeight));
+            return new MipMap(decompressedData, mipWidth, mipHeight, true);  // All DXT can contain alpha
         }
 
         
@@ -130,24 +131,8 @@ namespace CSharpImageLibrary.DDS
             compressed.Position = mipOffset;
 
             Action<byte[], int, byte[], int, int> DecompressBCBlock = null;
-            Action<byte[], int, byte[], int> UncompressedPixelReader = null;
             switch (format)
             {
-                case ImageEngineFormat.DDS_RGB:
-                    UncompressedPixelReader = DDS_Decoders.ReadRGBPixel;
-                    break;
-                case ImageEngineFormat.DDS_A8L8:
-                    UncompressedPixelReader = DDS_Decoders.ReadA8L8Pixel;
-                    break;
-                case ImageEngineFormat.DDS_ARGB:
-                    UncompressedPixelReader = DDS_Decoders.ReadARGBPixel;
-                    break;
-                case ImageEngineFormat.DDS_ATI1:
-                    DecompressBCBlock = DDS_Decoders.DecompressATI1;
-                    break;
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                    DecompressBCBlock = DDS_Decoders.DecompressATI2Block;
-                    break;
                 case ImageEngineFormat.DDS_DXT1:
                     DecompressBCBlock = DDS_Decoders.DecompressBC1Block;
                     break;
@@ -159,11 +144,11 @@ namespace CSharpImageLibrary.DDS
                 case ImageEngineFormat.DDS_DXT5:
                     DecompressBCBlock = DDS_Decoders.DecompressBC3Block;
                     break;
-                case ImageEngineFormat.DDS_G8_L8:
-                    UncompressedPixelReader = DDS_Decoders.ReadG8_L8Pixel;
+                case ImageEngineFormat.DDS_ATI1:
+                    DecompressBCBlock = DDS_Decoders.DecompressATI1;
                     break;
-                case ImageEngineFormat.DDS_V8U8:
-                    UncompressedPixelReader = DDS_Decoders.ReadV8U8Pixel;
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                    DecompressBCBlock = DDS_Decoders.DecompressATI2Block;
                     break;
                 default:
                     throw new Exception("Unknown format: " + format);
@@ -183,7 +168,7 @@ namespace CSharpImageLibrary.DDS
                 if (ImageFormats.IsBlockCompressed(format))  // TODO: Header needs to be used for colour masks
                     mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, blockSize, mipOffset, header, DecompressBCBlock);
                 else
-                    mipmap = ReadUncompressedMipMap(compressed, mipOffset, mipWidth, mipHeight, UncompressedPixelReader);
+                    mipmap = ReadUncompressedMipMap(compressed, mipOffset, mipWidth, mipHeight, header);
 
                 MipMaps.Add(mipmap);
 
@@ -253,26 +238,52 @@ namespace CSharpImageLibrary.DDS
             header.WriteToArray(destination, 0);
 
             int mipOffset = 128;
-            foreach(MipMap mipmap in mipMaps)
+            int blockSize = ImageFormats.GetBlockSize(saveFormat);
+            foreach (MipMap mipmap in mipMaps)
             {
                 if (ImageFormats.IsBlockCompressed(saveFormat))
-                    WriteCompressedMipMap(destination, mipOffset, mipmap.BaseImage, compressor);
+                    WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor);
                 else
-                    WriteUncompressedMipMap(destination, mipOffset, mipmap.BaseImage, compressor);
+                    WriteUncompressedMipMap(destination, mipOffset, mipmap, saveFormat, compressor);
             }
 
             return destination;
         }
 
 
-        unsafe static void WriteCompressedMipMap(byte[] destination, int mipOffset, BitmapSource mipmap, Action<byte[], int, int, byte[], int> compressor)
+        static void WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int> compressor)
         {
+            int texelCount = mipmap.Width * mipmap.Height / 16;
+            int lineLength = mipmap.Width * 4;
 
+
+            var mipWriter = new Action<int>(texelIndex =>
+            {
+                int lineOffset = 0;
+
+                // Add 3 pixel lines once finished a single line, since it's just looking at the top left corner, so need to skip the next 3 lines of the same texel.
+                if (texelIndex % mipmap.Width / 4 == 0)  
+                    lineOffset += lineLength * 3 * (texelIndex / mipmap.Width);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we)
+
+                int offset = texelIndex * 16 + lineOffset; // *16 since its 4 pixels with 4 channels each.
+                compressor(mipmap.Pixels, offset, lineLength, destination, mipOffset + texelIndex * blockSize);
+            });
+
+            // Choose an acceleration method.
+            if (ImageEngine.EnableGPUAcceleration)
+                Debugger.Break(); // TODO: GPU Accelerated saving
+            else if (ImageEngine.EnableThreading)
+                Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, mipWriter);
+            else
+                for (int i = 0; i < texelCount; i++)
+                    mipWriter(i);
         }
 
-        unsafe static void WriteUncompressedMipMap(byte[] destination, int mipOffset, BitmapSource mipmap, Action<byte[], int, int, byte[], int> compressor)
+        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageEngineFormat saveFormat, Action<byte[], int, int, byte[], int> compressor)
         {
+            var masks = ImageFormats.CreateMasks(saveFormat);
 
+            // TODO: Uncompressed mip writing
         }
         #endregion Saving
 
