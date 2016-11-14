@@ -56,13 +56,13 @@ namespace CSharpImageLibrary
         /// </summary>
         public static bool WindowsWICCodecsAvailable
         {
-            get; private set;
+            get; internal set;
         }
 
         /// <summary>
         /// Enables threading of Loading and Saving operations to improve performance.
         /// </summary>
-        public static bool EnableThreading { get; set; } = true;
+        public static bool EnableThreading { get; set; } = false;
 
         /// <summary>
         /// Enables GPU Accelerated encoding and decoding of all formats.
@@ -82,8 +82,11 @@ namespace CSharpImageLibrary
         {
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
 
-            // GPU testing
-            EnableGPUAcceleration = true;
+            // Testing
+            WindowsWICCodecsAvailable = false;
+
+            // TODO: GPU test if availbale
+            EnableGPUAcceleration = false;
         }
 
         internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int maxDimension, double scale)
@@ -102,6 +105,11 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
                     MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, true);
+                    if (MipMaps == null)
+                    {
+                        // Windows codecs unavailable/failed. Load with mine.
+                        MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
+                    }
                     break;
                 case ImageEngineFormat.DDS_G8_L8:
                 case ImageEngineFormat.DDS_RGB:
@@ -110,7 +118,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_ARGB:
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                    MipMaps = DDS.DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
+                    MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
                     break;
                 case ImageEngineFormat.GIF:
                 case ImageEngineFormat.JPG:
@@ -164,7 +172,7 @@ namespace CSharpImageLibrary
                 default:
                     throw new NotSupportedException("Image type unknown.");
             }
-
+            Console.WriteLine(header.ToString());
             return header;
         }
 

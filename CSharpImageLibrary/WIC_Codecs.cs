@@ -18,8 +18,6 @@ namespace CSharpImageLibrary
     /// </summary>
     internal static class WIC_Codecs
     {
-        static bool WindowsCodecsAvailable = true;
-
         /// <summary>
         /// Tests whether Windows WIC Codecs are present.
         /// </summary>
@@ -34,14 +32,14 @@ namespace CSharpImageLibrary
 
                 if (bmp == null)
                 {
-                    WindowsCodecsAvailable = false;
+                    ImageEngine.WindowsWICCodecsAvailable = false;
                     return false;  // KFreon: Decoding failed. PROBABLY due to no decoding available
                 }
             }
             catch (Exception e)
             {
                 Debug.WriteLine(e.ToString());
-                WindowsCodecsAvailable = false;
+                ImageEngine.WindowsWICCodecsAvailable = false;
                 return false;  // KFreon: Non decoding related error - Who knows...
             }
 
@@ -61,7 +59,7 @@ namespace CSharpImageLibrary
         /// <returns>BGRA Pixel Data as stream.</returns>
         internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, double scale, bool isDDS)
         {
-            if (isDDS && !WindowsCodecsAvailable)
+            if (isDDS && !ImageEngine.WindowsWICCodecsAvailable)
                 return null;
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -80,7 +78,7 @@ namespace CSharpImageLibrary
         /// <returns>BGRA Pixel Data as stream.</returns>
         internal static List<MipMap> LoadWithCodecs(Stream stream, int decodeWidth, int decodeHeight, double scale, bool isDDS)
         {
-            if (isDDS && !WindowsCodecsAvailable)
+            if (isDDS && !ImageEngine.WindowsWICCodecsAvailable)
                 return null;
 
             bool alternateDecodeDimensions = decodeHeight != 0 || decodeWidth != 0 || scale != 0;
@@ -147,7 +145,7 @@ namespace CSharpImageLibrary
         /// <returns>Loaded Image</returns>
         private static BitmapImage AttemptUsingWindowsCodecs(string imagePath, int decodeWidth, int decodeHeight)
         {
-            if (!WindowsCodecsAvailable)
+            if (!ImageEngine.WindowsWICCodecsAvailable)
                 return null;
 
             BitmapImage img = null;
@@ -177,7 +175,7 @@ namespace CSharpImageLibrary
         /// <returns>Loaded image.</returns>
         private static BitmapImage AttemptUsingWindowsCodecs(byte[] ImageFileData, int decodeWidth, int decodeHeight)
         {
-            if (!WindowsCodecsAvailable)
+            if (!ImageEngine.WindowsWICCodecsAvailable)
                 return null;
 
             BitmapImage img = null;
@@ -208,7 +206,7 @@ namespace CSharpImageLibrary
         /// <returns>BitmapImage of stream.</returns>
         private static BitmapImage AttemptUsingWindowsCodecs(Stream stream, int decodeWidth, int decodeHeight)
         {
-            if (!WindowsCodecsAvailable)
+            if (!ImageEngine.WindowsWICCodecsAvailable)
                 return null;
 
             BitmapImage img = null;

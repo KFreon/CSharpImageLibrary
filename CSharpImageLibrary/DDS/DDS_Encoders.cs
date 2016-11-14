@@ -10,9 +10,9 @@ namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_Encoders
     {
-        static byte V8U8Adjust = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
+        static byte SignedAdjustment = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
 
-
+        #region Compressed
         internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, DXT1AlphaThreshold);
@@ -63,9 +63,40 @@ namespace CSharpImageLibrary.DDS
             // Green: Channel 1, 8 destination offset to be after Red.
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 1, false);
         }
-       
+        #endregion Compressed
 
-        internal static void WriteG8_L8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart)
+        {
+            int byteCount = bitCount / 8;
+            bool twoChannel = false;
+            bool oneChannel = false;
+            byte signedAdjust = 0;
+
+            for (int i = 0; i < source.Length; i+=4, destStart += byteCount)
+            {
+                byte blue = (byte)(source[i] + signedAdjust);
+                byte green = (byte)(source[i + 1] + signedAdjust);
+                byte red = (byte)(source[i + 2] + signedAdjust);
+                byte alpha = (byte)(source[i + 3]);
+
+                if (twoChannel)
+                {
+                    destination[destStart] = blue;
+                    destination[destStart + 1] = green;
+                }
+                else if (oneChannel)
+                {
+
+                }
+                else
+                {
+                    // Originally should be ARGB
+
+                }
+            }
+        }
+
+        /*internal static void WriteG8_L8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
         {
             // KFreon: Weight colours to look proper. Dunno if this affects things but anyway...Got weightings from ATi Compressonator
             int b1 = (int)(imgData[sourcePosition] * 3 * 0.082);
@@ -103,6 +134,6 @@ namespace CSharpImageLibrary.DDS
             destination[destPosition + 1] = imgData[sourcePosition + 1];
             destination[destPosition + 2] = imgData[sourcePosition + 2];
             destination[destPosition + 3] = imgData[sourcePosition + 3];
-        }
+        }*/
     }
 }

@@ -132,49 +132,11 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-
-                    <TextBlock Text="Header" FontWeight="Bold" FontSize="9"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock><Run Text="dwSize: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwSize, Mode=OneWay}"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="PitchOrLinearSize: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwPitchOrLinearSize}"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="Depth: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwDepth}"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="MipMapCount: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.header.dwMipMapCount}"/></TextBlock>
-                    </StackPanel>
-
-                    <TextBlock><Run Text="dwFlags: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.HeaderdwFlags, Mode=OneWay}"/></TextBlock>
-
-                    <TextBlock><Run Text="dwCaps: " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding img.HeaderdwCaps, Mode=OneWay}"/></TextBlock>
-
-                    <TextBlock Text="Header PixelFormat" FontWeight="Bold" FontSize="8" FontStyle="Italic" Margin="0,10,0,0"/>
-
-                    <TextBlock><Run Text="dwFlags: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.HeaderPFdwFlags, Mode=OneWay}" FontStyle="Italic"/></TextBlock>
-
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock><Run Text="dwSize: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwSize}" FontStyle="Italic"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="dwFourCC: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwFourCC}" FontStyle="Italic"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="dwRGBBitCount: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwRGBBitCount}" FontStyle="Italic"/></TextBlock>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock><Run Text="dwRBitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwRBitMask}" FontStyle="Italic"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="dwGBitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwGBitMask}" FontStyle="Italic"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="dwBBitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwBBitMask}" FontStyle="Italic"/></TextBlock>
-
-                        <TextBlock Margin="10,0,0,0"><Run Text="dwABitMask: " FontWeight="Bold" FontStyle="Italic"/><Run Text=" "/><Run Text="{Binding img.header.ddspf.dwABitMask}" FontStyle="Italic"/></TextBlock>
-                    </StackPanel>
-
                 </StackPanel>
             </Grid>
 
             <DockPanel DockPanel.Dock="Right">
-                <Label Content="Mipmaps. Needs GPU and threading options, needs more format options like BPP, num channels and which ones." FontWeight="Bold" DockPanel.Dock="Top"/>
+                <Label Content="Mipmaps" FontWeight="Bold" DockPanel.Dock="Top"/>
                 <TextBlock Text="{Binding NumMipMaps, StringFormat=Max: {0}}" DockPanel.Dock="Top" HorizontalAlignment="Center"/>
                 <Grid DockPanel.Dock="Bottom" Margin="0,10,0,0" Height="54">
                     <Label Content="Background" FontWeight="Bold" VerticalAlignment="Top"/>

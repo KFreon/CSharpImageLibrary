@@ -89,11 +89,24 @@ namespace CSharpImageLibrary
         /// Creates an image supporting many formats including DDS.
         /// There is an async method for this <see cref="LoadAsync(string, int)"/>
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="maxDimension"></param>
+        /// <param name="path">Path to image.</param>
+        /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
         public ImageEngineImage(string path, int maxDimension = 0)
         {
             LoadAsync(path, maxDimension).Wait();
+        }
+
+
+        /// <summary>
+        /// Creates an image supporting many formats including DDS.
+        /// Doesn't require an async equivelent for this as they only exist here to improve disk performance.
+        /// </summary>
+        /// <param name="imageData">Fully formatted image data, not just pixels.</param>
+        /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
+        public ImageEngineImage(byte[] imageData, int maxDimension = 0)
+        {
+            using (MemoryStream ms = new MemoryStream(imageData, 0, imageData.Length, false, true))  // Need to be able to access underlying byte[] using <Stream>.GetBuffer()
+                Load(ms, maxDimension);
         }
 
         /// <summary>
@@ -121,7 +134,7 @@ namespace CSharpImageLibrary
         /// <returns></returns>
         public async Task LoadAsync(string imagePath, int maxDimension = 0)
         {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open))
+            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read)) // Allow multiple readonly accesses
                 await LoadAsync(fs, maxDimension);
         }
 
@@ -159,6 +172,7 @@ namespace CSharpImageLibrary
         void Load(MemoryStream stream, int maxDimension)
         {
             Header = ImageEngine.LoadHeader(stream);
+            Format = Header.Format;
             MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0);
         }
 
@@ -207,9 +221,9 @@ namespace CSharpImageLibrary
         /// Creates a WPF Bitmap from largest mipmap.
         /// Does NOT require that image remains alive.
         /// </summary>
-        /// <param name="ShowAlpha">Only valid if maxDimension set. True = flattens alpha, directly affecting RGB.</param>
-        /// <param name="maxDimension">Resizes image or uses a mipmap if available.</param>
-        /// <param name="mipIndex">Index of mipmap to retrieve.</param>
+        /// <param name="ShowAlpha">True = flattens alpha, directly affecting RGB.</param>
+        /// <param name="maxDimension">Resizes image or uses a mipmap if available. Overrides mipIndex if specified.</param>
+        /// <param name="mipIndex">Index of mipmap to retrieve. Overridden by maxDimension if it's specified.</param>
         /// <returns>WPF bitmap of largest mipmap.</returns>
         public BitmapSource GetWPFBitmap(int maxDimension = 0, bool ShowAlpha = false, int mipIndex = 0)
         {
@@ -230,8 +244,6 @@ namespace CSharpImageLibrary
                 {
                     var mip1 = sizedMip.First();
                     bmp = mip1.ToImage();
-                    if (!ShowAlpha)
-                        bmp = new FormatConvertedBitmap(bmp, System.Windows.Media.PixelFormats.Bgr32, null, 0);
                 }
                 else
                 {
@@ -240,6 +252,11 @@ namespace CSharpImageLibrary
                     bmp = mip.ToImage();
                 }
             }
+            else
+                bmp = mip.ToImage();
+
+            if (!ShowAlpha)
+                bmp = new FormatConvertedBitmap(bmp, System.Windows.Media.PixelFormats.Bgr32, null, 0);
 
             bmp.Freeze();
             return bmp;

@@ -718,7 +718,7 @@ namespace CSharpImageLibrary.DDS
 
         #region Block Decompression
         
-        internal static void Decompress8BitBlockByChannel(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isSigned)
+        internal static void Decompress8BitBlock(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isSigned)
         {
             // KFreon: Read min and max colours (not necessarily in that order)
             byte min = source[sourceStart];
@@ -734,8 +734,9 @@ namespace CSharpImageLibrary.DDS
             // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
             for (int i = 0; i < 16; i++)
             {
-                int lineOffset = i % 4 == 0 ? decompressedLineLength * (i / 4) : 0;
-                destination[decompressedStart + lineOffset + i * 4] = (byte)Colours[bitmask >> (i * 3) & 0x7];
+                int lineOffset = decompressedLineLength * (i / 4);
+                int offset = decompressedStart + lineOffset + (i % 4) * 4;  // i % 4 is so "column offset" resets at end of row.
+                destination[offset] = (byte)Colours[bitmask >> (i * 3) & 0x7];
             }
         }
 
@@ -789,7 +790,7 @@ namespace CSharpImageLibrary.DDS
                 byte bitmask = source[(sourcePosition + 4) + i];  // sourcePos + 4 is to skip the colours at the start of the texel.
                 for (int j = 0; j < 4; j++)
                 {
-                    int destPos = destinationStart + j + (i * destinationLineLength);
+                    int destPos = destinationStart + j * 4 + (i * destinationLineLength);
                     UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos);
 
                     if (isDXT1)
@@ -804,13 +805,15 @@ namespace CSharpImageLibrary.DDS
         /// Reads a packed DXT colour into RGB
         /// </summary>
         /// <param name="colour">Colour to convert to RGB</param>
+        /// <param name="destination">Decompressed array.</param>
+        /// <param name="position">Position in destination to write RGB at.</param>
         /// <returns>RGB bytes</returns>
         private static void UnpackDXTColour(int colour, byte[] destination, int position)
         {
             // Read RGB 5:6:5 data, expand to 8 bit.
-            destination[position] = (byte)((colour & 0xF800) >> 8);
-            destination[position + 1] = (byte)((colour & 0x7E0) >> 3);
-            destination[position + 2] = (byte)((colour & 0x1F) << 3);
+            destination[position + 2] = (byte)((colour & 0xF800) >> 8);  // Red, but format is BGR, so last
+            destination[position + 1] = (byte)((colour & 0x7E0) >> 3);  // Green
+            destination[position] = (byte)((colour & 0x1F) << 3);      // Blue
         }
 
         /// <summary>

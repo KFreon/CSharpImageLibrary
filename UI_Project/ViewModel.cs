@@ -428,7 +428,10 @@ namespace UI_Project
         /// <returns>Nothing. Async needs task to await.</returns>
         public async Task LoadImage(string path)
         {
-            bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
+            bool testing = true;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
+
+            // Load file into memory
+            byte[] imgData = File.ReadAllBytes(path);
 
             Task<List<object>> fullLoadingTask = null;
             if (!testing)
@@ -437,7 +440,11 @@ namespace UI_Project
                 ////////////////////////////////////////////////////////////////////////////////////////
                 fullLoadingTask = Task.Run(() =>
                 {
-                    ImageEngineImage fullimage = new ImageEngineImage(path);
+                    stopwatch.Start();
+                    ImageEngineImage fullimage = new ImageEngineImage(imgData);
+                    stopwatch.Stop();
+                    Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
+                    stopwatch.Restart();
 
                     List<BitmapSource> alphas = new List<BitmapSource>();
                     List<BitmapSource> nonalphas = new List<BitmapSource>();
@@ -466,31 +473,25 @@ namespace UI_Project
             SavePath = null;
             SaveFormat = ImageEngineFormat.Unknown;
 
-            stopwatch.Start();
+            
 
 
-
+            // Want to load entire image, no resizing when testing.
             ////////////////////////////////////////////////////////////////////////////////////////
             if (testing)
-                img = await Task.Run(() => new ImageEngineImage(path));
+                img = await Task.Run(() => new ImageEngineImage(imgData));
             else
-                img = await Task.Run(() => new ImageEngineImage(path, 256));
+                img = await Task.Run(() => new ImageEngineImage(imgData, 256));
             ////////////////////////////////////////////////////////////////////////////////////////
 
 
 
             Console.WriteLine("");
             Console.WriteLine($"Format: {img.Format}");
-            stopwatch.Stop();
-            Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
-            stopwatch.Restart();
+            
 
             Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
             MipIndex = 1;  // 1 based
-
-            stopwatch.Stop();
-            Debug.WriteLine($"Image Preview: {stopwatch.ElapsedMilliseconds}");
-            stopwatch.Reset();
 
             OnPropertyChanged(nameof(ImagePath));
             OnPropertyChanged(nameof(Format));

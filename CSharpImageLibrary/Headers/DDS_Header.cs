@@ -37,17 +37,6 @@ namespace CSharpImageLibrary.Headers
             public DDS_PFdwFlags dwFlags { get; set; }
 
             /// <summary>
-            /// String version of flags showing names of each.
-            /// </summary>
-            public string dwFlagsString
-            {
-                get
-                {
-                    return ((DDS_PFdwFlags)dwFlags).ToString();
-                }
-            }
-
-            /// <summary>
             /// FourCC of DDS, i.e. DXT1, etc
             /// </summary>
             public FourCC dwFourCC { get; set; }
@@ -83,14 +72,14 @@ namespace CSharpImageLibrary.Headers
             /// <param name="temp"></param>
             public DDS_PIXELFORMAT(byte[] temp)
             {
-                dwSize = BitConverter.ToInt32(temp, 72);
-                dwFlags = (DDS_PFdwFlags)BitConverter.ToInt32(temp, 76);
-                dwFourCC = (FourCC)BitConverter.ToInt32(temp, 80);
-                dwRGBBitCount = BitConverter.ToInt32(temp, 84);
-                dwRBitMask = BitConverter.ToUInt32(temp, 88);
-                dwGBitMask = BitConverter.ToUInt32(temp, 92);
-                dwBBitMask = BitConverter.ToUInt32(temp, 96);
-                dwABitMask = BitConverter.ToUInt32(temp, 100);
+                dwSize = BitConverter.ToInt32(temp, 76);
+                dwFlags = (DDS_PFdwFlags)BitConverter.ToInt32(temp, 80);
+                dwFourCC = (FourCC)BitConverter.ToInt32(temp, 84);
+                dwRGBBitCount = BitConverter.ToInt32(temp, 88);
+                dwRBitMask = BitConverter.ToUInt32(temp, 92);
+                dwGBitMask = BitConverter.ToUInt32(temp, 96);
+                dwBBitMask = BitConverter.ToUInt32(temp, 100);
+                dwABitMask = BitConverter.ToUInt32(temp, 104);
             }
 
             /// <summary>
@@ -102,8 +91,8 @@ namespace CSharpImageLibrary.Headers
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine("--DDS_PIXELFORMAT--");
                 sb.AppendLine($"dwSize: {dwSize}");
-                sb.AppendLine($"dwFlags: 0x{dwFlags.ToString("X")}");  // As hex
-                sb.AppendLine($"dwFourCC: 0x{dwFourCC.ToString("X")}");  // As Hex
+                sb.AppendLine($"dwFlags: {dwFlags}");
+                sb.AppendLine($"dwFourCC: {dwFourCC}");
                 sb.AppendLine($"dwRGBBitCount: {dwRGBBitCount}");
                 sb.AppendLine($"dwRBitMask: 0x{dwRBitMask.ToString("X")}");  // As Hex
                 sb.AppendLine($"dwGBitMask: 0x{dwGBitMask.ToString("X")}");  // As Hex
@@ -217,7 +206,12 @@ namespace CSharpImageLibrary.Headers
             /// <summary>
             /// Old flag for single channel colour uncompressed. dwRGBBitCount contains luminescence channel bit count, dwRBitMask contains channel mask. Can combine with DDPF_ALPHAPIXELS for 2 channel DDS file.
             /// </summary>
-            DDPF_LUMINANCE = 0x20000    // Older flag for single channel uncompressed data
+            DDPF_LUMINANCE = 0x20000,    // Older flag for single channel uncompressed data
+
+            /// <summary>
+            /// Undocumented flag that seems to indicate that format is signed.
+            /// </summary>
+            DDPF_SIGNED = 0x80000,
         }
         #endregion Standard Enums and Structs
 
@@ -473,17 +467,6 @@ namespace CSharpImageLibrary.Headers
         public DDSdwFlags dwFlags { get; set; }
 
         /// <summary>
-        /// String representation of Flags showing names.
-        /// </summary>
-        public string dwFlagsString
-        {
-            get
-            {
-                return ((DDSdwFlags)dwFlags).ToString();
-            }
-        }
-
-        /// <summary>
         /// Pitch or linear size. I think this is stride in Windows lingo?
         /// </summary>
         public int dwPitchOrLinearSize { get; set; }
@@ -512,18 +495,6 @@ namespace CSharpImageLibrary.Headers
         /// More option flags.
         /// </summary>
         public DDSdwCaps dwCaps { get; set; }
-
-        /// <summary>
-        /// String version showing flag names.
-        /// </summary>
-        public string dwCapsString
-        {
-            get
-            {
-                // DDS_FlagStrinfiy
-                return ((DDSdwCaps)dwCaps).ToString();
-            }
-        }
 
         /// <summary>
         /// Don't think it's used.
@@ -559,7 +530,7 @@ namespace CSharpImageLibrary.Headers
         {
             get
             {
-                return DetermineDDSSurfaceFormat(this);
+                return DetermineDDSSurfaceFormat(ddspf);
             }
         }
 
@@ -601,16 +572,16 @@ namespace CSharpImageLibrary.Headers
             dwDepth = BitConverter.ToInt32(temp, 24);
             dwMipMapCount = BitConverter.ToInt32(temp, 28);
             for (int i = 0; i < 11; ++i)
-                dwReserved1[i] = BitConverter.ToInt32(temp, 28 + (i * 4));
+                dwReserved1[i] = BitConverter.ToInt32(temp, 32 + (i * 4));
 
             // DDS PixelFormat
             ddspf = new DDS_PIXELFORMAT(temp);
 
-            dwCaps = (DDSdwCaps)BitConverter.ToInt32(temp, 104);
-            dwCaps2 = BitConverter.ToInt32(temp, 108);
-            dwCaps3 = BitConverter.ToInt32(temp, 112);
-            dwCaps4 = BitConverter.ToInt32(temp, 116);
-            dwReserved2 = BitConverter.ToInt32(temp, 120);
+            dwCaps = (DDSdwCaps)BitConverter.ToInt32(temp, 108);
+            dwCaps2 = BitConverter.ToInt32(temp, 112);
+            dwCaps3 = BitConverter.ToInt32(temp, 116);
+            dwCaps4 = BitConverter.ToInt32(temp, 120);
+            dwReserved2 = BitConverter.ToInt32(temp, 124);
 
             // DX10 Additional header
             if (ddspf.dwFourCC == FourCC.DX10)
@@ -713,10 +684,10 @@ namespace CSharpImageLibrary.Headers
             if (fourCC == FourCC.DX10)
                 return ImageEngineFormat.DDS_DX10; // TODO: Need to add these at some point.
 
-            if (Enum.IsDefined(typeof(ImageEngineFormat), fourCC))
+            if (Enum.IsDefined(typeof(ImageEngineFormat), (int)fourCC))
                 return (ImageEngineFormat)fourCC;
             else
-                return ImageEngineFormat.DDS_ARGB;
+                return ImageEngineFormat.Unknown;
         }
 
         static FourCC ParseFormatToFourCC(ImageEngineFormat format)
@@ -730,41 +701,53 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// Determines DDS Surface Format given the header.
         /// </summary>
-        /// <param name="header">Fully loaded DDS Header.</param>
+        /// <param name="ddspf">DDS PixelFormat structure.</param>
         /// <returns>Friendly format.</returns>
-        public static ImageEngineFormat DetermineDDSSurfaceFormat(DDS_Header header)
+        public static ImageEngineFormat DetermineDDSSurfaceFormat(DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            ImageEngineFormat format = ParseFourCC(header.ddspf.dwFourCC, header.DX10_DXGI_AdditionalHeader.dxgiFormat);
+            ImageEngineFormat format = ParseFourCC(ddspf.dwFourCC);
 
-            // Since ARGB is the default, need to do further checks to determine uncompressed formats.
-            if (format == ImageEngineFormat.DDS_ARGB)
+            if (format == ImageEngineFormat.Unknown)
             {
                 // KFreon: Apparently all these flags mean it's a V8U8 image...
-                if (header.ddspf.dwRGBBitCount == 16 &&
-                           header.ddspf.dwRBitMask == 0x00FF &&
-                           header.ddspf.dwGBitMask == 0xFF00 &&
-                           header.ddspf.dwBBitMask == 0x00 &&
-                           header.ddspf.dwABitMask == 0x00)
-                    format = ImageEngineFormat.DDS_V8U8; 
+                if (ddspf.dwRGBBitCount == 16 &&
+                           ddspf.dwRBitMask == 0x00FF &&
+                           ddspf.dwGBitMask == 0xFF00 &&
+                           ddspf.dwBBitMask == 0x00 &&
+                           ddspf.dwABitMask == 0x00)
+                    format = ImageEngineFormat.DDS_V8U8;
 
                 // KFreon: Test for L8/G8
-                else if (header.ddspf.dwABitMask == 0 &&
-                        header.ddspf.dwBBitMask == 0 &&
-                        header.ddspf.dwGBitMask == 0 &&
-                        header.ddspf.dwRBitMask == 0xF && 
-                        header.ddspf.dwFlags == DDS_PFdwFlags.DDPF_LUMINANCE &&
-                        header.ddspf.dwRGBBitCount == 8)
+                else if (ddspf.dwABitMask == 0 &&
+                        ddspf.dwBBitMask == 0 &&
+                        ddspf.dwGBitMask == 0 &&
+                        ddspf.dwRBitMask == 0xFF &&
+                        ddspf.dwFlags == DDS_PFdwFlags.DDPF_LUMINANCE &&
+                        ddspf.dwRGBBitCount == 8)
                     format = ImageEngineFormat.DDS_G8_L8;
 
                 // KFreon: A8L8. This can probably be something else as well, but it seems to work for now
-                else if (header.ddspf.dwRGBBitCount == 16)
+                else if (ddspf.dwRGBBitCount == 16 &&
+                        ddspf.dwFlags == (DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_LUMINANCE))
                     format = ImageEngineFormat.DDS_A8L8;
 
-                // KFreon: RGB test.
-                else if (header.ddspf.dwRGBBitCount == 24)
+                // KFreon: RGB. RGB channels have something in them, but alpha doesn't.
+                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
+                        ddspf.dwABitMask == 0 &&
+                        ddspf.dwBBitMask != 0 &&
+                        ddspf.dwGBitMask != 0 &&
+                        ddspf.dwRBitMask != 0)
                     format = ImageEngineFormat.DDS_RGB;
 
-                // TODO: Better checks. Need to test against a few tools.
+                // KFreon: RGB and A channels are present.
+                else if (((ddspf.dwFlags & (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) == (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
+                        ddspf.dwABitMask != 0 &&
+                        ddspf.dwBBitMask != 0 &&
+                        ddspf.dwGBitMask != 0 &&
+                        ddspf.dwRBitMask != 0)
+                    format = ImageEngineFormat.DDS_ARGB;
+                else
+                    throw new FormatException("Format is unknown.");
             }
 
             return format;
