@@ -188,16 +188,10 @@ namespace CSharpImageLibrary.DDS
         #region Saving
         internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat)
         {
-            // Set compressor
+            // Set compressor for Block Compressed textures
             Action<byte[], int, int, byte[], int> compressor = null;
             switch (saveFormat)
             {
-                case ImageEngineFormat.DDS_A8L8:
-                    compressor = DDS_Encoders.WriteA8L8Pixel;
-                    break;
-                case ImageEngineFormat.DDS_ARGB:
-                    compressor = DDS_Encoders.WriteARGBPixel;
-                    break;
                 case ImageEngineFormat.DDS_ATI1:
                     compressor = DDS_Encoders.CompressBC4Block;
                     break;
@@ -218,17 +212,6 @@ namespace CSharpImageLibrary.DDS
                 case ImageEngineFormat.DDS_DXT5:
                     compressor = DDS_Encoders.CompressBC3Block;
                     break;
-                case ImageEngineFormat.DDS_G8_L8:
-                    compressor = DDS_Encoders.WriteG8_L8Pixel;
-                    break;
-                case ImageEngineFormat.DDS_RGB:
-                    compressor = DDS_Encoders.WriteRGBPixel;
-                    break;
-                case ImageEngineFormat.DDS_V8U8:
-                    compressor = DDS_Encoders.WriteV8U8Pixel;
-                    break;
-                default:
-                    throw new FormatException($"Format not known as a DDS format: {saveFormat}.");
             }
 
             // +1 to get the full size, not just the offset of the last mip.
@@ -244,48 +227,45 @@ namespace CSharpImageLibrary.DDS
             foreach (MipMap mipmap in mipMaps)
             {
                 if (ImageFormats.IsBlockCompressed(saveFormat))
-                    WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor);
+                    mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor);
                 else
-                    WriteUncompressedMipMap(destination, mipOffset, mipmap, saveFormat, compressor);
+                    mipOffset = WriteUncompressedMipMap(destination, mipOffset, mipmap, saveFormat, header.ddspf);
             }
 
             return destination;
         }
 
 
-        static void WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int> compressor)
+        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int> compressor)
         {
-            int texelCount = mipmap.Width * mipmap.Height / 16;
-            int lineLength = mipmap.Width * 4;
-
+            int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
+            int sourceLineLength = mipmap.Width * 4;
+            int numTexelsInLine = mipmap.Width / 4;
 
             var mipWriter = new Action<int>(texelIndex =>
             {
-                int lineOffset = 0;
+                // Since this is the top corner of the first texel in a line, skip 4 pixel rows (texel = 4x4 pixels) and the number of rows down the bitmap we are already.
+                int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
-                // Add 3 pixel lines once finished a single line, since it's just looking at the top left corner, so need to skip the next 3 lines of the same texel.
-                if (texelIndex % mipmap.Width / 4 == 0)  
-                    lineOffset += lineLength * 3 * (texelIndex / mipmap.Width);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we)
-
-                int offset = texelIndex * 16 + lineOffset; // *16 since its 4 pixels with 4 channels each.
-                compressor(mipmap.Pixels, offset, lineLength, destination, mipOffset + texelIndex * blockSize);
+                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
+                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize);
             });
 
             // Choose an acceleration method.
             if (ImageEngine.EnableGPUAcceleration)
                 Debugger.Break(); // TODO: GPU Accelerated saving
             else if (ImageEngine.EnableThreading)
-                Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, mipWriter);
+                Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, mipWriter);
             else
-                for (int i = 0; i < texelCount; i++)
+                for (int i = 0; i < destinationTexelCount; i++)
                     mipWriter(i);
+
+            return mipOffset + destinationTexelCount * blockSize;
         }
 
-        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageEngineFormat saveFormat)
+        static int WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageEngineFormat saveFormat, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            var masks = ImageFormats.CreateMasks(saveFormat);
-
-            DDS_Encoders.WriteUncompressed(destination, )
+            return DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf);
         }
         #endregion Saving
 

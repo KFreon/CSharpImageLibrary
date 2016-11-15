@@ -27,7 +27,7 @@ namespace CSharpImageLibrary.Headers
         public struct DDS_PIXELFORMAT
         {
             /// <summary>
-            /// Size in bytes?
+            /// Sub-header Size in bytes.
             /// </summary>
             public int dwSize { get; set; }
 
@@ -69,7 +69,7 @@ namespace CSharpImageLibrary.Headers
             /// <summary>
             /// Fill PixelFormat from full DDS header
             /// </summary>
-            /// <param name="temp"></param>
+            /// <param name="temp">Full DDS header block.</param>
             public DDS_PIXELFORMAT(byte[] temp)
             {
                 dwSize = BitConverter.ToInt32(temp, 76);
@@ -81,6 +81,59 @@ namespace CSharpImageLibrary.Headers
                 dwBBitMask = BitConverter.ToUInt32(temp, 100);
                 dwABitMask = BitConverter.ToUInt32(temp, 104);
             }
+            
+            /// <summary>
+            /// Build PixelFormat sub-header for a specified surface format.
+            /// </summary>
+            /// <param name="surfaceFormat">Format to base PixelHeader on.</param>
+            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat) : this()
+            {
+                dwSize = 32;
+                dwFourCC = ParseFormatToFourCC(surfaceFormat);
+
+                if (dwFourCC != FourCC.Unknown)
+                    dwFlags = DDS_PFdwFlags.DDPF_FOURCC;
+
+                switch (surfaceFormat)
+                {
+                    // Compressed formats don't need anything written here since pitch/linear size is unreliable. Why bother?
+                    // TODO: Expand such that users can specify bitmasks
+                    #region Uncompressed
+                    case ImageEngineFormat.DDS_G8_L8:
+                        dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
+                        dwRGBBitCount = 8;
+                        dwRBitMask = 0xFF;
+                        break;
+                    case ImageEngineFormat.DDS_ARGB:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 32;
+                        dwABitMask = 0xFF000000;
+                        dwRBitMask = 0x00FF0000;
+                        dwGBitMask = 0x0000FF00;
+                        dwBBitMask = 0x000000FF;
+                        break;
+                    case ImageEngineFormat.DDS_V8U8:
+                        dwFlags = DDS_PFdwFlags.DDPF_SIGNED;
+                        dwRGBBitCount = 16;
+                        dwRBitMask = 0x00FF;
+                        dwGBitMask = 0xFF00;
+                        break;
+                    case ImageEngineFormat.DDS_A8L8:
+                        dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
+                        dwRGBBitCount = 16;
+                        dwABitMask = 0xFF00;
+                        dwRBitMask = 0x00FF;
+                        break;
+                    case ImageEngineFormat.DDS_RGB:
+                        dwFlags = DDS_PFdwFlags.DDPF_RGB;
+                        dwRBitMask = 0xFF0000;
+                        dwGBitMask = 0x00FF00;
+                        dwBBitMask = 0x0000FF;
+                        break;
+                    #endregion Uncompressed
+                }
+            }
+
 
             /// <summary>
             /// String representation of DDS pixel format.
@@ -148,27 +201,87 @@ namespace CSharpImageLibrary.Headers
             /// Fancy new DirectX 10+ format indicator. DX10 Header will contain true format.
             /// </summary>
             DX10 = 0x30315844,
+
+            /// <summary>
+            /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
+            /// Used for Normal (bump) Maps. 8 bit single channel with alpha.
+            /// </summary>
+            ATI1 = 0x31495441,
+
+            /// <summary>
+            /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
+            /// Used for Normal (bump) Maps. Pair of 8 bit channels.
+            /// </summary>
+            ATI2N_3Dc = 0x32495441,
         }
 
+        /// <summary>
+        /// Option flags. Indicate certain properties of DDS, such as mipmapping and dimensions.
+        /// </summary>
         [Flags]
         public enum DDSdwFlags
         {
-            DDSD_CAPS = 0x1,            // Required
-            DDSD_HEIGHT = 0x2,          // Required
-            DDSD_WIDTH = 0x4,           // Required
-            DDSD_PITCH = 0x8,           // Required when Pitch is specified for uncompressed textures
-            DDSD_PIXELFORMAT = 0x1000,  // Required in all DDS
-            DDSD_MIPMAPCOUNT = 0x20000, // Required for a Mipmapped texture
-            DDSD_LINEARSIZE = 0x80000,  // Required when Pitch is specified
-            DDSD_DEPTH = 0x800000       // Required in Depth texture (Volume)
+            /// <summary>
+            /// Required.
+            /// </summary>
+            DDSD_CAPS = 0x1,            
+
+            /// <summary>
+            /// Required.
+            /// </summary>
+            DDSD_HEIGHT = 0x2,          
+
+            /// <summary>
+            /// Required.
+            /// </summary>
+            DDSD_WIDTH = 0x4,           
+
+            /// <summary>
+            /// Required when Pitch is specified for uncompressed textures.
+            /// </summary>
+            DDSD_PITCH = 0x8,           
+
+            /// <summary>
+            /// Required.
+            /// </summary>
+            DDSD_PIXELFORMAT = 0x1000,  
+
+            /// <summary>
+            /// Required if texture contains mipmaps.
+            /// </summary>
+            DDSD_MIPMAPCOUNT = 0x20000, 
+
+            /// <summary>
+            /// Required when pitch/linear size is specified for compressed textures.
+            /// </summary>
+            DDSD_LINEARSIZE = 0x80000,  
+
+            /// <summary>
+            /// Required for Depth/Volume textures.
+            /// </summary>
+            DDSD_DEPTH = 0x800000    
         }
 
+        /// <summary>
+        /// More option flags, but mostly irrelevant.
+        /// </summary>
         [Flags]
         public enum DDSdwCaps
         {
-            DDSCAPS_COMPLEX = 0x8,      // Optional, must be specified on image that has more than one surface. (mipmap, cube, volume)
-            DDSCAPS_MIPMAP = 0x400000,  // Optional, should be set for mipmapped image
-            DDSCAPS_TEXTURE = 0x1000    // Required
+            /// <summary>
+            /// Must be specified on image that has more than one surface. (mipmap, cube, volume)
+            /// </summary>
+            DDSCAPS_COMPLEX = 0x8,
+
+            /// <summary>
+            /// Should be set for mipmapped image
+            /// </summary> 
+            DDSCAPS_MIPMAP = 0x400000, 
+
+            /// <summary>
+            /// Required.
+            /// </summary>
+            DDSCAPS_TEXTURE = 0x1000
         }
 
         /// <summary>
@@ -614,62 +727,7 @@ namespace CSharpImageLibrary.Headers
             this.Height = Height;
             dwCaps = DDSdwCaps.DDSCAPS_TEXTURE | (Mips == 1 ? 0 : DDSdwCaps.DDSCAPS_COMPLEX | DDSdwCaps.DDSCAPS_MIPMAP);
             dwMipMapCount = Mips == 1 ? 1 : Mips;
-
-            DDS_PIXELFORMAT px = new DDS_PIXELFORMAT();
-            px.dwSize = 32;
-            px.dwFourCC = ParseFormatToFourCC(surfaceformat);
-
-            if (px.dwFourCC != FourCC.Unknown)
-                px.dwFlags = DDS_PFdwFlags.DDPF_FOURCC;
-
-            switch (surfaceformat)
-            {
-                // TODO: Check bit masks.
-                #region Compressed
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                    dwFlags |= DDSdwFlags.DDSD_LINEARSIZE;
-                    dwPitchOrLinearSize = (int)(Width * Height);  
-                    break;
-                case ImageEngineFormat.DDS_ATI1:
-                    dwFlags |= DDSdwFlags.DDSD_LINEARSIZE;
-                    dwPitchOrLinearSize = (int)(Width * Height / 2f);
-                    break;
-                case ImageEngineFormat.DDS_DXT1:
-                case ImageEngineFormat.DDS_DXT2:
-                case ImageEngineFormat.DDS_DXT3:
-                case ImageEngineFormat.DDS_DXT4:
-                case ImageEngineFormat.DDS_DXT5:
-                    // TODO: Any flags, masks for these?
-                    Debugger.Break();
-                    break;
-                #endregion Compressed
-
-                #region Uncompressed
-                case ImageEngineFormat.DDS_G8_L8:
-                    px.dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
-                    dwPitchOrLinearSize = Width * 8; // TODO: pitch, maybe?
-                    dwFlags |= DDSdwFlags.DDSD_PITCH;
-                    px.dwRGBBitCount = 8;
-                    px.dwRBitMask = 0xF;
-                    break;
-                case ImageEngineFormat.DDS_ARGB:
-                    px.dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
-                    px.dwRGBBitCount = 32;
-                    px.dwRBitMask = 0x00FF0000;
-                    px.dwGBitMask = 0x0000FF00;
-                    px.dwBBitMask = 0x000000FF;
-                    px.dwABitMask = 0xFF000000;
-                    break;
-                case ImageEngineFormat.DDS_V8U8:
-                    px.dwRGBBitCount = 16;
-                    px.dwRBitMask = 0x00FF;
-                    px.dwGBitMask = 0xFF00;
-                    break;
-                #endregion Uncompressed
-            }
-
-
-            ddspf = px;
+            ddspf = new DDS_PIXELFORMAT(surfaceformat);
         }
         
 
@@ -692,7 +750,7 @@ namespace CSharpImageLibrary.Headers
 
         static FourCC ParseFormatToFourCC(ImageEngineFormat format)
         {
-            if (Enum.IsDefined(typeof(FourCC), format))
+            if (Enum.IsDefined(typeof(FourCC), (int)format))
                 return (FourCC)format;
             else
                 return FourCC.Unknown;
@@ -714,7 +772,8 @@ namespace CSharpImageLibrary.Headers
                            ddspf.dwRBitMask == 0x00FF &&
                            ddspf.dwGBitMask == 0xFF00 &&
                            ddspf.dwBBitMask == 0x00 &&
-                           ddspf.dwABitMask == 0x00)
+                           ddspf.dwABitMask == 0x00 && 
+                           (ddspf.dwFlags & DDS_PFdwFlags.DDPF_SIGNED) == DDS_PFdwFlags.DDPF_SIGNED)
                     format = ImageEngineFormat.DDS_V8U8;
 
                 // KFreon: Test for L8/G8

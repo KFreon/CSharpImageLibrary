@@ -109,8 +109,25 @@ namespace UI_Project
 
         private void FormatComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            var newFormat = (ImageEngineFormat)e.AddedItems[0];
+            var oldFormat = ImageEngineFormat.Unknown;
+
+            // Ensure something was actually removed - only really happens when starting up as nothing was selected before anything existed. The existentialism...
+            if (e.RemovedItems?.Count > 0)
+            {
+                oldFormat = (ImageEngineFormat)e.RemovedItems[0];
+
+                // Check unsupported save formats
+                if (ImageFormats.SaveUnsupported.Contains(newFormat))
+                {
+                    MessageBox.Show($"The format: {newFormat} is currently unsupported for saving. Sorry! :(");
+                    vm.SaveFormat = oldFormat;
+                    return;
+                }
+            }
+
             vm.GenerateSavePreview();
-            vm.SavePath = vm.GetAutoSavePath((ImageEngineFormat)e.AddedItems[0]);
+            vm.SavePath = vm.GetAutoSavePath(newFormat);
         }
 
         private void OpenConvertPanel_Click(object sender, RoutedEventArgs e)
@@ -123,7 +140,6 @@ namespace UI_Project
 
             ChangeConvertPanel(!isOpen);
             isOpen = !isOpen;
-
         }
 
         private void ChangeConvertPanel(bool toState)

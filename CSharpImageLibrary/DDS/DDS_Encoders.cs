@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static CSharpImageLibrary.DDS.DDSGeneral;
 using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
+using CSharpImageLibrary.Headers;
 
 namespace CSharpImageLibrary.DDS
 {
@@ -65,12 +66,12 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion Compressed
 
-        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart)
+        internal static int WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            int byteCount = bitCount / 8;
-            bool twoChannel = false;
-            bool oneChannel = false;
-            byte signedAdjust = 0;
+            int byteCount = ddspf.dwRGBBitCount / 8;
+            byte signedAdjust = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED ? SignedAdjustment : (byte)0;
+            bool oneChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
+            bool twoChannel = oneChannel && (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS;
 
             for (int i = 0; i < source.Length; i+=4, destStart += byteCount)
             {
@@ -85,55 +86,42 @@ namespace CSharpImageLibrary.DDS
                     destination[destStart + 1] = green;
                 }
                 else if (oneChannel)
-                {
-
-                }
+                    destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
                 else
                 {
-                    // Originally should be ARGB
+                    // Originally should be ARGB - This shifts each channel where it should be, then undoes it all.
+                    // TODO: Surely there's a better way to do this.
+                    // Basically just orders the channels based on the masks.
+                    int colour = 0;
+                    colour |= Shift(alpha, ddspf.dwABitMask);
+                    colour |= Shift(red, ddspf.dwRBitMask);
+                    colour |= Shift(green, ddspf.dwGBitMask);
+                    colour |= Shift(blue, ddspf.dwBBitMask);
 
+                    var bytes = BitConverter.GetBytes(colour);
+                    bytes.CopyTo(destination, destStart);
                 }
             }
+
+            return destStart + byteCount; // Final byteCount increment, since it's the start index, not the end index.
         }
 
-        /*internal static void WriteG8_L8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        static int Shift(byte channel, uint mask)
         {
-            // KFreon: Weight colours to look proper. Dunno if this affects things but anyway...Got weightings from ATi Compressonator
-            int b1 = (int)(imgData[sourcePosition] * 3 * 0.082);
-            int g1 = (int)(imgData[sourcePosition + 1] * 3 * 0.6094);
-            int r1 = (int)(imgData[sourcePosition + 2] * 3 * 0.3086);
+            int shifted = 0;
+            if (mask != 0)
+            {
+                shifted = channel;
 
-            int test = (int)((b1 + g1 + r1) / 3f);
-            destination[destPosition] = (byte)test;
+                // Shift colour to position of mask. This method moves the mask back towards 0 a number of times, and the channel colour the same number "up".
+                while ((mask & 0xFF) == 0)
+                {
+                    mask >>= 8;
+                    shifted <<= 8;
+                }
+            }
+
+            return shifted;
         }
-
-        internal static void WriteV8U8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
-        {
-            // No blue
-            destination[destPosition] = (byte)(imgData[sourcePosition + 1] + V8U8Adjust);  // Green
-            destination[destPosition + 1] = (byte)(imgData[sourcePosition + 2] + V8U8Adjust);  // Red
-        }
-
-        internal static void WriteA8L8Pixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
-        {
-            // First 3 channels are the same value, so just use the last one.
-            destination[destPosition] = imgData[sourcePosition + 2];
-            destination[destPosition + 1] = imgData[sourcePosition + 3];
-        }
-
-        internal static void WriteRGBPixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
-        {
-            destination[destPosition] = imgData[sourcePosition];
-            destination[destPosition + 1] = imgData[sourcePosition + 1];
-            destination[destPosition + 2] = imgData[sourcePosition + 2];
-        }
-
-        internal static void WriteARGBPixel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
-        {
-            destination[destPosition] = imgData[sourcePosition];
-            destination[destPosition + 1] = imgData[sourcePosition + 1];
-            destination[destPosition + 2] = imgData[sourcePosition + 2];
-            destination[destPosition + 3] = imgData[sourcePosition + 3];
-        }*/
     }
 }

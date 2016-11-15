@@ -23,7 +23,7 @@ namespace UI_Project
         /// Current image loaded.
         /// </summary>
         public ImageEngineImage img { get; set; }
-        Stopwatch stopwatch = new Stopwatch();
+        Stopwatch GeneralTimer = new Stopwatch();
         DispatcherTimer savePreviewUpdateTimer = new DispatcherTimer();
 
         /// <summary>
@@ -284,6 +284,10 @@ namespace UI_Project
             }
             set
             {
+                // Do nothing unless there's a change. Stops regenerating previews when nothing actually needs regeneration.
+                if (value == saveFormat)
+                    return;
+
                 SaveSuccess = null;
                 SetProperty(ref saveFormat, value);
                 OnPropertyChanged(nameof(IsSaveReady));
@@ -348,15 +352,11 @@ namespace UI_Project
             Previews = new MTRangedObservableCollection<BitmapSource>();
 
             // KFreon: Timer starts when alpha slider is updated, waits for a second of inaction before making new previews (inaction because it's restarted everytime the slider changes, and when it makes a preview, it stops itself)
+            // KFreon: Delay regeneration if previous previews are still being generated
             savePreviewUpdateTimer.Interval = TimeSpan.FromSeconds(1);
             savePreviewUpdateTimer.Tick += (s, b) =>
             {
-                // KFreon: Delay regeneration if previous previews are still being generated
-                if (!stopwatch.IsRunning)
-                {
-                    GenerateSavePreview();
-                    savePreviewUpdateTimer.Stop();
-                }
+                savePreviewUpdateTimer.Stop();
             };
         }
 
@@ -396,28 +396,25 @@ namespace UI_Project
             if (img.Format == ImageEngineFormat.TGA)
                 SaveFormat = ImageEngineFormat.PNG;
 
-            stopwatch.Start();
             savePreviews = await Task.Run(() =>
             {
-                using (MemoryStream stream = new MemoryStream())
+                // Start barrier timer if not too close to previous save preview generation - stops thrashing.
+                if (!savePreviewUpdateTimer.IsEnabled)
+                    savePreviewUpdateTimer.Start(); 
+
+                GeneralTimer.Reset(); // Timer to just measure timer
+                GeneralTimer.Start();
+                var stream = img.Save(SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
+                GeneralTimer.Stop();
+                Debug.WriteLine($"{SaveFormat} preview generation took {GeneralTimer.ElapsedMilliseconds}ms");
+                using (ImageEngineImage previewimage = new ImageEngineImage(stream))
                 {
-                    Stopwatch watch = new Stopwatch();
-                    watch.Start();
-                    img.Save(SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
-                    watch.Stop();
-                    Debug.WriteLine($"Preview Save took {watch.ElapsedMilliseconds}ms");
-                    using (ImageEngineImage previewimage = new ImageEngineImage(stream))
-                    {
-                        BitmapSource[] tempImgs = new BitmapSource[2];
-                        tempImgs[0] = previewimage.GetWPFBitmap(ShowAlpha: true);
-                        tempImgs[1] = previewimage.GetWPFBitmap(ShowAlpha: false);
-                        return tempImgs;
-                    }
+                    BitmapSource[] tempImgs = new BitmapSource[2];
+                    tempImgs[0] = previewimage.GetWPFBitmap(ShowAlpha: true);
+                    tempImgs[1] = previewimage.GetWPFBitmap(ShowAlpha: false);
+                    return tempImgs;
                 }
             });
-            stopwatch.Stop();
-            Debug.WriteLine($"Preview generation took {stopwatch.ElapsedMilliseconds}ms");
-            stopwatch.Reset();
             OnPropertyChanged(nameof(SavePreview));
         }
 
@@ -440,11 +437,11 @@ namespace UI_Project
                 ////////////////////////////////////////////////////////////////////////////////////////
                 fullLoadingTask = Task.Run(() =>
                 {
-                    stopwatch.Start();
+                    GeneralTimer.Reset();
+                    GeneralTimer.Start();
                     ImageEngineImage fullimage = new ImageEngineImage(imgData);
-                    stopwatch.Stop();
-                    Console.WriteLine($"Image Loading: {stopwatch.ElapsedMilliseconds}");
-                    stopwatch.Restart();
+                    GeneralTimer.Stop();
+                    Console.WriteLine($"{fullimage.Format} Loading: {GeneralTimer.ElapsedMilliseconds}");
 
                     List<BitmapSource> alphas = new List<BitmapSource>();
                     List<BitmapSource> nonalphas = new List<BitmapSource>();
@@ -479,16 +476,18 @@ namespace UI_Project
             // Want to load entire image, no resizing when testing.
             ////////////////////////////////////////////////////////////////////////////////////////
             if (testing)
+            {
+                GeneralTimer.Reset();
+                GeneralTimer.Start();
                 img = await Task.Run(() => new ImageEngineImage(imgData));
+                GeneralTimer.Stop();
+                Console.WriteLine($"{img.Format} Loading: {GeneralTimer.ElapsedMilliseconds}");
+            }
             else
                 img = await Task.Run(() => new ImageEngineImage(imgData, 256));
             ////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-            Console.WriteLine("");
-            Console.WriteLine($"Format: {img.Format}");
-            
+            img.FilePath = path;            
 
             Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
             MipIndex = 1;  // 1 based
@@ -552,14 +551,14 @@ namespace UI_Project
             {
                 try
                 {
-                    stopwatch.Start();
+                    GeneralTimer.Start();
                     img.Save(SavePath, SaveFormat, generateMips, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));
-                    stopwatch.Stop();
-                    Debug.WriteLine($"Saved format: {SaveFormat} in {stopwatch.ElapsedMilliseconds} milliseconds.");
+                    GeneralTimer.Stop();
+                    Debug.WriteLine($"Saved format: {SaveFormat} in {GeneralTimer.ElapsedMilliseconds} milliseconds.");
 
-                    SaveElapsedTime = stopwatch.ElapsedMilliseconds;
+                    SaveElapsedTime = GeneralTimer.ElapsedMilliseconds;
 
-                    stopwatch.Reset();
+                    GeneralTimer.Reset();
                     SaveSuccess = true;
                     return true;
                 }

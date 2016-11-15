@@ -191,7 +191,7 @@ namespace CSharpImageLibrary.Headers
             // Read version (not used)
             Version = "8";
             for(int i = 4; i < 6; i++)
-                Version += temp[i];
+                Version += (char)temp[i];
 
             if (Version != "89a" && Version != "87a")
                 Console.WriteLine($"Header version ({Version}) is incorrect. Must be 89a or 87a.");
@@ -204,9 +204,9 @@ namespace CSharpImageLibrary.Headers
 
             // Packed Field
             byte tempByte = temp[9];
-            HasGlobalColourTable = (tempByte & 0x80) == 1;
+            HasGlobalColourTable = (tempByte & 0x80) == 0x80;
             ColourResolution_BPP = tempByte & 0x70;
-            ColourSortFlag = (tempByte & 0x08) == 1;
+            ColourSortFlag = (tempByte & 0x08) == 0x08;
             GlobalColourTableSize = tempByte & 0x07;
 
             // Background colour index
@@ -224,10 +224,29 @@ namespace CSharpImageLibrary.Headers
                 stream.Read(GlobalColourTable, 0, estimatedSize);
             }
 
-            while (true)
+            while (stream.Position < stream.Length)
             {
-                // Animated properties (optional)
                 stream.Read(temp, 0, 19);
+
+                // Need to search for some reason
+                bool found = false;
+                for (int i = 0; i < 19; i++)
+                {
+                    if (temp[i] == 0x21 || temp[i] == 0x2C)
+                    {
+                        stream.Position -= (19-i);
+                        found = true;
+                        break;
+                    }
+                }
+
+                // Nothing of interest found, start again from new position
+                if (!found)
+                    continue;
+
+                // Refresh from new position
+                stream.Read(temp, 0, 19);
+
                 if (temp[0] == 0x21)  // Extension indicator
                 {
                     if (temp[1] == 0xFF)  // Animated properties indicator
@@ -245,14 +264,13 @@ namespace CSharpImageLibrary.Headers
                         TransparentColourIndex = temp[6];
                     }
                     else
-                        stream.Seek(temp[2] - 19, SeekOrigin.Current); // Skip ignored optionals
+                        stream.Seek(-18, SeekOrigin.Current); // Skip ignored optionals ideally, BUT this could also be false match i.e. not an extension block, so we can only skip that identifier and keep looking.
                 }
                 else
                     break;
             }
 
             // Read first image descriptor block
-            stream.Read(temp, 0, 10);
             if (temp[0] != 0x2C)
                 throw new InvalidDataException($"Image Descriptor incorrect. Got: {temp[0]}, expected: {0x2C}.");
 

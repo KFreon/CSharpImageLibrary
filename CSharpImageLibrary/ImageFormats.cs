@@ -132,6 +132,12 @@ namespace CSharpImageLibrary
     public static class ImageFormats
     {
         /// <summary>
+        /// Contains formats not yet capable of saving.
+        /// </summary>
+        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.DDS_DX10, ImageEngineFormat.TGA, ImageEngineFormat.Unknown };
+
+
+        /// <summary>
         /// Determines if given format supports mipmapping.
         /// </summary>
         /// <param name="format">Image format to check.</param>
@@ -322,8 +328,8 @@ namespace CSharpImageLibrary
             long originalPos = imgData.Position;
             imgData.Seek(0, SeekOrigin.Begin);
 
-            var bits = new byte[4];
-            imgData.Read(bits, 0, 4);
+            var bits = new byte[8];
+            imgData.Read(bits, 0, 8);
 
             // BMP
             if (BMP_Header.CheckIdentifier(bits)) 

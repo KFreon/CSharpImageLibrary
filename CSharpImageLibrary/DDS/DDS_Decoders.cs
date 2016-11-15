@@ -162,11 +162,11 @@ namespace CSharpImageLibrary.DDS
 
             var masked = colour & mask;
             
-            // Shift
-            while ((~mask & 0xF) == 0xF)
+            // Shift - skip a byte (max mask 'size')
+            while ((~mask & 0xFF) != 0)
             {
-                masked >>= 4;
-                mask >>= 4;
+                masked >>= 8;
+                mask >>= 8;
             }
 
             return (byte)masked;

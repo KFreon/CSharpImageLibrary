@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulThings;
 
 namespace CSharpImageLibrary.Headers
 {
@@ -46,11 +47,13 @@ namespace CSharpImageLibrary.Headers
             /// <param name="offset">Offset in data to begin header.</param>
             public PNGChunk(byte[] headerBlock, int offset = 8)
             {
-                Length = BitConverter.ToInt32(headerBlock, offset);
-                ChunkType = BitConverter.ToInt32(headerBlock, offset + 4);
+                MyBitConverter.AreOperationsLittleEndian = false;
+                Length = MyBitConverter.ToInt32(headerBlock, offset);
+                ChunkType = MyBitConverter.ToInt32(headerBlock, offset + 4);
                 ChunkData = new byte[Length];
                 Array.Copy(headerBlock, ChunkData, Length);
-                CRC = BitConverter.ToInt32(headerBlock, offset + 4 + Length);
+                CRC = MyBitConverter.ToInt32(headerBlock, offset + 4 + Length);
+                MyBitConverter.AreOperationsLittleEndian = MyBitConverter.IsMachineLittleEndian;
             }
         }
 
@@ -119,7 +122,7 @@ namespace CSharpImageLibrary.Headers
 
             // Chars = 'PNG'
             for (int i = 1; i < Identifier.Length; i++)
-                if (IDBlock[i] != Identifier[i])
+                if (IDBlock[i] != Identifier[i-1])
                     return false;
 
             // \n\r→\n
@@ -143,14 +146,16 @@ namespace CSharpImageLibrary.Headers
             if (!CheckIdentifier(temp))
                 throw new FormatException("Stream is not a PNG Image");
 
+            MyBitConverter.AreOperationsLittleEndian = false;
             PNGChunk header = new PNGChunk(temp);
-            Width = BitConverter.ToInt32(header.ChunkData, 0);
-            Height = BitConverter.ToInt32(header.ChunkData, 4);
+            Width = MyBitConverter.ToInt32(header.ChunkData, 0);
+            Height = MyBitConverter.ToInt32(header.ChunkData, 4);
             BitDepth = header.ChunkData[8];
             colourType = (ColourType)header.ChunkData[9];
             CompressionMethod = header.ChunkData[10];
             FilterMethod = header.ChunkData[11];
             InterlaceMethod = header.ChunkData[12];
+            MyBitConverter.AreOperationsLittleEndian = MyBitConverter.IsMachineLittleEndian;
 
             return -1;  // Since we don't know the length of the entire header, no point returning any value.
         }

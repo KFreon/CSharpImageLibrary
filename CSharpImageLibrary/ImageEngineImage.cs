@@ -70,7 +70,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Path to file. Null if no file e.g. thumbnail from memory.
         /// </summary>
-        public string FilePath { get; private set; }
+        public string FilePath { get; set; }
         #endregion Properties
 
         /// <summary>

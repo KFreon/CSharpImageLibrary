@@ -172,7 +172,6 @@ namespace CSharpImageLibrary
                 default:
                     throw new NotSupportedException("Image type unknown.");
             }
-            Console.WriteLine(header.ToString());
             return header;
         }
 
@@ -243,8 +242,7 @@ namespace CSharpImageLibrary
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
-                if (WindowsWICCodecsAvailable)
-                    destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height).ToArray();
+                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height).ToArray();
             }
 
             // TODO: Do I still need this.
@@ -375,7 +373,7 @@ namespace CSharpImageLibrary
                 }
             }
             
-            return new MipMap(resized.GetPixels(), newWidth, newHeight, alphaPresent);
+            return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, alphaPresent);
         }
 
 

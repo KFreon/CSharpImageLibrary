@@ -332,7 +332,7 @@ namespace CSharpImageLibrary.DDS
                 int uColourKey = 0;
 
                 // Alpha stuff
-                for (int i = 0; i < 16; i++)
+                for (int i = 1; i <= 4; i++)
                 {
                     for (int j = 0; j < 4; j++)
                     {
@@ -342,7 +342,7 @@ namespace CSharpImageLibrary.DDS
                         position+=4;
                     }
 
-                    position += sourceLineLength;
+                    position = sourcePosition + sourceLineLength * i;
                 }
 
                 if (uColourKey == 16)
@@ -363,10 +363,11 @@ namespace CSharpImageLibrary.DDS
 
             // Some kind of colour adjustment. Not sure what it does, especially if it wasn't dithering...
             position = sourcePosition;
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
+                    int index = (i << 2) + j;
                     RGBColour current = ReadColourFromTexel(imgData, position);
 
                     if (dither)
@@ -374,66 +375,66 @@ namespace CSharpImageLibrary.DDS
                         // Adjust for accumulated error
                         // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
                         // Then, this error is distributed across the "next" few pixels and not the previous.
-                        current.r += Error[i].r;
-                        current.g += Error[i].g;
-                        current.b += Error[i].b;
+                        current.r += Error[index].r;
+                        current.g += Error[index].g;
+                        current.b += Error[index].b;
                     }
 
 
                     // 5:6:5 range adaptation?
-                    Colour[i].r = (int)(current.r * 31f + .5f) * (1f / 31f);
-                    Colour[i].g = (int)(current.g * 63f + .5f) * (1f / 63f);
-                    Colour[i].b = (int)(current.b * 31f + .5f) * (1f / 31f);
+                    Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
+                    Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
+                    Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
 
                     if (dither)
                     {
                         // Calculate difference between current pixel colour and adapted pixel colour?
                         RGBColour diff = new RGBColour();
-                        diff.r = current.a * (byte)(current.r - Colour[i].r);
-                        diff.g = current.a * (byte)(current.g - Colour[i].g);
-                        diff.b = current.a * (byte)(current.b - Colour[i].b);
+                        diff.r = current.a * (byte)(current.r - Colour[index].r);
+                        diff.g = current.a * (byte)(current.g - Colour[index].g);
+                        diff.b = current.a * (byte)(current.b - Colour[index].b);
 
                         // If current pixel is not at the end of a row
-                        if ((i & 3) != 3)
+                        if ((index & 3) != 3)
                         {
-                            Error[i + 1].r += diff.r * (7f / 16f);
-                            Error[i + 1].g += diff.g * (7f / 16f);
-                            Error[i + 1].b += diff.b * (7f / 16f);
+                            Error[index + 1].r += diff.r * (7f / 16f);
+                            Error[index + 1].g += diff.g * (7f / 16f);
+                            Error[index + 1].b += diff.b * (7f / 16f);
                         }
 
                         // If current pixel is not in bottom row
-                        if (i < 12)
+                        if (index < 12)
                         {
                             // If current pixel IS at end of row
-                            if ((i & 3) != 0)
+                            if ((index & 3) != 0)
                             {
-                                Error[i + 3].r += diff.r * (3f / 16f);
-                                Error[i + 3].g += diff.g * (3f / 16f);
-                                Error[i + 3].b += diff.b * (3f / 16f);
+                                Error[index + 3].r += diff.r * (3f / 16f);
+                                Error[index + 3].g += diff.g * (3f / 16f);
+                                Error[index + 3].b += diff.b * (3f / 16f);
                             }
 
-                            Error[i + 4].r += diff.r * (5f / 16f);
-                            Error[i + 4].g += diff.g * (5f / 16f);
-                            Error[i + 4].b += diff.b * (5f / 16f);
+                            Error[index + 4].r += diff.r * (5f / 16f);
+                            Error[index + 4].g += diff.g * (5f / 16f);
+                            Error[index + 4].b += diff.b * (5f / 16f);
 
                             // If current pixel is not at end of row
-                            if ((i & 3) != 3)
+                            if ((index & 3) != 3)
                             {
-                                Error[i + 5].r += diff.r * (1f / 16f);
-                                Error[i + 5].g += diff.g * (1f / 16f);
-                                Error[i + 5].b += diff.b * (1f / 16f);
+                                Error[index + 5].r += diff.r * (1f / 16f);
+                                Error[index + 5].g += diff.g * (1f / 16f);
+                                Error[index + 5].b += diff.b * (1f / 16f);
                             }
                         }
                     }
 
-                    Colour[i].r *= Luminance.r;
-                    Colour[i].g *= Luminance.g;
-                    Colour[i].b *= Luminance.b;
+                    Colour[index].r *= Luminance.r;
+                    Colour[index].g *= Luminance.g;
+                    Colour[index].b *= Luminance.b;
 
                     position += 4;
                 }
 
-                position += sourceLineLength;
+                position = sourcePosition + sourceLineLength * (i + 1);
             }
 
             // Palette colours
@@ -550,10 +551,11 @@ namespace CSharpImageLibrary.DDS
             Array.Clear(Error, 0, Error.Length);  // Clear error for next bit
             uint dw = 0;
             position = sourcePosition;
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
+                    int index = (i << 2) + j;
                     RGBColour current = ReadColourFromTexel(imgData, position);
 
                     if ((uSteps == 3) && (current.a < alphaRef))
@@ -570,9 +572,9 @@ namespace CSharpImageLibrary.DDS
                     if (dither)
                     {
                         // Error again
-                        current.r += Error[i].r;
-                        current.g += Error[i].g;
-                        current.b += Error[i].b;
+                        current.r += Error[index].r;
+                        current.g += Error[index].g;
+                        current.b += Error[index].b;
                     }
 
 
@@ -599,34 +601,34 @@ namespace CSharpImageLibrary.DDS
                         diff.b = current.a * (byte)(current.b - step[iStep].b);
 
                         // If current pixel is not at the end of a row
-                        if ((i & 3) != 3)
+                        if ((index & 3) != 3)
                         {
-                            Error[i + 1].r += diff.r * (7f / 16f);
-                            Error[i + 1].g += diff.g * (7f / 16f);
-                            Error[i + 1].b += diff.b * (7f / 16f);
+                            Error[index + 1].r += diff.r * (7f / 16f);
+                            Error[index + 1].g += diff.g * (7f / 16f);
+                            Error[index + 1].b += diff.b * (7f / 16f);
                         }
 
                         // If current pixel is not in bottom row
-                        if (i < 12)
+                        if (index < 12)
                         {
                             // If current pixel IS at end of row
-                            if ((i & 3) != 0)
+                            if ((index & 3) != 0)
                             {
-                                Error[i + 3].r += diff.r * (3f / 16f);
-                                Error[i + 3].g += diff.g * (3f / 16f);
-                                Error[i + 3].b += diff.b * (3f / 16f);
+                                Error[index + 3].r += diff.r * (3f / 16f);
+                                Error[index + 3].g += diff.g * (3f / 16f);
+                                Error[index + 3].b += diff.b * (3f / 16f);
                             }
 
-                            Error[i + 4].r += diff.r * (5f / 16f);
-                            Error[i + 4].g += diff.g * (5f / 16f);
-                            Error[i + 4].b += diff.b * (5f / 16f);
+                            Error[index + 4].r += diff.r * (5f / 16f);
+                            Error[index + 4].g += diff.g * (5f / 16f);
+                            Error[index + 4].b += diff.b * (5f / 16f);
 
                             // If current pixel is not at end of row
-                            if ((i & 3) != 3)
+                            if ((index & 3) != 3)
                             {
-                                Error[i + 5].r += diff.r * (1f / 16f);
-                                Error[i + 5].g += diff.g * (1f / 16f);
-                                Error[i + 5].b += diff.b * (1f / 16f);
+                                Error[index + 5].r += diff.r * (1f / 16f);
+                                Error[index + 5].g += diff.g * (1f / 16f);
+                                Error[index + 5].b += diff.b * (1f / 16f);
                             }
                         }
                     }
@@ -634,7 +636,7 @@ namespace CSharpImageLibrary.DDS
                     position += 4;
                 }
 
-                position += sourceLineLength;
+                position = sourcePosition + sourceLineLength * (i + 1);
             }
 
             var colour1 = BitConverter.GetBytes(Min);
@@ -681,15 +683,19 @@ namespace CSharpImageLibrary.DDS
             byte min = byte.MaxValue;
             byte max = byte.MinValue;
             int count = sourcePosition + channel;
-            for (int i = 0; i < 16; i++)
+            for (int i = 1; i <= 4; i++)
             {
-                byte colour = source[count];
-                if (colour > max)
-                    max = colour;
-                else if (colour < min)
-                    min = colour;
+                for (int j= 0; j < 4; j++)
+                {
+                    byte colour = source[count];
+                    if (colour > max)
+                        max = colour;
+                    else if (colour < min)
+                        min = colour;
 
-                count += 4; // skip to next entry in channel
+                    count += 4; // skip to next entry in channel
+                }
+                count = sourcePosition + channel + sourceLineLength * i;
             }
 
             // Build Palette
@@ -699,13 +705,19 @@ namespace CSharpImageLibrary.DDS
             ulong line = 0;
             count = sourcePosition + channel;
             List<int> indicies = new List<int>();
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 4; i++)
             {
-                byte colour = source[count];
-                int index = GetClosestValue(Colours, colour);
-                indicies.Add(index);
-                line |= (ulong)index << (i * 3);
-                count += 4;  // Only need 1 channel
+                for (int j = 0; j < 4; j++)
+                {
+                    int ind = (i << 2) + j;
+                    byte colour = source[count];
+                    int index = GetClosestValue(Colours, colour);
+                    indicies.Add(index);
+                    line |= (ulong)index << (ind * 3);
+                    count += 4;  // Only need 1 channel
+                }
+
+                count = sourcePosition + channel + sourceLineLength * (i + 1);
             }
 
             byte[] compressed = BitConverter.GetBytes(line);
