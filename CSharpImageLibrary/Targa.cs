@@ -39,6 +39,7 @@ using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
+using UsefulThings;
 
 namespace CSharpImageLibrary
 {
@@ -428,8 +429,7 @@ namespace CSharpImageLibrary
         /// <param name="prevHeader">TargaHeader if previously loaded.</param>
         public TargaImage(Stream stream, TargaHeader prevHeader = null) : this(prevHeader) 
         {
-            byte[] filebytes = new byte[stream.Length];
-            stream.Read(filebytes, 0, (int)stream.Length);
+            byte[] filebytes = stream.ReadBytes((int)stream.Length);
             LoadFromStream(filebytes);
         }
 

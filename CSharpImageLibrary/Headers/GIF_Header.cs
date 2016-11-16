@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulThings;
 
 namespace CSharpImageLibrary.Headers
 {
@@ -220,8 +221,7 @@ namespace CSharpImageLibrary.Headers
                 if (GlobalColourTableSize != estimatedSize)
                     Console.WriteLine($"Global table size incorrect in header. Header = {GlobalColourTableSize}, should be {estimatedSize}");
 
-                GlobalColourTable = new byte[estimatedSize];
-                stream.Read(GlobalColourTable, 0, estimatedSize);
+                GlobalColourTable = stream.ReadBytes(estimatedSize);
             }
 
             while (stream.Position < stream.Length)

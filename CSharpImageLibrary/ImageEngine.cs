@@ -124,6 +124,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.JPG:
                 case ImageEngineFormat.PNG:
                 case ImageEngineFormat.BMP:
+                case ImageEngineFormat.TIFF:
                     MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, false);
                     break;
                 case ImageEngineFormat.TGA:
@@ -168,6 +169,9 @@ namespace CSharpImageLibrary
                     break;
                 case ImageFormats.SupportedExtensions.GIF:
                     header = new GIF_Header(stream);
+                    break;
+                case ImageFormats.SupportedExtensions.TIFF:
+                    header = new TIFF_Header(stream);
                     break;
                 default:
                     throw new NotSupportedException("Image type unknown.");
@@ -425,6 +429,8 @@ namespace CSharpImageLibrary
                 parsedFormat = ImageEngineFormat.JPG;
             else if (format.Contains("png", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.PNG;
+            else if (format.Contains("tiff", StringComparison.OrdinalIgnoreCase))
+                parsedFormat = ImageEngineFormat.TIFF;
 
 
             return parsedFormat;

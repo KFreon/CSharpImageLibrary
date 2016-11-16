@@ -197,6 +197,9 @@ namespace UI_Project
                 case ImageEngineFormat.TGA:
                     filterstring = "Targa Images|*.tga";
                     break;
+                case ImageEngineFormat.TIFF:
+                    filterstring = "TIFF pages|*.tiff";
+                    break;
             }
 
             sfd.Filter = filterstring;

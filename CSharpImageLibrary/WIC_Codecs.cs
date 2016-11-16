@@ -227,24 +227,30 @@ namespace CSharpImageLibrary
             // KFreon: Choose encoder based on desired format.
             BitmapEncoder encoder = null;
             int estimatedImageSize = 0;
+
+            int estimateHeaderSize = 1024;
             switch (format)
             {
                 case ImageEngineFormat.BMP:
                     encoder = new BmpBitmapEncoder();
-                    estimatedImageSize = Headers.BMP_Header.MaxHeaderSize + width * height * 4;  // Fairly good estimation
+                    estimatedImageSize = estimateHeaderSize + width * height * 4;  // Fairly good estimation
                     break;
                 case ImageEngineFormat.JPG:
                     encoder = new JpegBitmapEncoder();
                     ((JpegBitmapEncoder)encoder).QualityLevel = 90;
-                    estimatedImageSize = Headers.JPG_Header.MaxHeaderSize + width * height / 6;  // Estimation
+                    estimatedImageSize = estimateHeaderSize + width * height / 6;  // Estimation
                     break;
                 case ImageEngineFormat.PNG:
                     encoder = new PngBitmapEncoder();
-                    estimatedImageSize = Headers.BMP_Header.MaxHeaderSize + width * height / 2;  // Estimation
+                    estimatedImageSize = estimateHeaderSize + width * height / 2;  // Estimation
                     break;
                 case ImageEngineFormat.GIF:
                     encoder = new GifBitmapEncoder();
-                    estimatedImageSize = Headers.BMP_Header.MaxHeaderSize + width * height / 5;  // Estimation
+                    estimatedImageSize = estimateHeaderSize + width * height / 5;  // Estimation
+                    break;
+                case ImageEngineFormat.TIFF:
+                    encoder = new TiffBitmapEncoder();
+                    estimatedImageSize = estimateHeaderSize + width * height; // Esimation
                     break;
                 default:
                     throw new InvalidOperationException($"Unable to encode format: {format} using Windows 8.1 Codecs.");

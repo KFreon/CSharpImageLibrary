@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulThings;
 
 namespace CSharpImageLibrary.Headers
 {
@@ -73,8 +74,7 @@ namespace CSharpImageLibrary.Headers
         protected override long Load(Stream stream)
         {
             base.Load(stream);
-            byte[] temp = new byte[HeaderSize];
-            stream.Read(temp, 0, temp.Length);
+            byte[] temp = stream.ReadBytes(HeaderSize);
 
             if (!CheckIdentifier(temp))
                 throw new FormatException("Stream is not a BMP Image");

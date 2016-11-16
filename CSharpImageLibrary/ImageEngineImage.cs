@@ -75,7 +75,6 @@ namespace CSharpImageLibrary
 
         /// <summary>
         /// Creates an image supporting many formats including DDS.
-        /// There doesn't need to be an async for this as they exist here to improve disk performance.
         /// </summary>
         /// <param name="stream">Stream containing image.</param>
         /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
@@ -87,19 +86,17 @@ namespace CSharpImageLibrary
 
         /// <summary>
         /// Creates an image supporting many formats including DDS.
-        /// There is an async method for this <see cref="LoadAsync(string, int)"/>
         /// </summary>
         /// <param name="path">Path to image.</param>
         /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
         public ImageEngineImage(string path, int maxDimension = 0)
         {
-            LoadAsync(path, maxDimension).Wait();
+            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                Load(fs, maxDimension);
         }
-
 
         /// <summary>
         /// Creates an image supporting many formats including DDS.
-        /// Doesn't require an async equivelent for this as they only exist here to improve disk performance.
         /// </summary>
         /// <param name="imageData">Fully formatted image data, not just pixels.</param>
         /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
@@ -126,50 +123,7 @@ namespace CSharpImageLibrary
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Loads an image asynchronosly.
-        /// </summary>
-        /// <param name="imagePath">Path to image.</param>
-        /// <param name="maxDimension">Maximum dimension of image to load. Good for mipmapped images, otherwise resizes.</param>
-        /// <returns></returns>
-        public async Task LoadAsync(string imagePath, int maxDimension = 0)
-        {
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read)) // Allow multiple readonly accesses
-                await LoadAsync(fs, maxDimension);
-        }
-
-        /// <summary>
-        /// Loads an image asynchronosly.
-        /// Stream position is not relevent, and stream is not reset by method.
-        /// </summary>
-        /// <param name="fs">Filestream containing image.</param>
-        /// <param name="maxDimension">Maximum dimension of image to load. Good for mipmapped images, otherwise resizes.</param>
-        /// <returns></returns>
-        public async Task LoadAsync(FileStream fs, int maxDimension = 0)
-        {
-            // Read Header
-            using (MemoryStream headerStream = new MemoryStream())
-            {
-                fs.Seek(0, SeekOrigin.Begin);
-                headerStream.ReadFrom(fs, AbstractHeader.MaxHeaderSize);
-
-                // Begin reading of full image
-                fs.Seek(0, SeekOrigin.Begin);
-                using (MemoryStream fullImage = new MemoryStream((int)fs.Length))
-                {
-                    var fullReadTask = fs.CopyToAsync(fullImage);
-
-                    // Parse header
-                    Header = ImageEngine.LoadHeader(headerStream);
-
-                    // Read full image
-                    await fullReadTask;
-                    MipMaps = ImageEngine.LoadImage(fullImage, Header, maxDimension, 0);
-                }
-            }
-        }
-
-        void Load(MemoryStream stream, int maxDimension)
+        void Load(Stream stream, int maxDimension)
         {
             Header = ImageEngine.LoadHeader(stream);
             Format = Header.Format;

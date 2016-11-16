@@ -15,11 +15,6 @@ namespace CSharpImageLibrary.Headers
     public abstract class AbstractHeader
     {
         /// <summary>
-        /// Maximum header size of any supported image.
-        /// </summary>
-        public const int MaxHeaderSize = 1024; // Maybe nice neat powers of 2 is good? Only actually needs to be 808.
-
-        /// <summary>
         /// Format of image as seen by header.
         /// </summary>
         public abstract ImageEngineFormat Format { get; }

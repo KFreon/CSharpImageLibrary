@@ -123,6 +123,12 @@ namespace CSharpImageLibrary
         /// Used for Normal (bump) Maps. Pair of 8 bit channels.
         /// </summary>
         DDS_ATI2_3Dc = 0x32495441,  // ATI2 backwards
+
+        /// <summary>
+        /// Format designed for scanners. Compressed.
+        /// Allows mipmaps.
+        /// </summary>
+        TIFF = DDS_RGB + 1,
     }
 
 
@@ -311,7 +317,13 @@ namespace CSharpImageLibrary
             /// Graphics Interchange Format images. Lossy compression, supports animation (this tool doesn't though), good for low numbers of colours.
             /// </summary>
             [Description("Graphics Interchange Images")]
-            GIF
+            GIF,
+
+            /// <summary>
+            /// TIFF images. Compressed, and supports mipmaps.
+            /// </summary>
+            [Description("TIFF Images")]
+            TIFF,
         }
 
         /// <summary>
@@ -347,10 +359,12 @@ namespace CSharpImageLibrary
             if (DDS_Header.CheckIdentifier(bits))
                 ext = SupportedExtensions.DDS;
 
-
             // GIF
             if (GIF_Header.CheckIdentifier(bits))
                 ext = SupportedExtensions.GIF;
+
+            if (TIFF_Header.CheckIdentifier(bits))
+                ext = SupportedExtensions.TIFF;
 
             // TGA (assumed if no other matches
             if (ext == SupportedExtensions.UNKNOWN)
