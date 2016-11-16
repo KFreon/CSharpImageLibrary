@@ -53,7 +53,14 @@ namespace CSharpImageLibrary.DDS
                 {
                     int compressedPosition = mipOffset + texelIndex * blockSize;
                     int decompressedStart = (int)(texelIndex / numTexelsInRow) * texelRowSkip + (texelIndex % numTexelsInRow) * 16;
-                    DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength);
+                    try
+                    {
+                        DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength);
+                    }
+                    catch (IndexOutOfRangeException e) when (!UsefulThings.General.IsPowerOfTwo(mipWidth) || !UsefulThings.General.IsPowerOfTwo(mipHeight))
+                    {
+                        // Ignore - happens cos I don't handle things properly when dimensions are not powers of two.
+                    }
 
                     // TODO: Cancellation
                     /*if (ImageEngine.EnableThreading)
@@ -173,8 +180,7 @@ namespace CSharpImageLibrary.DDS
                     mipmap = ReadUncompressedMipMap(compressed, mipOffset, mipWidth, mipHeight, header.ddspf);
 
                 MipMaps.Add(mipmap);
-
-                mipOffset += mipWidth * mipHeight * blockSize / 16; // Only used for BC textures
+                mipOffset += mipWidth * mipHeight * (blockSize / 16); // Only used for BC textures
                 mipWidth /= 2;
                 mipHeight /= 2;
             }

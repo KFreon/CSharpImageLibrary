@@ -489,7 +489,7 @@ namespace UI_Project
 
             img.FilePath = path;            
 
-            Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
+            Previews.Add(img.GetWPFBitmap(maxDimension: 1024, ShowAlpha: ShowAlphaPreviews));
             MipIndex = 1;  // 1 based
 
             OnPropertyChanged(nameof(ImagePath));

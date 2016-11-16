@@ -193,7 +193,7 @@ namespace CSharpImageLibrary
             if (maxDimension != 0)
             {
                 // Choose a mip of the correct size, if available.
-                var sizedMip = MipMaps.Where(m => (m.Height == maxDimension && m.Width <= maxDimension) || (m.Width == maxDimension && m.Height <= maxDimension));
+                var sizedMip = MipMaps.Where(m => (m.Height <= maxDimension && m.Width <= maxDimension) || (m.Width <= maxDimension && m.Height <= maxDimension));
                 if (sizedMip.Any())
                 {
                     var mip1 = sizedMip.First();
@@ -201,10 +201,10 @@ namespace CSharpImageLibrary
                 }
                 else
                 {
-                    double scale = maxDimension * 1f / (Height > Width ? Height : Width);
+                    double scale = (double)maxDimension * (Height > Width ? Height : Width);
                     mip = ImageEngine.Resize(mip, scale, ShowAlpha);
                     bmp = mip.ToImage();
-                }
+                }         
             }
             else
                 bmp = mip.ToImage();

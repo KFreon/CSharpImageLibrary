@@ -54,15 +54,12 @@ namespace CSharpImageLibrary
          /// <summary>
         /// True = Windows WIC Codecs are present (8+)
         /// </summary>
-        public static bool WindowsWICCodecsAvailable
-        {
-            get; internal set;
-        }
+        public static bool WindowsWICCodecsAvailable { get; internal set; }
 
         /// <summary>
         /// Enables threading of Loading and Saving operations to improve performance.
         /// </summary>
-        public static bool EnableThreading { get; set; } = false;
+        public static bool EnableThreading { get; set; } = true;
 
         /// <summary>
         /// Enables GPU Accelerated encoding and decoding of all formats.
@@ -85,8 +82,10 @@ namespace CSharpImageLibrary
             // Testing
             WindowsWICCodecsAvailable = false;
 
-            // TODO: GPU test if availbale
-            EnableGPUAcceleration = false;
+
+            // Enable GPU Acceleration by default
+            if (GPU.IsGPUAvailable)
+                EnableGPUAcceleration = true;
         }
 
         internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int maxDimension, double scale)

@@ -10,6 +10,9 @@ namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_BlockHelpers
     {
+        const double OneThird = 1f / 3f;
+        const double TwoThirds = 2f / 3f;
+
         #region Block Compression
         #region RGB DXT
         /// <summary>
@@ -929,13 +932,13 @@ namespace CSharpImageLibrary.DDS
             // Interpolate other 2 colours
             if (Colour0 > Colour1)
             {
-                var r1 = (byte)(2f / 3f * Colour0s[0] + 1f / 3f * Colour1s[0]);
-                var g1 = (byte)(2f / 3f * Colour0s[1] + 1f / 3f * Colour1s[1]);
-                var b1 = (byte)(2f / 3f * Colour0s[2] + 1f / 3f * Colour1s[2]);
+                var r1 = (byte)(TwoThirds * Colour0s[0] + OneThird * Colour1s[0]);
+                var g1 = (byte)(TwoThirds * Colour0s[1] + OneThird * Colour1s[1]);
+                var b1 = (byte)(TwoThirds * Colour0s[2] + OneThird * Colour1s[2]);
 
-                var r2 = (byte)(1f / 3f * Colour0s[0] + 2f / 3f * Colour1s[0]);
-                var g2 = (byte)(1f / 3f * Colour0s[1] + 2f / 3f * Colour1s[1]);
-                var b2 = (byte)(1f / 3f * Colour0s[2] + 2f / 3f * Colour1s[2]);
+                var r2 = (byte)(OneThird * Colour0s[0] + TwoThirds * Colour1s[0]);
+                var g2 = (byte)(OneThird * Colour0s[1] + TwoThirds * Colour1s[1]);
+                var b2 = (byte)(OneThird * Colour0s[2] + TwoThirds * Colour1s[2]);
 
                 Colours[2] = BuildDXTColour(r1, g1, b1);
                 Colours[3] = BuildDXTColour(r2, g2, b2);
@@ -943,9 +946,9 @@ namespace CSharpImageLibrary.DDS
             else
             {
                 // KFreon: Only for dxt1
-                var r = (byte)(1 / 2f * Colour0s[0] + 1 / 2f * Colour1s[0]);
-                var g = (byte)(1 / 2f * Colour0s[1] + 1 / 2f * Colour1s[1]);
-                var b = (byte)(1 / 2f * Colour0s[2] + 1 / 2f * Colour1s[2]);
+                var r = (byte)(0.5 * Colour0s[0] + 0.5 * Colour1s[0]);
+                var g = (byte)(0.5 * Colour0s[1] + 0.5 * Colour1s[1]);
+                var b = (byte)(0.5 * Colour0s[2] + 0.5 * Colour1s[2]);
 
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;

@@ -92,6 +92,7 @@
     <Compile Include="DDS\DDS_BlockHelpers.cs" />
     <Compile Include="DDS\DDS_Decoders.cs" />
     <Compile Include="DDS\DDS_Encoders.cs" />
+    <Compile Include="GPU.cs" />
     <Compile Include="Headers\AbstractHeader.cs" />
     <Compile Include="Headers\BMP_Header.cs" />
     <Compile Include="Headers\DDS_Header.cs" />
