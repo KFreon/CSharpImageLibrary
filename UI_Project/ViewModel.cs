@@ -23,8 +23,21 @@ namespace UI_Project
         /// Current image loaded.
         /// </summary>
         public ImageEngineImage img { get; set; }
-        Stopwatch GeneralTimer = new Stopwatch();
         DispatcherTimer savePreviewUpdateTimer = new DispatcherTimer();
+
+        StringBuilder sb = new StringBuilder();
+        public string PerformanceIndicator
+        {
+            get
+            {
+                return sb.ToString();
+            }
+            set
+            {
+                sb.AppendLine(value);
+                OnPropertyChanged(nameof(PerformanceIndicator));
+            }
+        }
 
         /// <summary>
         /// True = Alpha in DXT1 is merged with its RGB, showing how many applications display such an image.
@@ -400,13 +413,16 @@ namespace UI_Project
             {
                 // Start barrier timer if not too close to previous save preview generation - stops thrashing.
                 if (!savePreviewUpdateTimer.IsEnabled)
-                    savePreviewUpdateTimer.Start(); 
+                    savePreviewUpdateTimer.Start();
 
-                GeneralTimer.Reset(); // Timer to just measure timer
-                GeneralTimer.Start();
+                Stopwatch timer = new Stopwatch();
+
+                timer.Reset(); // Timer to just measure timer
+                timer.Start();
                 var stream = img.Save(SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
-                GeneralTimer.Stop();
-                Debug.WriteLine($"{SaveFormat} preview generation took {GeneralTimer.ElapsedMilliseconds}ms");
+                timer.Stop();
+                Debug.WriteLine($"{SaveFormat} preview generation took {timer.ElapsedMilliseconds}ms");
+                PerformanceIndicator = $"{SaveFormat} preview generation took {timer.ElapsedMilliseconds}ms";
                 using (ImageEngineImage previewimage = new ImageEngineImage(stream))
                 {
                     BitmapSource[] tempImgs = new BitmapSource[2];
@@ -425,7 +441,7 @@ namespace UI_Project
         /// <returns>Nothing. Async needs task to await.</returns>
         public async Task LoadImage(string path)
         {
-            bool testing = true;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
+            bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
 
             // Load file into memory
             byte[] imgData = File.ReadAllBytes(path);
@@ -437,11 +453,13 @@ namespace UI_Project
                 ////////////////////////////////////////////////////////////////////////////////////////
                 fullLoadingTask = Task.Run(() =>
                 {
-                    GeneralTimer.Reset();
-                    GeneralTimer.Start();
+                    Stopwatch timer1 = new Stopwatch();
+                    timer1.Reset();
+                    timer1.Start();
                     ImageEngineImage fullimage = new ImageEngineImage(imgData);
-                    GeneralTimer.Stop();
-                    Console.WriteLine($"{fullimage.Format} Loading: {GeneralTimer.ElapsedMilliseconds}");
+                    timer1.Stop();
+                    Console.WriteLine($"Full {fullimage.Format} Loading: {timer1.ElapsedMilliseconds}");
+                    PerformanceIndicator = $"Full {fullimage.Format} Loading: {timer1.ElapsedMilliseconds}";
 
                     List<BitmapSource> alphas = new List<BitmapSource>();
                     List<BitmapSource> nonalphas = new List<BitmapSource>();
@@ -461,9 +479,6 @@ namespace UI_Project
                 ////////////////////////////////////////////////////////////////////////////////////////
             }
 
-
-
-
             SaveSuccess = null;
             Previews.Clear();
             savePreviews = new BitmapSource[2];
@@ -475,21 +490,26 @@ namespace UI_Project
 
             // Want to load entire image, no resizing when testing.
             ////////////////////////////////////////////////////////////////////////////////////////
+            Stopwatch timer = new Stopwatch();
             if (testing)
             {
-                GeneralTimer.Reset();
-                GeneralTimer.Start();
+                timer.Reset();
+                timer.Start();
                 img = await Task.Run(() => new ImageEngineImage(imgData));
-                GeneralTimer.Stop();
-                Console.WriteLine($"{img.Format} Loading: {GeneralTimer.ElapsedMilliseconds}");
+                timer.Stop();
+                Console.WriteLine($"TESTING: Full {img.Format} Loading: {timer.ElapsedMilliseconds}");
             }
             else
                 img = await Task.Run(() => new ImageEngineImage(imgData, 256));
             ////////////////////////////////////////////////////////////////////////////////////////
 
-            img.FilePath = path;            
+            img.FilePath = path;
 
-            Previews.Add(img.GetWPFBitmap(maxDimension: 1024, ShowAlpha: ShowAlphaPreviews));
+            timer.Reset();
+            timer.Start();
+            Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
+            timer.Stop();
+            Console.WriteLine($"Preview generation for {img.Format}: {timer.ElapsedMilliseconds}");
             MipIndex = 1;  // 1 based
 
             OnPropertyChanged(nameof(ImagePath));
@@ -551,14 +571,16 @@ namespace UI_Project
             {
                 try
                 {
-                    GeneralTimer.Start();
+                    Stopwatch timer = new Stopwatch();
+                    timer.Start();
                     img.Save(SavePath, SaveFormat, generateMips, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));
-                    GeneralTimer.Stop();
-                    Debug.WriteLine($"Saved format: {SaveFormat} in {GeneralTimer.ElapsedMilliseconds} milliseconds.");
+                    timer.Stop();
+                    Debug.WriteLine($"Saved format: {SaveFormat} in {timer.ElapsedMilliseconds} milliseconds.");
+                    PerformanceIndicator = $"Saved format: {SaveFormat} in {timer.ElapsedMilliseconds} milliseconds.";
 
-                    SaveElapsedTime = GeneralTimer.ElapsedMilliseconds;
+                    SaveElapsedTime = timer.ElapsedMilliseconds;
 
-                    GeneralTimer.Reset();
+                    timer.Reset();
                     SaveSuccess = true;
                     return true;
                 }

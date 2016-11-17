@@ -110,10 +110,32 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock><Run Text="Image Path:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding ImagePath, Mode=OneWay}"/></TextBlock>
-                    <TextBlock><Run Text="Format:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding Format, Mode=OneWay}"/></TextBlock>
-                    <TextBlock><Run Text="Mipmap Width:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding MipWidth, Mode=OneWay}"/></TextBlock>
-                    <TextBlock><Run Text="Mipmap Height:    " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding MipHeight, Mode=OneWay}"/></TextBlock>
+                    <TextBlock>
+                        <Run Text="PERFORMANCE:   "/>
+                        <Run Text="{Binding PerformanceIndicator}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Image Path:    " FontWeight="Bold"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding ImagePath, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Format:    " FontWeight="Bold"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding Format, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Mipmap Width:    " FontWeight="Bold"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding MipWidth, Mode=OneWay}"/>
+                    </TextBlock>
+                    
+                    <TextBlock>
+                        <Run Text="Mipmap Height:    " FontWeight="Bold"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding MipHeight, Mode=OneWay}"/>
+                    </TextBlock>
+                    
                 </StackPanel>
                 <StackPanel>
                     <StackPanel.Resources>

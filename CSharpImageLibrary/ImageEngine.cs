@@ -65,7 +65,7 @@ namespace CSharpImageLibrary
         /// Enables GPU Accelerated encoding and decoding of all formats.
         /// NOTE: WIC formats (jpg, bmp, png etc) probably already use GPU, but are not covered by this flag.
         /// </summary>
-        public static bool EnableGPUAcceleration { get; set; }
+        public static bool EnableGPUAcceleration { get; set; } = false;
 
         /// <summary>
         /// Determines how many threads to use. -1 is infinite.
@@ -84,8 +84,8 @@ namespace CSharpImageLibrary
 
 
             // Enable GPU Acceleration by default
-            if (GPU.IsGPUAvailable)
-                EnableGPUAcceleration = true;
+            /*if (GPU.IsGPUAvailable)
+                EnableGPUAcceleration = false;*/
         }
 
         internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int maxDimension, double scale)

@@ -63,10 +63,6 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Cudafy.NET, Version=1.29.5576.13786, Culture=neutral, PublicKeyToken=63a4c9931616906b, processorArchitecture=MSIL">
-      <HintPath>..\packages\CUDAfy.NET.1.29.5576.13786\lib\net40\Cudafy.NET.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Microsoft.IO.RecyclableMemoryStream, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.IO.RecyclableMemoryStream.1.2.0\lib\net45\Microsoft.IO.RecyclableMemoryStream.dll</HintPath>
       <Private>True</Private>
@@ -96,7 +92,6 @@
     <Compile Include="DDS\DDS_BlockHelpers.cs" />
     <Compile Include="DDS\DDS_Decoders.cs" />
     <Compile Include="DDS\DDS_Encoders.cs" />
-    <Compile Include="GPU.cs" />
     <Compile Include="Headers\AbstractHeader.cs" />
     <Compile Include="Headers\BMP_Header.cs" />
     <Compile Include="Headers\DDS_Header.cs" />
@@ -136,7 +131,6 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
-    <None Include="Tools\place_these_executables_in_same_folder_as_Cudafy.NET.dll_" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -161,15 +155,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="ImageEngine.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Readme\CUDA.NET.Readme.txt" />
-    <Resource Include="Readme\CUDAfy-License.txt" />
-    <Resource Include="Readme\example_source_code.cs.txt" />
-    <Resource Include="Readme\ILSpy-license.txt" />
-    <Resource Include="Readme\README.txt" />
-    <Content Include="Tools\cudafycl.exe" />
-    <Content Include="Tools\CudafyViewer.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

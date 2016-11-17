@@ -163,6 +163,15 @@ namespace CSharpImageLibrary.DDS
                     break;
             }
 
+
+            /*GPUDecoding decode = new GPUDecoding();
+            byte[] dest = decode.TryGPU(compressed.GetBuffer(), mipWidth, mipHeight);
+
+            MipMaps.Add(new MipMap(dest, mipWidth, mipHeight, true));
+            return MipMaps;
+
+            Console.WriteLine();*/
+
             // KFreon: Read mipmaps
             for (int m = 0; m < estimatedMips; m++)
             {

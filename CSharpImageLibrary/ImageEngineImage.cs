@@ -201,7 +201,7 @@ namespace CSharpImageLibrary
                 }
                 else
                 {
-                    double scale = (double)maxDimension * (Height > Width ? Height : Width);
+                    double scale = (double)maxDimension / (Height > Width ? Height : Width);
                     mip = ImageEngine.Resize(mip, scale, ShowAlpha);
                     bmp = mip.ToImage();
                 }         
