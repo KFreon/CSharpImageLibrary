@@ -114,9 +114,9 @@ namespace CSharpImageLibrary.DDS
             // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
             List<uint> maskOrder = new List<uint>(4) { AMask, RMask, GMask, BMask };
             maskOrder.Sort();
-            maskOrder.Reverse();
+            maskOrder.RemoveAll(t => t == 0);  // Required, otherwise indicies get all messed up when there's only two channels, but it's not indicated as such.
             int[] ordering = new int[4];
-            if (twoChannel)
+            if (twoChannel)  // Note: V8U8 does not come under this one.
             {
                 // Intensity is first byte, then the alpha. Set all RGB to intensity for grayscale.
                 // Second mask is always RMask as determined by the DDS Spec.

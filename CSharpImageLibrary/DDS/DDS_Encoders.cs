@@ -73,6 +73,27 @@ namespace CSharpImageLibrary.DDS
             bool oneChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
             bool twoChannel = oneChannel && (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS;
 
+            uint AMask = ddspf.dwABitMask;
+            uint RMask = ddspf.dwRBitMask;
+            uint GMask = ddspf.dwGBitMask;
+            uint BMask = ddspf.dwBBitMask;
+
+            ///// Figure out channel existance and ordering.
+            // Setup array that indicates channel offset from pixel start.
+            // e.g. Alpha is usually first, and is given offset 0.
+            // NOTE: Ordering array is in ARGB order, and the stored indices change depending on detected channel order.
+            // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
+            List<uint> maskOrder = new List<uint>(4) { AMask, RMask, GMask, BMask };
+            maskOrder.Sort();
+            maskOrder.RemoveAll(t => t == 0);  // Required, otherwise indicies get all messed up when there's only two channels, but it's not indicated as such.
+            int[] ordering = new int[4];
+
+            // Set default ordering
+            ordering[0] = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
+            ordering[1] = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
+            ordering[2] = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
+            ordering[3] = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
+
             for (int i = 0; i < source.Length; i+=4, destStart += byteCount)
             {
                 byte blue = (byte)(source[i] + signedAdjust);
@@ -82,24 +103,24 @@ namespace CSharpImageLibrary.DDS
 
                 if (twoChannel)
                 {
-                    destination[destStart] = blue;
-                    destination[destStart + 1] = green;
+                    destination[destStart] = AMask > RMask ? red : alpha;
+                    destination[destStart + 1] = AMask > RMask ? alpha : red;
                 }
                 else if (oneChannel)
                     destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
                 else
                 {
-                    // Originally should be ARGB - This shifts each channel where it should be, then undoes it all.
-                    // TODO: Surely there's a better way to do this.
-                    // Basically just orders the channels based on the masks.
-                    int colour = 0;
-                    colour |= Shift(alpha, ddspf.dwABitMask);
-                    colour |= Shift(red, ddspf.dwRBitMask);
-                    colour |= Shift(green, ddspf.dwGBitMask);
-                    colour |= Shift(blue, ddspf.dwBBitMask);
+                    if (AMask != 0)
+                        destination[destStart + ordering[0]] = alpha;
 
-                    var bytes = BitConverter.GetBytes(colour);
-                    bytes.CopyTo(destination, destStart);
+                    if (RMask != 0)
+                        destination[destStart + ordering[1]] = red;
+
+                    if (GMask != 0)
+                        destination[destStart + ordering[2]] = green;
+
+                    if (BMask != 0)
+                        destination[destStart + ordering[3]] = blue;
                 }
             }
 

@@ -421,8 +421,8 @@ namespace UI_Project
                 timer.Start();
                 var stream = img.Save(SaveFormat, MipHandling.KeepTopOnly, 1024, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));  // KFreon: Smaller size for quicker loading
                 timer.Stop();
-                Debug.WriteLine($"{SaveFormat} preview generation took {timer.ElapsedMilliseconds}ms");
-                PerformanceIndicator = $"{SaveFormat} preview generation took {timer.ElapsedMilliseconds}ms";
+                Debug.WriteLine($"{SaveFormat} Save preview generation took {timer.ElapsedMilliseconds}ms");
+                PerformanceIndicator = $"{SaveFormat} Save preview generation took {timer.ElapsedMilliseconds}ms";
                 using (ImageEngineImage previewimage = new ImageEngineImage(stream))
                 {
                     BitmapSource[] tempImgs = new BitmapSource[2];
