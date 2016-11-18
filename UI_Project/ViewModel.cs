@@ -441,43 +441,38 @@ namespace UI_Project
         /// <returns>Nothing. Async needs task to await.</returns>
         public async Task LoadImage(string path)
         {
-            bool testing = false;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
+            bool testing = true;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
 
             // Load file into memory
             byte[] imgData = File.ReadAllBytes(path);
 
-            Task<List<object>> fullLoadingTask = null;
-            if (!testing)
+            // Load full size image
+            ////////////////////////////////////////////////////////////////////////////////////////
+            var fullLoadingTask = Task.Run(() =>
             {
-                // Load full size image
-                ////////////////////////////////////////////////////////////////////////////////////////
-                fullLoadingTask = Task.Run(() =>
+                Stopwatch timer1 = new Stopwatch();
+                timer1.Reset();
+                timer1.Start();
+                ImageEngineImage fullimage = new ImageEngineImage(imgData);
+                timer1.Stop();
+                Console.WriteLine($"Full {fullimage.Format} Loading: {timer1.ElapsedMilliseconds}");
+                PerformanceIndicator = $"Full {fullimage.Format} Loading: {timer1.ElapsedMilliseconds}";
+
+                List<BitmapSource> alphas = new List<BitmapSource>();
+                List<BitmapSource> nonalphas = new List<BitmapSource>();
+
+                for (int i = 0; i < fullimage.NumMipMaps; i++)
                 {
-                    Stopwatch timer1 = new Stopwatch();
-                    timer1.Reset();
-                    timer1.Start();
-                    ImageEngineImage fullimage = new ImageEngineImage(imgData);
-                    timer1.Stop();
-                    Console.WriteLine($"Full {fullimage.Format} Loading: {timer1.ElapsedMilliseconds}");
-                    PerformanceIndicator = $"Full {fullimage.Format} Loading: {timer1.ElapsedMilliseconds}";
+                    alphas.Add(fullimage.GetWPFBitmap(ShowAlpha: true, mipIndex: i));
+                    nonalphas.Add(fullimage.GetWPFBitmap(ShowAlpha: false, mipIndex: i));
+                }
 
-                    List<BitmapSource> alphas = new List<BitmapSource>();
-                    List<BitmapSource> nonalphas = new List<BitmapSource>();
-
-                    for (int i = 0; i < fullimage.NumMipMaps; i++)
-                    {
-                        alphas.Add(fullimage.GetWPFBitmap(ShowAlpha: true, mipIndex: i));
-                        nonalphas.Add(fullimage.GetWPFBitmap(ShowAlpha: false, mipIndex: i));
-                    }
-
-                    List<object> bits = new List<object>();
-                    bits.Add(fullimage);
-                    bits.Add(alphas);
-                    bits.Add(nonalphas);
-                    return bits;
-                });
-                ////////////////////////////////////////////////////////////////////////////////////////
-            }
+                List<object> bits = new List<object>();
+                bits.Add(fullimage);
+                bits.Add(alphas);
+                bits.Add(nonalphas);
+                return bits;
+            });
 
             SaveSuccess = null;
             Previews.Clear();
@@ -486,65 +481,36 @@ namespace UI_Project
             SaveFormat = ImageEngineFormat.Unknown;
 
             
-
-
-            // Want to load entire image, no resizing when testing.
-            ////////////////////////////////////////////////////////////////////////////////////////
-            Stopwatch timer = new Stopwatch();
-            if (testing)
-            {
-                timer.Reset();
-                timer.Start();
-                img = await Task.Run(() => new ImageEngineImage(imgData));
-                timer.Stop();
-                Console.WriteLine($"TESTING: Full {img.Format} Loading: {timer.ElapsedMilliseconds}");
-            }
-            else
-                img = await Task.Run(() => new ImageEngineImage(imgData, 256));
-            ////////////////////////////////////////////////////////////////////////////////////////
-
-            img.FilePath = path;
-
-            timer.Reset();
-            timer.Start();
-            Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
-            timer.Stop();
-            Console.WriteLine($"Preview generation for {img.Format}: {timer.ElapsedMilliseconds}");
-            MipIndex = 1;  // 1 based
-
-            OnPropertyChanged(nameof(ImagePath));
-            OnPropertyChanged(nameof(Format));
-            OnPropertyChanged(nameof(NumMipMaps));
-            OnPropertyChanged(nameof(Preview));
-            OnPropertyChanged(nameof(MipWidth));
-            OnPropertyChanged(nameof(MipHeight));
-
-            // KFreon: Get full image details
-            ////////////////////////////////////////////////////////////////////////////////////////
+            // This bit loads a preview placeholder small size image while loading entire thing. Don't want this when testing.
             if (!testing)
             {
-                List<object> FullImageObjects = await fullLoadingTask;
-                double? oldMipWidth = MipWidth;
-                img = (ImageEngineImage)FullImageObjects[0];
+                img = await Task.Run(() => new ImageEngineImage(imgData, 256));
 
-                AlphaPreviews = (List<BitmapSource>)FullImageObjects[1];
-                NonAlphaPreviews = (List<BitmapSource>)FullImageObjects[2];
+                img.FilePath = path;
 
-                UpdatePreviews();
+                // Temporary small image for fast previewing
+                Previews.Add(img.GetWPFBitmap(ShowAlpha: ShowAlphaPreviews));
+                MipIndex = 1;  // 1 based
 
-                // KFreon: Set selected mip index
-                /*for (int i = 0; i < Previews.Count; i++)
-                {
-                    if (Previews[i].Width == oldMipWidth)
-                    {
-                        MipIndex = i + 1;  // 1 based
-                        break;
-                    }
-                }*/
-                MipIndex = 1;
-            }
-            
-            ////////////////////////////////////////////////////////////////////////////////////////
+                OnPropertyChanged(nameof(ImagePath));
+                OnPropertyChanged(nameof(Format));
+                OnPropertyChanged(nameof(NumMipMaps));
+                OnPropertyChanged(nameof(Preview));
+                OnPropertyChanged(nameof(MipWidth));
+                OnPropertyChanged(nameof(MipHeight));
+            }            
+
+            // KFreon: Get full image details
+            List<object> FullImageObjects = await fullLoadingTask;
+            double? oldMipWidth = MipWidth;
+            img = (ImageEngineImage)FullImageObjects[0];
+
+            AlphaPreviews = (List<BitmapSource>)FullImageObjects[1];
+            NonAlphaPreviews = (List<BitmapSource>)FullImageObjects[2];
+
+            UpdatePreviews();
+
+            MipIndex = 1;
 
 
             OnPropertyChanged(nameof(NumMipMaps));

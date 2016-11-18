@@ -62,6 +62,7 @@ namespace CSharpImageLibrary
         public static bool EnableThreading { get; set; } = true;
 
         /// <summary>
+        /// CURRENTLY DISABLED. Didn't work :(
         /// Enables GPU Accelerated encoding and decoding of all formats.
         /// NOTE: WIC formats (jpg, bmp, png etc) probably already use GPU, but are not covered by this flag.
         /// </summary>

@@ -747,15 +747,18 @@ namespace CSharpImageLibrary.DDS
 
 
             // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
-            for (int i = 0; i < 16; i++)
+            for (int i = 0; i < 4; i++)
             {
-                int lineOffset = decompressedLineLength * (i / 4);
-                int offset = decompressedStart + lineOffset + (i % 4) * 4;  // i % 4 is so "column offset" resets at end of row.
-                destination[offset] = (byte)Colours[bitmask >> (i * 3) & 0x7];
+                for (int j = 0; j < 4; j++)
+                {
+                    int index = i * 4 + j;
+                    int destPos = decompressedStart + j * 4 + (i * decompressedLineLength);
+                    destination[destPos] = (byte)Colours[bitmask >> (index * 3) & 0x7];
+                }
             }
         }
 
-        
+
         internal static byte[] Decompress8BitBlock(byte[] source, int sourceStart, bool isSigned)
         {
             byte[] DecompressedBlock = new byte[16];
@@ -880,20 +883,14 @@ namespace CSharpImageLibrary.DDS
             {
                 // KFreon: Interpolate other colours
                 for (int i = 2; i < 8; i++)
-                {
-                    double test = min + (max - min) * (i - 1) / 7;
-                    Colours[i] = (byte)test;
-                }
+                    Colours[i] = (byte)(min + (max - min) * (i - 1) / 7);
             }
             else
             {
                 // KFreon: Interpolate other colours and add Opacity or something...
                 for (int i = 2; i < 6; i++)
-                {
-                    //double test = ((8 - i) * min + (i - 1) * max) / 5.0f;   // KFreon: "Linear interpolation". Serves me right for trusting a website without checking it...
-                    double extratest = min + (max - min) * (i - 1) / 5;
-                    Colours[i] = (byte)extratest;
-                }
+                    Colours[i] = (byte)(min + (max - min) * (i - 1) / 5d);
+                
                 Colours[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
                 Colours[7] = 255;
             }

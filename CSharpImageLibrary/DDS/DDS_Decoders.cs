@@ -101,75 +101,54 @@ namespace CSharpImageLibrary.DDS
             bool oneChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
             bool twoChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS && oneChannel;
 
-            for (int i = 0, j = 0; i < pixelCount * 4; i += 4, j += sourceIncrement)
+            uint AMask = ddspf.dwABitMask;
+            uint RMask = ddspf.dwRBitMask;
+            uint GMask = ddspf.dwGBitMask;
+            uint BMask = ddspf.dwBBitMask;
+
+
+            ///// Figure out channel existance and ordering.
+            // Setup array that indicates channel offset from pixel start.
+            // e.g. Alpha is usually first, and is given offset 0.
+            // NOTE: Ordering array is in ARGB order, and the stored indices change depending on detected channel order.
+            // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
+            List<uint> maskOrder = new List<uint>(4) { AMask, RMask, GMask, BMask };
+            maskOrder.Sort();
+            maskOrder.Reverse();
+            int[] ordering = new int[4];
+            if (twoChannel)
             {
-                int colour = ReadUncompressedColour(source, sourceStart + j, ddspf.dwRGBBitCount);
-
-                byte red = 0;
-                byte blue = 0;
-                byte green = 0;
-                byte alpha = 0xFF;
-
-                if (twoChannel)
-                {
-                    Debugger.Break();
-                    blue = (byte)(MaskAndShift(colour, ddspf.dwBBitMask) - signedAdjustment);
-                    green = (byte)(MaskAndShift(colour, ddspf.dwABitMask) - signedAdjustment);
-                    red = 0xFF;
-                }
-                else if (oneChannel)
-                {
-                    red = (byte)(MaskAndShift(colour, ddspf.dwRBitMask) - signedAdjustment);
-                    blue = red;
-                    green = red;
-                }
-                else
-                {
-                    blue = ddspf.dwBBitMask == 0 ? (byte)0xFF : (byte)(MaskAndShift(colour, ddspf.dwBBitMask) - signedAdjustment);
-                    green = ddspf.dwGBitMask == 0 ? (byte)0xFF : (byte)(MaskAndShift(colour, ddspf.dwGBitMask) - signedAdjustment);
-                    red = ddspf.dwRBitMask == 0 ? (byte)0xFF : (byte)(MaskAndShift(colour, ddspf.dwRBitMask) - signedAdjustment);
-                    alpha = ddspf.dwABitMask == 0 ? (byte)0xFF : (byte)(MaskAndShift(colour, ddspf.dwABitMask));
-                }
-
-
-                destination[i] = blue;
-                destination[i + 1] = green;
-                destination[i + 2] = red;
-                destination[i + 3] = alpha;
+                // Intensity is first byte, then the alpha. Set all RGB to intensity for grayscale.
+                // Second mask is always RMask as determined by the DDS Spec.
+                ordering[0] = AMask > RMask ? 1 : 0;
+                ordering[1] = AMask > RMask ? 0 : 1;
+                ordering[2] = AMask > RMask ? 0 : 1;
+                ordering[3] = AMask > RMask ? 0 : 1;
             }
-        }
-
-        static int ReadUncompressedColour(byte[] source, int start, int bitCount)
-        {
-            switch (bitCount)
+            else if (oneChannel)
             {
-                case 8:
-                    return source[start];
-                case 16:
-                    return BitConverter.ToInt16(source, start);
-                case 24:
-                case 32:
-                    return BitConverter.ToInt32(source, start);
-                default:
-                    throw new InvalidOperationException($"Bitcount per channel is not allowed: {bitCount}");
+                // Decide whether it's alpha or not.
+                ordering[0] = AMask == 0 ? -1 : 0; 
+                ordering[1] = AMask == 0 ? 0 : -1; 
+                ordering[2] = AMask == 0 ? 0 : -1; 
+                ordering[3] = AMask == 0 ? 0 : -1; 
             }
-        }
-
-        static byte MaskAndShift(int colour, uint mask)
-        {
-            if (mask == 0)
-                return 0;
-
-            var masked = colour & mask;
-            
-            // Shift - skip a byte (max mask 'size')
-            while ((~mask & 0xFF) != 0)
+            else
             {
-                masked >>= 8;
-                mask >>= 8;
+                // Set default ordering
+                ordering[0] = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
+                ordering[1] = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
+                ordering[2] = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
+                ordering[3] = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
             }
 
-            return (byte)masked;
+            for (int i = 0, j = sourceStart; i < pixelCount * 4; i += 4, j += sourceIncrement)
+            {
+                destination[i] = ordering[3] < 0 ? (byte)0xFF : (byte)(source[j + ordering[3]] - signedAdjustment);
+                destination[i + 1] = ordering[2] < 0 ? (byte)0xFF : (byte)(source[j + ordering[2]] - signedAdjustment);
+                destination[i + 2] = ordering[1] < 0 ? (byte)0xFF : (byte)(source[j + ordering[1]] - signedAdjustment);
+                destination[i + 3] = ordering[0] < 0 ? (byte)0xFF : (source[j + ordering[0]]);
+            }
         }
         #endregion Uncompressed Readers
     }

@@ -73,7 +73,7 @@ namespace CSharpImageLibrary.DDS
                 if (ImageEngine.EnableGPUAcceleration)
                     Debugger.Break();  // TODO: GPU acceleration
                 else if (ImageEngine.EnableThreading)
-                    Parallel.For(0, texelCount, (texelIndex, loopstate) => action(texelIndex, loopstate));
+                    Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (texelIndex, loopstate) => action(texelIndex, loopstate));
                 else
                     for (int texelIndex = 0; texelIndex < texelCount; texelIndex++)
                         action(texelIndex, null);
@@ -163,15 +163,6 @@ namespace CSharpImageLibrary.DDS
                     break;
             }
 
-
-            /*GPUDecoding decode = new GPUDecoding();
-            byte[] dest = decode.TryGPU(compressed.GetBuffer(), mipWidth, mipHeight);
-
-            MipMaps.Add(new MipMap(dest, mipWidth, mipHeight, true));
-            return MipMaps;
-
-            Console.WriteLine();*/
-
             // KFreon: Read mipmaps
             for (int m = 0; m < estimatedMips; m++)
             {
@@ -189,7 +180,7 @@ namespace CSharpImageLibrary.DDS
                     mipmap = ReadUncompressedMipMap(compressed, mipOffset, mipWidth, mipHeight, header.ddspf);
 
                 MipMaps.Add(mipmap);
-                mipOffset += mipWidth * mipHeight * (blockSize / 16); // Only used for BC textures
+                mipOffset += (int)(mipWidth * mipHeight * (blockSize / (ImageFormats.IsBlockCompressed(format) ? 16d : 1d))); // Also put the division in brackets cos if the mip dimensions are high enough, the multiplications can exceed int.MaxValue)
                 mipWidth /= 2;
                 mipHeight /= 2;
             }
@@ -316,7 +307,7 @@ namespace CSharpImageLibrary.DDS
 
             // Start at 1 to skip top mip
             if (ImageEngine.EnableThreading)
-                Parallel.For(1, estimatedMips + 1, item => action(item));
+                Parallel.For(1, estimatedMips + 1, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, item => action(item));
             else
                 for (int item = 1; item < estimatedMips + 1; item++)
                     action(item);
