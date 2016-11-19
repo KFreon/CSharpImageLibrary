@@ -54,7 +54,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a WPF image from this mipmap.
         /// </summary>
-        /// <returns>WritableBitmap of image.</returns>
+        /// <returns>WriteableBitmap of image.</returns>
         public WriteableBitmap ToImage()
         {
             return UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);

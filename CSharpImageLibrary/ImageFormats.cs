@@ -129,6 +129,11 @@ namespace CSharpImageLibrary
         /// Allows mipmaps.
         /// </summary>
         TIFF = DDS_RGB + 1,
+
+        /// <summary>
+        /// Used when the exact format is not present in this enum, but enough information is present to load it. (ARGB16 or something)
+        /// </summary>
+        DDS_CUSTOM = TIFF + 1,
     }
 
 

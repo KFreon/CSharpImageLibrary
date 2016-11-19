@@ -118,6 +118,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_ARGB:
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_CUSTOM:
                     MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
                     break;
                 case ImageEngineFormat.GIF:

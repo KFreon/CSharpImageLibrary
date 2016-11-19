@@ -115,39 +115,44 @@ namespace CSharpImageLibrary.DDS
             List<uint> maskOrder = new List<uint>(4) { AMask, RMask, GMask, BMask };
             maskOrder.Sort();
             maskOrder.RemoveAll(t => t == 0);  // Required, otherwise indicies get all messed up when there's only two channels, but it's not indicated as such.
-            int[] ordering = new int[4];
+
+            int AIndex = 0;
+            int RIndex = 0;
+            int GIndex = 0;
+            int BIndex = 0;
+
             if (twoChannel)  // Note: V8U8 does not come under this one.
             {
                 // Intensity is first byte, then the alpha. Set all RGB to intensity for grayscale.
                 // Second mask is always RMask as determined by the DDS Spec.
-                ordering[0] = AMask > RMask ? 1 : 0;
-                ordering[1] = AMask > RMask ? 0 : 1;
-                ordering[2] = AMask > RMask ? 0 : 1;
-                ordering[3] = AMask > RMask ? 0 : 1;
+                AIndex = AMask > RMask ? 1 : 0;
+                RIndex = AMask > RMask ? 0 : 1;
+                GIndex = AMask > RMask ? 0 : 1;
+                BIndex = AMask > RMask ? 0 : 1;
             }
             else if (oneChannel)
             {
                 // Decide whether it's alpha or not.
-                ordering[0] = AMask == 0 ? -1 : 0; 
-                ordering[1] = AMask == 0 ? 0 : -1; 
-                ordering[2] = AMask == 0 ? 0 : -1; 
-                ordering[3] = AMask == 0 ? 0 : -1; 
+                AIndex = AMask == 0 ? -1 : 0; 
+                RIndex = AMask == 0 ? 0 : -1; 
+                GIndex = AMask == 0 ? 0 : -1;
+                BIndex = AMask == 0 ? 0 : -1; 
             }
             else
             {
                 // Set default ordering
-                ordering[0] = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
-                ordering[1] = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
-                ordering[2] = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
-                ordering[3] = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
+                AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
+                RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
+                GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
+                BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
             }
 
             for (int i = 0, j = sourceStart; i < pixelCount * 4; i += 4, j += sourceIncrement)
             {
-                destination[i] = ordering[3] < 0 ? (byte)0xFF : (byte)(source[j + ordering[3]] - signedAdjustment);
-                destination[i + 1] = ordering[2] < 0 ? (byte)0xFF : (byte)(source[j + ordering[2]] - signedAdjustment);
-                destination[i + 2] = ordering[1] < 0 ? (byte)0xFF : (byte)(source[j + ordering[1]] - signedAdjustment);
-                destination[i + 3] = ordering[0] < 0 ? (byte)0xFF : (source[j + ordering[0]]);
+                destination[i] = BIndex == -1 ? (byte)0xFF : (byte)(source[j + BIndex] - signedAdjustment);
+                destination[i + 1] = GIndex == -1 ? (byte)0xFF : (byte)(source[j + GIndex] - signedAdjustment);
+                destination[i + 2] = RIndex == -1 ? (byte)0xFF : (byte)(source[j + RIndex] - signedAdjustment);
+                destination[i + 3] = AIndex == -1 ? (byte)0xFF : (source[j + AIndex]);
             }
         }
         #endregion Uncompressed Readers

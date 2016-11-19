@@ -98,7 +98,6 @@ namespace CSharpImageLibrary.Headers
                 switch (surfaceFormat)
                 {
                     // Compressed formats don't need anything written here since pitch/linear size is unreliable. Why bother?
-                    // TODO: Expand such that users can specify bitmasks
                     #region Uncompressed
                     case ImageEngineFormat.DDS_G8_L8:
                         dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
@@ -130,6 +129,9 @@ namespace CSharpImageLibrary.Headers
                         dwRBitMask = 0xFF0000;
                         dwGBitMask = 0x00FF00;
                         dwBBitMask = 0x0000FF;
+                        break;
+                    case ImageEngineFormat.DDS_CUSTOM:
+                        // TODO: User defined masks
                         break;
                     #endregion Uncompressed
                 }
@@ -772,7 +774,7 @@ namespace CSharpImageLibrary.Headers
                            ddspf.dwRBitMask == 0x00FF &&
                            ddspf.dwGBitMask == 0xFF00 &&
                            ddspf.dwBBitMask == 0x00 &&
-                           ddspf.dwABitMask == 0x00 && 
+                           ddspf.dwABitMask == 0x00 &&
                            (ddspf.dwFlags & DDS_PFdwFlags.DDPF_SIGNED) == DDS_PFdwFlags.DDPF_SIGNED)
                     format = ImageEngineFormat.DDS_V8U8;
 
@@ -805,8 +807,12 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
                     format = ImageEngineFormat.DDS_ARGB;
+
+                // KFreon: If nothing else fits, but there's data in one of the bitmasks, assume it can be read.
+                else if (ddspf.dwABitMask != 0 || ddspf.dwRBitMask != 0 || ddspf.dwGBitMask != 0 || ddspf.dwBBitMask != 0)
+                    format = ImageEngineFormat.DDS_CUSTOM;
                 else
-                    throw new FormatException("Format is unknown.");
+                    throw new FormatException("DDS Format is unknown.");
             }
 
             return format;

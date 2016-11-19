@@ -443,6 +443,26 @@ namespace UI_Project
         {
             bool testing = true;  // Set to true to load mips single threaded and only the full image instead of a smaller one first.
 
+
+            // Clear all previews - try to fix memory issue
+            for(int i = 0; i < Previews.Count; i++)
+            {
+                Previews[i] = null;
+                AlphaPreviews[i] = null;
+                NonAlphaPreviews[i] = null;
+            }
+
+            Previews.Clear();
+
+            savePreviews[0] = null;
+            savePreviews[1] = null;
+
+            savePreviews = new BitmapSource[2];
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
+
             // Load file into memory
             byte[] imgData = File.ReadAllBytes(path);
 
@@ -475,8 +495,6 @@ namespace UI_Project
             });
 
             SaveSuccess = null;
-            Previews.Clear();
-            savePreviews = new BitmapSource[2];
             SavePath = null;
             SaveFormat = ImageEngineFormat.Unknown;
 
@@ -524,7 +542,7 @@ namespace UI_Project
         private void UpdatePreviews()
         {
             if (AlphaPreviews == null || NonAlphaPreviews == null)
-                return; 
+                return;
 
             Previews.Clear();
             Previews.AddRange(ShowAlphaPreviews ? AlphaPreviews : NonAlphaPreviews);
