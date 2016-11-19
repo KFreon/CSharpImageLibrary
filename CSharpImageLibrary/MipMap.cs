@@ -7,6 +7,8 @@ using UsefulThings;
 using Microsoft.IO;
 using System.IO;
 using System.Windows.Media.Imaging;
+using System.Runtime.InteropServices;
+using System.Windows.Media;
 
 namespace CSharpImageLibrary
 {
@@ -55,7 +57,7 @@ namespace CSharpImageLibrary
         /// Creates a WPF image from this mipmap.
         /// </summary>
         /// <returns>WriteableBitmap of image.</returns>
-        public WriteableBitmap ToImage()
+        public BitmapSource ToImage()
         {
             return UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);
         }

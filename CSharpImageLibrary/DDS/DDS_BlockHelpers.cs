@@ -788,6 +788,8 @@ namespace CSharpImageLibrary.DDS
             ushort colour1;
             int[] Colours = null;
 
+            // TODO: Attempt to remove as many []s as possible.
+
             // Build colour palette
             try
             {

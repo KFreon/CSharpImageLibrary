@@ -303,6 +303,24 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
 
+            Debugger.Break();
+
+            // TODO: If this resize method is kept, need to deal with alpha somehow.
+            // TESTING
+            byte[] newPixels = null;
+            if (newHeight > newWidth)
+                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Pixels, decodeWidth: newWidth).GetPixelsAsBGRA32();
+            else
+                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Pixels, decodeHeight: newHeight).GetPixelsAsBGRA32();
+
+            return new MipMap(newPixels, newWidth, newHeight, mipMap.AlphaPresent);
+
+
+
+
+
+
+
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
             bool alphaPresent = mipMap.AlphaPresent;
 
