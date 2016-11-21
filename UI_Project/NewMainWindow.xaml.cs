@@ -45,5 +45,10 @@ namespace UI_Project
             if (e.ChangedButton == MouseButton.Left)
                 DragMove();
         }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            UsefulThings.WPF.WindowBlur.EnableBlur(this);
+        }
     }
 }

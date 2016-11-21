@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UI_Project"
         mc:Ignorable="d"
-        Title="NewMainWindow" Height="720.333" Width="1000" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip">
+        Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" Loaded="Window_Loaded">
     <Grid Margin="0,0,0,3">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="127*"/>
@@ -16,7 +16,7 @@
             <RowDefinition Height="30"/>
             <RowDefinition Height="148*"/>
             <RowDefinition Height="3"/>
-            <RowDefinition Height="80*"/>
+            <RowDefinition Height="100*"/>
         </Grid.RowDefinitions>
 
         <Grid.Resources>
@@ -68,6 +68,12 @@
             </Style>
         </Grid.Resources>
 
+        <ComboBox x:Name="AlphaDisplaySelector" HorizontalAlignment="Right" VerticalAlignment="Top" SelectedIndex="0" Grid.Row="3" Margin="0,0,0.333,0" FontSize="10">
+            <ComboBoxItem Content="Don't Display Alpha"/>
+            <ComboBoxItem Content="Premultiplied Alpha"/>
+            <ComboBoxItem Content="Display Alpha Only"/>
+        </ComboBox>
+
         <DockPanel x:Name="TitleBarDockPanel" Background="#4C000000" Grid.ColumnSpan="4">
             <DockPanel.Resources>
                 <Style TargetType="Button">
@@ -89,12 +95,13 @@
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
-                                    <Border x:Name="BorderKey" Background="Transparent">
+                                    <Border x:Name="BorderKey" Background="Transparent" BorderBrush="Transparent">
                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="BorderKey" Property="Background" Value="#CCFF0000" />
+                                            <Setter TargetName="BorderKey" Property="BorderBrush" Value="Red" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -206,14 +213,6 @@
         <Rectangle x:Name="PropertiesDivider" Grid.Row="2" Grid.ColumnSpan="4" Style="{StaticResource DividerStyle}"/>
 
         <DockPanel x:Name="LoadedImagePropertyPanel" Grid.Row="3" Margin="3,0,3,0">
-            <Label Content="Display Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
-            <TextBlock Text="Alpha Display" DockPanel.Dock="Top" Style="{StaticResource VisibleTextDisplayStyle}"/>
-            <ComboBox x:Name="AlphaDisplaySelector" DockPanel.Dock="Top">
-                <ComboBoxItem Content="None"/>
-                <ComboBoxItem Content="Premultiplied"/>
-                <ComboBoxItem Content="Show Mask"/>
-            </ComboBox>
-
             <DockPanel LastChildFill="False" DockPanel.Dock="Bottom">
                 <Button Content="Close" DockPanel.Dock="Left"/>
                 <Button Content="Convert >>" DockPanel.Dock="Right"/>
@@ -235,31 +234,50 @@
                         </DockPanel>
 
 
+                        <Grid Margin="3,10">
+                            <Grid.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="HorizontalAlignment" Value="Left"/>
+                                    <Setter Property="Height" Value="150"/>
+                                    <Setter Property="Width" Value="150"/>
+                                    <Setter Property="BorderBrush" Value="AliceBlue"/>
+                                    <Setter Property="BorderThickness" Value="2"/>
+                                    <Setter Property="Background" Value="Gray"/>
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="173*"/>
+                                <ColumnDefinition Width="302*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Margin="10,0,0,20"/>
+                            <Border Margin="5.5,0,0,10.5"/>
+                            <Border Margin="0,10">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="LoadedFormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
+                                        <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
+                                        <Run Text="FORMAT"/>
+                                    </TextBlock>
 
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="UncompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Margin="0,0,20,0">
-                                <Run Text="Uncompressed Size: " Style="{StaticResource TitleElementStyle}"/>
-                                <Run Text="SIZE"/>
-                            </TextBlock>
+                                    <TextBlock x:Name="MipCountLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
+                                        <Run Text="Mipmaps: " Style="{StaticResource TitleElementStyle}"/>
+                                        <Run Text="MIPCOUNT"/>
+                                    </TextBlock>
 
-                            <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Margin="0,0,20,0">
-                                <Run Text="Compressed Size: " Style="{StaticResource TitleElementStyle}"/>
-                                <Run Text="SIZE"/>
-                            </TextBlock>
+                                    <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Grid.Column="1" 
+                                               IsHitTestVisible="False" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                        <Run Text="Compressed/File Size: " Style="{StaticResource TitleElementStyle}"/>
+                                        <LineBreak/>
+                                        <Run Text="SIZE"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
 
-                            <TextBlock x:Name="CompressionRatioLabel" Style="{StaticResource VisibleTextDisplayStyle}">
-                                <Run Text="Compression Ratio: " Style="{StaticResource TitleElementStyle}"/>
-                                <Run Text="RATIO"/>
-                            </TextBlock>
-                        </StackPanel>
-
-                        <TextBlock x:Name="LoadedFormatLabel" Style="{StaticResource VisibleTextDisplayStyle}">
-                                <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
-                                <Run Text="FORMAT"/>
-                        </TextBlock>
+                            <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False"/>
+                            <TextBox Text="Header?" Grid.Column="1" Margin="0,25,0,0" VerticalScrollBarVisibility="Auto" Background="Transparent" Foreground="White"/>
+                        </Grid>
                     </StackPanel>
 
-                    <TextBox x:Key="HeaderPropertiesList" Background="Transparent" Foreground="WhiteSmoke" VerticalScrollBarVisibility="Auto"/>
+                    <Label x:Key="HeaderPropertiesList" Content="WAITING - might not use"/>
                 </ContentControl.Resources>
 
                 <ContentControl.Style>
@@ -288,6 +306,12 @@
             <Button Content="Save!" DockPanel.Dock="Bottom" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold"/>
 
             <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False">
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="13"/>
+                    <Label Content="Compression Ratio %"/>
+                    <Label Content="Compressed Size"/>
+                    <Label Content="Uncompressed size"/>
+                </StackPanel>
                 <DockPanel x:Name="MainSaveFormatSelector" DockPanel.Dock="Left">
                     <Label Content="Format" FontWeight="Bold"/>
                     <ComboBox/>
@@ -296,6 +320,7 @@
                     <Label Content="Additional Format" FontWeight="Bold"/>
                     <ComboBox/>
                 </DockPanel>
+
             </DockPanel>
 
             <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top">
@@ -324,10 +349,8 @@
                 <DockPanel x:Name="MipSettingsArea" DockPanel.Dock="Top">
                     <Label Content="Mipmap Settings:"/>
                     <ComboBox/>
-                    <TextBlock Text="DESCRIPTION"/>
+                    <TextBlock Text="DESCRIPTION" Style="{StaticResource VisibleTextDisplayStyle}"/>
                 </DockPanel>
-
-
             </DockPanel>
         </DockPanel>
 
