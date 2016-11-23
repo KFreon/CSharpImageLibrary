@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using UsefulThings.WPF;
 
 namespace UI_Project
@@ -11,6 +13,25 @@ namespace UI_Project
     public class NewViewModel : ViewModelBase
     {
         #region Loaded Image Properties
+        protected ImageEngineImage LoadedImage = null;
+        List<byte[]> Premult_AlphaPreviews = new List<byte[]>();
+        List<byte[]> No_AlphaPreviews = new List<byte[]>();
+        List<byte[]> Only_AlphaPreviews = new List<byte[]>();
+
+        WriteableBitmap preview = null;
+        public WriteableBitmap Preview
+        {
+            get
+            {
+                return preview;
+            }
+            set
+            {
+                SetProperty(ref preview, value);
+            }
+        } 
+
+
         string windowTitle = "Image Engine";
         public string WindowTitle
         {
@@ -24,7 +45,6 @@ namespace UI_Project
             }
         }
 
-        protected ImageEngineImage LoadedImage = null;
 
         public string LoadedPath
         {
@@ -102,7 +122,7 @@ namespace UI_Project
                 SetProperty(ref alphaDisplaySetting, value);
             }
         }
-#endregion Loaded Image Properties
+        #endregion Loaded Image Properties
 
         #region Save Properties
         public int SaveCompressedSize
@@ -177,5 +197,62 @@ namespace UI_Project
         }
         #endregion Save Properties
 
+
+        public NewViewModel() : base()
+        {
+
+        }
+
+        internal async Task LoadImage(string path)
+        {
+            // Full image
+            var fullLoad = Task.Run(() => new ImageEngineImage(path));
+            
+
+            // Quick previews
+            LoadedImage = await Task.Run(() => new ImageEngineImage(path, 512));
+            UpdatePreview(LoadedImage.MipMaps[0]);
+        }
+
+        internal async Task LoadImage(byte[] data)
+        {
+            // Full image
+            var fullLoad = Task.Run(() => new ImageEngineImage(data));
+
+
+            // Quick previews
+            LoadedImage = await Task.Run(() => new ImageEngineImage(data, 512));
+            UpdatePreview(LoadedImage.MipMaps[0]);
+        }
+
+        void UpdatePreview(MipMap mip)
+        {
+            // Create Preview Object if required
+            if (Preview == null || (Preview.PixelHeight != mip.Height || Preview.PixelWidth != mip.Width))
+                Preview = UsefulThings.WPF.Images.CreateWriteableBitmap(mip.Pixels, mip.Width, mip.Height);
+            else
+            {
+                var rect = new System.Windows.Int32Rect(0, 0, mip.Width, mip.Height);
+                preview.WritePixels(rect, mip.Pixels, mip.Width * 4, 0);
+                Preview.AddDirtyRect(rect);
+                OnPropertyChanged(nameof(Preview));
+            }
+
+            UpdateUI();
+        }
+
+        void UpdateUI()
+        {
+            // Update UI
+            OnPropertyChanged(nameof(LoadedFormat));
+            OnPropertyChanged(nameof(LoadedPath));
+            OnPropertyChanged(nameof(LoadedCompressedSize));
+            OnPropertyChanged(nameof(UncompressedSize));
+            OnPropertyChanged(nameof(HeaderDetails));
+            OnPropertyChanged(nameof(Height));
+            OnPropertyChanged(nameof(Width));
+            OnPropertyChanged(nameof(MipCount));
+            OnPropertyChanged(nameof(UncompressedSize));
+        }
     }
 }

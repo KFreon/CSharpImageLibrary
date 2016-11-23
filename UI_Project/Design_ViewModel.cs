@@ -10,7 +10,7 @@ namespace UI_Project
     {
         public Design_ViewModel() : base()
         {
-            LoadedImage = new CSharpImageLibrary.ImageEngineImage(Properties.Resources.DXT1_CodecTest);
+            LoadImage(Properties.Resources.DXT1_CodecTest);
         }
     }
 }
