@@ -16,8 +16,10 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides native Windows codec functionality for Windows 8.1+.
     /// </summary>
-    internal static class WIC_Codecs
+    public static class WIC_Codecs
     {
+        public static int JPGCompressionSetting = 90;
+
         /// <summary>
         /// Tests whether Windows WIC Codecs are present.
         /// </summary>
@@ -237,7 +239,7 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.JPG:
                     encoder = new JpegBitmapEncoder();
-                    ((JpegBitmapEncoder)encoder).QualityLevel = 90;
+                    ((JpegBitmapEncoder)encoder).QualityLevel = JPGCompressionSetting;
                     estimatedImageSize = estimateHeaderSize + width * height / 6;  // Estimation
                     break;
                 case ImageEngineFormat.PNG:

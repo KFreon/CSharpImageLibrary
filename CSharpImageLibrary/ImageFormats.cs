@@ -445,5 +445,18 @@ namespace CSharpImageLibrary
 
             return formatString;
         }
+
+        /// <summary>
+        /// Calculates the full size of an image based on size, format, and mipmap count.
+        /// </summary>
+        /// <param name="saveFormat">Format of saved image.</param>
+        /// <param name="width">Width of top mipmap.</param>
+        /// <param name="height">Height of top mipmap.</param>
+        /// <param name="numMips">Number of mipmaps image CAN HAVE. Must be the max number. i.e. cannot have partially generated mipmaps.</param>
+        /// <returns>Compressed size in bytes.</returns>
+        public static int GetCompressedSize(ImageEngineFormat saveFormat, int width, int height, int numMips)
+        {
+            return DDS.DDSGeneral.GetMipOffset(numMips + 1, saveFormat, width, height);
+        }
     }
 }

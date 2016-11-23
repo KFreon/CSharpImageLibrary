@@ -4,8 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UI_Project"
+        xmlns:UsefulThings="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" Loaded="Window_Loaded">
+        Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" 
+        Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}">
     <Grid Margin="0,0,0,3">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="127*"/>
@@ -20,6 +22,7 @@
         </Grid.RowDefinitions>
 
         <Grid.Resources>
+            <UsefulThings:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
             <Style x:Key="DimensionIndicatorStyle" TargetType="Line">
                 <Setter Property="Stroke" Value="White"/>
                 <Setter Property="StrokeThickness" Value="2"/>
@@ -68,7 +71,7 @@
             </Style>
         </Grid.Resources>
 
-        <ComboBox x:Name="AlphaDisplaySelector" HorizontalAlignment="Right" VerticalAlignment="Top" SelectedIndex="0" Grid.Row="3" Margin="0,0,0.333,0" FontSize="10">
+        <ComboBox x:Name="AlphaDisplaySelector" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Margin="0,0,0.333,0" FontSize="10" SelectedIndex="{Binding AlphaDisplaySetting}">
             <ComboBoxItem Content="Don't Display Alpha"/>
             <ComboBoxItem Content="Premultiplied Alpha"/>
             <ComboBoxItem Content="Display Alpha Only"/>
@@ -120,7 +123,7 @@
                     <Separator Width="15" Height="1" Background="White"/>
                 </Button.Content>
             </Button>
-            <TextBlock x:Name="TitleBlock" Text="Image Engine" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False"/>
+            <TextBlock x:Name="TitleBlock" Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False" FontSize="22"/>
         </DockPanel>
 
         <!--Loaded Image Box-->
@@ -128,7 +131,7 @@
             <Image/>
         </Viewbox>
 
-        <Grid x:Name="WidthIndicator" VerticalAlignment="Bottom" Grid.Row="1" Margin="0,5,25,5" Height="15">
+        <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="0,5,25,5" Height="15">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="211*"/>
                 <ColumnDefinition Width="43*"/>
@@ -137,11 +140,11 @@
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Left"/>
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Right" Grid.Column="2"/>
             <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock Text="WIDTH" HorizontalAlignment="Center" Grid.Column="1" Foreground="White"/>
+            <TextBlock x:Name="WidthIndicator" Text="{Binding Width}" HorizontalAlignment="Center" Grid.Column="1" Foreground="White"/>
             <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}" Grid.Column="2"/>
         </Grid>
 
-        <Grid x:Name="HeightIndicator" HorizontalAlignment="Right" Grid.Row="1" Margin="0,0,0,25" Width="15">
+        <Grid x:Name="HeightIndicatorContainer" HorizontalAlignment="Right" Grid.Row="1" Margin="0,0,0,25" Width="15">
             <Grid.RowDefinitions>
                 <RowDefinition Height="167*"/>
                 <RowDefinition Height="80*"/>
@@ -150,7 +153,7 @@
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Top"/>
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Bottom" Grid.Row="2"/>
             <Line X1="1" X2="1" Y1="15" Y2="16" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock Text="HEIGHT" VerticalAlignment="Center" Foreground="White" Grid.Row="1">
+            <TextBlock x:Name="HeightIndicator" Text="{Binding Height}" VerticalAlignment="Center" Foreground="White" Grid.Row="1">
                 <TextBlock.LayoutTransform>
                     <TransformGroup>
                         <ScaleTransform/>
@@ -173,40 +176,6 @@
         <Viewbox x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25">
             <Image/>
         </Viewbox>
-        <Grid x:Name="SaveWidthIndicator" VerticalAlignment="Bottom" Grid.Row="1" Grid.Column="2" Margin="0,5,25,5" Height="15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="211*"/>
-                <ColumnDefinition Width="43*"/>
-                <ColumnDefinition Width="209*"/>
-            </Grid.ColumnDefinitions>
-            <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Left"/>
-            <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Right" Grid.Column="2"/>
-            <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock Text="WIDTH" HorizontalAlignment="Center" Grid.Column="1" Foreground="White"/>
-            <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}" Grid.Column="2"/>
-        </Grid>
-
-        <Grid x:Name="SaveHeightIndicator" HorizontalAlignment="Right" Grid.Column="2" Grid.Row="1" Margin="0,0,0,25" Width="15">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="167*"/>
-                <RowDefinition Height="80*"/>
-                <RowDefinition Height="173*"/>
-            </Grid.RowDefinitions>
-            <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Top"/>
-            <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Bottom" Grid.Row="2"/>
-            <Line X1="1" X2="1" Y1="15" Y2="16" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock Text="HEIGHT" VerticalAlignment="Center" Foreground="White" Grid.Row="1">
-                <TextBlock.LayoutTransform>
-                    <TransformGroup>
-                        <ScaleTransform/>
-                        <SkewTransform/>
-                        <RotateTransform Angle="90"/>
-                        <TranslateTransform/>
-                    </TransformGroup>
-                </TextBlock.LayoutTransform>
-            </TextBlock>
-            <Line X1="1" X2="1" Y1="15" Y2="16" Style="{StaticResource DimensionIndicatorStyle}" Margin="0,0,0,0.001" Grid.Row="2" />
-        </Grid>
         <!--END Save Image Box-->
 
 
@@ -227,10 +196,10 @@
             </StackPanel>
             <ContentControl DockPanel.Dock="Top">
                 <ContentControl.Resources>
-                    <StackPanel x:Key="ImagePropertiesList">
-                        <DockPanel>
+                    <DockPanel x:Key="ImagePropertiesList">
+                        <DockPanel DockPanel.Dock="Top">
                             <Label x:Name="LoadedFilePathLabel" Content="Path: " FontWeight="Bold"/>
-                            <TextBox x:Name="LoadedFilePathBox" Text="PATH" Style="{StaticResource ReadOnlyStyle}"/>
+                            <TextBox x:Name="LoadedFilePathBox" Text="{Binding LoadedPath, Mode=OneWay}" Style="{StaticResource ReadOnlyStyle}"/>
                         </DockPanel>
 
 
@@ -255,27 +224,29 @@
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                     <TextBlock x:Name="LoadedFormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
                                         <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
-                                        <Run Text="FORMAT"/>
+                                        <Run Text="{Binding LoadedFormat, Mode=OneWay}"/>
                                     </TextBlock>
 
                                     <TextBlock x:Name="MipCountLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
                                         <Run Text="Mipmaps: " Style="{StaticResource TitleElementStyle}"/>
-                                        <Run Text="MIPCOUNT"/>
+                                        <Run Text="{Binding MipCount, Mode=OneWay}"/>
                                     </TextBlock>
 
                                     <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Grid.Column="1" 
                                                IsHitTestVisible="False" HorizontalAlignment="Center" Margin="0,5,0,0">
                                         <Run Text="Compressed/File Size: " Style="{StaticResource TitleElementStyle}"/>
                                         <LineBreak/>
-                                        <Run Text="SIZE"/>
+                                        <Run Text="{Binding LoadedCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
 
                             <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False"/>
-                            <TextBox Text="Header?" Grid.Column="1" Margin="0,25,0,0" VerticalScrollBarVisibility="Auto" Background="Transparent" Foreground="White"/>
+                            <ScrollViewer Grid.Column="1" Margin="0,25,0,0" HorizontalScrollBarVisibility="Auto">
+                                <TextBox Text="{Binding HeaderDetails, Mode=OneWay}" Background="Transparent" Foreground="White" FontSize="8"/>
+                            </ScrollViewer>
                         </Grid>
-                    </StackPanel>
+                    </DockPanel>
 
                     <Label x:Key="HeaderPropertiesList" Content="WAITING - might not use"/>
                 </ContentControl.Resources>
@@ -300,7 +271,7 @@
             <DockPanel x:Name="SavePathArea" DockPanel.Dock="Top">
                 <Label Content="Path: " FontWeight="Bold"/>
                 <Button Content="Browse" DockPanel.Dock="Right"/>
-                <TextBox Text="SAVE PATH" Margin="5,0"/>
+                <TextBox Text="{Binding SavePath}" Margin="5,0"/>
             </DockPanel>
 
             <Button Content="Save!" DockPanel.Dock="Bottom" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold"/>
@@ -309,8 +280,14 @@
                 <StackPanel DockPanel.Dock="Bottom">
                     <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="13"/>
                     <Label Content="Compression Ratio %"/>
-                    <Label Content="Compressed Size"/>
-                    <Label Content="Uncompressed size"/>
+                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}">
+                        <Run Text="Compressed Size: "/>
+                        <Run Text="{Binding SaveCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}">
+                        <Run Text="Uncompressed Size: "/>
+                        <Run Text="{Binding UncompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                    </TextBlock>
                 </StackPanel>
                 <DockPanel x:Name="MainSaveFormatSelector" DockPanel.Dock="Left">
                     <Label Content="Format" FontWeight="Bold"/>

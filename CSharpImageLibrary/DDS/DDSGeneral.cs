@@ -220,8 +220,10 @@ namespace CSharpImageLibrary.DDS
                     break;
             }
 
+            int fullSize = ImageFormats.GetCompressedSize(saveFormat, mipMaps[0].Width, mipMaps[0].Height, mipMaps.Count);
             // +1 to get the full size, not just the offset of the last mip.
-            int fullSize = GetMipOffset(mipMaps.Count + 1, saveFormat, mipMaps[0].Width, mipMaps[0].Height);
+            //int fullSize = GetMipOffset(mipMaps.Count + 1, saveFormat, mipMaps[0].Width, mipMaps[0].Height);
+
             byte[] destination = new byte[fullSize];
 
             // Create header and write to destination

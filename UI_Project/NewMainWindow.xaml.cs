@@ -20,9 +20,12 @@ namespace UI_Project
     /// </summary>
     public partial class NewMainWindow : Window
     {
+        public NewViewModel vm { get; private set; } = new NewViewModel();
+
         public NewMainWindow()
         {
             InitializeComponent();
+            DataContext = vm;
         }
 
         private void WindowMinMaxButton_Click(object sender, RoutedEventArgs e)

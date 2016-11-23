@@ -71,6 +71,11 @@ namespace CSharpImageLibrary
         /// Path to file. Null if no file e.g. thumbnail from memory.
         /// </summary>
         public string FilePath { get; set; }
+
+        /// <summary>
+        /// Size of Image when compressed (Essentially file size)
+        /// </summary>
+        public int CompressedSize { get; set; }
         #endregion Properties
 
         /// <summary>
@@ -125,6 +130,7 @@ namespace CSharpImageLibrary
 
         void Load(Stream stream, int maxDimension)
         {
+            CompressedSize = (int)stream.Length;
             Header = ImageEngine.LoadHeader(stream);
             Format = Header.Format;
             MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0);
