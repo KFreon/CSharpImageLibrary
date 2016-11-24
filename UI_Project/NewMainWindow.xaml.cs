@@ -25,12 +25,41 @@ namespace UI_Project
     {
         public NewViewModel vm { get; private set; }
 
+        DoubleAnimation windowWidthAnimation = new DoubleAnimation();
+        DoubleAnimation windowHeightAnimation = new DoubleAnimation();
+        Duration windowAnimDuration = new Duration(TimeSpan.FromSeconds(0.6));
+        CubicEase windowAnimEaser = new CubicEase() { EasingMode = EasingMode.EaseOut };
+
+        double VerticalRatio = 1.2/(1.2 + 2f) - .1;
+        double HorizontalRatio = 0.5;
+        bool IsBottomOpen = true;
+        bool IsSideOpen = true;
+
+
         public NewMainWindow()
         {
             vm = new NewViewModel();
+
+            // Wire up connections to enable VM changes to change window size.
+            vm.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == "IsImageLoaded")
+                {
+                    if (vm.IsImageLoaded)
+                        ExpandBottomPanel();
+                    else
+                    {
+                        ContractSidePanel();
+                        ContractBottomPanel();
+                    }
+                }
+            };
+
             InitializeComponent();
             DataContext = vm;
 
+            ContractSidePanel();
+            ContractBottomPanel();
         }
 
         private void WindowMinMaxButton_Click(object sender, RoutedEventArgs e)
@@ -51,9 +80,7 @@ namespace UI_Project
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
-            {
                 DragMove();
-            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -68,6 +95,66 @@ namespace UI_Project
             ofd.Title = "Select image to load";
             if (ofd.ShowDialog() == true)
                 vm.LoadImage(ofd.FileName);
+        }
+
+        void ExpandSidePanel()
+        {
+            if (IsSideOpen)
+                return;
+
+            windowWidthAnimation = new DoubleAnimation(this.Width, this.Width / HorizontalRatio, windowAnimDuration);
+            windowWidthAnimation.EasingFunction = windowAnimEaser;
+
+            this.BeginAnimation(Window.WidthProperty, windowWidthAnimation);
+
+            IsSideOpen = true;
+        }
+
+        void ContractSidePanel()
+        {
+            if (!IsSideOpen)
+                return;
+
+            windowWidthAnimation = new DoubleAnimation(this.Width, this.Width * HorizontalRatio, windowAnimDuration);
+            windowWidthAnimation.EasingFunction = windowAnimEaser;
+
+            this.BeginAnimation(Window.WidthProperty, windowWidthAnimation);
+
+            IsSideOpen = false;
+        }
+
+        void ExpandBottomPanel()
+        {
+            if (IsBottomOpen)
+                return;
+
+            windowHeightAnimation = new DoubleAnimation(this.Height, this.Height * (1 + VerticalRatio), windowAnimDuration);
+            windowHeightAnimation.EasingFunction = windowAnimEaser;
+
+            this.BeginAnimation(Window.HeightProperty, windowHeightAnimation);
+
+            IsBottomOpen = true;
+        }
+        
+        void ContractBottomPanel()
+        {
+            if (!IsBottomOpen)
+                return;
+
+            windowHeightAnimation = new DoubleAnimation(this.Height, this.Height * (1 - VerticalRatio), windowAnimDuration);
+            windowHeightAnimation.EasingFunction = windowAnimEaser;
+
+            this.BeginAnimation(Window.HeightProperty, windowHeightAnimation);
+
+            IsBottomOpen = false;
+        }
+
+        private void ConvertButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExpandSidePanel();
+
+            // Save previews
+            // Update any other required properties
         }
     }
 }

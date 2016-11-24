@@ -12,6 +12,30 @@ namespace UI_Project
 {
     public class NewViewModel : ViewModelBase
     {
+        #region Commands
+        CommandHandler closeCommand = null;
+        public CommandHandler CloseCommand
+        {
+            get
+            {
+                if (closeCommand == null)
+                    closeCommand = new CommandHandler(() =>
+                    {
+                        // Clear things - should close panels when this happens
+                        LoadedImage = null;
+                        Preview = null;
+
+                        // Notify
+                        OnPropertyChanged(nameof(IsImageLoaded));
+                        UpdateUI();
+                    });
+
+                return closeCommand;
+            }
+        }
+        #endregion Commands
+
+
         #region Loaded Image Properties
         ImageEngineImage loadedImage = null;
         public ImageEngineImage LoadedImage
@@ -134,6 +158,19 @@ namespace UI_Project
         #endregion Loaded Image Properties
 
         #region Save Properties
+        WriteableBitmap savePreview = null;
+        public WriteableBitmap SavePreview
+        {
+            get
+            {
+                return savePreview;
+            }
+            set
+            {
+                SetProperty(ref savePreview, value);
+            }
+        }
+
         public int SaveCompressedSize
         {
             get
@@ -247,14 +284,22 @@ namespace UI_Project
             if (Preview == null || (Preview.PixelHeight != mip.Height || Preview.PixelWidth != mip.Width))
                 Preview = UsefulThings.WPF.Images.CreateWriteableBitmap(mip.Pixels, mip.Width, mip.Height);
             else
-            {
-                var rect = new System.Windows.Int32Rect(0, 0, mip.Width, mip.Height);
-                preview.WritePixels(rect, mip.Pixels, mip.Width * 4, 0);
-                Preview.AddDirtyRect(rect);
-                OnPropertyChanged(nameof(Preview));
-            }
+                RedrawEitherPreview(Preview, mip.Pixels, mip.Width, mip.Height);
 
+            OnPropertyChanged(nameof(Preview));
             UpdateUI();
+        }
+
+        void GenerateSavePreview()
+        {
+            // TODO Using selected settings, generate new data for save preview
+        }
+
+        void RedrawEitherPreview(WriteableBitmap bmp, byte[] pixels, int width, int height)
+        {
+            var rect = new System.Windows.Int32Rect(0, 0, width, height);
+            bmp.WritePixels(rect, pixels, width * 4, 0);
+            bmp.AddDirtyRect(rect);
         }
 
         void UpdateUI()
