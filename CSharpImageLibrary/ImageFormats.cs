@@ -238,7 +238,7 @@ namespace CSharpImageLibrary
         /// <returns>List of supported extensions.</returns>
         public static List<string> GetSupportedExtensions()
         {
-            return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "unknown").ToList();
+            return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").ToList();
         }
 
         /// <summary>
@@ -249,6 +249,10 @@ namespace CSharpImageLibrary
         {
             List<string> filters = new List<string>();
             var names = GetSupportedExtensions();
+
+            // All supported
+            filters.Add("All Supported|" + String.Join(";*.", names));
+
             foreach (var name in names)
             {
                 var enumValue = (SupportedExtensions)Enum.Parse(typeof(SupportedExtensions), name);
@@ -256,8 +260,16 @@ namespace CSharpImageLibrary
 
                 filters.Add($"{desc}|*.{name}");
             }
-
             return filters;
+        }
+
+        /// <summary>
+        /// Gets list of filter strings for dialog boxes already formatted as string.
+        /// </summary>
+        /// <returns>String of dialog filters</returns>
+        public static string GetSupportedExtensionsForDialogBoxAsString()
+        {
+            return String.Join("|", GetSupportedExtensionsForDialogBox());
         }
 
         /// <summary>
@@ -458,5 +470,7 @@ namespace CSharpImageLibrary
         {
             return DDS.DDSGeneral.GetMipOffset(numMips + 1, saveFormat, width, height);
         }
+
+        
     }
 }

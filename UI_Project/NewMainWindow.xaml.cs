@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CSharpImageLibrary;
+using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,6 +12,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
@@ -20,12 +23,14 @@ namespace UI_Project
     /// </summary>
     public partial class NewMainWindow : Window
     {
-        public NewViewModel vm { get; private set; } = new NewViewModel();
+        public NewViewModel vm { get; private set; }
 
         public NewMainWindow()
         {
+            vm = new NewViewModel();
             InitializeComponent();
             DataContext = vm;
+
         }
 
         private void WindowMinMaxButton_Click(object sender, RoutedEventArgs e)
@@ -46,12 +51,23 @@ namespace UI_Project
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
+            {
                 DragMove();
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             UsefulThings.WPF.WindowBlur.EnableBlur(this);
+        }
+
+        private void LoadButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString();
+            ofd.Title = "Select image to load";
+            if (ofd.ShowDialog() == true)
+                vm.LoadImage(ofd.FileName);
         }
     }
 }

@@ -23,6 +23,7 @@ namespace UI_Project
             set
             {
                 SetProperty(ref loadedImage, value);
+                OnPropertyChanged(nameof(IsImageLoaded));
             }
         }
 
@@ -205,6 +206,13 @@ namespace UI_Project
         }
         #endregion Save Properties
 
+        public bool IsImageLoaded
+        {
+            get
+            {
+                return LoadedImage != null;
+            }
+        }
 
         public NewViewModel() : base()
         {
