@@ -13,10 +13,18 @@ namespace UI_Project
     public class NewViewModel : ViewModelBase
     {
         #region Loaded Image Properties
-        protected ImageEngineImage LoadedImage = null;
-        List<byte[]> Premult_AlphaPreviews = new List<byte[]>();
-        List<byte[]> No_AlphaPreviews = new List<byte[]>();
-        List<byte[]> Only_AlphaPreviews = new List<byte[]>();
+        ImageEngineImage loadedImage = null;
+        public ImageEngineImage LoadedImage
+        {
+            get
+            {
+                return loadedImage;
+            }
+            set
+            {
+                SetProperty(ref loadedImage, value);
+            }
+        }
 
         WriteableBitmap preview = null;
         public WriteableBitmap Preview
