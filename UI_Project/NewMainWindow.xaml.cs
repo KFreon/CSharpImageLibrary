@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace UI_Project
 {
@@ -24,42 +24,34 @@ namespace UI_Project
     public partial class NewMainWindow : Window
     {
         public NewViewModel vm { get; private set; }
-
-        DoubleAnimation windowWidthAnimation = new DoubleAnimation();
-        DoubleAnimation windowHeightAnimation = new DoubleAnimation();
-        Duration windowAnimDuration = new Duration(TimeSpan.FromSeconds(0.6));
-        CubicEase windowAnimEaser = new CubicEase() { EasingMode = EasingMode.EaseOut };
-
-        double VerticalRatio = 1.2/(1.2 + 2f) - .1;
-        double HorizontalRatio = 0.5;
-        bool IsBottomOpen = true;
-        bool IsSideOpen = true;
+        Point LoadedImageDragMouseStart = new Point();
+        Point LoadedImageDragOrigin = new Point();
 
 
         public NewMainWindow()
         {
             vm = new NewViewModel();
 
-            // Wire up connections to enable VM changes to change window size.
             vm.PropertyChanged += (sender, args) =>
             {
-                if (args.PropertyName == "IsImageLoaded")
-                {
-                    if (vm.IsImageLoaded)
-                        ExpandBottomPanel();
-                    else
-                    {
-                        ContractSidePanel();
-                        ContractBottomPanel();
-                    }
-                }
+                if (args.PropertyName == nameof(vm.IsImageLoaded) && !vm.IsImageLoaded)
+                    CloseSavePanel();
             };
 
             InitializeComponent();
             DataContext = vm;
 
-            ContractSidePanel();
-            ContractBottomPanel();
+            CloseSavePanel();
+        }
+
+        void CloseSavePanel()
+        {
+            // Only animate if not already closed.
+            if (SecondColumn.Width == new GridLength(0, GridUnitType.Star))
+                return;
+
+            Storyboard closer = (Storyboard)SecondColumn.FindResource("SecondColumnCloser");
+            closer.Begin(SecondColumn);
         }
 
         private void WindowMinMaxButton_Click(object sender, RoutedEventArgs e)
@@ -97,64 +89,20 @@ namespace UI_Project
                 vm.LoadImage(ofd.FileName);
         }
 
-        void ExpandSidePanel()
-        {
-            if (IsSideOpen)
-                return;
-
-            windowWidthAnimation = new DoubleAnimation(this.Width, this.Width / HorizontalRatio, windowAnimDuration);
-            windowWidthAnimation.EasingFunction = windowAnimEaser;
-
-            this.BeginAnimation(Window.WidthProperty, windowWidthAnimation);
-
-            IsSideOpen = true;
-        }
-
-        void ContractSidePanel()
-        {
-            if (!IsSideOpen)
-                return;
-
-            windowWidthAnimation = new DoubleAnimation(this.Width, this.Width * HorizontalRatio, windowAnimDuration);
-            windowWidthAnimation.EasingFunction = windowAnimEaser;
-
-            this.BeginAnimation(Window.WidthProperty, windowWidthAnimation);
-
-            IsSideOpen = false;
-        }
-
-        void ExpandBottomPanel()
-        {
-            if (IsBottomOpen)
-                return;
-
-            windowHeightAnimation = new DoubleAnimation(this.Height, this.Height * (1 + VerticalRatio), windowAnimDuration);
-            windowHeightAnimation.EasingFunction = windowAnimEaser;
-
-            this.BeginAnimation(Window.HeightProperty, windowHeightAnimation);
-
-            IsBottomOpen = true;
-        }
-        
-        void ContractBottomPanel()
-        {
-            if (!IsBottomOpen)
-                return;
-
-            windowHeightAnimation = new DoubleAnimation(this.Height, this.Height * (1 - VerticalRatio), windowAnimDuration);
-            windowHeightAnimation.EasingFunction = windowAnimEaser;
-
-            this.BeginAnimation(Window.HeightProperty, windowHeightAnimation);
-
-            IsBottomOpen = false;
-        }
-
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
-            ExpandSidePanel();
+            vm.GenerateSavePreview();
+        }
 
-            // Save previews
-            // Update any other required properties
+        private void SavePathBrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.InitialDirectory = Path.GetDirectoryName(vm.SavePath);
+            sfd.FileName = Path.GetFileName(vm.SavePath);
+            sfd.Title = "Select save destination - Don't worry about File Extension. It'll get updated.";
+
+            if (sfd.ShowDialog() == true)
+                vm.SavePath = sfd.FileName;
         }
     }
 }

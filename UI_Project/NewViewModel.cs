@@ -1,6 +1,7 @@
 ﻿using CSharpImageLibrary;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,9 +25,10 @@ namespace UI_Project
                         // Clear things - should close panels when this happens
                         LoadedImage = null;
                         Preview = null;
+                        SavePreview = null;
+                        SavePath = null;
 
                         // Notify
-                        OnPropertyChanged(nameof(IsImageLoaded));
                         UpdateUI();
                     });
 
@@ -37,6 +39,19 @@ namespace UI_Project
 
 
         #region Loaded Image Properties
+        int mipIndex = 0;
+        public int MipIndex
+        {
+            get
+            {
+                return mipIndex;
+            }
+            set
+            {
+                SetProperty(ref mipIndex, value);
+            }
+        }
+
         ImageEngineImage loadedImage = null;
         public ImageEngineImage LoadedImage
         {
@@ -171,6 +186,26 @@ namespace UI_Project
             }
         }
 
+        public bool IsSaveSmaller
+        {
+            get
+            {
+                return SaveCompressedSize < UncompressedSize;
+            }
+        }
+
+        public double SaveCompressionRatio
+        {
+            get
+            {
+                var ratio = (1d * SaveCompressedSize) / UncompressedSize;
+                if (ratio < 1)
+                    ratio = 1 / ratio;
+
+                return ratio * 100d;
+            }
+        }
+
         public int SaveCompressedSize
         {
             get
@@ -179,16 +214,29 @@ namespace UI_Project
             }
         }
 
+        public string DefaultSavePath
+        {
+            get
+            {
+                if (LoadedImage?.FilePath == null)
+                    return null;  // TODO: Maybe Desktop when path is unknown?
+
+                string name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{ImageFormats.GetExtensionOfFormat(SaveFormat)}";
+                return UsefulThings.General.FindValidNewFileName(name);
+            }
+        }
+
         string savePath = null;
         public string SavePath
         {
             get
             {
-                return savePath;
+                return savePath ?? DefaultSavePath;
             }
             set
             {
                 SetProperty(ref savePath, value);
+                FixExtension();
             }
         }
 
@@ -202,6 +250,20 @@ namespace UI_Project
             set
             {
                 SetProperty(ref saveFormat, value);
+                OnPropertyChanged(nameof(SaveCompressedSize));
+                OnPropertyChanged(nameof(SaveCompressionRatio));
+                OnPropertyChanged(nameof(IsSaveFormatMippable));
+                OnPropertyChanged(nameof(IsSaveSmaller));
+
+                if (SavePath == null)
+                    return;
+
+                // Test paths without extensions
+                if (SavePath.Substring(0, SavePath.LastIndexOf('.')) == DefaultSavePath.Substring(0, DefaultSavePath.LastIndexOf('.')))
+                    SavePath = DefaultSavePath;
+
+                // Change extension as required
+                FixExtension();
             }
         }
 
@@ -215,6 +277,17 @@ namespace UI_Project
             set
             {
                 SetProperty(ref saveMipType, value);
+                OnPropertyChanged(nameof(SaveCompressedSize));
+                OnPropertyChanged(nameof(SaveCompressionRatio));
+                OnPropertyChanged(nameof(IsSaveSmaller));
+            }
+        }
+
+        public bool IsSaveFormatMippable
+        {
+            get
+            {
+                return ImageFormats.IsFormatMippable(SaveFormat);
             }
         }
 
@@ -258,13 +331,11 @@ namespace UI_Project
 
         internal async Task LoadImage(string path)
         {
-            // Full image
-            var fullLoad = Task.Run(() => new ImageEngineImage(path));
-            
-
-            // Quick previews
-            LoadedImage = await Task.Run(() => new ImageEngineImage(path, 512));
-            UpdatePreview(LoadedImage.MipMaps[0]);
+            var bytes = File.ReadAllBytes(path);
+            await LoadImage(bytes);
+            LoadedImage.FilePath = path;
+            SavePath = DefaultSavePath;
+            OnPropertyChanged(nameof(LoadedPath));
         }
 
         internal async Task LoadImage(byte[] data)
@@ -272,10 +343,15 @@ namespace UI_Project
             // Full image
             var fullLoad = Task.Run(() => new ImageEngineImage(data));
 
-
             // Quick previews
-            LoadedImage = await Task.Run(() => new ImageEngineImage(data, 512));
+            /*LoadedImage = await Task.Run(() => new ImageEngineImage(data, 512));
+            UpdatePreview(LoadedImage.MipMaps[0]);*/
+
+            // Wait for full load to be done
+            LoadedImage = await fullLoad;
             UpdatePreview(LoadedImage.MipMaps[0]);
+
+            SaveFormat = LoadedFormat;
         }
 
         void UpdatePreview(MipMap mip)
@@ -290,16 +366,30 @@ namespace UI_Project
             UpdateUI();
         }
 
-        void GenerateSavePreview()
+        public async Task GenerateSavePreview()
         {
-            // TODO Using selected settings, generate new data for save preview
+            // Save and reload to give accurate depiction of what it'll look like when saved.
+            ImageEngineImage img = await Task.Run(() =>
+            {
+                byte[] data = LoadedImage.Save(SaveFormat, SaveMipType, mergeAlpha: false);  // TODO: Alpha settings
+                return new ImageEngineImage(data);
+            });
+
+            if (SavePreview == null)
+                SavePreview = UsefulThings.WPF.Images.CreateWriteableBitmap(img.MipMaps[0].Pixels, img.Width, img.Height);
+            else
+                RedrawEitherPreview(SavePreview, img.MipMaps[0].Pixels, img.Width, img.Height);
+
+            img.Dispose();
+
+            // Update Properties
+            OnPropertyChanged(nameof(SavePreview));
         }
 
         void RedrawEitherPreview(WriteableBitmap bmp, byte[] pixels, int width, int height)
         {
             var rect = new System.Windows.Int32Rect(0, 0, width, height);
             bmp.WritePixels(rect, pixels, width * 4, 0);
-            bmp.AddDirtyRect(rect);
         }
 
         void UpdateUI()
@@ -313,7 +403,17 @@ namespace UI_Project
             OnPropertyChanged(nameof(Height));
             OnPropertyChanged(nameof(Width));
             OnPropertyChanged(nameof(MipCount));
-            OnPropertyChanged(nameof(UncompressedSize));
+        }
+
+        void FixExtension()
+        {
+            string requiredExtension = "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
+
+            var test = Path.GetExtension(savePath);
+            if (test == "")  // No extension
+                SavePath += requiredExtension;
+            else if (Path.GetExtension(SavePath) != requiredExtension)  // Existing extension
+                Path.ChangeExtension(SavePath, requiredExtension);
         }
     }
 }

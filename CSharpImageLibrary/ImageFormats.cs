@@ -21,119 +21,140 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Unknown image format. Using this as a save/load format will fail that operation.
         /// </summary>
+        [Description("Unknown image format. Using this as a save/load format will fail that operation.")]
         Unknown = 1,
 
         /// <summary>
         /// Standard JPEG image handled by everything.
         /// </summary>
+        [Description("Standard JPEG image handled by everything.")]
         JPG = 2,
 
         /// <summary>
         /// Standard PNG image handled by everything. Uses alpha channel if available.
         /// </summary>
+        [Description("Standard PNG image handled by everything. Uses alpha channel if available.")]
         PNG = 3,
 
         /// <summary>
         /// Standard BMP image handled by everything.
         /// </summary>
+        [Description("Standard BMP image handled by everything.")]
         BMP = 4,
 
         /// <summary>
         /// Targa image. Multipage format. Can be used for mipmaps.
         /// </summary>
+        [Description("Targa image. Multipage format. Can be used for mipmaps.")]
         TGA = 5,
 
         /// <summary>
         /// Standard GIF Image handled by everything. 
         /// </summary>
+        [Description("Standard GIF Image handled by everything. ")]
         GIF = 6,
 
         /// <summary>
         /// (BC1) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Simple Non Alpha.
         /// </summary>
+        [Description("(BC1) Block Compressed Texture. Compresses 4x4 texels. Used for Simple Non Alpha.")]
         DDS_DXT1 = 0x31545844,  // 1TXD i.e. DXT1 backwards
 
         /// <summary>
         /// (BC2) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Sharp Alpha. Premultiplied alpha. 
         /// </summary>
+        [Description("(BC2) Block Compressed Texture. Compresses 4x4 texels. Used for Sharp Alpha. Premultiplied alpha. ")]
         DDS_DXT2 = 0x32545844,
 
         /// <summary>
         /// (BC2) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Sharp Alpha. 
         /// </summary>
+        [Description("(BC2) Block Compressed Texture. Compresses 4x4 texels. Used for Sharp Alpha. ")]
         DDS_DXT3 = 0x33545844,
 
         /// <summary>
         /// (BC3) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Gradient Alpha. Premultiplied alpha.
         /// </summary>
+        [Description("(BC3) Block Compressed Texture. Compresses 4x4 texels. Used for Gradient Alpha. Premultiplied alpha.")]
         DDS_DXT4 = 0x34545844,
 
         /// <summary>
         /// (BC3) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Gradient Alpha. 
         /// </summary>
+        [Description("(BC3) Block Compressed Texture. Compresses 4x4 texels. Used for Gradient Alpha. ")]
         DDS_DXT5 = 0x35545844,
 
         /// <summary>
         /// Fancy new DirectX 10+ format indicator. DX10 Header will contain true format.
         /// </summary>
+        [Description("Fancy new DirectX 10+ format indicator. DX10 Header will contain true format.")]
         DDS_DX10 = 0x30315844,
 
         /// <summary>
         /// Uncompressed ARGB DDS.
         /// </summary>
+        [Description("Uncompressed ARGB DDS.")]
         DDS_ARGB = GIF + 1,  // No specific value apparently
 
         /// <summary>
         /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Normal (bump) Maps. 8 bit single channel with alpha.
         /// </summary>
+        [Description("(BC4) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. 8 bit single channel with alpha.")]
         DDS_ATI1 = 0x31495441,  // ATI1 backwards
 
         /// <summary>
         /// Uncompressed pair of 8 bit channels.
         /// Used for Normal (bump) maps.
         /// </summary>
-        DDS_V8U8 = DDS_ARGB + 1, 
+        [Description("Uncompressed pair of 8 bit channels. Used for Normal (bump) maps.")]
+        DDS_V8U8 = DDS_ARGB + 1,
 
         /// <summary>
         /// Single 8 bit channel.
         /// Used for Luminescence.
         /// </summary>
+        [Description("Single 8 bit channel. Used for Luminescence.")]
         DDS_G8_L8 = DDS_V8U8 + 1,  // No specific value it seems
 
         /// <summary>
         /// Alpha and single channel luminescence.
         /// Uncompressed.
         /// </summary>
+        [Description("Alpha and single channel luminescence. Uncompressed.")]
         DDS_A8L8 = DDS_G8_L8 + 1,
 
         /// <summary>
         /// RGB. No alpha. 
         /// Uncompressed.
         /// </summary>
+        [Description("RGB. No alpha. Uncompressed.")]
         DDS_RGB = DDS_A8L8 + 1,
 
         /// <summary>
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Normal (bump) Maps. Pair of 8 bit channels.
         /// </summary>
+        [Description("(BC5) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. Pair of 8 bit channels.")]
         DDS_ATI2_3Dc = 0x32495441,  // ATI2 backwards
 
         /// <summary>
         /// Format designed for scanners. Compressed.
         /// Allows mipmaps.
         /// </summary>
+        [Description("Format designed for scanners. Compressed. Allows mipmaps.")]
         TIFF = DDS_RGB + 1,
 
         /// <summary>
         /// Used when the exact format is not present in this enum, but enough information is present to load it. (ARGB16 or something)
         /// </summary>
-        DDS_CUSTOM = TIFF + 1,
+        [Description("Used when the exact format is not present in this enum, but enough information is present to load it. (ARGB16 or something)")]
+        DDS_CUSTOM = 255,
     }
 
 
@@ -451,9 +472,12 @@ namespace CSharpImageLibrary
         /// <returns>File extension without dot.</returns>
         public static string GetExtensionOfFormat(ImageEngineFormat format)
         {
-            string formatString = format.ToString();
+            string formatString = format.ToString().ToLowerInvariant();
             if (formatString.Contains('_'))
                 formatString = "dds";
+
+            if (format == ImageEngineFormat.TIFF)
+                formatString = "tif";
 
             return formatString;
         }

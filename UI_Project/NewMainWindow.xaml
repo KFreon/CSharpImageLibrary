@@ -10,6 +10,8 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:UsefulThingsConverters="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings"
         xmlns:UsefulThingsAnims="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
+        xmlns:Library="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
+        xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}">
@@ -17,11 +19,21 @@
     
     <Grid x:Name="MainGrid" Margin="3,0,3,5">
         <Grid.Resources>
+            <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
+            <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
+            <ObjectDataProvider MethodName="GetValues"
+                        ObjectType="{x:Type sys:Enum}"
+                        x:Key="Formats">
+                <ObjectDataProvider.MethodParameters>
+                    <x:Type TypeName="Library:ImageEngineFormat"/>
+                </ObjectDataProvider.MethodParameters>
+            </ObjectDataProvider>
+            
             <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
             <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
 
-            <Duration x:Key="StandardDuration">0:0:0.3</Duration>
-            <KeyTime x:Key="DelayedStart">0:0:0.3</KeyTime>
+            <Duration x:Key="StandardDuration">0:0:0.5</Duration>
+            <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
 
             <Style x:Key="UnloadedOpacityStyle" TargetType="FrameworkElement">
                 <Setter Property="Visibility" Value="Visible"/>
@@ -34,7 +46,7 @@
                                 <Storyboard>
                                     <DoubleAnimation To="0" Duration="{StaticResource StandardDuration}" Storyboard.TargetProperty="Opacity">
                                         <DoubleAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
+                                            <QuadraticEase EasingMode="EaseOut"/>
                                         </DoubleAnimation.EasingFunction>
                                     </DoubleAnimation>
                                     <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
@@ -49,7 +61,7 @@
                                 <Storyboard>
                                     <DoubleAnimation To="1" Duration="{StaticResource StandardDuration}" Storyboard.TargetProperty="Opacity">
                                         <DoubleAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
+                                            <QuadraticEase EasingMode="EaseOut"/>
                                         </DoubleAnimation.EasingFunction>
                                     </DoubleAnimation>
                                     <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
@@ -63,7 +75,7 @@
             </Style>
 
             <Style x:Key="DimensionIndicatorStyle" TargetType="Line">
-                <Setter Property="Stroke" Value="White"/>
+                <Setter Property="Stroke" Value="#99FFFFFF"/>
                 <Setter Property="StrokeThickness" Value="2"/>
                 <Setter Property="Stretch" Value="UniformToFill"/>
             </Style>
@@ -92,6 +104,7 @@
 
             <Style TargetType="TextBox">
                 <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="SelectionBrush" Value="LightGreen"/>
             </Style>
 
             <Style x:Key="ReadOnlyStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
@@ -107,88 +120,48 @@
         
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="127*"/>
-            <ColumnDefinition Width="25"/>
-            <ColumnDefinition Width="127*">
-                <ColumnDefinition.Style>
-                    <Style TargetType="ColumnDefinition">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
-                                                <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseOut"/>
-                                                </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                            </UsefulThingsAnims:GridLengthAnimation>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.EnterActions>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ColumnDefinition.Style>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition x:Name="SecondColumn" Width="127*">
+                <ColumnDefinition.Resources>
+                    <Storyboard x:Key="SecondColumnCloser">
+                        <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                            <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                        </UsefulThingsAnims:GridLengthAnimation>
+                    </Storyboard>
+                </ColumnDefinition.Resources>
             </ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="30"/>
             <RowDefinition Height="2*"/>
             <RowDefinition Height="3"/>
-            <RowDefinition x:Name="InfoRow" Height="1.2*">
-                <RowDefinition.Style>
-                    <Style TargetType="RowDefinition">
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
-                                <DataTrigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetProperty="Height" From="1.2*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0">
-                                                <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseOut"/>
-                                                </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                            </UsefulThingsAnims:GridLengthAnimation>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.EnterActions>
-
-                                <DataTrigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetProperty="Height" From="0" To="1.2*" Duration="{StaticResource StandardDuration}" BeginTime="0">
-                                                <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseOut"/>
-                                                </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                            </UsefulThingsAnims:GridLengthAnimation>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </RowDefinition.Style>
-            </RowDefinition>
+            <RowDefinition x:Name="InfoRow" Height="1.2*"/>
         </Grid.RowDefinitions>
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="LoadButtonGroup">
                 <VisualStateGroup.Transitions>
-                    <VisualTransition GeneratedDuration="{StaticResource StandardDuration}">
+                    <VisualTransition From="Big" GeneratedDuration="{StaticResource StandardDuration}" To="Normal">
                         <VisualTransition.GeneratedEasingFunction>
                             <CubicEase EasingMode="EaseOut"/>
                         </VisualTransition.GeneratedEasingFunction>
-
                     </VisualTransition>
-                    <VisualTransition From="Big" GeneratedDuration="{StaticResource StandardDuration}" To="Normal"/>
-                    <VisualTransition From="Normal" GeneratedDuration="{StaticResource StandardDuration}" To="Big"/>
+                    <VisualTransition From="Normal" GeneratedDuration="{StaticResource StandardDuration}" To="Big">
+                        <VisualTransition.GeneratedEasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </VisualTransition.GeneratedEasingFunction>
+                    </VisualTransition>
                 </VisualStateGroup.Transitions>
                 <VisualState x:Name="Normal"/>
                 <VisualState x:Name="Big">
                     <Storyboard>
                         <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" Storyboard.TargetName="LoadButton">
-                            <EasingDoubleKeyFrame KeyTime="0" Value="10"/>
+                            <EasingDoubleKeyFrame KeyTime="0" Value="13"/>
                         </DoubleAnimationUsingKeyFrames>
 
                         <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" Storyboard.TargetName="LoadButton">
-                            <EasingDoubleKeyFrame KeyTime="0" Value="10"/>
+                            <EasingDoubleKeyFrame KeyTime="0" Value="13"/>
                         </DoubleAnimationUsingKeyFrames>
                     </Storyboard>
                 </VisualState>
@@ -253,9 +226,16 @@
         </DockPanel>
 
         <!--Loaded Image Box-->
-        <Viewbox x:Name="LoadedImageViewBox" Grid.Row="1" Margin="0,0,25,25">
-            <Image Source="{Binding Preview}"/>
-        </Viewbox>
+        <UsefulWPF:PanAndZoomBorder x:Name="LoadedImageViewBox" Grid.Row="1" Margin="0,0,25,25">
+            <Image x:Name="LoadedImageImage" Source="{Binding Preview}" RenderTransformOrigin="0.5,0.5">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
+        </UsefulWPF:PanAndZoomBorder>
 
         <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="0,5,25,5" Height="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.ColumnDefinitions>
@@ -294,14 +274,39 @@
         <!--END Loaded Image Box-->
 
         <!--Central Column-->
-        <Slider x:Name="MipSlider" Orientation="Vertical" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Style="{StaticResource UnloadedOpacityStyle}"/>
-        <Rectangle x:Name="ImageDivider" Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Width="1" Stroke="Black" Fill="Black" Style="{StaticResource UnloadedOpacityStyle}" HorizontalAlignment="Right" StrokeEndLineCap="Round" StrokeStartLineCap="Round"/>
+        <DockPanel Grid.Column="1" Grid.Row="1">
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding MipCount}" Value="-1">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                        
+                        <DataTrigger Binding="{Binding LoadedImage.NumMipMaps}" Value="1">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
+            <TextBlock Text="{Binding LoadedImage.NumMipMaps}" DockPanel.Dock="Top" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center"/>
+            <TextBlock Text="0" DockPanel.Dock="Bottom" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center"/>
+            <Slider x:Name="MipSlider" Orientation="Vertical" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Maximum="{Binding LoadedImage.NumMipMaps}" Value="{Binding MipIndex}" SmallChange="0"/>
+        </DockPanel>
+        <Rectangle x:Name="ImageDivider" Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Width="1" Stroke="Black" Fill="Black"  
+                   HorizontalAlignment="Right" StrokeEndLineCap="Round" StrokeStartLineCap="Round"/>
         <!--END Central Column-->
 
         <!--Save Image Box-->
-        <Viewbox x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25">
-            <Image Source="{Binding SavePreview}"/>
-        </Viewbox>
+        <UsefulWPF:PanAndZoomBorder x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25">
+            <Image Source="{Binding SavePreview}" RenderTransformOrigin="0.5,0.5">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
+        </UsefulWPF:PanAndZoomBorder>
         <!--END Save Image Box-->
 
 
@@ -310,7 +315,21 @@
         <DockPanel x:Name="LoadedImagePropertyPanel" Grid.Row="3" Margin="3,0,3,0" Style="{StaticResource UnloadedOpacityStyle}">
             <DockPanel LastChildFill="False" DockPanel.Dock="Bottom">
                 <Button Content="Close" DockPanel.Dock="Left" Command="{Binding CloseCommand}" IsEnabled="{Binding IsImageLoaded}"/>
-                <Button x:Name="ConvertButton" Content="Convert >>" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}"/>
+                <Button x:Name="ConvertButton" Content="Convert >>" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}">
+                    <Button.Triggers>
+                        <EventTrigger RoutedEvent="Button.Click">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                                        <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                    </UsefulThingsAnims:GridLengthAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Button.Triggers>
+                </Button>
             </DockPanel>
 
             <Label Content="Properties" HorizontalAlignment="Center" DockPanel.Dock="Top" Margin="0,10,0,3" Style="{StaticResource TitleStyle}"/>
@@ -338,8 +357,21 @@
                         <ColumnDefinition Width="71*"/>
                     </Grid.ColumnDefinitions>
                     <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" Margin="4,10,0,0">
-                        <Border Margin="10,0,0,0"/>
-                        <Border Margin="5.5,4.9,0,0"/>
+                        <Canvas.Resources>
+                            <Style TargetType="Border" x:Key="AncilliaryMipIndicators" BasedOn="{StaticResource {x:Type Border}}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding MipCount}" Value="1">
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                        <Setter Property="BorderBrush" Value="Red"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Canvas.Resources>
+                        <Border Margin="10,0,0,0" Style="{StaticResource AncilliaryMipIndicators}"/>
+                        <Border Margin="5.5,4.9,0,0" Style="{StaticResource AncilliaryMipIndicators}"/>
                         <Border Margin="0,10,0,0">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                 <TextBlock x:Name="LoadedFormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
@@ -352,7 +384,7 @@
                                         <Run Text="{Binding MipCount, Mode=OneWay}"/>
                                 </TextBlock>
 
-                                <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Grid.Column="1" 
+                                <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Grid.Column="1"  TextAlignment="Center"
                                                IsHitTestVisible="False" HorizontalAlignment="Center" Margin="0,5,0,0">
                                         <Run Text="Compressed/File Size: " Style="{StaticResource TitleElementStyle}"/>
                                         <LineBreak/>
@@ -376,30 +408,63 @@
 
             <DockPanel x:Name="SavePathArea" DockPanel.Dock="Top">
                 <Label Content="Path: " FontWeight="Bold"/>
-                <Button Content="Browse" DockPanel.Dock="Right"/>
+                <Button x:Name="SavePathBrowseButton" Content="Browse" DockPanel.Dock="Right" Click="SavePathBrowseButton_Click"/>
                 <TextBox Text="{Binding SavePath}" Margin="5,0"/>
             </DockPanel>
 
             <Button Content="Save!" DockPanel.Dock="Bottom" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold"/>
 
             <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False">
-                <StackPanel DockPanel.Dock="Bottom">
-                    <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="13"/>
-                    <Label Content="Compression Ratio %"/>
-                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}">
-                        <Run Text="Compressed Size: "/>
-                        <Run Text="{Binding SaveCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
+                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center" FontSize="16">
+                        <Run Text="Compressed Size: " FontWeight="Bold"/>
+                        <LineBreak/>
+                        <Run Text="{Binding SaveCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}" FontSize="15" Foreground="LightGreen"/>
                     </TextBlock>
-                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}">
-                        <Run Text="Uncompressed Size: "/>
-                        <Run Text="{Binding UncompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center">
+                        <Run Text="Uncompressed Size: " FontWeight="Bold" FontSize="16"/>
+                        <LineBreak/>
+                        <Run Text="{Binding UncompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}" FontSize="16" Foreground="Orange"/>
                     </TextBlock>
+                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center">
+                        <Run Text="Compression %: " FontWeight="Bold" FontSize="16"/>
+                        <LineBreak/>
+                        <Run Text="{Binding SaveCompressionRatio, StringFormat={}{0:#.##}%, Mode=OneWay}" FontSize="16" FontWeight="Bold">
+                            <Run.Style>
+                                <Style TargetType="Run">
+                                    <Setter Property="Foreground" Value="Red"/>
+                                    
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSaveSmaller}" Value="true">
+                                            <Setter Property="Foreground" Value="LightGreen"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Run.Style>
+                        </Run>
+                    </TextBlock>
+
                 </StackPanel>
+                <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
+
                 <DockPanel x:Name="MainSaveFormatSelector" DockPanel.Dock="Left">
-                    <Label Content="Format" FontWeight="Bold"/>
-                    <ComboBox/>
+                    <Label Content="Format: " FontWeight="Bold"/>
+                    <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay}" 
+                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
+                               TextWrapping="Wrap" FontSize="8"/>
                 </DockPanel>
                 <DockPanel x:Name="AdditionalFormatSelector" DockPanel.Dock="Right">
+                    <DockPanel.Style>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=SaveFormatCombo, Path=SelectedValue}" Value="255">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DockPanel.Style>
                     <Label Content="Additional Format" FontWeight="Bold"/>
                     <ComboBox/>
                 </DockPanel>
@@ -429,10 +494,12 @@
                     </ContentControl.Style>
                 </ContentControl>
 
-                <DockPanel x:Name="MipSettingsArea" DockPanel.Dock="Top">
+                <DockPanel x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}">
                     <Label Content="Mipmap Settings:"/>
-                    <ComboBox/>
-                    <TextBlock Text="DESCRIPTION" Style="{StaticResource VisibleTextDisplayStyle}"/>
+                    <ComboBox x:Name="MipmapSettings" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding SaveMipType, Mode=TwoWay}" 
+                              SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="{Binding ElementName=MipmapSettings, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" 
+                               Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
                 </DockPanel>
             </DockPanel>
         </DockPanel>

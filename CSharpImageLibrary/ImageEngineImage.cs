@@ -94,10 +94,9 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="path">Path to image.</param>
         /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
-        public ImageEngineImage(string path, int maxDimension = 0)
+        public ImageEngineImage(string path, int maxDimension = 0) : this(File.ReadAllBytes(path), maxDimension)
         {
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-                Load(fs, maxDimension);
+            FilePath = path;
         }
 
         /// <summary>
@@ -164,6 +163,9 @@ namespace CSharpImageLibrary
         /// <returns></returns>
         public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
         {
+            if (format == ImageEngineFormat.Unknown)
+                throw new InvalidOperationException("Save format cannot be 'Unknown'");
+
             return ImageEngine.Save(MipMaps, format, GenerateMips, mergeAlpha, desiredMaxDimension, mipToSave);
         }
         #endregion Savers

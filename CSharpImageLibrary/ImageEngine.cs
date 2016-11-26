@@ -221,9 +221,9 @@ namespace CSharpImageLibrary
                 }
             }
 
-            // KFreon: Ensure we have a power of two for dimensions
+            // KFreon: Ensure we have a power of two for dimensions FOR DDS ONLY
             double fixScale = 0;
-            if (!UsefulThings.General.IsPowerOfTwo(newMips[0].Width) || !UsefulThings.General.IsPowerOfTwo(newMips[0].Height))
+            if (format.ToString().Contains("DDS") && (!UsefulThings.General.IsPowerOfTwo(newMips[0].Width) || !UsefulThings.General.IsPowerOfTwo(newMips[0].Height)))
             {
                 int newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Width);
                 int newHeigh = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Height);
@@ -302,8 +302,6 @@ namespace CSharpImageLibrary
             int newWidth = (int)(origWidth * scale);
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
-
-            Debugger.Break();
 
             // TODO: If this resize method is kept, need to deal with alpha somehow.
             // TESTING
