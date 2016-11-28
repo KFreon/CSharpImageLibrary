@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{10E9F41A-45D2-4CC4-B625-76C295FFDF67}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CSharpImageLibrary</RootNamespace>
     <AssemblyName>CSharpImageLibrary</AssemblyName>
@@ -88,10 +88,10 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.xaml">
+    <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
-    </None>
+    </ApplicationDefinition>
     <Compile Include="DDSGeneral.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="MipMap.cs" />

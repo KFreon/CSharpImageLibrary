@@ -231,5 +231,18 @@ namespace CSharpImageLibrary
             if (e.Key == Key.Enter)
                 SaveButton_Click(null, null);
         }
+
+        private async void Button_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Multiselect = true;
+            ofd.Title = "Select multiple files to convert";
+            if (ofd.ShowDialog() == true)
+            {
+                await Task.Run(() => vm.SaveMultiple(ofd.FileNames));
+
+                MessageBox.Show("Bulk Conversion complete. Hope it worked.");
+            }
+        }
     }
 }

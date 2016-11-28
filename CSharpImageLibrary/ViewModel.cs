@@ -335,6 +335,27 @@ namespace CSharpImageLibrary
                 SetProperty(ref saveSuccess, value);
             }
         }
+
+        internal void SaveMultiple(string[] fileNames)
+        {
+            int count = 0;
+            foreach (var name in fileNames)
+            {
+                string path = Path.GetDirectoryName(SavePath);
+                string ext = ImageFormats.GetExtensionOfFormat(SaveFormat);
+
+                using (ImageEngineImage img = new ImageEngineImage(name))
+                    img.Save(Path.Combine(path, Path.GetFileNameWithoutExtension(name) +  "." + ext), SaveFormat, GenerateMipMaps, mergeAlpha: (SaveFormat == ImageEngineFormat.DDS_DXT1 ? FlattenBlend : false));
+
+                count++;
+
+                if(count%10 == 0)
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                }
+            }
+        }
         #endregion Save Properties
 
 

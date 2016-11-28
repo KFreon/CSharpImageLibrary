@@ -248,7 +248,7 @@
             </Ellipse>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" HorizontalAlignment="Center">
                 <Button x:Name="SaveButton" Content="Save" HorizontalAlignment="Center" FontSize="16" Click="SaveButton_Click" IsEnabled="{Binding IsSaveReady}"/>
-
+                <Button Content="Bulk Convert - Set save path first" Click="Button_Click"/>
                 <Canvas x:Name="SuccessfulSaveMessage" Margin="5,0,0,0">
                     <Canvas.RenderTransform>
                         <ScaleTransform ScaleX="1" ScaleY="1"/>
