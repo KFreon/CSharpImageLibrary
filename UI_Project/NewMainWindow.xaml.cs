@@ -15,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using UsefulThings;
 
 namespace UI_Project
 {
@@ -24,13 +25,34 @@ namespace UI_Project
     public partial class NewMainWindow : Window
     {
         public NewViewModel vm { get; private set; }
-        Point LoadedImageDragMouseStart = new Point();
-        Point LoadedImageDragOrigin = new Point();
 
+        UsefulThings.WPF.DragDropHandler<NewViewModel> DragDropHandler = null;
 
         public NewMainWindow()
         {
             vm = new NewViewModel();
+
+            DragDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this);
+            DragDropHandler.DropValidator = new Predicate<string[]>(files =>
+            {
+                // Check only one file - can only load one, so restrict to one.
+                if (files.Length != 1)
+                    return false;
+
+                // Check file extension
+                if (!ImageFormats.GetSupportedExtensions().Contains(Path.GetExtension(files[0]).Replace(".", ""), StringComparison.OrdinalIgnoreCase))  // Checks extension, ignoring '.'
+                    return false;
+
+                return true;
+            });
+
+            DragDropHandler.DropAction = new Action<NewViewModel, string[]>((viewModel, filePath) =>
+            {
+                if (filePath?.Length < 1)
+                    return;
+
+                vm.LoadImage(filePath[0]);
+            });
 
             vm.PropertyChanged += (sender, args) =>
             {
@@ -42,6 +64,7 @@ namespace UI_Project
             DataContext = vm;
 
             CloseSavePanel();
+            ClosePanelButton.Visibility = Visibility.Collapsed;
         }
 
         void CloseSavePanel()
@@ -91,6 +114,10 @@ namespace UI_Project
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
+            ConvertButton.Visibility = Visibility.Collapsed;
+            ClosePanelButton.Visibility = Visibility.Visible;
+
+            vm.WindowTitle = "ImageEngine - View and Convert";
             vm.GenerateSavePreview();
         }
 
@@ -103,6 +130,24 @@ namespace UI_Project
 
             if (sfd.ShowDialog() == true)
                 vm.SavePath = sfd.FileName;
+        }
+
+        private void TOPWINDOW_DragOver(object sender, DragEventArgs e)
+        {
+            DragDropHandler.DragOver(e);
+        }
+
+        private void TOPWINDOW_Drop(object sender, DragEventArgs e)
+        {
+            DragDropHandler.Drop(sender, e);
+        }
+
+        private void ClosePanelButton_Click(object sender, RoutedEventArgs e)
+        {
+            ConvertButton.Visibility = Visibility.Visible;
+            ClosePanelButton.Visibility = Visibility.Collapsed;
+
+            vm.WindowTitle = "ImageEngine - View";  // TODO: Have contents of second column be invisible until panel open fully.
         }
     }
 }

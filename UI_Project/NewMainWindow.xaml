@@ -14,9 +14,10 @@
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" 
-        Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}">
+        Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" 
+        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop">
 
-    
+
     <Grid x:Name="MainGrid" Margin="3,0,3,5">
         <Grid.Resources>
             <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
@@ -28,7 +29,7 @@
                     <x:Type TypeName="Library:ImageEngineFormat"/>
                 </ObjectDataProvider.MethodParameters>
             </ObjectDataProvider>
-            
+
             <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
             <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
 
@@ -117,7 +118,7 @@
                 <Setter Property="FontWeight" Value="Bold"/>
             </Style>
         </Grid.Resources>
-        
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="127*"/>
             <ColumnDefinition Width="20"/>
@@ -281,7 +282,7 @@
                         <DataTrigger Binding="{Binding MipCount}" Value="-1">
                             <Setter Property="Visibility" Value="Collapsed"/>
                         </DataTrigger>
-                        
+
                         <DataTrigger Binding="{Binding LoadedImage.NumMipMaps}" Value="1">
                             <Setter Property="Visibility" Value="Collapsed"/>
                         </DataTrigger>
@@ -321,6 +322,21 @@
                             <BeginStoryboard>
                                 <Storyboard>
                                     <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                                        <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                    </UsefulThingsAnims:GridLengthAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Button.Triggers>
+                </Button>
+                <Button x:Name="ClosePanelButton" Content="Close Panel &lt;&lt;" DockPanel.Dock="Right" Click="ClosePanelButton_Click">
+                    <Button.Triggers>
+                        <EventTrigger RoutedEvent="Button.Click">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
                                         <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
                                             <CubicEase EasingMode="EaseOut"/>
                                         </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
@@ -412,7 +428,45 @@
                 <TextBox Text="{Binding SavePath}" Margin="5,0"/>
             </DockPanel>
 
-            <Button Content="Save!" DockPanel.Dock="Bottom" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold"/>
+            <Grid DockPanel.Dock="Bottom" MaxHeight="70">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="237*"/>
+                    <ColumnDefinition Width="64*"/>
+                    <ColumnDefinition Width="237*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Saved Successfully!!" Foreground="LightGreen" FontSize="15" FontWeight="Bold" Grid.Column="2">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource VisibleTextDisplayStyle}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding SaveAttempted}" Value="True"/>
+                                        <Condition Binding="{Binding SaveError}" Value="{x:Null}"/>
+                                    </MultiDataTrigger.Conditions>
+
+                                    <MultiDataTrigger.Setters>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger.Setters>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBox Text="{Binding SaveError, Mode=OneWay}" IsReadOnly="True" FontSize="8" Grid.Column="2" Foreground="White" Background="Transparent" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SaveError}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <Button Content="Save!" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold" Command="{Binding SaveCommand}" Grid.Column="1"/>
+            </Grid>
 
             <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False">
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
@@ -503,7 +557,7 @@
                 </DockPanel>
             </DockPanel>
         </DockPanel>
-        
+
         <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
             <i:Interaction.Behaviors>
                 <ei:DataStateBehavior Binding="{Binding IsImageLoaded}" Value="False" TrueState="Big" FalseState="Normal"/>

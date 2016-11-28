@@ -81,7 +81,7 @@ namespace CSharpImageLibrary
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
 
             // Testing
-            WindowsWICCodecsAvailable = false;
+            //WindowsWICCodecsAvailable = false;
 
 
             // Enable GPU Acceleration by default
@@ -227,6 +227,8 @@ namespace CSharpImageLibrary
             {
                 int newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Width);
                 int newHeigh = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Height);
+
+                // TODO: Enable DDS' properly when not square. Related to sub 4x4 issue of "virtual" space and padding.
 
                 // KFreon: Assuming same scale in both dimensions...
                 fixScale = 1.0*newWidth / newMips[0].Width;

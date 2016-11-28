@@ -166,7 +166,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Contains formats not yet capable of saving.
         /// </summary>
-        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.DDS_DX10, ImageEngineFormat.TGA, ImageEngineFormat.Unknown };
+        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.DDS_DX10, ImageEngineFormat.TGA, ImageEngineFormat.Unknown, ImageEngineFormat.DDS_CUSTOM };
 
 
         /// <summary>
@@ -495,6 +495,36 @@ namespace CSharpImageLibrary
             return DDS.DDSGeneral.GetMipOffset(numMips + 1, saveFormat, width, height);
         }
 
+
+        /// <summary>
+        /// Gets uncompressed size of image with mipmaps given dimensions and number of channels. 
+        /// Assume 8 bits per channel.
+        /// </summary>
+        /// <param name="topWidth">Width of top mipmap.</param>
+        /// <param name="topHeight">Height of top mipmap.</param>
+        /// <param name="numChannels">Number of channels in image.</param>
+        /// <returns>Uncompressed size in bytes including mipmaps.</returns>
+        public static int GetUncompressedSizeWithMips(int topWidth, int topHeight, int numChannels)
+        {
+            return (int)(numChannels * (topWidth * topHeight) *3d/4d);
+        }
+
         
+        /// <summary>
+        /// Gets maximum number of channels a format can contain.
+        /// NOTE: This likely isn't actually the max number. i.e. None exceed four, but some are only one or two channels.
+        /// </summary>
+        /// <param name="format">Format to channel count.</param>
+        /// <returns>Max number of channels supported.</returns>
+        public static int MaxNumberOfChannels(ImageEngineFormat format)
+        {
+            var estimate = GetBlockSize(format);
+
+            // DXT and non-DDS
+            if (estimate > 4 || estimate == 1)
+                return 4;
+            else
+                return estimate;
+        }
     }
 }

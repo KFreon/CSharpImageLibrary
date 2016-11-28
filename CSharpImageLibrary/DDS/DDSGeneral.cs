@@ -325,7 +325,7 @@ namespace CSharpImageLibrary.DDS
         /// <param name="Width">Image Width.</param>
         /// <param name="Height">Image Height.</param>
         /// <returns>Number of mipmaps expected for image.</returns>
-        internal static int EstimateNumMipMaps(int Width, int Height)
+        public static int EstimateNumMipMaps(int Width, int Height)
         {
             int limitingDimension = Width > Height ? Height : Width;
             return (int)Math.Log(limitingDimension, 2); // There's 10 mipmaps besides the main top one.

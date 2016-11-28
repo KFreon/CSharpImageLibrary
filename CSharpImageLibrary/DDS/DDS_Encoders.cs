@@ -86,13 +86,17 @@ namespace CSharpImageLibrary.DDS
             List<uint> maskOrder = new List<uint>(4) { AMask, RMask, GMask, BMask };
             maskOrder.Sort();
             maskOrder.RemoveAll(t => t == 0);  // Required, otherwise indicies get all messed up when there's only two channels, but it's not indicated as such.
-            int[] ordering = new int[4];
+
+            int AIndex = 0;
+            int RIndex = 0;
+            int GIndex = 0;
+            int BIndex = 0;
 
             // Set default ordering
-            ordering[0] = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
-            ordering[1] = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
-            ordering[2] = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
-            ordering[3] = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
+            AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
+            RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
+            GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
+            BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
 
             for (int i = 0; i < source.Length; i+=4, destStart += byteCount)
             {
@@ -111,16 +115,16 @@ namespace CSharpImageLibrary.DDS
                 else
                 {
                     if (AMask != 0)
-                        destination[destStart + ordering[0]] = alpha;
+                        destination[destStart + AIndex] = alpha;
 
                     if (RMask != 0)
-                        destination[destStart + ordering[1]] = red;
+                        destination[destStart + RIndex] = red;
 
                     if (GMask != 0)
-                        destination[destStart + ordering[2]] = green;
+                        destination[destStart + GIndex] = green;
 
                     if (BMask != 0)
-                        destination[destStart + ordering[3]] = blue;
+                        destination[destStart + BIndex] = blue;
                 }
             }
 

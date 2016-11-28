@@ -129,6 +129,7 @@ namespace CSharpImageLibrary.Headers
                         dwRBitMask = 0xFF0000;
                         dwGBitMask = 0x00FF00;
                         dwBBitMask = 0x0000FF;
+                        dwRGBBitCount = 24;
                         break;
                     case ImageEngineFormat.DDS_CUSTOM:
                         // TODO: User defined masks

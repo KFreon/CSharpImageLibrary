@@ -76,6 +76,19 @@ namespace CSharpImageLibrary
         /// Size of Image when compressed (Essentially file size)
         /// </summary>
         public int CompressedSize { get; set; }
+
+
+        /// <summary>
+        /// Number of channels in image. 
+        /// NOTE: Still stored in memory as BGRA regardless.
+        /// </summary>
+        public int NumberOfChannels
+        {
+            get
+            {
+                return ImageFormats.MaxNumberOfChannels(Format);
+            }
+        }
         #endregion Properties
 
         /// <summary>

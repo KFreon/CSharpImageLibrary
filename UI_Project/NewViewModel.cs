@@ -1,4 +1,5 @@
 ﻿using CSharpImageLibrary;
+using CSharpImageLibrary.DDS;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,23 +21,65 @@ namespace UI_Project
             get
             {
                 if (closeCommand == null)
-                    closeCommand = new CommandHandler(() =>
-                    {
-                        // Clear things - should close panels when this happens
-                        LoadedImage = null;
-                        Preview = null;
-                        SavePreview = null;
-                        SavePath = null;
-
-                        // Notify
-                        UpdateUI();
-                    });
+                    closeCommand = new CommandHandler(() => CloseImage(true));
 
                 return closeCommand;
             }
         }
+
+        CommandHandler saveCommand = null;
+        public CommandHandler SaveCommand
+        {
+            get
+            {
+                if (saveCommand == null)
+                    saveCommand = new CommandHandler(() =>
+                    {
+                        Task.Run(() =>
+                        {
+                            SaveAttempted = true;
+                            try
+                            {
+                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, mergeAlpha: false); // TODO: Alpha
+                            }
+                            catch (Exception e)
+                            {
+                                SaveError = e.ToString();
+                            }
+                        });
+                    });
+
+                return saveCommand;
+
+            }
+        }
         #endregion Commands
 
+        bool saveAttempted = false;
+        public bool SaveAttempted
+        {
+            get
+            {
+                return saveAttempted; 
+            }
+            set
+            {
+                SetProperty(ref saveAttempted, value);
+            }
+        }
+
+        string saveError = null;
+        public string SaveError
+        {
+            get
+            {
+                return saveError;
+            }
+            set
+            {
+                SetProperty(ref saveError, value);
+            }
+        }
 
         #region Loaded Image Properties
         int mipIndex = 0;
@@ -130,7 +173,10 @@ namespace UI_Project
         {
             get
             {
-                return LoadedImage?.Width * LoadedImage?.Height * 4 ?? -1;
+                if (LoadedImage == null)
+                    return -1;
+
+                return ImageFormats.GetUncompressedSizeWithMips(LoadedImage.Width, LoadedImage.Height, LoadedImage.NumberOfChannels);
             }
         }
 
@@ -210,7 +256,10 @@ namespace UI_Project
         {
             get
             {
-                return ImageFormats.GetCompressedSize(SaveFormat, Width, Height, SaveMipType == MipHandling.KeepTopOnly ? 1 : MipCount);
+                int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
+                return ImageFormats.GetCompressedSize(SaveFormat, Width, Height, 
+                    SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 
+                    1 : estimatedMips);
             }
         }
 
@@ -249,6 +298,8 @@ namespace UI_Project
             }
             set
             {
+                bool changed = value != saveFormat;
+
                 SetProperty(ref saveFormat, value);
                 OnPropertyChanged(nameof(SaveCompressedSize));
                 OnPropertyChanged(nameof(SaveCompressionRatio));
@@ -264,6 +315,11 @@ namespace UI_Project
 
                 // Change extension as required
                 FixExtension();
+
+
+                // Regenerate save preview
+                if (changed)
+                    GenerateSavePreview();
             }
         }
 
@@ -340,6 +396,9 @@ namespace UI_Project
 
         internal async Task LoadImage(byte[] data)
         {
+            CloseImage(false); // Don't need to update the UI here, it'll get updated after loading the image. But do need to reset some things
+            WindowTitle = "Image Engine - View";
+
             // Full image
             var fullLoad = Task.Run(() => new ImageEngineImage(data));
 
@@ -371,7 +430,7 @@ namespace UI_Project
             // Save and reload to give accurate depiction of what it'll look like when saved.
             ImageEngineImage img = await Task.Run(() =>
             {
-                byte[] data = LoadedImage.Save(SaveFormat, SaveMipType, mergeAlpha: false);  // TODO: Alpha settings
+                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, mergeAlpha: false);  // TODO: Alpha settings
                 return new ImageEngineImage(data);
             });
 
@@ -414,6 +473,23 @@ namespace UI_Project
                 SavePath += requiredExtension;
             else if (Path.GetExtension(SavePath) != requiredExtension)  // Existing extension
                 Path.ChangeExtension(SavePath, requiredExtension);
+        }
+
+        void CloseImage(bool updateUI)
+        {
+            // Clear things - should close panels when this happens
+            LoadedImage = null;
+            Preview = null;
+            SavePreview = null;
+            SavePath = null;
+            SaveError = null;
+            SaveAttempted = false;
+            MipIndex = 0;
+            WindowTitle = "Image Engine";
+
+            // Notify
+            if (updateUI)
+                UpdateUI();
         }
     }
 }
