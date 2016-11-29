@@ -118,7 +118,7 @@ namespace UI_Project
             ClosePanelButton.Visibility = Visibility.Visible;
 
             vm.WindowTitle = "ImageEngine - View and Convert";
-            vm.GenerateSavePreview();
+            vm.UpdateSavePreview();
         }
 
         private void SavePathBrowseButton_Click(object sender, RoutedEventArgs e)

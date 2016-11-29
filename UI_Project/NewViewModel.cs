@@ -2,16 +2,30 @@
 using CSharpImageLibrary.DDS;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using UsefulThings.WPF;
 
 namespace UI_Project
 {
+    public enum AlphaDisplaySettings
+    {
+        [Description("Don't show Alpha")]
+        NoAlpha,
+
+        [Description("Alpha 'merged' (premult) with RGB")]
+        PremultiplyAlpha,
+
+        [Description("Alpha Only")]
+        AlphaOnly,
+    }
+
     public class NewViewModel : ViewModelBase
     {
         #region Commands
@@ -40,7 +54,7 @@ namespace UI_Project
                             SaveAttempted = true;
                             try
                             {
-                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, mergeAlpha: false); // TODO: Alpha
+                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, dxt1RemoveAlpha: !DXT1AlphaRemove);
                             }
                             catch (Exception e)
                             {
@@ -92,6 +106,9 @@ namespace UI_Project
             set
             {
                 SetProperty(ref mipIndex, value);
+
+                if (LoadedImage != null)
+                    UpdateLoadedPreview();
             }
         }
 
@@ -204,8 +221,8 @@ namespace UI_Project
             }
         }
 
-        int alphaDisplaySetting = 0;
-        public int AlphaDisplaySetting
+        AlphaDisplaySettings alphaDisplaySetting = 0;
+        public AlphaDisplaySettings AlphaDisplaySetting
         {
             get
             {
@@ -214,6 +231,14 @@ namespace UI_Project
             set
             {
                 SetProperty(ref alphaDisplaySetting, value);
+
+                if (LoadedImage != null)
+                {
+                    UpdateLoadedPreview();
+
+                    if(SavePreview != null)
+                        UpdateSavePreview();
+                }
             }
         }
         #endregion Loaded Image Properties
@@ -319,7 +344,7 @@ namespace UI_Project
 
                 // Regenerate save preview
                 if (changed)
-                    GenerateSavePreview();
+                    UpdateSavePreview();
             }
         }
 
@@ -347,15 +372,38 @@ namespace UI_Project
             }
         }
 
-        public int DXT1AlphaThreshold
+
+        DispatcherTimer SliderTimer = new DispatcherTimer();
+
+        public double DXT1AlphaThreshold
         {
             get
             {
-                return (int)(CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold * 100f);
+                return CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold;
             }
             set
             {
-                SetProperty(ref CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold, value / 100f);
+                SetProperty(ref CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold, value);
+
+                // Update Save Preview - Not every change though (that could be a bunch in 1 second).
+                SliderTimer.Stop();
+                SliderTimer.Start();
+            }
+        }
+
+        bool dxt1AlphaRemove = true;
+        public bool DXT1AlphaRemove
+        {
+            get
+            {
+                return dxt1AlphaRemove;
+            }
+            set
+            {
+                SetProperty(ref dxt1AlphaRemove, value);
+
+                if (SavePreview != null)
+                    UpdateSavePreview();
             }
         }
 
@@ -368,6 +416,10 @@ namespace UI_Project
             set
             {
                 SetProperty(ref CSharpImageLibrary.WIC_Codecs.JPGCompressionSetting, value);
+
+                // Update Save Preview - Not every change though (that could be a bunch in 1 second).
+                SliderTimer.Stop();
+                SliderTimer.Start();
             }
         }
         #endregion Save Properties
@@ -382,7 +434,12 @@ namespace UI_Project
 
         public NewViewModel() : base()
         {
-
+            SliderTimer.Interval = TimeSpan.FromSeconds(1);
+            SliderTimer.Tick += (arg, arg2) =>
+            {
+                UpdateSavePreview();
+                SliderTimer.Stop();
+            };
         }
 
         internal async Task LoadImage(string path)
@@ -408,36 +465,56 @@ namespace UI_Project
 
             // Wait for full load to be done
             LoadedImage = await fullLoad;
-            UpdatePreview(LoadedImage.MipMaps[0]);
+            UpdateLoadedPreview();
 
             SaveFormat = LoadedFormat;
         }
 
-        void UpdatePreview(MipMap mip)
+        void UpdateLoadedPreview()
         {
-            // Create Preview Object if required
-            if (Preview == null || (Preview.PixelHeight != mip.Height || Preview.PixelWidth != mip.Width))
-                Preview = UsefulThings.WPF.Images.CreateWriteableBitmap(mip.Pixels, mip.Width, mip.Height);
-            else
-                RedrawEitherPreview(Preview, mip.Pixels, mip.Width, mip.Height);
+            if (MipIndex >= loadedImage.MipMaps.Count)   // Easy way out of handling indicies - Max is bound to mipcount e.g 12, but 0 based index, hence 12 = 13th value, out of range.
+                return;
+
+            var mip = LoadedImage.MipMaps[MipIndex];
+            var pixels = GetPixels(mip);
+
+            UpdatePreview(ref preview, mip.Width, mip.Height, pixels);
 
             OnPropertyChanged(nameof(Preview));
             UpdateUI();
         }
 
-        public async Task GenerateSavePreview()
+        byte[] GetPixels(MipMap mip)
+        {
+            var pixels = mip.Pixels;
+            if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)  // Get a different set of pixels
+                pixels = mip.AlphaOnlyPixels;
+            else if (AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)  // Other two are just an alpha channel different - Bitmap objects are BGRA32, so need to set the alpha to opaque when "don't want it".
+                pixels = mip.RGBAOpaque;
+            return pixels;
+        }
+
+        void UpdatePreview(ref WriteableBitmap bmp, int width, int height, byte[] pixels)
+        {
+            // Create Preview Object if required - need to recreate if alpha setting changes to premultiplied
+            if (bmp == null || (bmp.PixelHeight != height || bmp.PixelWidth != width))
+                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, width, height);
+            else
+                RedrawEitherPreview(bmp, pixels, width, height);
+        }
+
+        public async Task UpdateSavePreview()
         {
             // Save and reload to give accurate depiction of what it'll look like when saved.
             ImageEngineImage img = await Task.Run(() =>
             {
-                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, mergeAlpha: false);  // TODO: Alpha settings
+                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, dxt1RemoveAlpha: !DXT1AlphaRemove);
                 return new ImageEngineImage(data);
             });
 
-            if (SavePreview == null)
-                SavePreview = UsefulThings.WPF.Images.CreateWriteableBitmap(img.MipMaps[0].Pixels, img.Width, img.Height);
-            else
-                RedrawEitherPreview(SavePreview, img.MipMaps[0].Pixels, img.Width, img.Height);
+            var pixels = GetPixels(img.MipMaps[0]);
+
+            UpdatePreview(ref savePreview, img.Width, img.Height, pixels);
 
             img.Dispose();
 

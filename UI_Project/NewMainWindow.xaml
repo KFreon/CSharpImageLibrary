@@ -22,6 +22,10 @@
         <Grid.Resources>
             <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
             <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
+            <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
+            <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
+            <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
+
             <ObjectDataProvider MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}"
                         x:Key="Formats">
@@ -35,6 +39,7 @@
 
             <Duration x:Key="StandardDuration">0:0:0.5</Duration>
             <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
+            <sys:TimeSpan x:Key="DelayedStartTimeSpan">0:0:0.5</sys:TimeSpan>
 
             <Style x:Key="UnloadedOpacityStyle" TargetType="FrameworkElement">
                 <Setter Property="Visibility" Value="Visible"/>
@@ -170,16 +175,17 @@
         </VisualStateManager.VisualStateGroups>
 
 
-
-        <ComboBox x:Name="AlphaDisplaySelector" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Margin="0,0,0.333,0" FontSize="10" SelectedIndex="{Binding AlphaDisplaySetting}" Style="{StaticResource UnloadedOpacityStyle}">
-            <ComboBoxItem Content="Don't Display Alpha"/>
-            <ComboBoxItem Content="Premultiplied Alpha"/>
-            <ComboBoxItem Content="Display Alpha Only"/>
-        </ComboBox>
+        <DockPanel HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
+            <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
+            <ComboBox x:Name="AlphaDisplaySelector" FontSize="10" 
+                  ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:AlphaDisplaySettings}}" SelectedValue="{Binding AlphaDisplaySetting, Mode=TwoWay}" 
+                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
+        </DockPanel>
+        
 
         <DockPanel x:Name="TitleBarDockPanel" Background="#4C000000" Grid.ColumnSpan="4" Margin="0,0,-3,0">
             <DockPanel.Resources>
-                <Style TargetType="Button">
+                <Style x:Key="WindowsButtonStyle" TargetType="Button">
                     <Setter Property="Width" Value="30"/>
                     <Setter Property="Height" Value="30"/>
                     <Setter Property="BorderBrush" Value="{x:Null}"/>
@@ -193,7 +199,7 @@
                 </Button.Content>
 
                 <Button.Style>
-                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                    <Style TargetType="Button" BasedOn="{StaticResource WindowsButtonStyle}">
                         <Setter Property="OverridesDefaultStyle" Value="True"/>
                         <Setter Property="Template">
                             <Setter.Value>
@@ -213,12 +219,12 @@
                     </Style>
                 </Button.Style>
             </Button>
-            <Button x:Name="WindowMinMaxButton" Background="Transparent" DockPanel.Dock="Right" Click="WindowMinMaxButton_Click">
+            <Button x:Name="WindowMinMaxButton" Background="Transparent" DockPanel.Dock="Right" Style="{StaticResource WindowsButtonStyle}" Click="WindowMinMaxButton_Click">
                 <Button.Content>
                     <Rectangle Width="15" Height="15" Stroke="White"/>
                 </Button.Content>
             </Button>
-            <Button x:Name="WindowMinimiseButton" Background="Transparent" DockPanel.Dock="Right" Click="WindowMinimiseButton_Click">
+            <Button x:Name="WindowMinimiseButton" Background="Transparent" DockPanel.Dock="Right" Style="{StaticResource WindowsButtonStyle}" Click="WindowMinimiseButton_Click">
                 <Button.Content>
                     <Separator Width="15" Height="1" Background="White"/>
                 </Button.Content>
@@ -321,7 +327,7 @@
                         <EventTrigger RoutedEvent="Button.Click">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
                                         <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
                                             <CubicEase EasingMode="EaseOut"/>
                                         </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
@@ -419,7 +425,7 @@
             </DockPanel>
         </DockPanel>
 
-        <DockPanel x:Name="SaveImageSettingsPanel" Grid.Row="3" Grid.Column="3" LastChildFill="False" Style="{StaticResource UnloadedOpacityStyle}">
+        <DockPanel x:Name="SaveImageSettingsPanel" Grid.Row="3" Grid.Column="3" LastChildFill="False">
             <Label Content="Save Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
 
             <DockPanel x:Name="SavePathArea" DockPanel.Dock="Top">
@@ -501,7 +507,7 @@
                 </StackPanel>
                 <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
 
-                <DockPanel x:Name="MainSaveFormatSelector" DockPanel.Dock="Left">
+                <DockPanel x:Name="MainSaveFormatSelector" DockPanel.Dock="Left" Margin="0,5">
                     <Label Content="Format: " FontWeight="Bold"/>
                     <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay}" 
                               DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
@@ -526,35 +532,75 @@
             </DockPanel>
 
             <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top">
-                <ContentControl>
-                    <ContentControl.Resources>
-                        <DockPanel x:Key="JPGSettings">
-                            <Label Content="JPG Settings"/>
+                <DockPanel x:Name="DXT1AlphaSettings" DockPanel.Dock="Top">
+                    <DockPanel.Resources>
+                        <Style TargetType="RadioButton">
+                            <Setter Property="Margin" Value="8,0"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="GroupName" Value="MAINGROUP"/>
+                        </Style>
+                    </DockPanel.Resources>
+                    <DockPanel.Style>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
 
-                        </DockPanel>
-
-                        <DockPanel x:Key="DXT1Settings">
-                            <Label Content="DXT1 Alpha Settings"/>
-
-                        </DockPanel>
-                    </ContentControl.Resources>
-
-                    <ContentControl.Style>
-                        <Style TargetType="ContentControl">
                             <Style.Triggers>
-
+                                <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_DXT1}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </ContentControl.Style>
-                </ContentControl>
+                    </DockPanel.Style>
+                    
+                    
+                    <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
+                    <RadioButton Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
+                    <RadioButton Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
+                               Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
+                        <Slider.Style>
+                            <Style TargetType="Slider">
+                                <Setter Property="IsEnabled" Value="True"/>
+                                <Setter Property="Opacity" Value="1"/>
 
-                <DockPanel x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}">
-                    <Label Content="Mipmap Settings:"/>
-                    <ComboBox x:Name="MipmapSettings" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding SaveMipType, Mode=TwoWay}" 
-                              SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
-                    <TextBlock Text="{Binding ElementName=MipmapSettings, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" 
-                               Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DXT1AlphaRemove}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                        <Setter Property="Opacity" Value="0.6"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Slider.Style>
+                    </Slider>
                 </DockPanel>
+
+                <DockPanel x:Name="JPGQualitySettings" DockPanel.Dock="Top">
+                    <DockPanel.Style>
+                        <Style TargetType="DockPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.JPG}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DockPanel.Style>
+                    <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
+                    <TextBlock Text="{Binding JPG_CompressionSetting}" DockPanel.Dock="Right" Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center"/>
+                    <Slider Minimum="0" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
+                </DockPanel>
+            </DockPanel>
+
+            <DockPanel x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}" Margin="0,10,0,0">
+                <Label Content="Mipmap Settings:"/>
+                <ComboBox x:Name="MipmapSettings" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding SaveMipType, Mode=TwoWay}" 
+                              SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
+                <TextBlock Text="{Binding ElementName=MipmapSettings, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" 
+                               Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
             </DockPanel>
         </DockPanel>
 

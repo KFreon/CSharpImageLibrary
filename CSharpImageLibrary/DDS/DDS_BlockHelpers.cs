@@ -322,7 +322,7 @@ namespace CSharpImageLibrary.DDS
             return new RGBColour[] { min, max };
         }
 
-        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, float alphaRef)
+        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef)
         {
             bool dither = true;
             int uSteps = 4;
@@ -782,7 +782,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        internal static void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1)
+        internal static void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1, bool isPremultiplied)
         {
             ushort colour0;
             ushort colour1;
@@ -811,7 +811,7 @@ namespace CSharpImageLibrary.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     int destPos = destinationStart + j * 4 + (i * destinationLineLength);
-                    UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos);
+                    UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos, isPremultiplied);
 
                     if (isDXT1)
                         destination[destPos + 3] = 0xFF;
@@ -827,13 +827,16 @@ namespace CSharpImageLibrary.DDS
         /// <param name="colour">Colour to convert to RGB</param>
         /// <param name="destination">Decompressed array.</param>
         /// <param name="position">Position in destination to write RGB at.</param>
+        /// <param name="isPremultiplied">True = RGB interpreted as being premultiplied with A channel.</param>
         /// <returns>RGB bytes</returns>
-        private static void UnpackDXTColour(int colour, byte[] destination, int position)
+        private static void UnpackDXTColour(int colour, byte[] destination, int position, bool isPremultiplied)
         {
+            double alpha = isPremultiplied ? (destination[position + 3] / 255f) : 1; // Normalise to 0-1.
+
             // Read RGB 5:6:5 data, expand to 8 bit.
-            destination[position + 2] = (byte)((colour & 0xF800) >> 8);  // Red, but format is BGR, so last
-            destination[position + 1] = (byte)((colour & 0x7E0) >> 3);  // Green
-            destination[position] = (byte)((colour & 0x1F) << 3);      // Blue
+            destination[position + 2] = (byte)(((colour & 0xF800) >> 8) / alpha);  // Red, but format is BGR, so last
+            destination[position + 1] = (byte)(((colour & 0x7E0) >> 3) / alpha);  // Green
+            destination[position] = (byte)(((colour & 0x1F) << 3) / alpha);      // Blue
         }
 
         /// <summary>

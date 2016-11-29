@@ -14,14 +14,14 @@ namespace CSharpImageLibrary.DDS
         static byte SignedAdjustment = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
 
         #region Compressed
-        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool removeAlpha)
         {
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, DXT1AlphaThreshold);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, removeAlpha ? 0 : DXT1AlphaThreshold);
         }
 
 
         // TODO: Check that this does premultiplied alpha dnd stuff.
-        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
         {
             // Compress Alpha
             int position = sourcePosition + 3;  // Only want to read alphas
@@ -41,7 +41,7 @@ namespace CSharpImageLibrary.DDS
         }
 
         // TODO: Check if this does premultiplied
-        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
         {
             // Compress Alpha
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 3, false);
@@ -50,13 +50,13 @@ namespace CSharpImageLibrary.DDS
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f);
         }
 
-        
-        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+
+        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
         {
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
         }
 
-        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition)
+        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
         {
             // Red: Channel 2, 0 destination offset
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);

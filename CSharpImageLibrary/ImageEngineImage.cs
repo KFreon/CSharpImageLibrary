@@ -156,11 +156,11 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired image format.</param>
         /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
-        /// <param name="mergeAlpha">DXT1 only. True = Uses threshold value and alpha values to mask RGB.</param>
+        /// <param name="dxt1RemoveAlpha">DXT1 only. True = Alpha removed. False = Uses threshold value and alpha values to mask RGB.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
-        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
+        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool dxt1RemoveAlpha = true)
         {
-            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, mergeAlpha);
+            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, dxt1RemoveAlpha);
             File.WriteAllBytes(destination, data);
         }
 
@@ -172,14 +172,14 @@ namespace CSharpImageLibrary
         /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="mipToSave">Index of mipmap to save directly.</param>
-        /// <param name="mergeAlpha">ONLY valid when desiredMaxDimension != 0. True = alpha flattened, directly affecting RGB.</param>
+        /// <param name="dxt1RemoveAlpha">DXT1 only. True = Alpha removed. False = Uses threshold value and alpha values to mask RGB.</param>
         /// <returns></returns>
-        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool mergeAlpha = false)
+        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool dxt1RemoveAlpha = true)
         {
             if (format == ImageEngineFormat.Unknown)
                 throw new InvalidOperationException("Save format cannot be 'Unknown'");
 
-            return ImageEngine.Save(MipMaps, format, GenerateMips, mergeAlpha, desiredMaxDimension, mipToSave);
+            return ImageEngine.Save(MipMaps, format, GenerateMips, dxt1RemoveAlpha, desiredMaxDimension, mipToSave);
         }
         #endregion Savers
 
@@ -223,7 +223,7 @@ namespace CSharpImageLibrary
                 else
                 {
                     double scale = (double)maxDimension / (Height > Width ? Height : Width);
-                    mip = ImageEngine.Resize(mip, scale, ShowAlpha);
+                    mip = ImageEngine.Resize(mip, scale);
                     bmp = mip.ToImage();
                 }         
             }
@@ -244,13 +244,12 @@ namespace CSharpImageLibrary
         /// If multiple mips, finds closest mip and scales it (if required). DESTROYS ALL OTHER MIPS.
         /// </summary>
         /// <param name="DesiredDimension">Desired size of images largest dimension.</param>
-        /// <param name="mergeAlpha">True = flattens alpha, directly affecting RGB.</param>
-        public void Resize(int DesiredDimension, bool mergeAlpha)
+        public void Resize(int DesiredDimension)
         {
             var top = MipMaps[0];
             var determiningDimension = top.Width > top.Height ? top.Width : top.Height;
             double scale = (double)DesiredDimension / determiningDimension;  
-            Resize(scale, mergeAlpha);
+            Resize(scale);
         }
 
 
@@ -258,8 +257,7 @@ namespace CSharpImageLibrary
         /// Scales top mipmap and DESTROYS ALL OTHERS.
         /// </summary>
         /// <param name="scale">Scaling factor. </param>
-        /// <param name="mergeAlpha">True = flattens alpha, directly affecting RGB.</param>
-        public void Resize(double scale, bool mergeAlpha)
+        public void Resize(double scale)
         {
             MipMap closestMip = null;
             double newScale = 0;
@@ -278,7 +276,7 @@ namespace CSharpImageLibrary
 
             newScale = desiredSize / closestMip.Width;
 
-            MipMaps[0] = ImageEngine.Resize(closestMip, newScale, mergeAlpha);
+            MipMaps[0] = ImageEngine.Resize(closestMip, newScale);
             MipMaps.RemoveRange(1, NumMipMaps - 1);
         }
     }

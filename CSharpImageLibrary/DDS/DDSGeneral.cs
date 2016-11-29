@@ -21,7 +21,7 @@ namespace CSharpImageLibrary.DDS
         /// <summary>
         /// Value at which alpha is included in DXT1 conversions. i.e. pixels lower than this threshold are made 100% transparent, and pixels higher are made 100% opaque.
         /// </summary>
-        public static float DXT1AlphaThreshold = 0.2f;
+        public static double DXT1AlphaThreshold = 0.2;
 
 
         #region Loading
@@ -31,11 +31,10 @@ namespace CSharpImageLibrary.DDS
             byte[] mipmap = new byte[mipHeight * mipWidth * 4];
             DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, ddspf);
 
-            bool alphaPresent = ddspf.dwABitMask != 0;
-            return new MipMap(mipmap, mipWidth, mipHeight, alphaPresent);
+            return new MipMap(mipmap, mipWidth, mipHeight);
         }
 
-        private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int blockSize, int mipOffset, Action<byte[], int, byte[], int, int> DecompressBlock)
+        private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int blockSize, int mipOffset, bool isPremultiplied, Action<byte[], int, byte[], int, int, bool> DecompressBlock)
         {
             // Gets stream as data. Note that this array isn't necessarily the correct size. Likely to have garbage at the end.
             // Don't want to use ToArray as that creates a new array. Don't want that.
@@ -55,7 +54,7 @@ namespace CSharpImageLibrary.DDS
                     int decompressedStart = (int)(texelIndex / numTexelsInRow) * texelRowSkip + (texelIndex % numTexelsInRow) * 16;
                     try
                     {
-                        DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength);
+                        DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength, isPremultiplied);
                     }
                     catch (IndexOutOfRangeException e) when (!UsefulThings.General.IsPowerOfTwo(mipWidth) || !UsefulThings.General.IsPowerOfTwo(mipHeight))
                     {
@@ -71,7 +70,7 @@ namespace CSharpImageLibrary.DDS
 
                 // Actually perform decompression using threading, no threading, or GPU.
                 if (ImageEngine.EnableGPUAcceleration)
-                    Debugger.Break();  // TODO: GPU acceleration
+                    Debugger.Break(); 
                 else if (ImageEngine.EnableThreading)
                     Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (texelIndex, loopstate) => action(texelIndex, loopstate));
                 else
@@ -80,7 +79,7 @@ namespace CSharpImageLibrary.DDS
             }
             // No else here cos the lack of texels means it's below texel dimensions (4x4). So the resulting block is set to 0. Not ideal, but who sees 2x2 mipmaps?
 
-            return new MipMap(decompressedData, mipWidth, mipHeight, true);  // All DXT can contain alpha
+            return new MipMap(decompressedData, mipWidth, mipHeight);
         }
 
         
@@ -141,7 +140,7 @@ namespace CSharpImageLibrary.DDS
             compressed.Position = mipOffset;
 
             // Block Compressed texture chooser.
-            Action<byte[], int, byte[], int, int> DecompressBCBlock = null;
+            Action<byte[], int, byte[], int, int, bool> DecompressBCBlock = null;
             switch (format)
             {
                 case ImageEngineFormat.DDS_DXT1:
@@ -175,7 +174,7 @@ namespace CSharpImageLibrary.DDS
 
                 MipMap mipmap = null;
                 if (ImageFormats.IsBlockCompressed(format))
-                    mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, blockSize, mipOffset, DecompressBCBlock);
+                    mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, blockSize, mipOffset, (format == ImageEngineFormat.DDS_DXT2 || format == ImageEngineFormat.DDS_DXT4), DecompressBCBlock);
                 else
                     mipmap = ReadUncompressedMipMap(compressed, mipOffset, mipWidth, mipHeight, header.ddspf);
 
@@ -192,10 +191,10 @@ namespace CSharpImageLibrary.DDS
         #endregion Loading
 
         #region Saving
-        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat)
+        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, bool dxt1RemoveAlpha)
         {
             // Set compressor for Block Compressed textures
-            Action<byte[], int, int, byte[], int> compressor = null;
+            Action<byte[], int, int, byte[], int, bool> compressor = null;
             switch (saveFormat)
             {
                 case ImageEngineFormat.DDS_ATI1:
@@ -235,7 +234,7 @@ namespace CSharpImageLibrary.DDS
             foreach (MipMap mipmap in mipMaps)
             {
                 if (ImageFormats.IsBlockCompressed(saveFormat))
-                    mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor);
+                    mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, dxt1RemoveAlpha);
                 else
                     mipOffset = WriteUncompressedMipMap(destination, mipOffset, mipmap, saveFormat, header.ddspf);
             }
@@ -244,7 +243,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int> compressor)
+        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, bool> compressor, bool dxt1RemoveAlpha)
         {
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
             int sourceLineLength = mipmap.Width * 4;
@@ -256,12 +255,12 @@ namespace CSharpImageLibrary.DDS
                 int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
                 int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
-                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize);
+                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, dxt1RemoveAlpha);
             });
 
             // Choose an acceleration method.
             if (ImageEngine.EnableGPUAcceleration)
-                Debugger.Break(); // TODO: GPU Accelerated saving
+                Debugger.Break(); 
             else if (ImageEngine.EnableThreading)
                 Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, mipWriter);
             else
@@ -282,9 +281,8 @@ namespace CSharpImageLibrary.DDS
         /// Ensures all Mipmaps are generated in MipMaps.
         /// </summary>
         /// <param name="MipMaps">MipMaps to check.</param>
-        /// <param name="mergeAlpha">True = flattens alpha, directly affecting RGB.</param>
         /// <returns>Number of mipmaps present in MipMaps.</returns>
-        internal static int BuildMipMaps(List<MipMap> MipMaps, bool mergeAlpha)
+        internal static int BuildMipMaps(List<MipMap> MipMaps)
         {
             if (MipMaps?.Count == 0)
                 return 0;
@@ -303,7 +301,7 @@ namespace CSharpImageLibrary.DDS
             {
                 int index = item;
                 MipMap newmip;
-                newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index), mergeAlpha);
+                newmip = ImageEngine.Resize(currentMip, 1f / Math.Pow(2, index));
                 newmips[index - 1] = newmip;
             });
 

@@ -111,15 +111,15 @@ namespace CSharpImageLibrary
                             continue;
                     }
 
-                    mipmaps.Add(new MipMap(mipmap.GetPixelsAsBGRA32(), mipmap.PixelWidth, mipmap.PixelHeight, ImageFormats.IsAlphaPresent(mipmap.Format)));
+                    mipmaps.Add(new MipMap(mipmap.GetPixelsAsBGRA32(), mipmap.PixelWidth, mipmap.PixelHeight));
                 }
 
                 if (mipmaps.Count == 0)
                 {
                     // KFreon: Image has no mips, so resize largest
                     var frame = decoder.Frames[0];
-                    var mip = new MipMap(frame.GetPixelsAsBGRA32(), frame.PixelWidth, frame.PixelHeight, ImageFormats.IsAlphaPresent(frame.Format));
-                    mip = ImageEngine.Resize(mip, scale, false);
+                    var mip = new MipMap(frame.GetPixelsAsBGRA32(), frame.PixelWidth, frame.PixelHeight);
+                    mip = ImageEngine.Resize(mip, scale);
                     mipmaps.Add(mip);
                 }
             }
@@ -130,7 +130,7 @@ namespace CSharpImageLibrary
                 if (bmp == null)
                     return null;
 
-                mipmaps.Add(new MipMap(bmp.GetPixelsAsBGRA32(), bmp.PixelWidth, bmp.PixelHeight, ImageFormats.IsAlphaPresent(bmp.Format)));
+                mipmaps.Add(new MipMap(bmp.GetPixelsAsBGRA32(), bmp.PixelWidth, bmp.PixelHeight));
             }
 
             return mipmaps;

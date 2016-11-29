@@ -129,9 +129,8 @@ namespace CSharpImageLibrary
                     MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, false);
                     break;
                 case ImageEngineFormat.TGA:
-                    var tga = new TargaImage(imageStream, ((TGA_Header)header).header);
-                    MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, false) };  // TODO: Check if TGA Supports alpha, and if this class does as well.
-                    tga.Dispose();
+                    using (var tga = new TargaImage(imageStream, ((TGA_Header)header).header))
+                        MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height) }; 
                     break;
                 case ImageEngineFormat.DDS_DX10:
                     throw new FormatException("DX10/DXGI not supported properly yet.");
@@ -188,15 +187,15 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired format.</param>
         /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
-        /// <param name="mergeAlpha">True = alpha flattened down, directly affecting RGB.</param>
+        /// <param name="dxt1RemoveAlpha">DXT1 only. True = Alpha removed. False = Uses threshold value and alpha values to mask RGB.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
         /// <returns>True on success.</returns>
-        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, bool mergeAlpha, int maxDimension = 0, int mipToSave = 0)
+        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, bool dxt1RemoveAlpha = true, int maxDimension = 0, int mipToSave = 0)
         {
             List<MipMap> newMips = new List<MipMap>(MipMaps);
             bool isMippable = ImageFormats.IsFormatMippable(format);
             if ((isMippable && mipChoice == MipHandling.GenerateNew) || (isMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
-                DDSGeneral.BuildMipMaps(newMips, mergeAlpha);
+                DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
             if (maxDimension != 0 && maxDimension < newMips[0].Width && maxDimension < newMips[0].Height) 
@@ -217,7 +216,7 @@ namespace CSharpImageLibrary
                     double scale = maxDimension * 1f / (newMips[0].Width > newMips[0].Height ? newMips[0].Width: newMips[0].Height);
 
                     // KFreon: No mip. Resize.
-                    newMips[0] = Resize(newMips[0], scale, mergeAlpha);
+                    newMips[0] = Resize(newMips[0], scale);
                 }
             }
 
@@ -232,19 +231,19 @@ namespace CSharpImageLibrary
 
                 // KFreon: Assuming same scale in both dimensions...
                 fixScale = 1.0*newWidth / newMips[0].Width;
-                newMips[0] = Resize(newMips[0], fixScale, mergeAlpha);
+                newMips[0] = Resize(newMips[0], fixScale);
             }
 
             if (fixScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
             if (fixScale != 0 && isMippable && mipChoice != MipHandling.KeepTopOnly)
-                DDSGeneral.BuildMipMaps(newMips, mergeAlpha);
+                DDSGeneral.BuildMipMaps(newMips);
 
 
             byte[] destination = null;
             if (format.ToString().Contains("DDS"))
-                destination = DDSGeneral.Save(newMips, format);
+                destination = DDSGeneral.Save(newMips, format, dxt1RemoveAlpha);
             else
             {
                 // KFreon: Try saving with built in codecs
@@ -296,7 +295,7 @@ namespace CSharpImageLibrary
         }      
         
 
-        internal static MipMap Resize(MipMap mipMap, double scale, bool mergeAlpha)
+        internal static MipMap Resize(MipMap mipMap, double scale)
         {
             int origWidth = mipMap.Width;
             int origHeight = mipMap.Height;
@@ -305,15 +304,13 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
 
-            // TODO: If this resize method is kept, need to deal with alpha somehow.
-            // TESTING
             byte[] newPixels = null;
             if (newHeight > newWidth)
                 newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Pixels, decodeWidth: newWidth).GetPixelsAsBGRA32();
             else
                 newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Pixels, decodeHeight: newHeight).GetPixelsAsBGRA32();
 
-            return new MipMap(newPixels, newWidth, newHeight, mipMap.AlphaPresent);
+            return new MipMap(newPixels, newWidth, newHeight);
 
 
 
@@ -322,7 +319,7 @@ namespace CSharpImageLibrary
 
 
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
-            bool alphaPresent = mipMap.AlphaPresent;
+            /*bool alphaPresent = mipMap.AlphaPresent;
 
             WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
             if (alphaPresent && !mergeAlpha)
@@ -396,7 +393,7 @@ namespace CSharpImageLibrary
                 }
             }
             
-            return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, alphaPresent);
+            return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, alphaPresent);*/
         }
 
 

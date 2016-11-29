@@ -15,14 +15,13 @@ namespace CSharpImageLibrary.DDS
         const int SignedAdjustment = 128;
 
         #region Compressed Readers
-        internal static void DecompressBC1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
+        internal static void DecompressBC1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, true);
+            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, true, false);
         }
 
 
-        // TODO: Check that this does premultiplied alpha and stuff
-        internal static void DecompressBC2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
+        internal static void DecompressBC2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
         {
             // KFreon: Decompress alpha (only half of the texel count though, since each byte is 2 texels of alpha)
             for (int i = 0; i < 8; i++)
@@ -38,22 +37,21 @@ namespace CSharpImageLibrary.DDS
             }
 
             // +8 skips the above alpha, otherwise it's just a BC1 RGB block
-            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false);
+            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false, isPremultiplied);
         }
 
 
-        // TODO: Check that this does premultiplied
-        internal static void DecompressBC3Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
+        internal static void DecompressBC3Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
         {
             // Alpha, +3 to select that channel.
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 3, decompressedLineLength, false);
 
             // RGB
-            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false);
+            DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false, isPremultiplied);
         }
 
 
-        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
+        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             // Red = +2 -- BGRA
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 2, decompressedLineLength, false);
@@ -71,7 +69,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength)
+        internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
 
