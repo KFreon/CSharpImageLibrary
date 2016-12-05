@@ -221,10 +221,15 @@ namespace CSharpImageLibrary
         #endregion Loading
 
 
-        internal static MemoryStream SaveWithCodecs(byte[] imageData, ImageEngineFormat format, int width, int height)
+        internal static MemoryStream SaveWithCodecs(byte[] imageData, ImageEngineFormat format, int width, int height, bool removeAlpha)
         {
             var image = UsefulThings.WPF.Images.CreateWriteableBitmap(imageData, width, height);
-            BitmapFrame frame = BitmapFrame.Create(image);
+            BitmapFrame frame = null;
+
+            if (removeAlpha)
+                frame = BitmapFrame.Create(new FormatConvertedBitmap(image, PixelFormats.Bgr32, image.Palette, 0));
+            else
+                frame = BitmapFrame.Create(image);
 
             // KFreon: Choose encoder based on desired format.
             BitmapEncoder encoder = null;

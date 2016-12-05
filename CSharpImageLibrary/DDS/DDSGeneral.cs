@@ -397,6 +397,8 @@ namespace CSharpImageLibrary.DDS
                 Turns out the partial sum of the infinite sum: Sum(1/4^n) = 1/3 x (4 - 4^-n). Who knew right?
             */
 
+            // TODO: DDS going down past 4x4
+
             int divisor = 1;
             if (ImageFormats.IsBlockCompressed(format))
                 divisor = 4;

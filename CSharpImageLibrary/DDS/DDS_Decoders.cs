@@ -14,6 +14,8 @@ namespace CSharpImageLibrary.DDS
         // Since a pixel channel colour is always a byte, this is constant. I realise this isn't good when colours are bigger than a byte or floats, but I'll get there.
         const int SignedAdjustment = 128;
 
+        // TODO: Virtual/physical size. Less than 4x4 texels
+
         #region Compressed Readers
         internal static void DecompressBC1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {

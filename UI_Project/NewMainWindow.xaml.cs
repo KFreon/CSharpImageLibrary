@@ -1,5 +1,6 @@
 ﻿using CSharpImageLibrary;
 using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -134,7 +135,7 @@ namespace UI_Project
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.InitialDirectory = Path.GetDirectoryName(vm.SavePath);
             sfd.FileName = Path.GetFileName(vm.SavePath);
-            sfd.Title = "Select save destination - Don't worry about File Extension. It'll get updated.";
+            sfd.Title = "Select save destination - Don't worry about File Extension. It'll get updated.";  // TODO: Have format option here perhaps? Maybe just allow selection of format here?
 
             if (sfd.ShowDialog() == true)
                 vm.SavePath = sfd.FileName;
@@ -156,6 +157,53 @@ namespace UI_Project
             ClosePanelButton.Visibility = Visibility.Collapsed;
 
             vm.WindowTitle = "ImageEngine - View"; 
+        }
+
+        private void BulkConvertListBox_DragOver(object sender, DragEventArgs e)
+        {
+
+        }
+
+        private void BulkConvertListBox_Drop(object sender, DragEventArgs e)
+        {
+
+        }
+
+        private void BulkBrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString();
+            ofd.Title = "Select files to be converted. Needn't be the same format.";
+
+            if (ofd.ShowDialog() == true)
+                vm.BulkConvertFiles.AddRange(ofd.FileNames);
+        }
+
+        private void BulkConvertButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.DoBulkConvert();
+        }
+
+        private void BulkCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.BulkConvertOpen = false;
+        }
+
+        private void BulkConvertOpenButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.BulkConvertOpen = true;
+        }
+
+        private void BulkSaveBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            CommonOpenFileDialog folderBrowser = new CommonOpenFileDialog()
+            {
+                IsFolderPicker = true,
+                Title = "Select folder to save converted files to."
+            };
+
+            if (folderBrowser.ShowDialog() == CommonFileDialogResult.Ok)
+                vm.BulkSaveFolder = folderBrowser.FileName;
         }
     }
 }

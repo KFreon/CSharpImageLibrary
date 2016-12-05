@@ -492,7 +492,34 @@ namespace CSharpImageLibrary
         /// <returns>Compressed size in bytes.</returns>
         public static int GetCompressedSize(ImageEngineFormat saveFormat, int width, int height, int numMips)
         {
-            return DDS.DDSGeneral.GetMipOffset(numMips + 1, saveFormat, width, height);
+            int estimate = DDS.DDSGeneral.GetMipOffset(numMips + 1, saveFormat, width, height);
+
+            int size = 0;
+            int divisor = 1;
+            if (ImageFormats.IsBlockCompressed(saveFormat))
+                divisor = 4;
+
+            while (width >= 1 && height >= 1)
+            {
+                int tempWidth = width;
+                int tempHeight = height;
+
+                if (ImageFormats.IsBlockCompressed(saveFormat))
+                {
+                    if (tempWidth < 4)
+                        tempWidth = 4;
+                    if (tempHeight < 4)
+                        tempHeight = 4;
+                }
+
+
+                size += tempWidth / divisor * tempHeight / divisor * ImageFormats.GetBlockSize(saveFormat);
+                width /= 2;
+                height /= 2;
+            }
+
+            //Console.WriteLine(size - estimate);
+            return size > estimate ? size : estimate;
         }
 
 

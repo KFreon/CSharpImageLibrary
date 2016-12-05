@@ -51,15 +51,15 @@ namespace UI_Project
                     {
                         Task.Run(() =>
                         {
-                            SaveAttempted = true;
                             try
                             {
-                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, dxt1RemoveAlpha: !DXT1AlphaRemove);
+                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
                             }
                             catch (Exception e)
                             {
                                 SaveError = e.ToString();
                             }
+                            SaveAttempted = true;
                         });
                     });
 
@@ -68,6 +68,44 @@ namespace UI_Project
             }
         }
         #endregion Commands
+
+        bool GeneralRemovingAlpha
+        {
+            get
+            {
+                return SaveFormat == ImageEngineFormat.DDS_DXT1 ? !DXT1AlphaRemove : RemoveGeneralAlpha;
+            }
+        }
+
+
+        public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
+
+        bool bulkConvertOpen = false;
+        public bool BulkConvertOpen
+        {
+            get
+            {
+                return bulkConvertOpen;
+            }
+            set
+            {
+                SetProperty(ref bulkConvertOpen, value);
+            }
+        }
+
+        string bulkSaveFolder = null;
+        public string BulkSaveFolder
+        {
+            get
+            {
+                return bulkSaveFolder;
+            }
+            set
+            {
+                SetProperty(ref bulkSaveFolder, value);
+            }
+        }
+
 
         bool saveAttempted = false;
         public bool SaveAttempted
@@ -366,6 +404,25 @@ namespace UI_Project
             }
         }
 
+        bool removeGeneralAlpha = false;
+        public bool RemoveGeneralAlpha
+        {
+            get
+            {
+                return removeGeneralAlpha;
+            }
+            set
+            {
+                SetProperty(ref removeGeneralAlpha, value);
+                OnPropertyChanged(nameof(SaveCompressedSize));
+                OnPropertyChanged(nameof(SaveCompressionRatio));
+                OnPropertyChanged(nameof(IsSaveSmaller));
+
+                if (SavePreview != null)
+                    UpdateSavePreview();
+            }
+        }
+
         public bool IsSaveFormatMippable
         {
             get
@@ -510,7 +567,7 @@ namespace UI_Project
             // Save and reload to give accurate depiction of what it'll look like when saved.
             ImageEngineImage img = await Task.Run(() =>
             {
-                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, dxt1RemoveAlpha: !DXT1AlphaRemove);
+                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
                 return new ImageEngineImage(data);
             });
 
@@ -547,11 +604,11 @@ namespace UI_Project
         {
             string requiredExtension = "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
 
-            var test = Path.GetExtension(savePath);
-            if (test == "")  // No extension
+            var currentExt = Path.GetExtension(savePath);
+            if (currentExt == "")  // No extension
                 SavePath += requiredExtension;
-            else if (Path.GetExtension(SavePath) != requiredExtension)  // Existing extension
-                Path.ChangeExtension(SavePath, requiredExtension);
+            else if (currentExt != requiredExtension)  // Existing extension
+                SavePath = Path.ChangeExtension(SavePath, requiredExtension);
         }
 
         void CloseImage(bool updateUI)
@@ -565,10 +622,39 @@ namespace UI_Project
             SaveAttempted = false;
             MipIndex = 0;
             WindowTitle = "Image Engine";
+            RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
 
             // Notify
             if (updateUI)
                 UpdateUI();
+        }
+
+        public void DoBulkConvert()
+        {
+            int numSkipped = 0;
+            int numFailed = 0;
+            foreach (var file in BulkConvertFiles)
+            {
+                using (ImageEngineImage img = new ImageEngineImage(file))
+                {
+                    string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
+                    string path = Path.Combine(BulkSaveFolder, filename);
+                    if (File.Exists(path))
+                    {
+                        numSkipped++;
+                        continue;
+                    }
+
+                    try
+                    {
+                        img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
+                    }
+                    catch
+                    {
+                        numFailed++;
+                    }
+                }
+            }
         }
     }
 }

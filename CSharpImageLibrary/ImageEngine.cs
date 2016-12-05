@@ -188,10 +188,10 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired format.</param>
         /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
-        /// <param name="dxt1RemoveAlpha">DXT1 only. True = Alpha removed. False = Uses threshold value and alpha values to mask RGB.</param>
+        /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1, otherwise completely removed.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
         /// <returns>True on success.</returns>
-        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, bool dxt1RemoveAlpha = true, int maxDimension = 0, int mipToSave = 0)
+        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, bool removeAlpha = true, int maxDimension = 0, int mipToSave = 0)
         {
             List<MipMap> newMips = new List<MipMap>(MipMaps);
             bool isMippable = ImageFormats.IsFormatMippable(format);
@@ -244,53 +244,13 @@ namespace CSharpImageLibrary
 
             byte[] destination = null;
             if (format.ToString().Contains("DDS"))
-                destination = DDSGeneral.Save(newMips, format, dxt1RemoveAlpha);
+                destination = DDSGeneral.Save(newMips, format, removeAlpha);
             else
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
-                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height).ToArray();
+                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height, removeAlpha).ToArray();
             }
-
-            // TODO: Do I still need this.
-            /*if (mipChoice != MipHandling.KeepTopOnly && isMippable)
-            {
-                // KFreon: Necessary. Must be how I handle the lowest mip levels. i.e. WRONGLY :(
-                // Figure out how big the file should be and make it that size
-
-                int size = 0;
-                int width = newMips[0].Width;
-                int height = newMips[0].Height;
-
-                int divisor = 1;
-                if (ImageFormats.IsBlockCompressed(format))
-                    divisor = 4;
-
-                while(width >= 1 && height >= 1)
-                {
-                    int tempWidth = width;
-                    int tempHeight = height;
-
-                    if (ImageFormats.IsBlockCompressed(format))
-                    {
-                        if (tempWidth < 4)
-                            tempWidth = 4;
-                        if (tempHeight < 4)
-                            tempHeight = 4;
-                    }
-                    
-
-                    size += tempWidth / divisor * tempHeight / divisor * ImageFormats.GetBlockSize(format);
-                    width /= 2;
-                    height /= 2;
-                }
-
-                if (size > destination.Length - 128)
-                {
-                    byte[] blanks = new byte[size - (destination.Length - 128)];
-                    destination.Write(blanks, 0, blanks.Length);
-                }
-            }*/
 
             return destination;
         }      
@@ -305,11 +265,13 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
 
+            var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
+
             byte[] newPixels = null;
             if (newHeight > newWidth)
-                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Pixels, decodeWidth: newWidth).GetPixelsAsBGRA32();
+                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, decodeWidth: newWidth).GetPixelsAsBGRA32();
             else
-                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(mipMap.Pixels, decodeHeight: newHeight).GetPixelsAsBGRA32();
+                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, decodeHeight: newHeight).GetPixelsAsBGRA32();
 
             return new MipMap(newPixels, newWidth, newHeight);
 

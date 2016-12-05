@@ -25,7 +25,7 @@
             <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
             <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
             <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
-
+            
             <ObjectDataProvider MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}"
                         x:Key="Formats">
@@ -122,6 +122,124 @@
             <Style x:Key="TitleElementStyle" TargetType="Run">
                 <Setter Property="FontWeight" Value="Bold"/>
             </Style>
+
+            <Style TargetType="ContentControl" x:Key="GeneralAlphaSettingsPanelVisibility">
+                <Setter Property="Visibility" Value="Collapsed"/>
+
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.PNG}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.TGA}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.TIFF}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.GIF}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.BMP}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <ControlTemplate x:Key="GeneralAlphaSettingsTemplate">
+                <DockPanel>
+                    <Label Content="Alpha Settings" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
+                    <CheckBox Content="Remove Alpha Channel" Foreground="White" IsChecked="{Binding RemoveGeneralAlpha}" DockPanel.Dock="Top"/>
+                </DockPanel>
+            </ControlTemplate>
+
+            <Style TargetType="ContentControl" x:Key="DXT1AlphaSettingVisibility">
+                <Setter Property="Visibility" Value="Collapsed"/>
+
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_DXT1}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <ControlTemplate x:Key="DXT1AlphaSettingTemplate">
+                <DockPanel>
+                    <DockPanel.Resources>
+                        <Style TargetType="RadioButton">
+                            <Setter Property="Margin" Value="8,0"/>
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="GroupName" Value="MAINGROUP"/>
+                        </Style>
+                    </DockPanel.Resources>
+
+
+                    <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
+                    <RadioButton Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
+                    <RadioButton Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
+                               Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
+                        <Slider.Style>
+                            <Style TargetType="Slider">
+                                <Setter Property="IsEnabled" Value="True"/>
+                                <Setter Property="Opacity" Value="1"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DXT1AlphaRemove}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False"/>
+                                        <Setter Property="Opacity" Value="0.6"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Slider.Style>
+                    </Slider>
+                </DockPanel>
+            </ControlTemplate>
+
+            <ControlTemplate x:Key="MainFormatSelector">
+                <DockPanel>
+                    <Label Content="Format: " FontWeight="Bold"/>
+                    <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay}" 
+                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
+                               TextWrapping="Wrap" FontSize="8"/>
+                </DockPanel>
+
+            </ControlTemplate>
+
+            <Style TargetType="ContentControl" x:Key="JPGSettingsVisibility">
+                <Setter Property="Visibility" Value="Collapsed"/>
+
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.JPG}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <ControlTemplate x:Key="JPGSettingsTemplate">
+                <DockPanel >
+                    <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
+                    <TextBlock Text="{Binding JPG_CompressionSetting}" DockPanel.Dock="Right" Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center"/>
+                    <Slider Minimum="0" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
+                </DockPanel>
+            </ControlTemplate>
+
+            <ControlTemplate x:Key="MipSettingsTemplate">
+                <DockPanel>
+                    <Label Content="Mipmap Settings:"/>
+                    <ComboBox x:Name="MipmapSettings" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding SaveMipType, Mode=TwoWay}" 
+                              SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="{Binding ElementName=MipmapSettings, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" 
+                               Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
+                </DockPanel>
+            </ControlTemplate>
         </Grid.Resources>
 
         <Grid.ColumnDefinitions>
@@ -174,14 +292,13 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-
-        <DockPanel HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
+        <DockPanel x:Name="AlphaDisplaySettingsBox" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
             <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
             <ComboBox x:Name="AlphaDisplaySelector" FontSize="10" 
                   ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:AlphaDisplaySettings}}" SelectedValue="{Binding AlphaDisplaySetting, Mode=TwoWay}" 
                               DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
         </DockPanel>
-        
+
 
         <DockPanel x:Name="TitleBarDockPanel" Background="#4C000000" Grid.ColumnSpan="4" Margin="0,0,-3,0">
             <DockPanel.Resources>
@@ -229,6 +346,7 @@
                     <Separator Width="15" Height="1" Background="White"/>
                 </Button.Content>
             </Button>
+            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,0,50,0" Click="BulkConvertOpenButton_Click"/>
             <TextBlock x:Name="TitleBlock" Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False" FontSize="22"/>
         </DockPanel>
 
@@ -507,13 +625,7 @@
                 </StackPanel>
                 <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
 
-                <DockPanel x:Name="MainSaveFormatSelector" DockPanel.Dock="Left" Margin="0,5">
-                    <Label Content="Format: " FontWeight="Bold"/>
-                    <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay}" 
-                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
-                    <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
-                               TextWrapping="Wrap" FontSize="8"/>
-                </DockPanel>
+                <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Left" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
                 <DockPanel x:Name="AdditionalFormatSelector" DockPanel.Dock="Right">
                     <DockPanel.Style>
                         <Style TargetType="DockPanel">
@@ -532,76 +644,12 @@
             </DockPanel>
 
             <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top">
-                <DockPanel x:Name="DXT1AlphaSettings" DockPanel.Dock="Top">
-                    <DockPanel.Resources>
-                        <Style TargetType="RadioButton">
-                            <Setter Property="Margin" Value="8,0"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="GroupName" Value="MAINGROUP"/>
-                        </Style>
-                    </DockPanel.Resources>
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_DXT1}">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-                    
-                    
-                    <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
-                    <RadioButton Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
-                    <RadioButton Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                    <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                    <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
-                               Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                    <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
-                        <Slider.Style>
-                            <Style TargetType="Slider">
-                                <Setter Property="IsEnabled" Value="True"/>
-                                <Setter Property="Opacity" Value="1"/>
-
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DXT1AlphaRemove}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False"/>
-                                        <Setter Property="Opacity" Value="0.6"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Slider.Style>
-                    </Slider>
-                </DockPanel>
-
-                <DockPanel x:Name="JPGQualitySettings" DockPanel.Dock="Top">
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.JPG}">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-                    <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                    <TextBlock Text="{Binding JPG_CompressionSetting}" DockPanel.Dock="Right" Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center"/>
-                    <Slider Minimum="0" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
-                </DockPanel>
+                <ContentControl x:Name="GeneralAlphaSettings" DockPanel.Dock="Top" Template="{StaticResource GeneralAlphaSettingsTemplate}" Style="{StaticResource GeneralAlphaSettingsPanelVisibility}"/>
+                <ContentControl x:Name="DXT1AlphaSettings" DockPanel.Dock="Top" Style="{StaticResource DXT1AlphaSettingVisibility}" Template="{StaticResource DXT1AlphaSettingTemplate}"/>
+                <ContentControl x:Name="JPGQualitySettings" DockPanel.Dock="Top" Style="{StaticResource JPGSettingsVisibility}" Template="{StaticResource JPGSettingsTemplate}"/>
             </DockPanel>
 
-            <DockPanel x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}" Margin="0,10,0,0">
-                <Label Content="Mipmap Settings:"/>
-                <ComboBox x:Name="MipmapSettings" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding SaveMipType, Mode=TwoWay}" 
-                              SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
-                <TextBlock Text="{Binding ElementName=MipmapSettings, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" 
-                               Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
-            </DockPanel>
+            <ContentControl x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}" Margin="0,10,0,0" Template="{StaticResource MipSettingsTemplate}"/>
         </DockPanel>
 
         <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
@@ -617,5 +665,52 @@
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>
+        <Border x:Name="BulkConvertBox" Grid.Row="1" Grid.ColumnSpan="5" Grid.RowSpan="5" Background="#B2000000">
+            
+            
+            <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="Black" BorderBrush="White" BorderThickness="2" CornerRadius="20">
+                <DockPanel LastChildFill="False">
+                    <Label Content="Bulk Conversion" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+                    <Label Content="Enables many images to be converted at once. Use the settings below to set the target format and alpha settings for each format." DockPanel.Dock="Top"/>
+                    <Grid DockPanel.Dock="Top" Margin="5,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ListBox x:Name="BulkConvertListBox" Background="Transparent" Foreground="White" ItemsSource="{Binding BulkConvertFiles}" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop"/>
+                        <DockPanel Grid.Column="1">
+                            <DockPanel.Resources>
+                                <Style TargetType="ContentControl">
+                                    <Setter Property="DockPanel.Dock" Value="Top"/>
+                                    <Setter Property="Margin" Value="0,6"/>
+                                </Style>
+                            </DockPanel.Resources>
+                            <Label Content="Format Settings" DockPanel.Dock="Top" Style="{StaticResource TitleStyle}"/>
+                            <Label Content="Note: Not all settings below will be valid for you." DockPanel.Dock="Top" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            <ContentControl Template="{StaticResource MainFormatSelector}"/>
+                            <ContentControl Template="{StaticResource MipSettingsTemplate}"/>
+                            <ContentControl Template="{StaticResource GeneralAlphaSettingsTemplate}"/>
+                            <ContentControl Template="{StaticResource DXT1AlphaSettingTemplate}"/>
+                            <ContentControl Template="{StaticResource JPGSettingsTemplate}"/>
+
+                            <DockPanel DockPanel.Dock="Bottom">
+                                <Button x:Name="BulkSaveBrowse" Content="Browse" DockPanel.Dock="Right" Click="BulkSaveBrowse_Click"/>
+                                <TextBox Margin="5,0" Text="{Binding BulkSaveFolder}"/>
+                            </DockPanel>
+                            <Label Content="Destination Folder" Style="{StaticResource TitleStyle}" FontSize="20" DockPanel.Dock="Bottom"/>
+                        </DockPanel>
+                    </Grid>
+                    <Label Content="STATUS" DockPanel.Dock="Right" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
+                    <ProgressBar DockPanel.Dock="Bottom" Width="300" HorizontalAlignment="Left" Height="30" Margin="20,5"/>
+                    
+                    <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
+                    <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Margin="0,0,30,0" Click="BulkCloseButton_Click"/>
+                    <Button x:Name="BulkConvertButton" Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Click="BulkConvertButton_Click"/>
+                </DockPanel>
+            </Border>
+            
+        </Border>
+
     </Grid>
 </Window>

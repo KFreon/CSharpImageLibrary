@@ -156,11 +156,11 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired image format.</param>
         /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
-        /// <param name="dxt1RemoveAlpha">DXT1 only. True = Alpha removed. False = Uses threshold value and alpha values to mask RGB.</param>
+        /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
-        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool dxt1RemoveAlpha = true)
+        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
         {
-            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, dxt1RemoveAlpha);
+            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha);
             File.WriteAllBytes(destination, data);
         }
 
@@ -172,14 +172,14 @@ namespace CSharpImageLibrary
         /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="mipToSave">Index of mipmap to save directly.</param>
-        /// <param name="dxt1RemoveAlpha">DXT1 only. True = Alpha removed. False = Uses threshold value and alpha values to mask RGB.</param>
+        /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1, otherwise completely removed.</param>
         /// <returns></returns>
-        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool dxt1RemoveAlpha = true)
+        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
         {
             if (format == ImageEngineFormat.Unknown)
                 throw new InvalidOperationException("Save format cannot be 'Unknown'");
 
-            return ImageEngine.Save(MipMaps, format, GenerateMips, dxt1RemoveAlpha, desiredMaxDimension, mipToSave);
+            return ImageEngine.Save(MipMaps, format, GenerateMips, removeAlpha, desiredMaxDimension, mipToSave);
         }
         #endregion Savers
 
