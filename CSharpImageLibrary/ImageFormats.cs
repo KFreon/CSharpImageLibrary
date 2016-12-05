@@ -272,7 +272,7 @@ namespace CSharpImageLibrary
             var names = GetSupportedExtensions();
 
             // All supported
-            filters.Add("All Supported|" + String.Join(";*.", names));
+            filters.Add("All Supported|*." + String.Join(";*.", names));
 
             foreach (var name in names)
             {

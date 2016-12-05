@@ -292,10 +292,12 @@ namespace UI_Project
         {
             get
             {
+                string name = null;
                 if (LoadedImage?.FilePath == null)
-                    return null;  // TODO: Maybe Desktop when path is unknown?
+                    name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat}.{ImageFormats.GetExtensionOfFormat(SaveFormat)}");
+                else
+                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{ImageFormats.GetExtensionOfFormat(SaveFormat)}";
 
-                string name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{ImageFormats.GetExtensionOfFormat(SaveFormat)}";
                 return UsefulThings.General.FindValidNewFileName(name);
             }
         }

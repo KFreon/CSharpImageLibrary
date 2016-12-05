@@ -195,6 +195,8 @@ namespace CSharpImageLibrary.DDS
         {
             // Set compressor for Block Compressed textures
             Action<byte[], int, int, byte[], int, bool> compressor = null;
+
+            bool alphaSetting = dxt1RemoveAlpha;
             switch (saveFormat)
             {
                 case ImageEngineFormat.DDS_ATI1:
@@ -210,10 +212,16 @@ namespace CSharpImageLibrary.DDS
                     compressor = DDS_Encoders.CompressBC1Block;
                     break;
                 case ImageEngineFormat.DDS_DXT2:
+                    alphaSetting = true;  // Premultiply
+                    compressor = DDS_Encoders.CompressBC2Block;
+                    break;
                 case ImageEngineFormat.DDS_DXT3:
                     compressor = DDS_Encoders.CompressBC2Block;
                     break;
                 case ImageEngineFormat.DDS_DXT4:
+                    alphaSetting = true;  // Premultiply
+                    compressor = DDS_Encoders.CompressBC3Block;
+                    break;
                 case ImageEngineFormat.DDS_DXT5:
                     compressor = DDS_Encoders.CompressBC3Block;
                     break;
@@ -234,7 +242,7 @@ namespace CSharpImageLibrary.DDS
             foreach (MipMap mipmap in mipMaps)
             {
                 if (ImageFormats.IsBlockCompressed(saveFormat))
-                    mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, dxt1RemoveAlpha);
+                    mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
                 else
                     mipOffset = WriteUncompressedMipMap(destination, mipOffset, mipmap, saveFormat, header.ddspf);
             }
@@ -243,7 +251,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, bool> compressor, bool dxt1RemoveAlpha)
+        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, bool> compressor, bool alphaSetting)  // Alpha setting could be DXT1 remove channel, or premultiply.
         {
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
             int sourceLineLength = mipmap.Width * 4;
@@ -255,7 +263,7 @@ namespace CSharpImageLibrary.DDS
                 int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
                 int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
-                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, dxt1RemoveAlpha);
+                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting);
             });
 
             // Choose an acceleration method.
@@ -363,8 +371,8 @@ namespace CSharpImageLibrary.DDS
 
             mipOffset = requiredOffset;
 
-            // Should only occur when an image has no mips
-            if (streamLength < requiredOffset)
+            // Should only occur when an image has 0 or 1 mipmap.
+            if (streamLength <= requiredOffset)
                 return false;
 
             return true;

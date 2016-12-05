@@ -81,7 +81,8 @@ namespace CSharpImageLibrary
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
 
             // Testing
-            //WindowsWICCodecsAvailable = false;
+            WindowsWICCodecsAvailable = false;
+            EnableThreading = false;
 
 
             // Enable GPU Acceleration by default

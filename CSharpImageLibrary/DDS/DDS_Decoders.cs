@@ -32,8 +32,8 @@ namespace CSharpImageLibrary.DDS
                 // lineOffset = texels aren't contiguous i.e. each row in texel isn't next to each other when decompressed. Need to skip to next line in entire bitmap. i / 2 is truncated by int cast, 
                 // so every 2 cycles (4 pixels, a full texel row) a bitmap line is skipped to the next line in texel.
                 int offset = decompressedStart + ((i % 2) * 8 + 3) + (decompressedLineLength * (i / 2));
-                destination[offset] = (byte)(source[sourceStart + i] * 0xF0 >> 4);
-                destination[offset + 4] = (byte)(source[sourceStart + i] * 0x0F);
+                destination[offset] = (byte)((source[sourceStart + i] & 0xF0));
+                destination[offset + 4] = (byte)(source[sourceStart + i] & 0x0F << 4);
             }
 
             // +8 skips the above alpha, otherwise it's just a BC1 RGB block

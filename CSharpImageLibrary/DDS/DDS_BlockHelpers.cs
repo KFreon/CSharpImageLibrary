@@ -65,20 +65,15 @@ namespace CSharpImageLibrary.DDS
             return (uint)(temp.r * 31f + 0.5f) << 11 | (uint)(temp.g * 63f + 0.5f) << 5 | (uint)(temp.b * 31f + 0.5f);
         }
 
-        static RGBColour ReadColourFromTexel(byte[] texel, int i)
+        static RGBColour ReadColourFromTexel(byte[] texel, int i, bool premultiply)
         {
             // Pull out rgb from texel
-            byte r = texel[i + 2];
-            byte g = texel[i + 1];
-            byte b = texel[i];
-            byte a = texel[i + 3];
-
             // Create current pixel colour
             RGBColour current = new RGBColour();
-            current.r = r / 255f;
-            current.g = g / 255f;
-            current.b = b / 255f;
-            current.a = a / 255f;
+            current.a = texel[i + 3] / 255f;
+            current.r = (texel[i + 2] / 255f) * (premultiply ? current.a : 1.0f);
+            current.g = (texel[i + 1] / 255f) * (premultiply ? current.a : 1.0f);
+            current.b = (texel[i] / 255f) * (premultiply ? current.a : 1.0f);
 
             return current;
         }
@@ -322,7 +317,7 @@ namespace CSharpImageLibrary.DDS
             return new RGBColour[] { min, max };
         }
 
-        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef)
+        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, bool premultiply)
         {
             bool dither = true;
             int uSteps = 4;
@@ -339,7 +334,7 @@ namespace CSharpImageLibrary.DDS
                 {
                     for (int j = 0; j < 4; j++)
                     {
-                        RGBColour colour = ReadColourFromTexel(imgData, position);
+                        RGBColour colour = ReadColourFromTexel(imgData, position, premultiply);
                         if (colour.a < alphaRef)
                             uColourKey++;
                         position+=4;
@@ -371,7 +366,7 @@ namespace CSharpImageLibrary.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     int index = (i << 2) + j;
-                    RGBColour current = ReadColourFromTexel(imgData, position);
+                    RGBColour current = ReadColourFromTexel(imgData, position, premultiply);
 
                     if (dither)
                     {
@@ -559,7 +554,7 @@ namespace CSharpImageLibrary.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     int index = (i << 2) + j;
-                    RGBColour current = ReadColourFromTexel(imgData, position);
+                    RGBColour current = ReadColourFromTexel(imgData, position, premultiply);
 
                     if ((uSteps == 3) && (current.a < alphaRef))
                     {
@@ -788,7 +783,6 @@ namespace CSharpImageLibrary.DDS
             ushort colour1;
             int[] Colours = null;
 
-            // TODO: Attempt to remove as many []s as possible.
 
             // Build colour palette
             try
@@ -831,7 +825,7 @@ namespace CSharpImageLibrary.DDS
         /// <returns>RGB bytes</returns>
         private static void UnpackDXTColour(int colour, byte[] destination, int position, bool isPremultiplied)
         {
-            double alpha = isPremultiplied ? (destination[position + 3] / 255f) : 1; // Normalise to 0-1.
+            double alpha = isPremultiplied ? (destination[position + 3] / 255d) : 1d; // Normalise to 0-1.
 
             // Read RGB 5:6:5 data, expand to 8 bit.
             destination[position + 2] = (byte)(((colour & 0xF800) >> 8) / alpha);  // Red, but format is BGR, so last
@@ -843,12 +837,16 @@ namespace CSharpImageLibrary.DDS
         /// Reads a packed DXT colour into RGB
         /// </summary>
         /// <param name="colour">Colour to convert to RGB</param>
-        /// <returns>RGB bytes</returns>
-        private static byte[] ReadDXTColour(int colour)
+        /// <param name="blue">Blue value of colour.</param>
+        /// <param name="red">Red value of colour.</param>
+        /// <param name="green">Green value of colour.</param>
+        private static void ReadDXTColour(int colour, ref byte red, ref byte blue, ref byte green)
         {
             // Read RGB 5:6:5 data
             // Expand to 8 bit data
-            return new byte[3] { (byte)((colour & 0xF800) >> 8), (byte)((colour & 0x7E0) >> 3), (byte)((colour & 0x1F) << 3) };
+            red = (byte)((colour & 0xF800) >> 8);
+            blue = (byte)((colour & 0x7E0) >> 3);
+            green = (byte)((colour & 0x1F) << 3);
         }
 
 
@@ -919,20 +917,29 @@ namespace CSharpImageLibrary.DDS
             Colours[0] = Colour0;
             Colours[1] = Colour1;
 
-            var Colour0s = ReadDXTColour(Colour0);
-            var Colour1s = ReadDXTColour(Colour1);
+            byte Colour0_R = 0;
+            byte Colour0_G = 0;
+            byte Colour0_B = 0;
+
+            byte Colour1_R = 0;
+            byte Colour1_G = 0;
+            byte Colour1_B = 0;
+
+            ReadDXTColour(Colour0, ref Colour0_R, ref Colour0_G, ref Colour0_B);
+            ReadDXTColour(Colour1, ref Colour1_R, ref Colour1_G, ref Colour1_B);
+
 
 
             // Interpolate other 2 colours
             if (Colour0 > Colour1)
             {
-                var r1 = (byte)(TwoThirds * Colour0s[0] + OneThird * Colour1s[0]);
-                var g1 = (byte)(TwoThirds * Colour0s[1] + OneThird * Colour1s[1]);
-                var b1 = (byte)(TwoThirds * Colour0s[2] + OneThird * Colour1s[2]);
+                var r1 = (byte)(TwoThirds * Colour0_R + OneThird * Colour1_R);
+                var g1 = (byte)(TwoThirds * Colour0_G + OneThird * Colour1_G);
+                var b1 = (byte)(TwoThirds * Colour0_B + OneThird * Colour1_B);
 
-                var r2 = (byte)(OneThird * Colour0s[0] + TwoThirds * Colour1s[0]);
-                var g2 = (byte)(OneThird * Colour0s[1] + TwoThirds * Colour1s[1]);
-                var b2 = (byte)(OneThird * Colour0s[2] + TwoThirds * Colour1s[2]);
+                var r2 = (byte)(OneThird * Colour0_R + TwoThirds * Colour1_R);
+                var g2 = (byte)(OneThird * Colour0_G + TwoThirds * Colour1_G);
+                var b2 = (byte)(OneThird * Colour0_B + TwoThirds * Colour1_B);
 
                 Colours[2] = BuildDXTColour(r1, g1, b1);
                 Colours[3] = BuildDXTColour(r2, g2, b2);
@@ -940,9 +947,9 @@ namespace CSharpImageLibrary.DDS
             else
             {
                 // KFreon: Only for dxt1
-                var r = (byte)(0.5 * Colour0s[0] + 0.5 * Colour1s[0]);
-                var g = (byte)(0.5 * Colour0s[1] + 0.5 * Colour1s[1]);
-                var b = (byte)(0.5 * Colour0s[2] + 0.5 * Colour1s[2]);
+                var r = (byte)(0.5 * Colour0_R + 0.5 * Colour1_R);
+                var g = (byte)(0.5 * Colour0_G + 0.5 * Colour1_G);
+                var b = (byte)(0.5 * Colour0_B + 0.5 * Colour1_B);
 
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;

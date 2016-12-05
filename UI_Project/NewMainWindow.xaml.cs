@@ -51,7 +51,7 @@ namespace UI_Project
                 if (filePath?.Length < 1)
                     return;
 
-                vm.LoadImage(filePath[0]);
+                Load(filePath[0]);
             });
 
             vm.PropertyChanged += (sender, args) =>
@@ -109,7 +109,15 @@ namespace UI_Project
             ofd.Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString();
             ofd.Title = "Select image to load";
             if (ofd.ShowDialog() == true)
-                vm.LoadImage(ofd.FileName);
+                Load(ofd.FileName);
+        }
+
+        void Load(string filename)
+        {
+            ConvertButton.Visibility = Visibility.Visible;
+            ClosePanelButton.Visibility = Visibility.Collapsed;
+
+            vm.LoadImage(filename);
         }
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
@@ -147,7 +155,7 @@ namespace UI_Project
             ConvertButton.Visibility = Visibility.Visible;
             ClosePanelButton.Visibility = Visibility.Collapsed;
 
-            vm.WindowTitle = "ImageEngine - View";  // TODO: Have contents of second column be invisible until panel open fully.
+            vm.WindowTitle = "ImageEngine - View"; 
         }
     }
 }

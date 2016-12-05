@@ -16,38 +16,33 @@ namespace CSharpImageLibrary.DDS
         #region Compressed
         internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool removeAlpha)
         {
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, removeAlpha ? 0 : DXT1AlphaThreshold);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, removeAlpha ? 0 : DXT1AlphaThreshold, false);
         }
 
 
-        // TODO: Check that this does premultiplied alpha dnd stuff.
-        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
+        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool premultiply)
         {
             // Compress Alpha
             int position = sourcePosition + 3;  // Only want to read alphas
-            for (int i = 0; i < 16; i++) 
+            for (int i = 0; i < 8; i+=2) 
             {
-                for (int j = 0; j < 2; j++)
-                {
-                    destination[destPosition + i + j] = (byte)(imgData[position] << 4 | imgData[position + 4]);
-                    position += 8;
-                }
+                destination[destPosition + i] = (byte)((imgData[position] & 0xF0) | (imgData[position + 4] >> 4));
+                destination[destPosition + i + 1] = (byte)((imgData[position + 8] & 0xF0) | (imgData[position + 12] >> 4));
 
-                sourcePosition += sourceLineLength;
+                position += sourceLineLength;
             }
 
             // Compress Colour
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, premultiply);
         }
 
-        // TODO: Check if this does premultiplied
-        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
+        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool premultiply)
         {
             // Compress Alpha
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 3, false);
 
             // Compress Colour
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, premultiply);
         }
 
 
