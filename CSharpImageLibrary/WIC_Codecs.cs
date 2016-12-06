@@ -221,12 +221,12 @@ namespace CSharpImageLibrary
         #endregion Loading
 
 
-        internal static MemoryStream SaveWithCodecs(byte[] imageData, ImageEngineFormat format, int width, int height, bool removeAlpha)
+        internal static MemoryStream SaveWithCodecs(byte[] imageData, ImageEngineFormat format, int width, int height, AlphaSettings alphaSetting)
         {
             var image = UsefulThings.WPF.Images.CreateWriteableBitmap(imageData, width, height);
             BitmapFrame frame = null;
 
-            if (removeAlpha)
+            if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
                 frame = BitmapFrame.Create(new FormatConvertedBitmap(image, PixelFormats.Bgr32, image.Palette, 0));
             else
                 frame = BitmapFrame.Create(image);
@@ -255,7 +255,7 @@ namespace CSharpImageLibrary
                     encoder = new GifBitmapEncoder();
                     estimatedImageSize = estimateHeaderSize + width * height / 5;  // Estimation
                     break;
-                case ImageEngineFormat.TIFF:
+                case ImageEngineFormat.TIF:
                     encoder = new TiffBitmapEncoder();
                     estimatedImageSize = estimateHeaderSize + width * height; // Esimation
                     break;

@@ -148,7 +148,7 @@ namespace CSharpImageLibrary
         /// Allows mipmaps.
         /// </summary>
         [Description("Format designed for scanners. Compressed. Allows mipmaps.")]
-        TIFF = DDS_RGB + 1,
+        TIF = DDS_RGB + 1,
 
         /// <summary>
         /// Used when the exact format is not present in this enum, but enough information is present to load it. (ARGB16 or something)
@@ -361,7 +361,7 @@ namespace CSharpImageLibrary
             /// TIFF images. Compressed, and supports mipmaps.
             /// </summary>
             [Description("TIFF Images")]
-            TIFF,
+            TIF,
         }
 
         /// <summary>
@@ -402,7 +402,7 @@ namespace CSharpImageLibrary
                 ext = SupportedExtensions.GIF;
 
             if (TIFF_Header.CheckIdentifier(bits))
-                ext = SupportedExtensions.TIFF;
+                ext = SupportedExtensions.TIF;
 
             // TGA (assumed if no other matches
             if (ext == SupportedExtensions.UNKNOWN)
@@ -475,9 +475,6 @@ namespace CSharpImageLibrary
             string formatString = format.ToString().ToLowerInvariant();
             if (formatString.Contains('_'))
                 formatString = "dds";
-
-            if (format == ImageEngineFormat.TIFF)
-                formatString = "tif";
 
             return formatString;
         }

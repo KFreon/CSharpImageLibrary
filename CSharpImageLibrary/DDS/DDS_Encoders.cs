@@ -14,44 +14,61 @@ namespace CSharpImageLibrary.DDS
         static byte SignedAdjustment = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
 
         #region Compressed
-        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool removeAlpha)
+        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, removeAlpha ? 0 : DXT1AlphaThreshold, false);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, (alphaSetting == AlphaSettings.RemoveAlphaChannel ? 0 : DXT1AlphaThreshold), alphaSetting);
         }
 
 
-        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool premultiply)
+        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // Compress Alpha
-            int position = sourcePosition + 3;  // Only want to read alphas
-            for (int i = 0; i < 8; i+=2) 
+            if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
             {
-                destination[destPosition + i] = (byte)((imgData[position] & 0xF0) | (imgData[position + 4] >> 4));
-                destination[destPosition + i + 1] = (byte)((imgData[position + 8] & 0xF0) | (imgData[position + 12] >> 4));
-
-                position += sourceLineLength;
+                // No alpha so fill with opaque alpha - has to be an alpha value, so make it so RGB is 100% visible.
+                for (int i = 0; i < 8; i++)
+                    destination[destPosition + i] = 0xFF;
             }
+            else
+            {
+                int position = sourcePosition + 3;  // Only want to read alphas
+                for (int i = 0; i < 8; i += 2)
+                {
+                    destination[destPosition + i] = (byte)((imgData[position] & 0xF0) | (imgData[position + 4] >> 4));
+                    destination[destPosition + i + 1] = (byte)((imgData[position + 8] & 0xF0) | (imgData[position + 12] >> 4));
+
+                    position += sourceLineLength;
+                }
+            }
+            
 
             // Compress Colour
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, premultiply);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, alphaSetting);
         }
 
-        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool premultiply)
+        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // Compress Alpha
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 3, false);
+            if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
+            {
+                // No alpha so fill with opaque alpha - has to be an alpha value, so make it so RGB is 100% visible.
+                for (int i = 0; i < 8; i++)
+                    destination[destPosition + i] = 0xFF;
+            }
+            else
+                Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 3, false);
 
             // Compress Colour
-            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, premultiply);
+            CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, alphaSetting);
         }
 
 
-        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
+        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
         }
 
-        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool unused = false)
+        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // Red: Channel 2, 0 destination offset
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);

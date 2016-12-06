@@ -179,7 +179,13 @@ namespace CSharpImageLibrary
             if (format == ImageEngineFormat.Unknown)
                 throw new InvalidOperationException("Save format cannot be 'Unknown'");
 
-            return ImageEngine.Save(MipMaps, format, GenerateMips, removeAlpha, desiredMaxDimension, mipToSave);
+            AlphaSettings alphaSetting = AlphaSettings.KeepAlpha;
+            if (removeAlpha)
+                alphaSetting = AlphaSettings.RemoveAlphaChannel;
+            else if (format == ImageEngineFormat.DDS_DXT2 || format == ImageEngineFormat.DDS_DXT4)
+                alphaSetting = AlphaSettings.Premultiply;
+
+            return ImageEngine.Save(MipMaps, format, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
         }
         #endregion Savers
 

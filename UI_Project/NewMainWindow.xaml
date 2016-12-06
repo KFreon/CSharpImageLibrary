@@ -124,27 +124,39 @@
             </Style>
 
             <Style TargetType="ContentControl" x:Key="GeneralAlphaSettingsPanelVisibility">
-                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="Visibility" Value="Visible"/>
 
                 <Style.Triggers>
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.PNG}">
-                        <Setter Property="Visibility" Value="Visible"/>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.JPG}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.TGA}">
-                        <Setter Property="Visibility" Value="Visible"/>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_DXT1}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.TIFF}">
-                        <Setter Property="Visibility" Value="Visible"/>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_V8U8}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.GIF}">
-                        <Setter Property="Visibility" Value="Visible"/>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_RGB}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.BMP}">
-                        <Setter Property="Visibility" Value="Visible"/>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_ATI1}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_G8_L8}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_A8L8}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_ATI2_3Dc}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -173,14 +185,13 @@
                             <Setter Property="Margin" Value="8,0"/>
                             <Setter Property="VerticalContentAlignment" Value="Center"/>
                             <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="GroupName" Value="MAINGROUP"/>
                         </Style>
                     </DockPanel.Resources>
 
 
                     <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
-                    <RadioButton Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
-                    <RadioButton Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                    <RadioButton GroupName="{TemplateBinding Name}" Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
+                    <RadioButton GroupName="{TemplateBinding Name}" Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
                     <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
                     <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
                                Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
@@ -205,8 +216,8 @@
             <ControlTemplate x:Key="MainFormatSelector">
                 <DockPanel>
                     <Label Content="Format: " FontWeight="Bold"/>
-                    <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay}" 
-                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
+                    <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center" DropDownOpened="SaveFormatCombo_DropDownOpened"/>
                     <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
                                TextWrapping="Wrap" FontSize="8"/>
                 </DockPanel>
@@ -227,7 +238,7 @@
                 <DockPanel >
                     <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
                     <TextBlock Text="{Binding JPG_CompressionSetting}" DockPanel.Dock="Right" Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center"/>
-                    <Slider Minimum="0" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
+                    <Slider Minimum="1" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
                 </DockPanel>
             </ControlTemplate>
 
@@ -346,7 +357,7 @@
                     <Separator Width="15" Height="1" Background="White"/>
                 </Button.Content>
             </Button>
-            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,0,50,0" Click="BulkConvertOpenButton_Click"/>
+            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,1,50,1" Click="BulkConvertOpenButton_Click"/>
             <TextBlock x:Name="TitleBlock" Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False" FontSize="22"/>
         </DockPanel>
 
@@ -626,20 +637,6 @@
                 <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
 
                 <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Left" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
-                <DockPanel x:Name="AdditionalFormatSelector" DockPanel.Dock="Right">
-                    <DockPanel.Style>
-                        <Style TargetType="DockPanel">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=SaveFormatCombo, Path=SelectedValue}" Value="255">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Style>
-                    <Label Content="Additional Format" FontWeight="Bold"/>
-                    <ComboBox/>
-                </DockPanel>
 
             </DockPanel>
 
@@ -665,9 +662,7 @@
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>
-        <Border x:Name="BulkConvertBox" Grid.Row="1" Grid.ColumnSpan="5" Grid.RowSpan="5" Background="#B2000000">
-            
-            
+        <Border x:Name="BulkConvertBox" Grid.Row="1" Grid.ColumnSpan="5" Grid.RowSpan="5" Background="#B2000000" Visibility="{Binding BulkConvertOpen, Converter={StaticResource BoolToVisConverter}}">
             <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="Black" BorderBrush="White" BorderThickness="2" CornerRadius="20">
                 <DockPanel LastChildFill="False">
                     <Label Content="Bulk Conversion" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
@@ -678,8 +673,41 @@
                             <ColumnDefinition Width="1*"/>
                         </Grid.ColumnDefinitions>
 
-                        <ListBox x:Name="BulkConvertListBox" Background="Transparent" Foreground="White" ItemsSource="{Binding BulkConvertFiles}" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop"/>
-                        <DockPanel Grid.Column="1">
+                        <Grid.Resources>
+                            <Style TargetType="FrameworkElement" x:Key="ResultsStyle">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BulkConvertFinished}" Value="true">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+
+                            <Style TargetType="FrameworkElement" x:Key="InitialStyle">
+                                <Setter Property="Visibility" Value="Visible"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BulkConvertFinished}" Value="true">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+
+                            <Style x:Key="ResultsStyle_Label" TargetType="Label" BasedOn="{StaticResource TitleStyle}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BulkConvertFinished}" Value="true">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Resources>
+
+                        <ListBox x:Name="BulkConvertListBox" Background="Transparent" Foreground="White" ItemsSource="{Binding BulkConvertFiles}" AllowDrop="True" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop" 
+                                 Style="{StaticResource InitialStyle}" KeyDown="BulkConvertListBox_KeyDown" SelectionMode="Extended"/>
+                        <DockPanel Grid.Column="1" Style="{StaticResource InitialStyle}">
                             <DockPanel.Resources>
                                 <Style TargetType="ContentControl">
                                     <Setter Property="DockPanel.Dock" Value="Top"/>
@@ -700,12 +728,20 @@
                             </DockPanel>
                             <Label Content="Destination Folder" Style="{StaticResource TitleStyle}" FontSize="20" DockPanel.Dock="Bottom"/>
                         </DockPanel>
+
+                        <Label Content="Skipped" Style="{StaticResource ResultsStyle_Label}"/>
+                        <ListBox x:Name="BulkSkippedListBox" ItemsSource="{Binding BulkConvertSkipped}" Margin="0,30,0,0" Background="Transparent" Foreground="White" Style="{StaticResource ResultsStyle}"/>
+
+                        <Label Content="Failed" Style="{StaticResource ResultsStyle_Label}" Grid.Column="1"/>
+                        <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" Grid.Column="1" Style="{StaticResource ResultsStyle}"/>
                     </Grid>
-                    <Label Content="STATUS" DockPanel.Dock="Right" VerticalAlignment="Bottom" Margin="0,0,0,5"/>
-                    <ProgressBar DockPanel.Dock="Bottom" Width="300" HorizontalAlignment="Left" Height="30" Margin="20,5"/>
+                    <DockPanel DockPanel.Dock="Bottom" Margin="20,5">
+                        <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <ProgressBar DockPanel.Dock="Left" Width="300" HorizontalAlignment="Left" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}"/>
+                    </DockPanel>
                     
                     <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
-                    <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Margin="0,0,30,0" Click="BulkCloseButton_Click"/>
+                    <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click"/>
                     <Button x:Name="BulkConvertButton" Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Click="BulkConvertButton_Click"/>
                 </DockPanel>
             </Border>

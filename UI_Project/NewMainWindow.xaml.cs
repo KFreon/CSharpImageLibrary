@@ -28,32 +28,35 @@ namespace UI_Project
         public NewViewModel vm { get; private set; }
 
         UsefulThings.WPF.DragDropHandler<NewViewModel> DragDropHandler = null;
+        UsefulThings.WPF.DragDropHandler<NewViewModel> BulkDropDragHandler = null;
 
         public NewMainWindow()
         {
             vm = new NewViewModel();
 
-            DragDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this);
-            DragDropHandler.DropValidator = new Predicate<string[]>(files =>
+            DragDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
             {
+                DropValidator = new Predicate<string[]>(files =>
+                {
                 // Check only one file - can only load one, so restrict to one.
                 if (files.Length != 1)
-                    return false;
+                        return false;
 
                 // Check file extension
                 if (!ImageFormats.GetSupportedExtensions().Contains(Path.GetExtension(files[0]).Replace(".", ""), StringComparison.OrdinalIgnoreCase))  // Checks extension, ignoring '.'
                     return false;
 
-                return true;
-            });
+                    return true;
+                }),
 
-            DragDropHandler.DropAction = new Action<NewViewModel, string[]>((viewModel, filePath) =>
-            {
-                if (filePath?.Length < 1)
-                    return;
+                DropAction = new Action<NewViewModel, string[]>((viewModel, filePath) =>
+                {
+                    if (filePath?.Length < 1)
+                        return;
 
-                Load(filePath[0]);
-            });
+                    Load(filePath[0]);
+                })
+            };
 
             vm.PropertyChanged += (sender, args) =>
             {
@@ -61,11 +64,33 @@ namespace UI_Project
                     CloseSavePanel();
             };
 
+            BulkDropDragHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
+            {
+                DropValidator = files =>
+                {
+                    if (files == null || files.Length == 0)
+                        return false;
+
+                // Check all extensions
+                foreach (string file in files)
+                    {
+                        if (!ImageFormats.GetSupportedExtensions().Contains(Path.GetExtension(file).Replace(".", ""), StringComparison.OrdinalIgnoreCase))  // Checks extension, ignoring '.'
+                        return false;
+                    }
+
+                    return true;
+                },
+
+                DropAction = (model, files) => model.BulkConvertFiles.AddRange(files)
+            };
             InitializeComponent();
             DataContext = vm;
 
             CloseSavePanel();
             ClosePanelButton.Visibility = Visibility.Collapsed;
+
+
+            
         }
 
         void CloseSavePanel()
@@ -106,9 +131,11 @@ namespace UI_Project
 
         private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString();
-            ofd.Title = "Select image to load";
+            OpenFileDialog ofd = new OpenFileDialog()
+            {
+                Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
+                Title = "Select image to load"
+            };
             if (ofd.ShowDialog() == true)
                 Load(ofd.FileName);
         }
@@ -132,11 +159,12 @@ namespace UI_Project
 
         private void SavePathBrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.InitialDirectory = Path.GetDirectoryName(vm.SavePath);
-            sfd.FileName = Path.GetFileName(vm.SavePath);
-            sfd.Title = "Select save destination - Don't worry about File Extension. It'll get updated.";  // TODO: Have format option here perhaps? Maybe just allow selection of format here?
-
+            SaveFileDialog sfd = new SaveFileDialog()
+            {
+                InitialDirectory = Path.GetDirectoryName(vm.SavePath),
+                FileName = Path.GetFileName(vm.SavePath),
+                Title = "Select save destination - Don't worry about File Extension. It'll get updated."  // TODO: Have format option here perhaps? Maybe just allow selection of format here?
+            };
             if (sfd.ShowDialog() == true)
                 vm.SavePath = sfd.FileName;
         }
@@ -161,20 +189,21 @@ namespace UI_Project
 
         private void BulkConvertListBox_DragOver(object sender, DragEventArgs e)
         {
-
+            BulkDropDragHandler.DragOver(e);
         }
 
         private void BulkConvertListBox_Drop(object sender, DragEventArgs e)
         {
-
+            BulkDropDragHandler.Drop(sender, e);
         }
 
         private void BulkBrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString();
-            ofd.Title = "Select files to be converted. Needn't be the same format.";
-
+            OpenFileDialog ofd = new OpenFileDialog()
+            {
+                Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
+                Title = "Select files to be converted. Needn't be the same format."
+            };
             if (ofd.ShowDialog() == true)
                 vm.BulkConvertFiles.AddRange(ofd.FileNames);
         }
@@ -187,6 +216,10 @@ namespace UI_Project
         private void BulkCloseButton_Click(object sender, RoutedEventArgs e)
         {
             vm.BulkConvertOpen = false;
+            vm.BulkConvertFinished = false;
+            vm.BulkConvertFiles.Clear();
+            vm.BulkConvertFailed.Clear();
+            vm.BulkConvertSkipped.Clear();
         }
 
         private void BulkConvertOpenButton_Click(object sender, RoutedEventArgs e)
@@ -204,6 +237,47 @@ namespace UI_Project
 
             if (folderBrowser.ShowDialog() == CommonFileDialogResult.Ok)
                 vm.BulkSaveFolder = folderBrowser.FileName;
+        }
+
+        private void BulkConvertListBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            var box = sender as ListBox;
+            if (box == null)
+                return;
+
+            if (e.Key == Key.Delete)
+            {
+                for (int i = 0; i < box.SelectedItems.Count; i++)
+                    vm.BulkConvertFiles.Remove((string)box.SelectedItems[i]);
+            }
+        }
+
+        private void SaveFormatCombo_DropDownOpened(object sender, EventArgs e)
+        {
+            var box = (ComboBox)sender;
+            if (box.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.NotStarted)
+            {
+                box.ItemContainerGenerator.StatusChanged += (s, args) =>
+                 {
+                     var generator = (ItemContainerGenerator)s;
+                     if (generator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
+                        DisableUnsupportedFormats(box);
+                 };
+            }
+        }
+
+        void DisableUnsupportedFormats(ComboBox box)
+        {
+            foreach (var item in box.Items)
+            {
+                var value = UsefulThings.WPF.EnumToItemsSource.GetValueBack(item);
+
+                if (ImageFormats.SaveUnsupported.Contains((ImageEngineFormat)value))
+                {
+                    var container = (ComboBoxItem)(box.ItemContainerGenerator.ContainerFromItem(item));
+                    container.IsEnabled = false;
+                }
+            }
         }
     }
 }

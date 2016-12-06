@@ -79,6 +79,8 @@ namespace UI_Project
 
 
         public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
+        public MTRangedObservableCollection<string> BulkConvertFailed { get; set; } = new MTRangedObservableCollection<string>();
+        public MTRangedObservableCollection<string> BulkConvertSkipped { get; set; } = new MTRangedObservableCollection<string>();
 
         bool bulkConvertOpen = false;
         public bool BulkConvertOpen
@@ -93,6 +95,19 @@ namespace UI_Project
             }
         }
 
+        bool bulkConvertFinished = false;
+        public bool BulkConvertFinished
+        {
+            get
+            {
+                return bulkConvertFinished;
+            }
+            set
+            {
+                SetProperty(ref bulkConvertFinished, value);
+            }
+        }
+
         string bulkSaveFolder = null;
         public string BulkSaveFolder
         {
@@ -103,6 +118,45 @@ namespace UI_Project
             set
             {
                 SetProperty(ref bulkSaveFolder, value);
+            }
+        }
+
+        string bulkStatus = null;
+        public string BulkStatus
+        {
+            get
+            {
+                return bulkStatus;
+            }
+            set
+            {
+                SetProperty(ref bulkStatus, value);
+            }
+        }
+
+        int bulkProgressMax = 0;
+        public int BulkProgressMax
+        {
+            get
+            {
+                return bulkProgressMax;
+            }
+            set
+            {
+                SetProperty(ref bulkProgressMax, value);
+            }
+        }
+
+        int bulkProgressValue = 1;
+        public int BulkProgressValue
+        {
+            get
+            {
+                return bulkProgressValue;
+            }
+            set
+            {
+                SetProperty(ref bulkProgressValue, value);
             }
         }
 
@@ -315,14 +369,26 @@ namespace UI_Project
             }
         }
 
+        int saveCompressedSize = 0;
         public int SaveCompressedSize
         {
             get
             {
-                int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
-                return ImageFormats.GetCompressedSize(SaveFormat, Width, Height, 
-                    SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 
-                    1 : estimatedMips);
+                if (SaveFormat.ToString().Contains("_"))
+                {
+                    int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
+                    return ImageFormats.GetCompressedSize(SaveFormat, Width, Height,
+                        SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ?
+                        1 : estimatedMips);
+                }
+
+                return saveCompressedSize;
+            }
+            set
+            {
+                SetProperty(ref saveCompressedSize, value);
+                OnPropertyChanged(nameof(SaveCompressionRatio));
+                OnPropertyChanged(nameof(IsSaveSmaller));
             }
         }
 
@@ -363,6 +429,9 @@ namespace UI_Project
             }
             set
             {
+                if (ImageFormats.SaveUnsupported.Contains(value))
+                    return;
+
                 bool changed = value != saveFormat;
 
                 SetProperty(ref saveFormat, value);
@@ -568,6 +637,7 @@ namespace UI_Project
             ImageEngineImage img = await Task.Run(() =>
             {
                 byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                SaveCompressedSize = data.Length;
                 return new ImageEngineImage(data);
             });
 
@@ -623,6 +693,13 @@ namespace UI_Project
             MipIndex = 0;
             WindowTitle = "Image Engine";
             RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
+            BulkProgressValue = 0;
+            BulkProgressMax = 0;
+            BulkStatus = null;
+            BulkConvertFinished = false;
+            BulkConvertFiles.Clear();
+            BulkConvertFailed.Clear();
+            BulkConvertSkipped.Clear();
 
             // Notify
             if (updateUI)
@@ -631,30 +708,51 @@ namespace UI_Project
 
         public void DoBulkConvert()
         {
-            int numSkipped = 0;
-            int numFailed = 0;
-            foreach (var file in BulkConvertFiles)
+            BulkProgressMax = BulkConvertFiles.Count;
+            BulkProgressValue = 0;
+            BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
+            BulkConvertFinished = false;
+            
+
+            Task.Run(() =>
             {
-                using (ImageEngineImage img = new ImageEngineImage(file))
+                foreach (var file in BulkConvertFiles)
                 {
-                    string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
-                    string path = Path.Combine(BulkSaveFolder, filename);
-                    if (File.Exists(path))
+                    using (ImageEngineImage img = new ImageEngineImage(file))
                     {
-                        numSkipped++;
-                        continue;
+                        string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
+                        string path = Path.Combine(BulkSaveFolder, filename);
+                        if (File.Exists(path))
+                        {
+                            BulkConvertSkipped.Add(path);
+                            continue;
+                        }
+
+                        try
+                        {
+                            img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
+                        }
+                        catch (Exception e)
+                        {
+                            BulkConvertFailed.Add(path + "  Reason: " + e.ToString());
+                        }
                     }
 
-                    try
-                    {
-                        img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
-                    }
-                    catch
-                    {
-                        numFailed++;
-                    }
+                    BulkProgressValue++;
+                    BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
                 }
-            }
+            });
+
+
+            BulkStatus = "Conversion complete! ";
+            if (BulkConvertSkipped.Count > 0)
+                BulkStatus += $"{BulkConvertSkipped.Count} already existed.";
+
+            if (BulkConvertFailed.Count > 0)
+                BulkStatus += $"{BulkConvertFailed.Count} failed to convert.";
+
+            BulkProgressValue = BulkProgressMax;
+            BulkConvertFinished = true;
         }
     }
 }

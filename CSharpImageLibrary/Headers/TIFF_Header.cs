@@ -21,7 +21,7 @@ namespace CSharpImageLibrary.Headers
         {
             get
             {
-                return ImageEngineFormat.TIFF;
+                return ImageEngineFormat.TIF;
             }
         }
 

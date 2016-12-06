@@ -191,12 +191,11 @@ namespace CSharpImageLibrary.DDS
         #endregion Loading
 
         #region Saving
-        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, bool dxt1RemoveAlpha)
+        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, AlphaSettings alphaSetting)
         {
             // Set compressor for Block Compressed textures
-            Action<byte[], int, int, byte[], int, bool> compressor = null;
+            Action<byte[], int, int, byte[], int, AlphaSettings> compressor = null;
 
-            bool alphaSetting = dxt1RemoveAlpha;
             switch (saveFormat)
             {
                 case ImageEngineFormat.DDS_ATI1:
@@ -212,16 +211,10 @@ namespace CSharpImageLibrary.DDS
                     compressor = DDS_Encoders.CompressBC1Block;
                     break;
                 case ImageEngineFormat.DDS_DXT2:
-                    alphaSetting = true;  // Premultiply
-                    compressor = DDS_Encoders.CompressBC2Block;
-                    break;
                 case ImageEngineFormat.DDS_DXT3:
                     compressor = DDS_Encoders.CompressBC2Block;
                     break;
                 case ImageEngineFormat.DDS_DXT4:
-                    alphaSetting = true;  // Premultiply
-                    compressor = DDS_Encoders.CompressBC3Block;
-                    break;
                 case ImageEngineFormat.DDS_DXT5:
                     compressor = DDS_Encoders.CompressBC3Block;
                     break;
@@ -244,14 +237,24 @@ namespace CSharpImageLibrary.DDS
                 if (ImageFormats.IsBlockCompressed(saveFormat))
                     mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
                 else
+                {
+                    if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
+                    {
+                        // Remove alpha by setting AMask = 0
+                        var ddspf = header.ddspf;
+                        ddspf.dwABitMask = 0;
+                        header.ddspf = ddspf;
+                    }
+
                     mipOffset = WriteUncompressedMipMap(destination, mipOffset, mipmap, saveFormat, header.ddspf);
+                }
             }
 
             return destination;
         }
 
 
-        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, bool> compressor, bool alphaSetting)  // Alpha setting could be DXT1 remove channel, or premultiply.
+        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings> compressor, AlphaSettings alphaSetting)  
         {
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
             int sourceLineLength = mipmap.Width * 4;

@@ -17,6 +17,16 @@ using CSharpImageLibrary.DDS;
 namespace CSharpImageLibrary
 {
     /// <summary>
+    /// Determines how alpha is handled.
+    /// </summary>
+    public enum AlphaSettings
+    {
+        KeepAlpha,
+        Premultiply,
+        RemoveAlphaChannel,
+    }
+
+    /// <summary>
     /// Determines how Mipmaps are handled.
     /// </summary>
     public enum MipHandling
@@ -126,7 +136,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.JPG:
                 case ImageEngineFormat.PNG:
                 case ImageEngineFormat.BMP:
-                case ImageEngineFormat.TIFF:
+                case ImageEngineFormat.TIF:
                     MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, false);
                     break;
                 case ImageEngineFormat.TGA:
@@ -171,7 +181,7 @@ namespace CSharpImageLibrary
                 case ImageFormats.SupportedExtensions.GIF:
                     header = new GIF_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.TIFF:
+                case ImageFormats.SupportedExtensions.TIF:
                     header = new TIFF_Header(stream);
                     break;
                 default:
@@ -188,10 +198,10 @@ namespace CSharpImageLibrary
         /// <param name="format">Desired format.</param>
         /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
-        /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1, otherwise completely removed.</param>
+        /// <param name="alphaSetting">Determines how to handle alpha.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
         /// <returns>True on success.</returns>
-        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, bool removeAlpha = true, int maxDimension = 0, int mipToSave = 0)
+        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, AlphaSettings alphaSetting, int maxDimension = 0, int mipToSave = 0)
         {
             List<MipMap> newMips = new List<MipMap>(MipMaps);
             bool isMippable = ImageFormats.IsFormatMippable(format);
@@ -244,12 +254,12 @@ namespace CSharpImageLibrary
 
             byte[] destination = null;
             if (format.ToString().Contains("DDS"))
-                destination = DDSGeneral.Save(newMips, format, removeAlpha);
+                destination = DDSGeneral.Save(newMips, format, alphaSetting);
             else
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
-                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height, removeAlpha).ToArray();
+                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height, alphaSetting).ToArray();
             }
 
             return destination;
@@ -409,7 +419,7 @@ namespace CSharpImageLibrary
             else if (format.Contains("png", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.PNG;
             else if (format.Contains("tiff", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.TIFF;
+                parsedFormat = ImageEngineFormat.TIF;
 
 
             return parsedFormat;
