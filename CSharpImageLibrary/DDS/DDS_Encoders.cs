@@ -70,6 +70,9 @@ namespace CSharpImageLibrary.DDS
 
         internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
+            // TODO: Blue channel influence?
+
+
             // Red: Channel 2, 0 destination offset
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
 

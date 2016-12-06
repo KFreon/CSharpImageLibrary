@@ -25,10 +25,15 @@ namespace UI_Project
     /// </summary>
     public partial class NewMainWindow : Window
     {
+        // TODO: Double click to maximise and minimise
+        // TODO: Link zoom and pan on things
+
         public NewViewModel vm { get; private set; }
 
         UsefulThings.WPF.DragDropHandler<NewViewModel> DragDropHandler = null;
         UsefulThings.WPF.DragDropHandler<NewViewModel> BulkDropDragHandler = null;
+
+
 
         public NewMainWindow()
         {
@@ -90,7 +95,8 @@ namespace UI_Project
             ClosePanelButton.Visibility = Visibility.Collapsed;
 
 
-            
+            // Prevent maximised window overtaking the taskbar
+            this.MaxHeight = SystemParameters.MaximizedPrimaryScreenHeight;
         }
 
         void CloseSavePanel()
@@ -120,8 +126,55 @@ namespace UI_Project
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left)
+            if(e.ChangedButton == MouseButton.Left && WindowState == WindowState.Maximized)
+            {
+                /// WORKING IN NON SCALED UNTIL THE END
+                // Set position of window back up to mouse, since restoring the window goes back to its previous location.
+                // Current cursor horizontal ratio location
+                double scale = UsefulThings.General.GetDPIScalingFactorFOR_CURRENT_MONITOR(this);
+                Debug.WriteLine($"scale: {scale}");
+
+                var currentCursor = PointToScreen(e.GetPosition(this));
+                var screens = System.Windows.Forms.Screen.AllScreens;
+                var currentScreen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)currentCursor.X, (int)currentCursor.Y));
+                var cursorX = currentCursor.X + currentScreen.WorkingArea.X;
+                if (currentScreen.WorkingArea.X != 0)
+                    cursorX += currentScreen.WorkingArea.Width;
+
+                Debug.WriteLine($"CursorX: {cursorX}");
+
+                double screenX = currentScreen.WorkingArea.Width;
+                Debug.WriteLine($"screenX: {screenX}");
+
+                double xRatio = Math.Abs(cursorX / screenX);
+                Debug.WriteLine($"ratio: {xRatio}");
+                if (cursorX < 0)
+                    xRatio = 1- xRatio;
+                Debug.WriteLine($"NEW ratio: {xRatio}");
+
+
+                Debug.WriteLine($"bounds: {RestoreBounds.Width}");
+                Debug.WriteLine($"scaled bounds: {RestoreBounds.Width * scale}");
+
+
+                var newX = cursorX - ((RestoreBounds.Width * scale) * xRatio);
+                Debug.WriteLine($"newX: {newX}");
+                Debug.WriteLine("");
+                
+
+                WindowState = WindowState.Normal;
+                Top = currentScreen.WorkingArea.Y / scale + 1;
+                Left = newX / scale;
+
                 DragMove();
+            }
+            else if (e.ChangedButton == MouseButton.Left)
+            {
+                if (e.ClickCount == 2)
+                    WindowMinMaxButton_Click(null, null);
+                else
+                    DragMove();
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)

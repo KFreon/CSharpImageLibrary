@@ -347,10 +347,25 @@
                     </Style>
                 </Button.Style>
             </Button>
-            <Button x:Name="WindowMinMaxButton" Background="Transparent" DockPanel.Dock="Right" Style="{StaticResource WindowsButtonStyle}" Click="WindowMinMaxButton_Click">
-                <Button.Content>
-                    <Rectangle Width="15" Height="15" Stroke="White"/>
-                </Button.Content>
+            <Button x:Name="WindowMinMaxButton" Background="Transparent" DockPanel.Dock="Right" Click="WindowMinMaxButton_Click">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource WindowsButtonStyle}">
+                        
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=TOPWINDOW, Path=WindowState}" Value="Maximized">
+                                <Setter Property="Content">
+                                    <Setter.Value>
+                                        <Canvas>
+                                            <Rectangle Width="10" Height="10" Stroke="White"/>
+                                            <Rectangle Width="10" Height="10" Stroke="White"/>
+                                        </Canvas>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
             </Button>
             <Button x:Name="WindowMinimiseButton" Background="Transparent" DockPanel.Dock="Right" Style="{StaticResource WindowsButtonStyle}" Click="WindowMinimiseButton_Click">
                 <Button.Content>
@@ -646,7 +661,8 @@
                                 <DockPanel.Resources>
                                     <Style TargetType="TextBox">
                                         <Setter Property="Width" Value="80"/>
-                                        <Setter Property="Margin" Value="0,0,15,0"/>
+                                        <Setter Property="Margin" Value="0,0,10,0"/>
+                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
                                     </Style>
 
                                     <Style TargetType="Label">
@@ -654,16 +670,16 @@
                                     </Style>
                                 </DockPanel.Resources>
                                 <Label Content="Alpha:"/>
-                                <TextBox />
+                                <TextBox Text="{Binding AMask, StringFormat=0x{0:X8}}"/>
 
                                 <Label Content="Red:"/>
-                                <TextBox />
-
-                                <Label Content="Blue:"/>
-                                <TextBox />
+                                <TextBox Text="{Binding RMask, StringFormat=0x{0:X8}}"/>
 
                                 <Label Content="Green:"/>
-                                <TextBox />
+                                <TextBox Text="{Binding GMask, StringFormat=0x{0:X8}}"/>
+                                
+                                <Label Content="Blue:"/>
+                                <TextBox Text="{Binding BMask, StringFormat=0x{0:X8}}"/>
                             </DockPanel>
                         </DockPanel>
                         <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
