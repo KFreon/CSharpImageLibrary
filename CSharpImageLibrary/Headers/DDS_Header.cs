@@ -87,7 +87,8 @@ namespace CSharpImageLibrary.Headers
             /// Build PixelFormat sub-header for a specified surface format.
             /// </summary>
             /// <param name="surfaceFormat">Format to base PixelHeader on.</param>
-            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat) : this()
+            /// <param name="customMasks">Custom user defined masks for colours.</param>
+            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat, List<uint> customMasks = null) : this()
             {
                 dwSize = 32;
                 dwFourCC = ParseFormatToFourCC(surfaceFormat);
@@ -132,7 +133,20 @@ namespace CSharpImageLibrary.Headers
                         dwRGBBitCount = 24;
                         break;
                     case ImageEngineFormat.DDS_CUSTOM:
-                        // TODO: User defined masks
+                        if (customMasks != null)
+                        {
+                            int numChannels = customMasks.Where(mask => mask != 0).Count();
+                            dwABitMask = customMasks[0];
+                            dwRBitMask = customMasks[1];
+                            dwGBitMask = customMasks[2];
+                            dwBBitMask = customMasks[3];
+                            dwRGBBitCount = 8 * numChannels;
+
+                            if (numChannels == 1)
+                                dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
+                            else if (numChannels == 2)
+                                dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
+                        }
                         break;
                     #endregion Uncompressed
                 }
@@ -722,7 +736,8 @@ namespace CSharpImageLibrary.Headers
         /// <param name="Height">Height of top mipmap.</param>
         /// <param name="Width">Width of top mipmap.</param>
         /// <param name="surfaceformat">Format header represents.</param>
-        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
+        /// <param name="customMasks">Custom user defined masks for colours.</param>
+        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat, List<uint> customMasks = null)
         {
             dwSize = 124;
             dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
@@ -730,7 +745,7 @@ namespace CSharpImageLibrary.Headers
             this.Height = Height;
             dwCaps = DDSdwCaps.DDSCAPS_TEXTURE | (Mips == 1 ? 0 : DDSdwCaps.DDSCAPS_COMPLEX | DDSdwCaps.DDSCAPS_MIPMAP);
             dwMipMapCount = Mips == 1 ? 1 : Mips;
-            ddspf = new DDS_PIXELFORMAT(surfaceformat);
+            ddspf = new DDS_PIXELFORMAT(surfaceformat, customMasks);
         }
         
 

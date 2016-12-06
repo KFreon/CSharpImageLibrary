@@ -555,15 +555,7 @@
         </DockPanel>
 
         <DockPanel x:Name="SaveImageSettingsPanel" Grid.Row="3" Grid.Column="3" LastChildFill="False">
-            <Label Content="Save Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
-
-            <DockPanel x:Name="SavePathArea" DockPanel.Dock="Top">
-                <Label Content="Path: " FontWeight="Bold"/>
-                <Button x:Name="SavePathBrowseButton" Content="Browse" DockPanel.Dock="Right" Click="SavePathBrowseButton_Click"/>
-                <TextBox Text="{Binding SavePath}" Margin="5,0"/>
-            </DockPanel>
-
-            <Grid DockPanel.Dock="Bottom" MaxHeight="70">
+            <Grid DockPanel.Dock="Bottom" MaxHeight="70" Margin="0,5,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="237*"/>
                     <ColumnDefinition Width="64*"/>
@@ -603,19 +595,30 @@
                 <Button Content="Save!" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold" Command="{Binding SaveCommand}" Grid.Column="1"/>
             </Grid>
 
-            <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
-                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center" FontSize="16">
+            <ScrollViewer DockPanel.Dock="Top">
+                <DockPanel LastChildFill="False">
+                    <Label Content="Save Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
+
+                    <DockPanel x:Name="SavePathArea" DockPanel.Dock="Top">
+                        <Label Content="Path: " FontWeight="Bold"/>
+                        <Button x:Name="SavePathBrowseButton" Content="Browse" DockPanel.Dock="Right" Click="SavePathBrowseButton_Click"/>
+                        <TextBox Text="{Binding SavePath}" Margin="5,0"/>
+                    </DockPanel>
+
+
+                    <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False">
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
+                            <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center" FontSize="16">
                         <Run Text="Compressed Size: " FontWeight="Bold"/>
                         <LineBreak/>
                         <Run Text="{Binding SaveCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}" FontSize="15" Foreground="LightGreen"/>
-                    </TextBlock>
-                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center">
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center">
                         <Run Text="Uncompressed Size: " FontWeight="Bold" FontSize="16"/>
                         <LineBreak/>
                         <Run Text="{Binding UncompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}" FontSize="16" Foreground="Orange"/>
-                    </TextBlock>
-                    <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center">
+                            </TextBlock>
+                            <TextBlock x:Name="CompressionRatioIndicator" Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center">
                         <Run Text="Compression %: " FontWeight="Bold" FontSize="16"/>
                         <LineBreak/>
                         <Run Text="{Binding SaveCompressionRatio, StringFormat={}{0:#.##}%, Mode=OneWay}" FontSize="16" FontWeight="Bold">
@@ -631,23 +634,53 @@
                                 </Style>
                             </Run.Style>
                         </Run>
-                    </TextBlock>
+                            </TextBlock>
 
-                </StackPanel>
-                <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
+                        </StackPanel>
 
-                <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Left" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
+                        <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
+                        <DockPanel DockPanel.Dock="Bottom">
+                            <Label Content="Custom DDS Colour Masks" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
+                            <Label Content="Note: These are untested and experimental. Good luck." DockPanel.Dock="Top" HorizontalAlignment="Center"/>
+                            <DockPanel LastChildFill="False">
+                                <DockPanel.Resources>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Width" Value="80"/>
+                                        <Setter Property="Margin" Value="0,0,15,0"/>
+                                    </Style>
 
-            </DockPanel>
+                                    <Style TargetType="Label">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Style>
+                                </DockPanel.Resources>
+                                <Label Content="Alpha:"/>
+                                <TextBox />
 
-            <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top">
-                <ContentControl x:Name="GeneralAlphaSettings" DockPanel.Dock="Top" Template="{StaticResource GeneralAlphaSettingsTemplate}" Style="{StaticResource GeneralAlphaSettingsPanelVisibility}"/>
-                <ContentControl x:Name="DXT1AlphaSettings" DockPanel.Dock="Top" Style="{StaticResource DXT1AlphaSettingVisibility}" Template="{StaticResource DXT1AlphaSettingTemplate}"/>
-                <ContentControl x:Name="JPGQualitySettings" DockPanel.Dock="Top" Style="{StaticResource JPGSettingsVisibility}" Template="{StaticResource JPGSettingsTemplate}"/>
-            </DockPanel>
+                                <Label Content="Red:"/>
+                                <TextBox />
 
-            <ContentControl x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}" Margin="0,10,0,0" Template="{StaticResource MipSettingsTemplate}"/>
+                                <Label Content="Blue:"/>
+                                <TextBox />
+
+                                <Label Content="Green:"/>
+                                <TextBox />
+                            </DockPanel>
+                        </DockPanel>
+                        <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
+
+                    </DockPanel>
+
+                    <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top">
+                        <ContentControl x:Name="GeneralAlphaSettings" DockPanel.Dock="Top" Template="{StaticResource GeneralAlphaSettingsTemplate}" Style="{StaticResource GeneralAlphaSettingsPanelVisibility}"/>
+                        <ContentControl x:Name="DXT1AlphaSettings" DockPanel.Dock="Top" Style="{StaticResource DXT1AlphaSettingVisibility}" Template="{StaticResource DXT1AlphaSettingTemplate}"/>
+                        <ContentControl x:Name="JPGQualitySettings" DockPanel.Dock="Top" Style="{StaticResource JPGSettingsVisibility}" Template="{StaticResource JPGSettingsTemplate}"/>
+                    </DockPanel>
+
+                    <ContentControl x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}" Margin="0,10,0,0" Template="{StaticResource MipSettingsTemplate}"/>
+                </DockPanel>
+            </ScrollViewer>
         </DockPanel>
+        
 
         <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
             <i:Interaction.Behaviors>

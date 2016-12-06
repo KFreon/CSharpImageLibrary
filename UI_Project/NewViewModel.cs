@@ -53,7 +53,7 @@ namespace UI_Project
                         {
                             try
                             {
-                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
+                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
                             }
                             catch (Exception e)
                             {
@@ -77,6 +77,65 @@ namespace UI_Project
             }
         }
 
+        uint aMask = 0xFF000000;
+        public uint AMask
+        {
+            get
+            {
+                return aMask;
+            }
+            set
+            {
+                SetProperty(ref aMask, value);
+            }
+        }
+
+        uint rMask = 0x00FF0000;
+        public uint RMask
+        {
+            get
+            {
+                return rMask;
+            }
+            set
+            {
+                SetProperty(ref rMask, value);
+            }
+        }
+
+        uint gMask = 0x0000FF00;
+        public uint GMask
+        {
+            get
+            {
+                return gMask;
+            }
+            set
+            {
+                SetProperty(ref gMask, value);
+            }
+        }
+
+        uint bMask = 0x000000FF;
+        public uint BMask
+        {
+            get
+            {
+                return bMask;
+            }
+            set
+            {
+                SetProperty(ref bMask, value);
+            }
+        }
+
+        List<uint> customMasks
+        {
+            get
+            {
+                return new List<uint>() { AMask, RMask, GMask, BMask };
+            }
+        }
 
         public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<string> BulkConvertFailed { get; set; } = new MTRangedObservableCollection<string>();
@@ -636,7 +695,7 @@ namespace UI_Project
             // Save and reload to give accurate depiction of what it'll look like when saved.
             ImageEngineImage img = await Task.Run(() =>
             {
-                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
                 SaveCompressedSize = data.Length;
                 return new ImageEngineImage(data);
             });
@@ -730,7 +789,7 @@ namespace UI_Project
 
                         try
                         {
-                            img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
+                            img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
                         }
                         catch (Exception e)
                         {

@@ -158,9 +158,10 @@ namespace CSharpImageLibrary
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
-        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
+        /// <param name="customMasks">Custom user defined masks for colours.</param>
+        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true, List<uint> customMasks = null)
         {
-            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha);
+            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha, customMasks);
             File.WriteAllBytes(destination, data);
         }
 
@@ -173,8 +174,9 @@ namespace CSharpImageLibrary
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="mipToSave">Index of mipmap to save directly.</param>
         /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1, otherwise completely removed.</param>
+        /// <param name="customMasks">Custom user defined masks for colours.</param>
         /// <returns></returns>
-        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
+        public byte[] Save(ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true, List<uint> customMasks = null)
         {
             if (format == ImageEngineFormat.Unknown)
                 throw new InvalidOperationException("Save format cannot be 'Unknown'");
@@ -185,7 +187,7 @@ namespace CSharpImageLibrary
             else if (format == ImageEngineFormat.DDS_DXT2 || format == ImageEngineFormat.DDS_DXT4)
                 alphaSetting = AlphaSettings.Premultiply;
 
-            return ImageEngine.Save(MipMaps, format, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+            return ImageEngine.Save(MipMaps, format, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave, customMasks);
         }
         #endregion Savers
 

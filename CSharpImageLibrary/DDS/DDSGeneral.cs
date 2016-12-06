@@ -191,7 +191,7 @@ namespace CSharpImageLibrary.DDS
         #endregion Loading
 
         #region Saving
-        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, AlphaSettings alphaSetting)
+        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, AlphaSettings alphaSetting, List<uint> customMasks = null)
         {
             // Set compressor for Block Compressed textures
             Action<byte[], int, int, byte[], int, AlphaSettings> compressor = null;
@@ -227,7 +227,7 @@ namespace CSharpImageLibrary.DDS
             byte[] destination = new byte[fullSize];
 
             // Create header and write to destination
-            DDS_Header header = new DDS_Header(mipMaps.Count, mipMaps[0].Height, mipMaps[0].Width, saveFormat);
+            DDS_Header header = new DDS_Header(mipMaps.Count, mipMaps[0].Height, mipMaps[0].Width, saveFormat, customMasks);
             header.WriteToArray(destination, 0);
 
             int mipOffset = 128;

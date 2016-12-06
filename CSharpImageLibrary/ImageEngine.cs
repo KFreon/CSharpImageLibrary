@@ -200,8 +200,9 @@ namespace CSharpImageLibrary
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
         /// <param name="alphaSetting">Determines how to handle alpha.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
+        /// <param name="customMasks">Custom user defined masks for colours.</param>
         /// <returns>True on success.</returns>
-        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, AlphaSettings alphaSetting, int maxDimension = 0, int mipToSave = 0)
+        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, AlphaSettings alphaSetting, int maxDimension = 0, int mipToSave = 0, List<uint> customMasks = null)
         {
             List<MipMap> newMips = new List<MipMap>(MipMaps);
             bool isMippable = ImageFormats.IsFormatMippable(format);
@@ -254,7 +255,7 @@ namespace CSharpImageLibrary
 
             byte[] destination = null;
             if (format.ToString().Contains("DDS"))
-                destination = DDSGeneral.Save(newMips, format, alphaSetting);
+                destination = DDSGeneral.Save(newMips, format, alphaSetting, customMasks);
             else
             {
                 // KFreon: Try saving with built in codecs
