@@ -25,9 +25,6 @@ namespace UI_Project
     /// </summary>
     public partial class NewMainWindow : Window
     {
-        // TODO: Double click to maximise and minimise
-        // TODO: Link zoom and pan on things
-
         public NewViewModel vm { get; private set; }
 
         UsefulThings.WPF.DragDropHandler<NewViewModel> DragDropHandler = null;
@@ -97,6 +94,9 @@ namespace UI_Project
 
             // Prevent maximised window overtaking the taskbar
             this.MaxHeight = SystemParameters.MaximizedPrimaryScreenHeight;
+
+            PanZoomLinkButton.Checked += (sender, args) => LoadedImageViewBox.Link(SaveImageViewBox);
+            PanZoomLinkButton.Unchecked += (sender, args) => LoadedImageViewBox.Unlink(SaveImageViewBox);
         }
 
         void CloseSavePanel()
@@ -283,6 +283,19 @@ namespace UI_Project
                     container.IsEnabled = false;
                 }
             }
+        }
+
+        private void TOPWINDOW_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+                vm.CloseCommand.Execute(null);
+        }
+
+        private void ImageCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Reset scaling and position
+            LoadedImageViewBox.Reset();
+            SaveImageViewBox.Reset();
         }
     }
 }

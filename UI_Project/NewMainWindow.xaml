@@ -15,7 +15,7 @@
         mc:Ignorable="d"
         Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" 
-        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop">
+        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown">
 
 
     <Grid x:Name="MainGrid" Margin="3,0,3,5">
@@ -25,7 +25,7 @@
             <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
             <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
             <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
-            
+
             <ObjectDataProvider MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}"
                         x:Key="Formats">
@@ -178,6 +178,47 @@
                 </Style.Triggers>
             </Style>
 
+            <Style TargetType="ContentControl" x:Key="CustomDDSSettingsVisibility">
+                <Setter Property="Visibility" Value="Collapsed"/>
+
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_CUSTOM}">
+                        <Setter Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <ControlTemplate x:Key="CustomDDSSettings">
+                <DockPanel DockPanel.Dock="Bottom">
+                    <Label Content="Custom DDS Colour Masks" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
+                    <Label Content="Note: These are untested and experimental. Good luck." DockPanel.Dock="Top" HorizontalAlignment="Center"/>
+                    <DockPanel LastChildFill="False">
+                        <DockPanel.Resources>
+                            <Style TargetType="TextBox">
+                                <Setter Property="Width" Value="80"/>
+                                <Setter Property="Margin" Value="0,0,10,0"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            </Style>
+
+                            <Style TargetType="Label">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Style>
+                        </DockPanel.Resources>
+                        <Label Content="Alpha:"/>
+                        <TextBox Text="{Binding AMask, StringFormat=0x{0:X8}}"/>
+
+                        <Label Content="Red:"/>
+                        <TextBox Text="{Binding RMask, StringFormat=0x{0:X8}}"/>
+
+                        <Label Content="Green:"/>
+                        <TextBox Text="{Binding GMask, StringFormat=0x{0:X8}}"/>
+
+                        <Label Content="Blue:"/>
+                        <TextBox Text="{Binding BMask, StringFormat=0x{0:X8}}"/>
+                    </DockPanel>
+                </DockPanel>
+            </ControlTemplate>
+            
             <ControlTemplate x:Key="DXT1AlphaSettingTemplate">
                 <DockPanel>
                     <DockPanel.Resources>
@@ -350,14 +391,18 @@
             <Button x:Name="WindowMinMaxButton" Background="Transparent" DockPanel.Dock="Right" Click="WindowMinMaxButton_Click">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource WindowsButtonStyle}">
-                        
+                        <Setter Property="Content">
+                            <Setter.Value>
+                                <Rectangle Width="15" Height="15" Stroke="White"/>
+                            </Setter.Value>
+                        </Setter>
 
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ElementName=TOPWINDOW, Path=WindowState}" Value="Maximized">
                                 <Setter Property="Content">
                                     <Setter.Value>
                                         <Canvas>
-                                            <Rectangle Width="10" Height="10" Stroke="White"/>
+                                            <Rectangle Margin="3,-4,0,0" Width="10" Height="10" Stroke="White"/>
                                             <Rectangle Width="10" Height="10" Stroke="White"/>
                                         </Canvas>
                                     </Setter.Value>
@@ -444,7 +489,7 @@
             <Slider x:Name="MipSlider" Orientation="Vertical" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Maximum="{Binding LoadedImage.NumMipMaps}" Value="{Binding MipIndex}" SmallChange="0"/>
         </DockPanel>
         <Rectangle x:Name="ImageDivider" Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Width="1" Stroke="Black" Fill="Black"  
-                   HorizontalAlignment="Right" StrokeEndLineCap="Round" StrokeStartLineCap="Round"/>
+                   HorizontalAlignment="Right" StrokeEndLineCap="Round" StrokeStartLineCap="Round" Style="{StaticResource UnloadedOpacityStyle}"/>
         <!--END Central Column-->
 
         <!--Save Image Box-->
@@ -458,6 +503,76 @@
                 </Image.RenderTransform>
             </Image>
         </UsefulWPF:PanAndZoomBorder>
+        <ToggleButton x:Name="PanZoomLinkButton" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="Transparent" Height="25">
+            <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{TemplateBinding Background}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1"/>
+                    </Border>
+
+                    <ControlTemplate.Triggers>
+                        <EventTrigger RoutedEvent="MouseEnter">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <ColorAnimation Storyboard.TargetProperty="Background.(SolidColorBrush.Color)" To="#7FADD8E6" Duration="0:0:0.05"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                        
+                        <EventTrigger RoutedEvent="MouseLeave">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <ColorAnimation Storyboard.TargetProperty="Background.(SolidColorBrush.Color)" To="Transparent" Duration="0:0:0.05"/>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </ToggleButton.Template>
+            <Grid>
+                <Grid.Resources>
+                    <Style TargetType="Ellipse">
+                        <Setter Property="Width" Value="30"/>
+                        <Setter Property="Height" Value="15"/>
+                        <Setter Property="Stroke" Value="LightGray"/>
+                        <Setter Property="StrokeThickness" Value="3"/>
+                        <Setter Property="HorizontalAlignment" Value="Left"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=PanZoomLinkButton,Path=IsChecked}" Value="False">
+                                <Setter Property="StrokeThickness" Value="1"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Resources>
+
+                <Ellipse/>
+                <Ellipse Margin="20,0,0,0"/>
+
+                <Line X1="1" X2="1" Y1="0" Y2="22" Stroke="Red" StrokeThickness="2" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                    <Line.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform/>
+                            <SkewTransform/>
+                            <RotateTransform Angle="27.255"/>
+                            <TranslateTransform/>
+                        </TransformGroup>
+                    </Line.RenderTransform>
+
+                    <Line.Style>
+                        <Style TargetType="Line">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=PanZoomLinkButton,Path=IsChecked}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Line.Style>
+                </Line>
+            </Grid>
+        </ToggleButton>
         <!--END Save Image Box-->
 
 
@@ -465,7 +580,7 @@
 
         <DockPanel x:Name="LoadedImagePropertyPanel" Grid.Row="3" Margin="3,0,3,0" Style="{StaticResource UnloadedOpacityStyle}">
             <DockPanel LastChildFill="False" DockPanel.Dock="Bottom">
-                <Button Content="Close" DockPanel.Dock="Left" Command="{Binding CloseCommand}" IsEnabled="{Binding IsImageLoaded}"/>
+                <Button x:Name="ImageCloseButton" Content="Close" DockPanel.Dock="Left" Command="{Binding CloseCommand}" IsEnabled="{Binding IsImageLoaded}" Click="ImageCloseButton_Click"/>
                 <Button x:Name="ConvertButton" Content="Convert >>" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}">
                     <Button.Triggers>
                         <EventTrigger RoutedEvent="Button.Click">
@@ -654,34 +769,7 @@
                         </StackPanel>
 
                         <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
-                        <DockPanel DockPanel.Dock="Bottom">
-                            <Label Content="Custom DDS Colour Masks" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
-                            <Label Content="Note: These are untested and experimental. Good luck." DockPanel.Dock="Top" HorizontalAlignment="Center"/>
-                            <DockPanel LastChildFill="False">
-                                <DockPanel.Resources>
-                                    <Style TargetType="TextBox">
-                                        <Setter Property="Width" Value="80"/>
-                                        <Setter Property="Margin" Value="0,0,10,0"/>
-                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                    </Style>
-
-                                    <Style TargetType="Label">
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Style>
-                                </DockPanel.Resources>
-                                <Label Content="Alpha:"/>
-                                <TextBox Text="{Binding AMask, StringFormat=0x{0:X8}}"/>
-
-                                <Label Content="Red:"/>
-                                <TextBox Text="{Binding RMask, StringFormat=0x{0:X8}}"/>
-
-                                <Label Content="Green:"/>
-                                <TextBox Text="{Binding GMask, StringFormat=0x{0:X8}}"/>
-                                
-                                <Label Content="Blue:"/>
-                                <TextBox Text="{Binding BMask, StringFormat=0x{0:X8}}"/>
-                            </DockPanel>
-                        </DockPanel>
+                        <ContentControl x:Name="CustomDDSSettingsPanel" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource CustomDDSSettings}" Style="{StaticResource CustomDDSSettingsVisibility}"/>
                         <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
 
                     </DockPanel>
@@ -696,7 +784,7 @@
                 </DockPanel>
             </ScrollViewer>
         </DockPanel>
-        
+
 
         <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
             <i:Interaction.Behaviors>
@@ -788,13 +876,13 @@
                         <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         <ProgressBar DockPanel.Dock="Left" Width="300" HorizontalAlignment="Left" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}"/>
                     </DockPanel>
-                    
+
                     <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
                     <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click"/>
                     <Button x:Name="BulkConvertButton" Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Click="BulkConvertButton_Click"/>
                 </DockPanel>
             </Border>
-            
+
         </Border>
 
     </Grid>

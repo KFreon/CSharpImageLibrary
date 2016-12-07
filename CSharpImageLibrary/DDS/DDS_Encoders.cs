@@ -65,12 +65,16 @@ namespace CSharpImageLibrary.DDS
 
         internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
+            // TODO: Use colour weightings here
+            // blue * 0.082 + green * 0.6094 + blue * 0.3086
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
         }
 
         internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
-            // TODO: Blue channel influence?
+            // TODO: Blue channel influence? Weightings?
+            // Maybe lesser * 0.082 + greater * 0.6094 + blue * 0.3086
+            // Blue has same influence on each channel, but the weighting of each channel is dependent on which channel is being compressed.
 
 
             // Red: Channel 2, 0 destination offset
