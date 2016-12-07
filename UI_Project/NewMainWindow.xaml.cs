@@ -124,11 +124,6 @@ namespace UI_Project
             this.Close();
         }
 
-        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            UsefulThings.WPF.General.DoBorderlessWindowDragMove(this, e);
-        }
-
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             UsefulThings.WPF.WindowBlur.EnableBlur(this);
@@ -296,6 +291,16 @@ namespace UI_Project
             // Reset scaling and position
             LoadedImageViewBox.Reset();
             SaveImageViewBox.Reset();
+        }
+
+        private void TOPWINDOW_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            UsefulThings.WPF.General.DoBorderlessWindowDragMove(this, e);
+        }
+
+        private void TOPWINDOW_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Console.WriteLine();
         }
     }
 }

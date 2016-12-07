@@ -52,25 +52,7 @@ namespace CSharpImageLibrary.DDS
             DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false, isPremultiplied);
         }
 
-
-        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
-        {
-            // Red = +2 -- BGRA
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 2, decompressedLineLength, false);
-
-            // Green = +1, source + 8 to skip first compressed block.
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart + 1, decompressedLineLength, false);
-
-            // KFreon: Alpha and blue need to be 255
-            for (int i = 0; i < 16; i++)
-            {
-                int offset = GetDecompressedOffset(decompressedStart, decompressedLineLength, i);
-                destination[offset] = 0xFF;  // Blue
-                destination[offset + 3] = 0xFF;  // Alpha
-            }
-        }
-
-
+        // BC$
         internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
@@ -86,6 +68,27 @@ namespace CSharpImageLibrary.DDS
                 destination[offset + 3] = 0xFF;  // Alpha
             }
         }
+
+        // BC5
+        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        {
+            // Red = +2 -- BGRA
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 2, decompressedLineLength, false);
+
+            // Green = +1, source + 8 to skip first compressed block.
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart + 1, decompressedLineLength, false);
+
+            // KFreon: Alpha and blue need to be 255
+            for (int i = 0; i < 16; i++)
+            {
+                int offset = GetDecompressedOffset(decompressedStart, decompressedLineLength, i);
+                destination[offset] = 0;  // Blue
+                destination[offset + 3] = 0xFF;  // Alpha
+            }
+        }
+
+
+        
 
         internal static int GetDecompressedOffset(int start, int lineLength, int pixelIndex)
         {

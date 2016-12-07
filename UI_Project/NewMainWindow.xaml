@@ -13,9 +13,9 @@
         xmlns:Library="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" MouseDown="Window_MouseDown" ResizeMode="CanResizeWithGrip" 
+        Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" 
-        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown">
+        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" MouseDown="TOPWINDOW_MouseDown">
 
 
     <Grid x:Name="MainGrid" Margin="3,0,3,5">
