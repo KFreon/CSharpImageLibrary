@@ -16,16 +16,17 @@
         Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="#9F000000" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" 
         AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" MouseDown="TOPWINDOW_MouseDown">
+    <Window.Resources>
+        <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
+        <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
+        <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
+        <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
+        <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
+    </Window.Resources>
 
 
-    <Grid x:Name="MainGrid" Margin="3,0,3,5">
+    <Grid x:Name="MainGrid" Margin="3,0,3,5" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
         <Grid.Resources>
-            <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
-            <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
-            <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
-            <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
-            <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
-
             <ObjectDataProvider MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}"
                         x:Key="Formats">

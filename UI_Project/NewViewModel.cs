@@ -28,6 +28,19 @@ namespace UI_Project
 
     public class NewViewModel : ViewModelBase
     {
+        bool busy = false;
+        public bool Busy
+        {
+            get
+            {
+                return busy;
+            }
+            set
+            {
+                SetProperty(ref busy, value);
+            }
+        }
+
         #region Commands
         CommandHandler closeCommand = null;
         public CommandHandler CloseCommand
@@ -51,6 +64,7 @@ namespace UI_Project
                     {
                         Task.Run(() =>
                         {
+                            Busy = true;
                             try
                             {
                                 LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
@@ -60,6 +74,7 @@ namespace UI_Project
                                 SaveError = e.ToString();
                             }
                             SaveAttempted = true;
+                            Busy = false;
                         });
                     });
 
@@ -511,7 +526,7 @@ namespace UI_Project
 
 
                 // Regenerate save preview
-                if (changed)
+                if (changed && SavePreview != null)
                     UpdateSavePreview();
             }
         }

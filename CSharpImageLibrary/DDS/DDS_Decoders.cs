@@ -78,17 +78,16 @@ namespace CSharpImageLibrary.DDS
             // Green = +1, source + 8 to skip first compressed block.
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart + 1, decompressedLineLength, false);
 
-            // KFreon: Alpha and blue need to be 255
+            // KFreon: Alpha is 255, and blue needs to be calculated
             for (int i = 0; i < 16; i++)
             {
                 int offset = GetDecompressedOffset(decompressedStart, decompressedLineLength, i);
-                destination[offset] = 0;  // Blue
+                var dot = Math.Pow((destination[offset + 1] / 255d) * 2d - 1d, 2d) + Math.Pow((destination[offset + 2] / 255d) * 2d - 1d, 2d);
+                var test2 = Math.Sqrt(1d - dot) * 255d;
+                destination[offset] = (byte)test2;  // Blue
                 destination[offset + 3] = 0xFF;  // Alpha
             }
         }
-
-
-        
 
         internal static int GetDecompressedOffset(int start, int lineLength, int pixelIndex)
         {
