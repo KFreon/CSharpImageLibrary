@@ -901,20 +901,20 @@ namespace CSharpImageLibrary.DDS
             if (min > max)
             {
                 // KFreon: Interpolate other colours
-                Colours[2] = (byte)((6d * min + 1d * max) / 7d);
-                Colours[3] = (byte)((5d * min + 2d * max) / 7d);
-                Colours[4] = (byte)((4d * min + 3d * max) / 7d);
-                Colours[5] = (byte)((3d * min + 4d * max) / 7d);
-                Colours[6] = (byte)((2d * min + 5d * max) / 7d);
-                Colours[7] = (byte)((1d * min + 6d * max) / 7d);
+                Colours[2] = (byte)((6d * min + 1d * max + 3) / 7d);  // NO idea what the +3 is...not in the Microsoft spec, but seems to be everywhere else.
+                Colours[3] = (byte)((5d * min + 2d * max + 3) / 7d);
+                Colours[4] = (byte)((4d * min + 3d * max + 3) / 7d);
+                Colours[5] = (byte)((3d * min + 4d * max + 3) / 7d);
+                Colours[6] = (byte)((2d * min + 5d * max + 3) / 7d);
+                Colours[7] = (byte)((1d * min + 6d * max + 3) / 7d);
             }
             else
             {
                 // KFreon: Interpolate other colours and add Opacity or something...
-                Colours[2] = (byte)((4d * min + 1d * max) / 5d);
-                Colours[3] = (byte)((3d * min + 2d * max) / 5d);
-                Colours[4] = (byte)((2d * min + 3d * max) / 5d);
-                Colours[5] = (byte)((1d * min + 4d * max) / 5d);
+                Colours[2] = (byte)((4d * min + 1d * max + 3) / 5d);
+                Colours[3] = (byte)((3d * min + 2d * max + 3) / 5d);
+                Colours[4] = (byte)((2d * min + 3d * max + 3) / 5d);
+                Colours[5] = (byte)((1d * min + 4d * max + 3) / 5d);
                 Colours[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
                 Colours[7] = 255;
             }

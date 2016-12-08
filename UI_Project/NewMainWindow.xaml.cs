@@ -95,8 +95,12 @@ namespace UI_Project
             // Prevent maximised window overtaking the taskbar
             this.MaxHeight = SystemParameters.MaximizedPrimaryScreenHeight;
 
+            // Setup events for linking image viewbox pan and scroll
             PanZoomLinkButton.Checked += (sender, args) => LoadedImageViewBox.Link(SaveImageViewBox);
             PanZoomLinkButton.Unchecked += (sender, args) => LoadedImageViewBox.Unlink(SaveImageViewBox);
+
+            // Linked by default
+            LoadedImageViewBox.Link(SaveImageViewBox);
         }
 
         void CloseSavePanel()

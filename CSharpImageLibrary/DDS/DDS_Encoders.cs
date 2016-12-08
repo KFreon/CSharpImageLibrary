@@ -62,7 +62,7 @@ namespace CSharpImageLibrary.DDS
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, alphaSetting);
         }
 
-
+        // ATI1
         internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // TODO: Use colour weightings here
@@ -70,18 +70,19 @@ namespace CSharpImageLibrary.DDS
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
         }
 
+
+        // ATI2 3Dc
         internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // TODO: Blue channel influence? Weightings?
             // Maybe lesser * 0.082 + greater * 0.6094 + blue * 0.3086
             // Blue has same influence on each channel, but the weighting of each channel is dependent on which channel is being compressed.
 
+            // Green: Channel 1, 8 destination offset to be after Red.
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 1, false);
 
             // Red: Channel 2, 0 destination offset
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
-
-            // Green: Channel 1, 8 destination offset to be after Red.
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 1, false);
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 2, false);
         }
         #endregion Compressed
 

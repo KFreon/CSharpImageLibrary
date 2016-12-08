@@ -504,7 +504,7 @@
                 </Image.RenderTransform>
             </Image>
         </UsefulWPF:PanAndZoomBorder>
-        <ToggleButton x:Name="PanZoomLinkButton" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" Background="Transparent" Height="25">
+        <ToggleButton x:Name="PanZoomLinkButton" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" IsChecked="True" HorizontalAlignment="Left" Background="Transparent" Height="25">
             <ToggleButton.Template>
                 <ControlTemplate TargetType="ToggleButton">
                     <Border Background="{TemplateBinding Background}">

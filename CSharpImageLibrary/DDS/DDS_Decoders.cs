@@ -72,21 +72,46 @@ namespace CSharpImageLibrary.DDS
         // BC5
         internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            // Red = +2 -- BGRA
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 2, decompressedLineLength, false);
+            // Green = +1 -- BGRA
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 1, decompressedLineLength, false);
 
-            // Green = +1, source + 8 to skip first compressed block.
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart + 1, decompressedLineLength, false);
+
+            // Red = +2, source + 8 to skip first compressed block. 
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart + 2, decompressedLineLength, false);
+
+            
 
             // KFreon: Alpha is 255, and blue needs to be calculated
             for (int i = 0; i < 16; i++)
             {
                 int offset = GetDecompressedOffset(decompressedStart, decompressedLineLength, i);
-                var dot = Math.Pow((destination[offset + 1] / 255d) * 2d - 1d, 2d) + Math.Pow((destination[offset + 2] / 255d) * 2d - 1d, 2d);
-                var test2 = Math.Sqrt(1d - dot) * 255d;
-                destination[offset] = (byte)test2;  // Blue
+
+                // Get Red and Green on the range -1 - 1
+                // *2-1 moves the range from 0 - 1, to -1 - 1
+                double green = destination[offset + 1] / 127.5 - 1d;
+                double red = destination[offset + 2] / 127.5 - 1d;    // 127.5 = 255/2
+
+                // Z solution for: x2 + y2 + z2 = 1, unit normal vectors. Only consider +ve root as ATI2 is a tangent space mapping and Z must be +ve.
+                // Also when 1 - x2 - y2 < 0, Z = NaN, but is compensated for in ExpandTo255.
+                double Z = Math.Sqrt(1d - (Math.Pow(red, 2d) + Math.Pow(green, 2d)));
+
+                // Clamp value to range
+                if (Z > 1)
+                    Z = 1;
+
+                destination[offset] = ExpandTo255(Z);  // Blue
                 destination[offset + 3] = 0xFF;  // Alpha
             }
+        }
+
+        // TODO: NOrmal flag set in header pf flags?
+
+        static byte ExpandTo255(double v)
+        {
+            if (double.IsNaN(v) || v == 0)
+                return 128;
+            else
+                return (byte)(((v + 1d) / 2d) * 255d);
         }
 
         internal static int GetDecompressedOffset(int start, int lineLength, int pixelIndex)
