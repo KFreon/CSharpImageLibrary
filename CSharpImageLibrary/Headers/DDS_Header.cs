@@ -340,7 +340,7 @@ namespace CSharpImageLibrary.Headers
             DDPF_LUMINANCE = 0x20000,    // Older flag for single channel uncompressed data
 
             /// <summary>
-            /// Undocumented flag that seems to indicate that format is signed.
+            /// Undocumented flag that seems to indicate that format is signed. EDIT Seems to be a nVidia thing as specified in the NVTT solution: https://github.com/castano/nvidia-texture-tools
             /// </summary>
             DDPF_SIGNED = 0x80000,
         }

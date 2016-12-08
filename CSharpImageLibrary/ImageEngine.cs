@@ -276,6 +276,7 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * scale);
             int newStride = newWidth * 4;
 
+            // TODO: Issues with incorrect sizing when non-square
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
 
             byte[] newPixels = null;

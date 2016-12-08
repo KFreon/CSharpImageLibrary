@@ -104,8 +104,6 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        // TODO: NOrmal flag set in header pf flags?
-
         static byte ExpandTo255(double v)
         {
             if (double.IsNaN(v) || v == 0)

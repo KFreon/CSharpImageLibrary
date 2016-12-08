@@ -191,10 +191,24 @@ namespace CSharpImageLibrary.DDS
         #endregion Loading
 
         #region Saving
+        /// <summary>
+        /// Determines whether an image size is suitable for DXT compression.
+        /// Must be a power of 2 (technically just divisible by 4, but I'm lazy)
+        /// </summary>
+        /// <param name="width">Width of image.</param>
+        /// <param name="height">Height of image.</param>
+        /// <returns>True if size is suitable for DXT compression.</returns>
+        public static bool CheckSize_DXT(int width, int height)
+        {
+            return UsefulThings.General.IsPowerOfTwo(width) && UsefulThings.General.IsPowerOfTwo(height);
+        }
+
         internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, AlphaSettings alphaSetting, List<uint> customMasks = null)
         {
             // Set compressor for Block Compressed textures
             Action<byte[], int, int, byte[], int, AlphaSettings> compressor = null;
+
+            bool needCheckSize = saveFormat.ToString().Contains("DXT") || saveFormat.ToString().Contains("ATI");
 
             switch (saveFormat)
             {
@@ -220,14 +234,21 @@ namespace CSharpImageLibrary.DDS
                     break;
             }
 
-            int fullSize = ImageFormats.GetCompressedSize(saveFormat, mipMaps[0].Width, mipMaps[0].Height, mipMaps.Count);
+            int height = mipMaps[0].Height;
+            int width = mipMaps[0].Width;
+
+            if (needCheckSize && !CheckSize_DXT(width, height))
+                throw new InvalidOperationException($"DXT compression formats require dimensions to be multiples of 4. Got: {width}x{height}.");
+
+
+            int fullSize = ImageFormats.GetCompressedSize(saveFormat, width, height, mipMaps.Count);
             // +1 to get the full size, not just the offset of the last mip.
             //int fullSize = GetMipOffset(mipMaps.Count + 1, saveFormat, mipMaps[0].Width, mipMaps[0].Height);
 
             byte[] destination = new byte[fullSize];
 
             // Create header and write to destination
-            DDS_Header header = new DDS_Header(mipMaps.Count, mipMaps[0].Height, mipMaps[0].Width, saveFormat, customMasks);
+            DDS_Header header = new DDS_Header(mipMaps.Count, height, width, saveFormat, customMasks);
             header.WriteToArray(destination, 0);
 
             int mipOffset = 128;

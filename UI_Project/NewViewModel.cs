@@ -744,8 +744,11 @@ namespace UI_Project
             OnPropertyChanged(nameof(MipCount));
         }
 
-        void FixExtension()
+        public void FixExtension(bool indicateSavePathPropertyChanged = false)
         {
+            if (SavePath == null || ImageFormats.SaveUnsupported.Contains(SaveFormat))
+                return;
+
             string requiredExtension = "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
 
             var currentExt = Path.GetExtension(savePath);
@@ -753,6 +756,9 @@ namespace UI_Project
                 SavePath += requiredExtension;
             else if (currentExt != requiredExtension)  // Existing extension
                 SavePath = Path.ChangeExtension(SavePath, requiredExtension);
+
+            if (indicateSavePathPropertyChanged)
+                OnPropertyChanged(nameof(SavePath));
         }
 
         void CloseImage(bool updateUI)

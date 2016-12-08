@@ -275,8 +275,22 @@ namespace UI_Project
             foreach (var item in box.Items)
             {
                 var value = UsefulThings.WPF.EnumToItemsSource.GetValueBack(item);
+                ImageEngineFormat selectedFormat = (ImageEngineFormat)value;
+                bool disableContainer = false;
 
-                if (ImageFormats.SaveUnsupported.Contains((ImageEngineFormat)value))
+
+
+                // Check supported save formats.
+                if (ImageFormats.SaveUnsupported.Contains(selectedFormat))
+                    disableContainer = true;
+
+
+                // Check dimensions if selecting a DXT format
+                if ((selectedFormat.ToString().Contains("DXT") || selectedFormat.ToString().Contains("ATI")) && !CSharpImageLibrary.DDS.DDSGeneral.CheckSize_DXT(vm.LoadedImage.Width, vm.LoadedImage.Height))
+                    disableContainer = true;
+
+
+                if (disableContainer)
                 {
                     var container = (ComboBoxItem)(box.ItemContainerGenerator.ContainerFromItem(item));
                     container.IsEnabled = false;
@@ -305,6 +319,11 @@ namespace UI_Project
         private void TOPWINDOW_MouseDown(object sender, MouseButtonEventArgs e)
         {
             Console.WriteLine();
+        }
+
+        private void SavePathBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            vm.FixExtension(true);  // Indicate property should notify
         }
     }
 }

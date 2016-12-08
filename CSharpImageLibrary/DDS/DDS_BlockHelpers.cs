@@ -72,6 +72,12 @@ namespace CSharpImageLibrary.DDS
             // Pull out rgb from texel
             // Create current pixel colour
             RGBColour current = new RGBColour();
+
+            // Check that texel is big enough
+            if (i + 3 >= texel.Length)
+                return current;  // Fully transparent colour
+
+
             current.a = texel[i + 3] / 255f;
             current.r = (texel[i + 2] / 255f) * (premultiply ? current.a : 1.0f);
             current.g = (texel[i + 1] / 255f) * (premultiply ? current.a : 1.0f);

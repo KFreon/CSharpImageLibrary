@@ -733,7 +733,7 @@
                     <DockPanel x:Name="SavePathArea" DockPanel.Dock="Top">
                         <Label Content="Path: " FontWeight="Bold"/>
                         <Button x:Name="SavePathBrowseButton" Content="Browse" DockPanel.Dock="Right" Click="SavePathBrowseButton_Click"/>
-                        <TextBox Text="{Binding SavePath}" Margin="5,0"/>
+                        <TextBox x:Name="SavePathBox" Text="{Binding SavePath, UpdateSourceTrigger=PropertyChanged}" Margin="5,0" LostFocus="SavePathBox_LostFocus"/>
                     </DockPanel>
 
 

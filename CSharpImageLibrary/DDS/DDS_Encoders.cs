@@ -65,8 +65,6 @@ namespace CSharpImageLibrary.DDS
         // ATI1
         internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
-            // TODO: Use colour weightings here
-            // blue * 0.082 + green * 0.6094 + blue * 0.3086
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
         }
 
@@ -74,14 +72,10 @@ namespace CSharpImageLibrary.DDS
         // ATI2 3Dc
         internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
-            // TODO: Blue channel influence? Weightings?
-            // Maybe lesser * 0.082 + greater * 0.6094 + blue * 0.3086
-            // Blue has same influence on each channel, but the weighting of each channel is dependent on which channel is being compressed.
-
-            // Green: Channel 1, 8 destination offset to be after Red.
+            // Green: Channel 1.
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 1, false);
 
-            // Red: Channel 2, 0 destination offset
+            // Red: Channel 2, 8 destination offset to be after Green.
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 2, false);
         }
         #endregion Compressed
@@ -148,7 +142,7 @@ namespace CSharpImageLibrary.DDS
                 }
             }
 
-            return destStart + byteCount; // Final byteCount increment, since it's the start index, not the end index.
+            return destStart;
         }
 
         static int Shift(byte channel, uint mask)
