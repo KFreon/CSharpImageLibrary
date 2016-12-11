@@ -64,7 +64,7 @@ namespace CSharpImageLibrary
          /// <summary>
         /// True = Windows WIC Codecs are present (8+)
         /// </summary>
-        public static bool WindowsWICCodecsAvailable { get; internal set; }
+        public static bool WindowsWICCodecsAvailable { get; set; }
 
         /// <summary>
         /// Enables threading of Loading and Saving operations to improve performance.
@@ -81,7 +81,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Determines how many threads to use. -1 is infinite.
         /// </summary>
-        public static int NumThreads { get; internal set; } = -1;
+        public static int NumThreads { get; set; } = -1;
 
         /// <summary>
         /// Constructor. Checks WIC status before any other operation.
@@ -89,11 +89,6 @@ namespace CSharpImageLibrary
         static ImageEngine()
         {
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
-
-            // Testing
-            WindowsWICCodecsAvailable = false;
-            EnableThreading = false;
-
 
             // Enable GPU Acceleration by default
             /*if (GPU.IsGPUAvailable)
@@ -287,12 +282,7 @@ namespace CSharpImageLibrary
 
             return new MipMap(newPixels, newWidth, newHeight);
 
-
-
-
-
-
-
+            #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
             /*bool alphaPresent = mipMap.AlphaPresent;
 
@@ -369,6 +359,7 @@ namespace CSharpImageLibrary
             }
             
             return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, alphaPresent);*/
+            #endregion Old code
         }
 
 

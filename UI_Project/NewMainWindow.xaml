@@ -22,6 +22,9 @@
         <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
         <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
         <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
+        <sys:Boolean x:Key="TrueValue">
+            True
+        </sys:Boolean>
     </Window.Resources>
 
 
@@ -293,6 +296,61 @@
                                Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
                 </DockPanel>
             </ControlTemplate>
+
+            <Style TargetType="Border" x:Key="FadedBackgroundBorder">
+                <Setter Property="Grid.Row" Value="1"/>
+                <Setter Property="Grid.ColumnSpan" Value="5"/>
+                <Setter Property="Grid.RowSpan" Value="5"/>
+                <Setter Property="Background" Value="#B2000000"/>
+
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Setter Property="Opacity" Value="0"/>
+
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="true">
+                        <DataTrigger.EnterActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.5">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+
+                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" >
+                                        <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
+                                    </ObjectAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </DataTrigger.EnterActions>
+
+                        <DataTrigger.ExitActions>
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.5">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+
+                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" >
+                                        <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Collapsed}"/>
+                                    </ObjectAnimationUsingKeyFrames>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </DataTrigger.ExitActions>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style TargetType="Border" x:Key="FadedInnerBorder">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="Background" Value="Black"/>
+                <Setter Property="BorderBrush" Value="White"/>
+                <Setter Property="BorderThickness" Value="2"/>
+                <Setter Property="CornerRadius" Value="20"/>
+            </Style>
         </Grid.Resources>
 
         <Grid.ColumnDefinitions>
@@ -418,7 +476,12 @@
                     <Separator Width="15" Height="1" Background="White"/>
                 </Button.Content>
             </Button>
-            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,1,50,1" Click="BulkConvertOpenButton_Click"/>
+            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,1,50,1" Click="BulkConvertOpenButton_Click" 
+                    Visibility="{Binding BulkConvertOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
+            <Button x:Name="SettingsPanelOpenButton" Content="Settings" DockPanel.Dock="Right" Margin="0,1,10,1" Click="SettingsPanelOpenButton_Click" 
+                    Visibility="{Binding SettingsPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
+            <Button x:Name="InfoPanelOpenButton" Content="System Information" DockPanel.Dock="Right" Margin="0,1,10,1" Click="InfoPanelOpenButton_Click" 
+                    Visibility="{Binding InfoPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
             <TextBlock x:Name="TitleBlock" Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False" FontSize="22"/>
         </DockPanel>
 
@@ -800,11 +863,25 @@
                 </TransformGroup>
             </Button.RenderTransform>
         </Button>
-        <Border x:Name="BulkConvertBox" Grid.Row="1" Grid.ColumnSpan="5" Grid.RowSpan="5" Background="#B2000000" Visibility="{Binding BulkConvertOpen, Converter={StaticResource BoolToVisConverter}}">
-            <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="Black" BorderBrush="White" BorderThickness="2" CornerRadius="20">
-                <DockPanel LastChildFill="False">
+        <Border x:Name="BulkConvertBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding BulkConvertOpen}">
+            <Border Style="{StaticResource FadedInnerBorder}">
+                <DockPanel LastChildFill="True">
                     <Label Content="Bulk Conversion" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
                     <Label Content="Enables many images to be converted at once. Use the settings below to set the target format and alpha settings for each format." DockPanel.Dock="Top"/>
+                    <DockPanel DockPanel.Dock="Bottom" Margin="20,5">
+                        <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="White"/>
+                        <ProgressBar DockPanel.Dock="Left" Width="300" HorizontalAlignment="Left" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Bottom" MinHeight="35">
+                        <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
+                        <Button x:Name="BulkFolderBrowseButton" Content="Add Folder" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="10,0,0,0" Click="BulkFolderBrowseButton_Click"/>
+                        <CheckBox x:Name="BulkFolderBrowseRecurseChecker" Content="Recursive?" IsChecked="{Binding BulkFolderBrowseRecurse}" VerticalAlignment="Center" Foreground="White" Margin="5,0,0,0"/>
+                        <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click"/>
+                        <Button x:Name="BulkConvertButton"  Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Click="BulkConvertButton_Click"/>
+                    </DockPanel>
+
+
                     <Grid DockPanel.Dock="Top" Margin="5,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1*"/>
@@ -845,7 +922,7 @@
 
                         <ListBox x:Name="BulkConvertListBox" Background="Transparent" Foreground="White" ItemsSource="{Binding BulkConvertFiles}" AllowDrop="True" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop" 
                                  Style="{StaticResource InitialStyle}" KeyDown="BulkConvertListBox_KeyDown" SelectionMode="Extended"/>
-                        <DockPanel Grid.Column="1" Style="{StaticResource InitialStyle}">
+                        <DockPanel Grid.Column="1" Style="{StaticResource InitialStyle}" LastChildFill="False">
                             <DockPanel.Resources>
                                 <Style TargetType="ContentControl">
                                     <Setter Property="DockPanel.Dock" Value="Top"/>
@@ -860,31 +937,60 @@
                             <ContentControl Template="{StaticResource DXT1AlphaSettingTemplate}"/>
                             <ContentControl Template="{StaticResource JPGSettingsTemplate}"/>
 
-                            <DockPanel DockPanel.Dock="Bottom">
+                            <Label Content="Destination Folder" Style="{StaticResource TitleStyle}" FontSize="20" DockPanel.Dock="Top"/>
+                            <CheckBox DockPanel.Dock="Top" Content="Same as Original (no overwriting)" Foreground="White" IsChecked="{Binding BulkUseSourceDestination}" Margin="5,0,0,15"/>
+                            <DockPanel DockPanel.Dock="Top" IsEnabled="{Binding BulkUseSourceDestination, Converter={StaticResource InverseBoolConverter}}">
                                 <Button x:Name="BulkSaveBrowse" Content="Browse" DockPanel.Dock="Right" Click="BulkSaveBrowse_Click"/>
                                 <TextBox Margin="5,0" Text="{Binding BulkSaveFolder}"/>
                             </DockPanel>
-                            <Label Content="Destination Folder" Style="{StaticResource TitleStyle}" FontSize="20" DockPanel.Dock="Bottom"/>
                         </DockPanel>
 
-                        <Label Content="Skipped" Style="{StaticResource ResultsStyle_Label}"/>
-                        <ListBox x:Name="BulkSkippedListBox" ItemsSource="{Binding BulkConvertSkipped}" Margin="0,30,0,0" Background="Transparent" Foreground="White" Style="{StaticResource ResultsStyle}"/>
-
-                        <Label Content="Failed" Style="{StaticResource ResultsStyle_Label}" Grid.Column="1"/>
-                        <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" Grid.Column="1" Style="{StaticResource ResultsStyle}"/>
+                        <Label Content="Failed" Style="{StaticResource ResultsStyle_Label}" Grid.ColumnSpan="2"/>
+                        <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" Grid.ColumnSpan="2" Style="{StaticResource ResultsStyle}"/>
                     </Grid>
-                    <DockPanel DockPanel.Dock="Bottom" Margin="20,5">
-                        <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        <ProgressBar DockPanel.Dock="Left" Width="300" HorizontalAlignment="Left" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}"/>
-                    </DockPanel>
 
-                    <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
-                    <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click"/>
-                    <Button x:Name="BulkConvertButton" Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Click="BulkConvertButton_Click"/>
                 </DockPanel>
             </Border>
 
         </Border>
 
+        
+        <Border x:Name="SettingsBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding SettingsPanelOpen}">
+            <Border Style="{StaticResource FadedInnerBorder}">
+                <DockPanel LastChildFill="False">
+                    <Label Content="Settings" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+
+                    <Button x:Name="SettingsPanelCloseButton" Content="Close" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,10,0,5" 
+                            Click="SettingsPanelCloseButton_Click"/>
+
+                    <CheckBox Content="Use Windows Codecs where available" DockPanel.Dock="Bottom" Foreground="White" VerticalContentAlignment="Center" Margin="0,20,0,5" IsChecked="{Binding UseWindowsCodecs}"/>
+                    
+                    <DockPanel LastChildFill="False">
+                        <CheckBox Content="Enable Threading" IsChecked="{Binding EnableThreading}" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center"/>
+                        <TextBlock DockPanel.Dock="Right" FontSize="8" VerticalAlignment="Center" Foreground="White" IsEnabled="{Binding EnableThreading}">
+                            <Run Text="-1 signifies system managed threading."/>
+                            <LineBreak/>
+                            <Run Text="0 is not allowed and I don't know what'll happen."/>
+                        </TextBlock>
+                        <Label Content="Thread Count:" DockPanel.Dock="Left" IsEnabled="{Binding EnableThreading}"/>
+                        <TextBox Text="{Binding NumThreads}" IsEnabled="{Binding EnableThreading}" Width="30" Margin="5,3,10,3" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                    </DockPanel>
+
+                </DockPanel>
+            </Border>
+        </Border>
+
+
+        <Border x:Name="InfoPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding InfoPanelOpen}">
+            <Border Style="{StaticResource FadedInnerBorder}">
+                <DockPanel LastChildFill="True">
+                    <Label Content="System Information" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+
+                    <!--Available system threads, memory, codecs or not, etc?-->
+
+                    <Button x:Name="InfoPanelCloseButton" Content="Close" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" Click="InfoPanelCloseButton_Click"/>
+                </DockPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

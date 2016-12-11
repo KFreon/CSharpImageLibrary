@@ -1439,7 +1439,6 @@ namespace CSharpImageLibrary
         internal BitmapSource ToWPF()
         {
             var actual = GetPixelFormat();
-            Debugger.Break();
             var bmp = new WriteableBitmap(Header.Width, Header.Height, 96,96, System.Windows.Media.PixelFormats.Bgra32, UsefulThings.WPF.Images.ConvertGDIPaletteToWPF(Palette));
             bmp.WritePixels(new System.Windows.Int32Rect(0, 0, Header.Width, Header.Height), ImageData, this.Stride, 0);
             return bmp;

@@ -334,58 +334,54 @@ namespace CSharpImageLibrary.DDS
             return new RGBColour[] { min, max };
         }
 
-        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, AlphaSettings alphaSetting)
+        static int CheckDXT1TexelFullTransparency(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, double alphaRef)
         {
-            bool dither = true;
-            int uSteps = 4;
-
+            int uColourKey = 0;
             int position = sourcePosition;
 
-            // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
-            if (isDXT1)
+            // Alpha stuff
+            for (int i = 1; i <= 4; i++)
             {
-                int uColourKey = 0;
-
-                // Alpha stuff
-                for (int i = 1; i <= 4; i++)
+                for (int j = 0; j < 4; j++)
                 {
-                    for (int j = 0; j < 4; j++)
-                    {
-                        RGBColour colour = ReadColourFromTexel(imgData, position, alphaSetting == AlphaSettings.Premultiply);
-                        if (colour.a < alphaRef)
-                            uColourKey++;
-                        position+=4;
-                    }
-
-                    position = sourcePosition + sourceLineLength * i;
+                    RGBColour colour = ReadColourFromTexel(imgData, position, alphaSetting == AlphaSettings.Premultiply);
+                    if (colour.a < alphaRef)
+                        uColourKey++;
+                    position += 4;
                 }
 
-                if (uColourKey == 16)
-                {
-                    // Entire texel is transparent
-
-                    for (int i = 0; i < 8; i++)
-                        destination[destPosition + i] = byte.MaxValue;
-
-                    return;
-                }
-
-                uSteps = uColourKey > 0 ? 3 : 4;
+                position = sourcePosition + sourceLineLength * i;
             }
 
-            RGBColour[] Colour = new RGBColour[16];
-            RGBColour[] Error = new RGBColour[16];
+            if (uColourKey == 16)
+            {
+                // Entire texel is transparent
 
-            // Some kind of colour adjustment. Not sure what it does, especially if it wasn't dithering...
-            position = sourcePosition;
+                for (int i = 0; i < 8; i++)
+                    destination[destPosition + i] = byte.MaxValue;
+
+                return -1;
+            }
+
+            return uColourKey > 0 ? 3 : 4;
+        }
+
+        /// <summary>
+        /// Not exactly sure what this does or why.
+        /// </summary>
+        static void DoColourFixErrorCorrection(RGBColour[] Colour, byte[] imgData, int sourcePosition, int sourceLineLength, AlphaSettings alphaSetting)
+        {
+            RGBColour[] Error = new RGBColour[16];
             for (int i = 0; i < 4; i++)
             {
+                int position = sourcePosition + sourceLineLength * i;
+                
                 for (int j = 0; j < 4; j++)
                 {
                     int index = (i << 2) + j;
                     RGBColour current = ReadColourFromTexel(imgData, position, alphaSetting == AlphaSettings.Premultiply);
 
-                    if (dither)
+                    if (true)  // Dither
                     {
                         // Adjust for accumulated error
                         // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
@@ -401,48 +397,7 @@ namespace CSharpImageLibrary.DDS
                     Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
                     Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
 
-                    if (dither)
-                    {
-                        // Calculate difference between current pixel colour and adapted pixel colour?
-                        RGBColour diff = new RGBColour()
-                        {
-                            r = current.a * (byte)(current.r - Colour[index].r),
-                            g = current.a * (byte)(current.g - Colour[index].g),
-                            b = current.a * (byte)(current.b - Colour[index].b)
-                        };
-
-                        // If current pixel is not at the end of a row
-                        if ((index & 3) != 3)
-                        {
-                            Error[index + 1].r += diff.r * (7f / 16f);
-                            Error[index + 1].g += diff.g * (7f / 16f);
-                            Error[index + 1].b += diff.b * (7f / 16f);
-                        }
-
-                        // If current pixel is not in bottom row
-                        if (index < 12)
-                        {
-                            // If current pixel IS at end of row
-                            if ((index & 3) != 0)
-                            {
-                                Error[index + 3].r += diff.r * (3f / 16f);
-                                Error[index + 3].g += diff.g * (3f / 16f);
-                                Error[index + 3].b += diff.b * (3f / 16f);
-                            }
-
-                            Error[index + 4].r += diff.r * (5f / 16f);
-                            Error[index + 4].g += diff.g * (5f / 16f);
-                            Error[index + 4].b += diff.b * (5f / 16f);
-
-                            // If current pixel is not at end of row
-                            if ((index & 3) != 3)
-                            {
-                                Error[index + 5].r += diff.r * (1f / 16f);
-                                Error[index + 5].g += diff.g * (1f / 16f);
-                                Error[index + 5].b += diff.b * (1f / 16f);
-                            }
-                        }
-                    }
+                    DoSomeDithering(current, index, Colour, index, Error);
 
                     Colour[index].r *= Luminance.r;
                     Colour[index].g *= Luminance.g;
@@ -450,9 +405,167 @@ namespace CSharpImageLibrary.DDS
 
                     position += 4;
                 }
-
-                position = sourcePosition + sourceLineLength * (i + 1);
             }
+        }
+
+        static RGBColour[] DoSomethingWithPalette(int uSteps, uint wColourA, uint wColourB, RGBColour ColourA, RGBColour ColourB)
+        {
+            // Create palette colours
+            RGBColour[] step = new RGBColour[4];
+
+            if ((uSteps == 3) == (wColourA <= wColourB))
+            {
+                step[0] = ColourA;
+                step[1] = ColourB;
+            }
+            else
+            {
+                step[0] = ColourB;
+                step[1] = ColourA;
+            }
+
+
+            if (uSteps == 3)
+            {
+                step[2].r = step[0].r + (1f / 2f) * (step[1].r - step[0].r);
+                step[2].g = step[0].g + (1f / 2f) * (step[1].g - step[0].g);
+                step[2].b = step[0].b + (1f / 2f) * (step[1].b - step[0].b);
+            }
+            else
+            {
+                // "step" appears to be the palette as this is the interpolation
+                step[2].r = step[0].r + (1f / 3f) * (step[1].r - step[0].r);
+                step[2].g = step[0].g + (1f / 3f) * (step[1].g - step[0].g);
+                step[2].b = step[0].b + (1f / 3f) * (step[1].b - step[0].b);
+
+                step[3].r = step[0].r + (2f / 3f) * (step[1].r - step[0].r);
+                step[3].g = step[0].g + (2f / 3f) * (step[1].g - step[0].g);
+                step[3].b = step[0].b + (2f / 3f) * (step[1].b - step[0].b);
+            }
+
+            return step;
+        }
+
+
+        static uint DoOtherColourFixErrorCorrection(byte[] imgData, int sourcePosition, int sourceLineLength, int uSteps, double alphaRef, AlphaSettings alphaSetting, RGBColour[] step, RGBColour Dir)
+        {
+            uint dw = 0;
+            RGBColour[] Error = new RGBColour[16];
+
+            uint[] psteps = uSteps == 3 ? psteps3 : psteps4;
+
+            for (int i = 0; i < 4; i++)
+            {
+                int position = sourcePosition + sourceLineLength * i;
+
+                for (int j = 0; j < 4; j++)
+                {
+
+                    int index = (i << 2) + j;
+                    RGBColour current = ReadColourFromTexel(imgData, position, alphaSetting == AlphaSettings.Premultiply);
+
+                    if ((uSteps == 3) && (current.a < alphaRef))
+                    {
+                        dw = (uint)((3 << 30) | (dw >> 2));
+                        continue;
+                    }
+
+                    current.r *= Luminance.r;
+                    current.g *= Luminance.g;
+                    current.b *= Luminance.b;
+
+                    if (true) // dither
+                    {
+                        // Error again
+                        current.r += Error[index].r;
+                        current.g += Error[index].g;
+                        current.b += Error[index].b;
+                    }
+
+                    float fdot = (current.r - step[0].r) * Dir.r + (current.g - step[0].g) * Dir.g + (current.b - step[0].b) * Dir.b;
+
+                    uint iStep = 0;
+                    if (fdot <= 0f)
+                        iStep = 0;
+                    else if (fdot >= (uSteps - 1))
+                        iStep = 1;
+                    else
+                        iStep = psteps[(int)(fdot + .5f)];
+
+                    dw = (iStep << 30) | (dw >> 2);   // THIS  IS THE MAGIC here. This is the "list" of indicies. Somehow...
+
+                    DoSomeDithering(current, index, step, (int)iStep, Error);
+
+                    position += 4;
+                }
+            }
+
+            return dw;
+        }
+
+        static void DoSomeDithering(RGBColour current, int index, RGBColour[] InnerColour, int InnerIndex, RGBColour[] Error)
+        {
+            if (true)  // Dither
+            {
+                // Calculate difference between current pixel colour and adapted pixel colour?
+                RGBColour diff = new RGBColour()
+                {
+                    r = current.a * (byte)(current.r - InnerColour[InnerIndex].r),
+                    g = current.a * (byte)(current.g - InnerColour[InnerIndex].g),
+                    b = current.a * (byte)(current.b - InnerColour[InnerIndex].b)
+                };
+
+                // If current pixel is not at the end of a row
+                if ((index & 3) != 3)
+                {
+                    Error[index + 1].r += diff.r * (7f / 16f);
+                    Error[index + 1].g += diff.g * (7f / 16f);
+                    Error[index + 1].b += diff.b * (7f / 16f);
+                }
+
+                // If current pixel is not in bottom row
+                if (index < 12)
+                {
+                    // If current pixel IS at end of row
+                    if ((index & 3) != 0)
+                    {
+                        Error[index + 3].r += diff.r * (3f / 16f);
+                        Error[index + 3].g += diff.g * (3f / 16f);
+                        Error[index + 3].b += diff.b * (3f / 16f);
+                    }
+
+                    Error[index + 4].r += diff.r * (5f / 16f);
+                    Error[index + 4].g += diff.g * (5f / 16f);
+                    Error[index + 4].b += diff.b * (5f / 16f);
+
+                    // If current pixel is not at end of row
+                    if ((index & 3) != 3)
+                    {
+                        Error[index + 5].r += diff.r * (1f / 16f);
+                        Error[index + 5].g += diff.g * (1f / 16f);
+                        Error[index + 5].b += diff.b * (1f / 16f);
+                    }
+                }
+            }
+        }
+
+        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, AlphaSettings alphaSetting)
+        {
+            int uSteps = 4;
+
+            // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
+            if (isDXT1)
+            {
+                uSteps = CheckDXT1TexelFullTransparency(imgData, sourcePosition, sourceLineLength, destination, destPosition, alphaSetting, alphaRef);
+                if (uSteps == -1)
+                    return;
+            }
+
+            RGBColour[] Colour = new RGBColour[16];
+
+            // Some kind of colour adjustment. Not sure what it does, especially if it wasn't dithering...
+            DoColourFixErrorCorrection(Colour, imgData, sourcePosition, sourceLineLength, alphaSetting);
+            
 
             // Palette colours
             RGBColour ColourA, ColourB, ColourC, ColourD;
@@ -480,10 +593,11 @@ namespace CSharpImageLibrary.DDS
             uint wColourA = Encode565(ColourC);
             uint wColourB = Encode565(ColourD);
 
+            // Min max are equal - only interpolate 4 interstitial colours
             if (uSteps == 4 && wColourA == wColourB)
             {
                 var c2 = BitConverter.GetBytes(wColourA);
-                var c1 = BitConverter.GetBytes(wColourB);  //////////////////////////////////////////////////// MIN MAX
+                var c1 = BitConverter.GetBytes(wColourB);  ///////////////////// MIN MAX
 
                 destination[destPosition] = c2[0];
                 destination[destPosition + 1] = c2[1];
@@ -493,6 +607,7 @@ namespace CSharpImageLibrary.DDS
                 return;
             }
 
+            // Interpolate 6 colours or something
             ColourC = Decode565(wColourA);
             ColourD = Decode565(wColourB);
 
@@ -505,51 +620,7 @@ namespace CSharpImageLibrary.DDS
             ColourB.b = ColourD.b * Luminance.b;
 
 
-            // Create palette colours
-            RGBColour[] step = new RGBColour[4];
-            uint Min = 0;
-            uint Max = 0;
-
-            if ((uSteps == 3) == (wColourA <= wColourB))
-            {
-                Min = wColourA;
-                Max = wColourB;
-                step[0] = ColourA;
-                step[1] = ColourB;
-            }
-            else
-            {
-                Min = wColourB;
-                Max = wColourA;
-                step[0] = ColourB;
-                step[1] = ColourA;
-            }
-
-            uint[] psteps;
-
-            if (uSteps == 3)
-            {
-                psteps = psteps3;
-
-                step[2].r = step[0].r + (1f / 2f) * (step[1].r - step[0].r);
-                step[2].g = step[0].g + (1f / 2f) * (step[1].g - step[0].g);
-                step[2].b = step[0].b + (1f / 2f) * (step[1].b - step[0].b);
-            }
-            else
-            {
-                psteps = psteps4;
-
-                // "step" appears to be the palette as this is the interpolation
-                step[2].r = step[0].r + (1f / 3f) * (step[1].r - step[0].r);
-                step[2].g = step[0].g + (1f / 3f) * (step[1].g - step[0].g);
-                step[2].b = step[0].b + (1f / 3f) * (step[1].b - step[0].b);
-
-                step[3].r = step[0].r + (2f / 3f) * (step[1].r - step[0].r);
-                step[3].g = step[0].g + (2f / 3f) * (step[1].g - step[0].g);
-                step[3].b = step[0].b + (2f / 3f) * (step[1].b - step[0].b);
-            }
-
-
+            var step = DoSomethingWithPalette(uSteps, wColourA, wColourB, ColourA, ColourB);
 
             // Calculating colour direction apparently
             RGBColour Dir = new RGBColour()
@@ -558,106 +629,16 @@ namespace CSharpImageLibrary.DDS
                 g = step[1].g - step[0].g,
                 b = step[1].b - step[0].b
             };
-            int fsteps = uSteps - 1;
-            float fscale = (wColourA != wColourB) ? (fsteps / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
+            float fscale = (wColourA != wColourB) ? ((uSteps - 1) / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
             Dir.r *= fscale;
             Dir.g *= fscale;
             Dir.b *= fscale;
 
-
             // Encoding colours apparently
-            Array.Clear(Error, 0, Error.Length);  // Clear error for next bit
-            uint dw = 0;
-            position = sourcePosition;
-            for (int i = 0; i < 4; i++)
-            {
-                for (int j = 0; j < 4; j++)
-                {
-                    int index = (i << 2) + j;
-                    RGBColour current = ReadColourFromTexel(imgData, position, alphaSetting == AlphaSettings.Premultiply);
+            uint dw = DoOtherColourFixErrorCorrection(imgData, sourcePosition, sourceLineLength, uSteps, alphaRef, alphaSetting, step, Dir);
 
-                    if ((uSteps == 3) && (current.a < alphaRef))
-                    {
-                        dw = (uint)((3 << 30) | (dw >> 2));
-                        continue;
-                    }
-
-                    current.r *= Luminance.r;
-                    current.g *= Luminance.g;
-                    current.b *= Luminance.b;
-
-
-                    if (dither)
-                    {
-                        // Error again
-                        current.r += Error[index].r;
-                        current.g += Error[index].g;
-                        current.b += Error[index].b;
-                    }
-
-
-                    float fdot = (current.r - step[0].r) * Dir.r + (current.g - step[0].g) * Dir.g + (current.b - step[0].b) * Dir.b;
-
-                    uint iStep = 0;
-                    if (fdot <= 0f)
-                        iStep = 0;
-                    else if (fdot >= fsteps)
-                        iStep = 1;
-                    else
-                        iStep = psteps[(int)(fdot + .5f)];
-
-                    dw = (iStep << 30) | (dw >> 2);   // THIS  IS THE MAGIC here. This is the "list" of indicies. Somehow...
-
-
-                    // Dither again
-                    if (dither)
-                    {
-                        // Calculate difference between current pixel colour and adapted pixel colour?
-                        RGBColour diff = new RGBColour()
-                        {
-                            r = current.a * (byte)(current.r - step[iStep].r),
-                            g = current.a * (byte)(current.g - step[iStep].g),
-                            b = current.a * (byte)(current.b - step[iStep].b)
-                        };
-
-                        // If current pixel is not at the end of a row
-                        if ((index & 3) != 3)
-                        {
-                            Error[index + 1].r += diff.r * (7f / 16f);
-                            Error[index + 1].g += diff.g * (7f / 16f);
-                            Error[index + 1].b += diff.b * (7f / 16f);
-                        }
-
-                        // If current pixel is not in bottom row
-                        if (index < 12)
-                        {
-                            // If current pixel IS at end of row
-                            if ((index & 3) != 0)
-                            {
-                                Error[index + 3].r += diff.r * (3f / 16f);
-                                Error[index + 3].g += diff.g * (3f / 16f);
-                                Error[index + 3].b += diff.b * (3f / 16f);
-                            }
-
-                            Error[index + 4].r += diff.r * (5f / 16f);
-                            Error[index + 4].g += diff.g * (5f / 16f);
-                            Error[index + 4].b += diff.b * (5f / 16f);
-
-                            // If current pixel is not at end of row
-                            if ((index & 3) != 3)
-                            {
-                                Error[index + 5].r += diff.r * (1f / 16f);
-                                Error[index + 5].g += diff.g * (1f / 16f);
-                                Error[index + 5].b += diff.b * (1f / 16f);
-                            }
-                        }
-                    }
-
-                    position += 4;
-                }
-
-                position = sourcePosition + sourceLineLength * (i + 1);
-            }
+            uint Min = (uSteps == 3) == (wColourA <= wColourB) ? wColourA : wColourB;
+            uint Max = (uSteps == 3) == (wColourA <= wColourB) ? wColourB : wColourA;
 
             var colour1 = BitConverter.GetBytes(Min);
             var colour2 = BitConverter.GetBytes(Max);

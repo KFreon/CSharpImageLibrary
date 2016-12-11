@@ -231,35 +231,31 @@ namespace CSharpImageLibrary
             return blocksize;
         }
 
-        public static List<int> CreateMasks(ImageEngineFormat format)
-        {
-            int R = 0;
-            int G = 0;
-            int B = 0;
-            int A = 0;
-
-            switch (format)
-            {
-                case ImageEngineFormat.DDS_V8U8:
-                    R = 0xF0;
-                    G = 0x0F;
-                    break;
-            }
-            return null;
-        }
-
-        public static List<int> CreateMasks(int bitCount, int numChannels)
-        {
-            return null;
-        }
 
         /// <summary>
         /// Get list of supported extensions in lower case.
         /// </summary>
+        /// <param name="addDot">Adds preceeding dot to be same as Path.GetExtension.</param>
         /// <returns>List of supported extensions.</returns>
-        public static List<string> GetSupportedExtensions()
+        public static List<string> GetSupportedExtensions(bool addDot = false)
         {
-            return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").ToList();
+            if (addDot)
+                return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").Select(g => "." + g).ToList();
+            else
+                return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").ToList();
+        }
+
+
+        /// <summary>
+        /// Determines if file has a supported extension.
+        /// </summary>
+        /// <param name="filePath">Path of file to to check.</param>
+        /// <param name="supported">Optionally list of supported extensions. Good if looping and can initialise supported and pass into this every loop.</param>
+        /// <returns>True if supported.</returns>
+        public static bool IsExtensionSupported(string filePath, List<string> supported = null)
+        {
+            List<string> supportedExts = supported ?? GetSupportedExtensions(true);
+            return supportedExts.Contains(Path.GetExtension(filePath), StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -489,15 +485,19 @@ namespace CSharpImageLibrary
         /// <returns>Compressed size in bytes.</returns>
         public static int GetCompressedSize(ImageEngineFormat saveFormat, int width, int height, int numMips)
         {
-            int estimate = DDS.DDSGeneral.GetMipOffset(numMips + 1, saveFormat, width, height);
+            int estimate = DDS.DDSGeneral.GetMipOffset(numMips , saveFormat, width, height);
 
-            int size = 0;
+            int size = 128;
             int divisor = 1;
             if (ImageFormats.IsBlockCompressed(saveFormat))
                 divisor = 4;
 
+            int tempMipCount = 0;
             while (width >= 1 && height >= 1)
             {
+                if (tempMipCount == numMips)
+                    break;
+
                 int tempWidth = width;
                 int tempHeight = height;
 
@@ -513,6 +513,7 @@ namespace CSharpImageLibrary
                 size += tempWidth / divisor * tempHeight / divisor * ImageFormats.GetBlockSize(saveFormat);
                 width /= 2;
                 height /= 2;
+                tempMipCount++;
             }
 
             //Console.WriteLine(size - estimate);

@@ -60,12 +60,6 @@ namespace CSharpImageLibrary.DDS
                     {
                         // Ignore - happens cos I don't handle things properly when dimensions are not powers of two.
                     }
-
-                    // TODO: Cancellation
-                    /*if (ImageEngine.EnableThreading)
-                        loopstate.Break();
-                    else if (!ImageEngine.EnableThreading)
-                        return;*/
                 });
 
                 // Actually perform decompression using threading, no threading, or GPU.
@@ -168,7 +162,6 @@ namespace CSharpImageLibrary.DDS
                 // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
                 if (mipWidth <= 0 || mipHeight <= 0)  // Needed cos it doesn't throw when reading past the end for some reason.
                 {
-                    Debugger.Break();
                     break;
                 }
 
@@ -185,7 +178,7 @@ namespace CSharpImageLibrary.DDS
             }
 
             if (MipMaps.Count == 0)
-                Debugger.Break();
+                throw new InvalidOperationException($"No mipmaps loaded. Estimated mips: {estimatedMips}, mip dimensions: {mipWidth}x{mipHeight}");
             return MipMaps;
         }
         #endregion Loading
@@ -404,6 +397,14 @@ namespace CSharpImageLibrary.DDS
 
         internal static int GetMipOffset(double mipIndex, ImageEngineFormat format, int baseWidth, int baseHeight)
         {
+            // -1 because if we want the offset of the mip, it's the sum of all sizes before it NOT including itself.
+            return GetCompressedSize(mipIndex - 1, format, baseWidth, baseHeight);  
+        }
+
+        internal static int GetCompressedSize(double mipIndex, ImageEngineFormat format, int baseWidth, int baseHeight)
+        {
+            // TODO: theres now 2 compressed size functions, and the wrong use of the mip offset function.
+
             /*
                 Mipmapping halves both dimensions per mip down. Dimensions are then divided by 4 if block compressed as a texel is 4x4 pixels.
                 e.g. 4096 x 4096 block compressed texture with 8 byte blocks e.g. DXT1
@@ -423,7 +424,8 @@ namespace CSharpImageLibrary.DDS
 
             // TODO: DDS going down past 4x4
 
-            int divisor = 1;
+
+            double divisor = 1;
             if (ImageFormats.IsBlockCompressed(format))
                 divisor = 4;
 

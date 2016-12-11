@@ -41,6 +41,77 @@ namespace UI_Project
             }
         }
 
+        bool infoPanelOpen = false;
+        public bool InfoPanelOpen
+        {
+            get
+            {
+                return infoPanelOpen;
+            }
+            set
+            {
+                SetProperty(ref infoPanelOpen, value);
+            }
+        }
+
+        bool settingsPanelOpen = false;
+        public bool SettingsPanelOpen
+        {
+            get
+            {
+                return settingsPanelOpen;
+            }
+            set
+            {
+                SetProperty(ref settingsPanelOpen, value);
+            }
+        }
+
+        public bool EnableThreading
+        {
+            get
+            {
+                return ImageEngine.EnableThreading;
+            }
+            set
+            {
+                ImageEngine.EnableThreading = value;
+                OnPropertyChanged(nameof(EnableThreading));
+            }
+        }
+
+        public bool UseWindowsCodecs
+        {
+            get
+            {
+                return ImageEngine.WindowsWICCodecsAvailable;
+            }
+            set
+            {
+                ImageEngine.WindowsWICCodecsAvailable = value;
+                OnPropertyChanged(nameof(UseWindowsCodecs));
+            }
+        }
+
+        public int NumThreads
+        {
+            get
+            {
+                return ImageEngine.NumThreads;
+            }
+            set
+            {
+                if (value < 1 && value != -1) // Allowed to be -1 for being infinite
+                    return;
+
+                ImageEngine.NumThreads = value;
+                OnPropertyChanged(nameof(NumThreads));
+
+                if (NumThreads == 1)
+                    EnableThreading = false;
+            }
+        }
+
         #region Commands
         CommandHandler closeCommand = null;
         public CommandHandler CloseCommand
@@ -154,7 +225,6 @@ namespace UI_Project
 
         public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<string> BulkConvertFailed { get; set; } = new MTRangedObservableCollection<string>();
-        public MTRangedObservableCollection<string> BulkConvertSkipped { get; set; } = new MTRangedObservableCollection<string>();
 
         bool bulkConvertOpen = false;
         public bool BulkConvertOpen
@@ -166,6 +236,19 @@ namespace UI_Project
             set
             {
                 SetProperty(ref bulkConvertOpen, value);
+            }
+        }
+
+        bool bulkFolderBrowseRecurse = true;
+        public bool BulkFolderBrowseRecurse
+        {
+            get
+            {
+                return bulkFolderBrowseRecurse;
+            }
+            set
+            {
+                SetProperty(ref bulkFolderBrowseRecurse, value);
             }
         }
 
@@ -195,7 +278,20 @@ namespace UI_Project
             }
         }
 
-        string bulkStatus = null;
+        bool bulkUseSourceDestination = false;
+        public bool BulkUseSourceDestination
+        {
+            get
+            {
+                return bulkUseSourceDestination;
+            }
+            set
+            {
+                SetProperty(ref bulkUseSourceDestination, value);
+            }
+        }
+
+        string bulkStatus = "Ready";
         public string BulkStatus
         {
             get
@@ -775,18 +871,17 @@ namespace UI_Project
             RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
             BulkProgressValue = 0;
             BulkProgressMax = 0;
-            BulkStatus = null;
+            BulkStatus = "Ready";
             BulkConvertFinished = false;
             BulkConvertFiles.Clear();
             BulkConvertFailed.Clear();
-            BulkConvertSkipped.Clear();
 
             // Notify
             if (updateUI)
                 UpdateUI();
         }
 
-        public void DoBulkConvert()
+        public async Task DoBulkConvert()
         {
             BulkProgressMax = BulkConvertFiles.Count;
             BulkProgressValue = 0;
@@ -794,19 +889,16 @@ namespace UI_Project
             BulkConvertFinished = false;
             
 
-            Task.Run(() =>
+            await Task.Run(() =>
             {
                 foreach (var file in BulkConvertFiles)
                 {
                     using (ImageEngineImage img = new ImageEngineImage(file))
                     {
                         string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
-                        string path = Path.Combine(BulkSaveFolder, filename);
-                        if (File.Exists(path))
-                        {
-                            BulkConvertSkipped.Add(path);
-                            continue;
-                        }
+                        string path = Path.Combine(BulkUseSourceDestination ? Path.GetDirectoryName(file) : BulkSaveFolder, filename);
+
+                        path = UsefulThings.General.FindValidNewFileName(path);
 
                         try
                         {
@@ -825,14 +917,36 @@ namespace UI_Project
 
 
             BulkStatus = "Conversion complete! ";
-            if (BulkConvertSkipped.Count > 0)
-                BulkStatus += $"{BulkConvertSkipped.Count} already existed.";
-
             if (BulkConvertFailed.Count > 0)
                 BulkStatus += $"{BulkConvertFailed.Count} failed to convert.";
 
             BulkProgressValue = BulkProgressMax;
             BulkConvertFinished = true;
+        }
+
+
+
+        // TIMER TESTING THING
+        DispatcherTimer taskRunTimeTimer = null;
+        Task operation = null;
+
+        void TEST()
+        {
+            if (taskRunTimeTimer == null)
+            {
+                taskRunTimeTimer = new DispatcherTimer()
+                {
+                    Interval = TimeSpan.FromSeconds(30)
+                };
+
+                taskRunTimeTimer.Tick += (sender, args) =>
+                {
+
+                };
+            }
+
+
+            // Do actual work
         }
     }
 }

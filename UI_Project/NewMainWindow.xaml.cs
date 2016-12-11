@@ -40,15 +40,12 @@ namespace UI_Project
             {
                 DropValidator = new Predicate<string[]>(files =>
                 {
-                // Check only one file - can only load one, so restrict to one.
-                if (files.Length != 1)
-                        return false;
+                    // Check only one file - can only load one, so restrict to one.
+                    if (files.Length != 1)
+                            return false;
 
-                // Check file extension
-                if (!ImageFormats.GetSupportedExtensions().Contains(Path.GetExtension(files[0]).Replace(".", ""), StringComparison.OrdinalIgnoreCase))  // Checks extension, ignoring '.'
-                    return false;
-
-                    return true;
+                    // Check file extension
+                    return ImageFormats.IsExtensionSupported(files[0]);
                 }),
 
                 DropAction = new Action<NewViewModel, string[]>((viewModel, filePath) =>
@@ -73,17 +70,18 @@ namespace UI_Project
                     if (files == null || files.Length == 0)
                         return false;
 
-                // Check all extensions
-                foreach (string file in files)
+                    // Check all extensions
+                    var supported = ImageFormats.GetSupportedExtensions(true);
+                    foreach (string file in files)
                     {
-                        if (!ImageFormats.GetSupportedExtensions().Contains(Path.GetExtension(file).Replace(".", ""), StringComparison.OrdinalIgnoreCase))  // Checks extension, ignoring '.'
-                        return false;
+                        if (!ImageFormats.IsExtensionSupported(file, supported))
+                            return false;
                     }
 
                     return true;
                 },
 
-                DropAction = (model, files) => model.BulkConvertFiles.AddRange(files)
+                DropAction = (model, files) => BulkAdd(files)
             };
             InitializeComponent();
             DataContext = vm;
@@ -101,6 +99,20 @@ namespace UI_Project
 
             // Linked by default
             LoadedImageViewBox.Link(SaveImageViewBox);
+
+
+            // Fix window size if on low res, < 1920x1080
+            if (this.Height >= SystemParameters.WorkArea.Height)
+                this.Height = SystemParameters.WorkArea.Height - 100; // For a bit of space and in case of taskbar weirdness
+
+            // TODO: Remove unnecessary Try Catch when an if will do.
+
+            // "Global" exception handler - kills the application if this is hit.
+            Application.Current.DispatcherUnhandledException += (sender, args) =>
+            {
+                MessageBox.Show("Unhandled exception occured." + Environment.NewLine + args.ToString());
+                this.Close();  // Might not work I guess, but either way, it's going down.
+            };
         }
 
         void CloseSavePanel()
@@ -206,10 +218,12 @@ namespace UI_Project
             OpenFileDialog ofd = new OpenFileDialog()
             {
                 Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
-                Title = "Select files to be converted. Needn't be the same format."
+                Title = "Select files to be converted. Needn't be the same format.",
+                Multiselect = true
             };
+
             if (ofd.ShowDialog() == true)
-                vm.BulkConvertFiles.AddRange(ofd.FileNames);
+                BulkAdd(ofd.FileNames);
         }
 
         private void BulkConvertButton_Click(object sender, RoutedEventArgs e)
@@ -219,11 +233,10 @@ namespace UI_Project
 
         private void BulkCloseButton_Click(object sender, RoutedEventArgs e)
         {
-            vm.BulkConvertOpen = false;
-            vm.BulkConvertFinished = false;
             vm.BulkConvertFiles.Clear();
             vm.BulkConvertFailed.Clear();
-            vm.BulkConvertSkipped.Clear();
+            vm.BulkConvertOpen = false;
+            vm.BulkConvertFinished = false;
         }
 
         private void BulkConvertOpenButton_Click(object sender, RoutedEventArgs e)
@@ -286,7 +299,7 @@ namespace UI_Project
 
 
                 // Check dimensions if selecting a DXT format
-                if ((selectedFormat.ToString().Contains("DXT") || selectedFormat.ToString().Contains("ATI")) && !CSharpImageLibrary.DDS.DDSGeneral.CheckSize_DXT(vm.LoadedImage.Width, vm.LoadedImage.Height))
+                if ((selectedFormat.ToString().Contains("DXT") || selectedFormat.ToString().Contains("ATI")) && vm.IsImageLoaded && !CSharpImageLibrary.DDS.DDSGeneral.CheckSize_DXT(vm.LoadedImage.Width, vm.LoadedImage.Height))
                     disableContainer = true;
 
 
@@ -324,6 +337,61 @@ namespace UI_Project
         private void SavePathBox_LostFocus(object sender, RoutedEventArgs e)
         {
             vm.FixExtension(true);  // Indicate property should notify
+        }
+
+        private void BulkFolderBrowseButton_Click(object sender, RoutedEventArgs e)
+        {
+            var fbd = new CommonOpenFileDialog()
+            {
+                IsFolderPicker = true,
+                Title = "Select folder to add",
+            };
+
+            if (fbd.ShowDialog() == CommonFileDialogResult.Ok)
+                BulkAdd(Directory.EnumerateFiles(fbd.FileName, "*", vm.BulkFolderBrowseRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly));
+        }
+
+        void BulkAdd(IEnumerable<string> files)
+        {
+            List<string> newFiles = new List<string>();
+
+            int count = 0;
+            foreach (var file in files.Where(t => ImageFormats.IsExtensionSupported(t)))
+            {
+                // Prevent duplicates
+                if (!vm.BulkConvertFiles.Contains(file, StringComparison.OrdinalIgnoreCase))
+                {
+                    newFiles.Add(file);
+                    count++;
+                }
+            }
+
+            vm.BulkConvertFiles.AddRange(newFiles);
+
+            if (count == 0)
+                vm.BulkStatus = "No suitable files found.";
+            else
+                vm.BulkStatus = $"Added {count} files.";
+        }
+
+        private void SettingsPanelOpenButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.SettingsPanelOpen = true;
+        }
+
+        private void SettingsPanelCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.SettingsPanelOpen = false;
+        }
+
+        private void InfoPanelOpenButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.InfoPanelOpen = true;
+        }
+
+        private void InfoPanelCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.InfoPanelOpen = false;
         }
     }
 }
