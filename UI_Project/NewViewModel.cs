@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
@@ -109,6 +110,102 @@ namespace UI_Project
 
                 if (NumThreads == 1)
                     EnableThreading = false;
+            }
+        }
+
+        string cpuName = "Unknown";
+        public string CPUName
+        {
+            get
+            {
+                if (cpuName == "Unknown")
+                {
+                    var searcher = new ManagementObjectSearcher("select * from Win32_Processor");
+                    List<object> testting = new List<object>();
+                    foreach (var item in searcher.Get())
+                    {
+                        cpuName = item["Name"].ToString();
+                        break;
+                    }
+                }
+
+                return cpuName;
+            }
+        }
+
+        public int NumCores
+        {
+            get
+            {
+                return System.Environment.ProcessorCount;
+            }
+        }
+
+        public bool Is64Bit
+        {
+            get
+            {
+                return System.Environment.Is64BitOperatingSystem;
+            }
+        }
+
+        public bool IsRunning64Bit
+        {
+            get
+            {
+                return System.Environment.Is64BitProcess;
+            }
+        }
+
+        string osVersion = "Unknown";
+        public string OSVersion
+        {
+            get
+            {
+                if (osVersion == "Unknown")
+                {
+                    var name = (from x in new ManagementObjectSearcher("SELECT Caption FROM Win32_OperatingSystem").Get().Cast<ManagementObject>()
+                                select x.GetPropertyValue("Caption")).FirstOrDefault();
+                    osVersion = name != null ? name.ToString() : "Unknown";
+                }
+
+                return osVersion;
+            }
+        }
+
+        ulong ramSize = 0;
+        public ulong RAMSize
+        {
+            get
+            {
+                if (ramSize == 0)
+                {
+                    var searcher = new ManagementObjectSearcher("select * from Win32_PhysicalMemory");
+                    foreach (var item in searcher.Get())
+                        ramSize += (ulong)item["Capacity"];
+                }
+
+                return ramSize;
+            }
+        }
+
+        string gpuName = "Unknown";
+        public string GPUName
+        {
+            get
+            {
+                if (gpuName == "Unknown")
+                {
+                    var searcher = new ManagementObjectSearcher("select * from Win32_VideoController");
+                    List<object> testting = new List<object>();
+                    foreach (var item in searcher.Get())
+                    {
+                        gpuName = item["Name"].ToString();
+                        break;
+                    }
+                }
+
+                return gpuName;
             }
         }
 
@@ -922,31 +1019,6 @@ namespace UI_Project
 
             BulkProgressValue = BulkProgressMax;
             BulkConvertFinished = true;
-        }
-
-
-
-        // TIMER TESTING THING
-        DispatcherTimer taskRunTimeTimer = null;
-        Task operation = null;
-
-        void TEST()
-        {
-            if (taskRunTimeTimer == null)
-            {
-                taskRunTimeTimer = new DispatcherTimer()
-                {
-                    Interval = TimeSpan.FromSeconds(30)
-                };
-
-                taskRunTimeTimer.Tick += (sender, args) =>
-                {
-
-                };
-            }
-
-
-            // Do actual work
         }
     }
 }

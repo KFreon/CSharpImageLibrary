@@ -983,12 +983,52 @@
 
         <Border x:Name="InfoPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding InfoPanelOpen}">
             <Border Style="{StaticResource FadedInnerBorder}">
-                <DockPanel LastChildFill="True">
+                <DockPanel LastChildFill="True" Margin="5,0,5,5">
+                    <DockPanel.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="DockPanel.Dock" Value="Top"/>
+                        </Style>
+                    </DockPanel.Resources>
                     <Label Content="System Information" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
 
-                    <!--Available system threads, memory, codecs or not, etc?-->
+                    <TextBlock>
+                        <Run Text="CPU Type:  " FontWeight="Bold"/>
+                        <Run Text="{Binding CPUName, Mode=OneWay}"/>
+                    </TextBlock>
 
-                    <Button x:Name="InfoPanelCloseButton" Content="Close" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" Click="InfoPanelCloseButton_Click"/>
+                    <TextBlock>
+                        <Run Text="Number of CPU Cores:  " FontWeight="Bold"/>
+                        <Run Text="{Binding NumCores, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="OS 64 bit?:  " FontWeight="Bold"/>
+                        <Run Text="{Binding Is64Bit, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="Running as 64 bit?:  " FontWeight="Bold"/>
+                        <Run Text="{Binding IsRunning64Bit, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="OS Version:  " FontWeight="Bold"/>
+                        <Run Text="{Binding OSVersion, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="Memory Size:  " FontWeight="Bold"/>
+                        <Run Text="{Binding RAMSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="Graphics Card:  " FontWeight="Bold"/>
+                        <Run Text="{Binding GPUName, Mode=OneWay}"/>
+                    </TextBlock>
+
+                    <Button x:Name="InfoPanelCloseButton" Content="Close" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                            Click="InfoPanelCloseButton_Click" Margin="0,5,0,0"/>
                 </DockPanel>
             </Border>
         </Border>
