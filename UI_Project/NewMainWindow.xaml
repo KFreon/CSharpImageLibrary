@@ -98,6 +98,11 @@
                 <Setter Property="Padding" Value="5,2"/>
             </Style>
 
+            <Style x:Key="ValueStyle">
+                <Setter Property="Inline.Foreground" Value="Wheat"/>
+                <Setter Property="TextBlock.Padding" Value="5,2"/>
+            </Style>
+            
             <Style x:Key="TitleStyle" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
                 <Setter Property="HorizontalAlignment" Value="Center"/>
                 <Setter Property="FontSize" Value="20"/>
@@ -239,7 +244,7 @@
                     <RadioButton GroupName="{TemplateBinding Name}" Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
                     <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
                     <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
-                               Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                               Style="{StaticResource ValueStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
                     <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
                         <Slider.Style>
                             <Style TargetType="Slider">
@@ -282,7 +287,7 @@
             <ControlTemplate x:Key="JPGSettingsTemplate">
                 <DockPanel >
                     <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                    <TextBlock Text="{Binding JPG_CompressionSetting}" DockPanel.Dock="Right" Style="{StaticResource VisibleTextDisplayStyle}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding JPG_CompressionSetting, StringFormat={}{0}%}" DockPanel.Dock="Right" Style="{StaticResource ValueStyle}" VerticalAlignment="Center"/>
                     <Slider Minimum="1" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
                 </DockPanel>
             </ControlTemplate>
@@ -404,7 +409,7 @@
         </VisualStateManager.VisualStateGroups>
 
         <DockPanel x:Name="AlphaDisplaySettingsBox" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
-            <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8"/>
+            <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="8" VerticalAlignment="Center"/>
             <ComboBox x:Name="AlphaDisplaySelector" FontSize="10" 
                   ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:AlphaDisplaySettings}}" SelectedValue="{Binding AlphaDisplaySetting, Mode=TwoWay}" 
                               DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
@@ -506,7 +511,7 @@
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Left"/>
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Right" Grid.Column="2"/>
             <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock x:Name="WidthIndicator" Text="{Binding Width}" HorizontalAlignment="Center" Grid.Column="1" Foreground="White" FontWeight="Bold"/>
+            <TextBlock x:Name="WidthIndicator" Text="{Binding Width}" HorizontalAlignment="Center" Grid.Column="1" Style="{StaticResource ValueStyle}" FontWeight="Bold"/>
             <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}" Grid.Column="2"/>
         </Grid>
 
@@ -519,7 +524,7 @@
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Top"/>
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Bottom" Grid.Row="2"/>
             <Line X1="1" X2="1" Y1="15" Y2="16" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock x:Name="HeightIndicator" Text="{Binding Height}" VerticalAlignment="Center" Foreground="White" Grid.Row="1" FontWeight="Bold">
+            <TextBlock x:Name="HeightIndicator" Text="{Binding Height}" VerticalAlignment="Center" Style="{StaticResource ValueStyle}" Grid.Row="1" FontWeight="Bold">
                 <TextBlock.LayoutTransform>
                     <TransformGroup>
                         <ScaleTransform/>
@@ -548,7 +553,7 @@
                     </Style.Triggers>
                 </Style>
             </DockPanel.Style>
-            <TextBlock Text="{Binding LoadedImage.NumMipMaps}" DockPanel.Dock="Top" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding LoadedImage.NumMipMaps}" DockPanel.Dock="Top" Style="{StaticResource ValueStyle}" HorizontalAlignment="Center"/>
             <TextBlock Text="0" DockPanel.Dock="Bottom" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center"/>
             <Slider x:Name="MipSlider" Orientation="Vertical" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Maximum="{Binding LoadedImage.NumMipMaps}" Value="{Binding MipIndex}" SmallChange="0"/>
         </DockPanel>
@@ -721,19 +726,19 @@
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                 <TextBlock x:Name="LoadedFormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
                                         <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
-                                        <Run Text="{Binding LoadedFormat, Mode=OneWay}"/>
+                                        <Run Text="{Binding LoadedFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
                                 <TextBlock x:Name="MipCountLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
                                         <Run Text="Mipmaps: " Style="{StaticResource TitleElementStyle}"/>
-                                        <Run Text="{Binding MipCount, Mode=OneWay}"/>
+                                        <Run Text="{Binding MipCount, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
                                 <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Grid.Column="1"  TextAlignment="Center"
                                                IsHitTestVisible="False" HorizontalAlignment="Center" Margin="0,5,0,0">
                                         <Run Text="Compressed/File Size: " Style="{StaticResource TitleElementStyle}"/>
                                         <LineBreak/>
-                                        <Run Text="{Binding LoadedCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                                        <Run Text="{Binding LoadedCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
@@ -994,37 +999,37 @@
 
                     <TextBlock>
                         <Run Text="CPU Type:  " FontWeight="Bold"/>
-                        <Run Text="{Binding CPUName, Mode=OneWay}"/>
+                        <Run Text="{Binding CPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <TextBlock>
                         <Run Text="Number of CPU Cores:  " FontWeight="Bold"/>
-                        <Run Text="{Binding NumCores, Mode=OneWay}"/>
+                        <Run Text="{Binding NumCores, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <TextBlock>
                         <Run Text="OS 64 bit?:  " FontWeight="Bold"/>
-                        <Run Text="{Binding Is64Bit, Mode=OneWay}"/>
+                        <Run Text="{Binding Is64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <TextBlock>
                         <Run Text="Running as 64 bit?:  " FontWeight="Bold"/>
-                        <Run Text="{Binding IsRunning64Bit, Mode=OneWay}"/>
+                        <Run Text="{Binding IsRunning64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <TextBlock>
                         <Run Text="OS Version:  " FontWeight="Bold"/>
-                        <Run Text="{Binding OSVersion, Mode=OneWay}"/>
+                        <Run Text="{Binding OSVersion, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <TextBlock>
                         <Run Text="Memory Size:  " FontWeight="Bold"/>
-                        <Run Text="{Binding RAMSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}"/>
+                        <Run Text="{Binding RAMSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <TextBlock>
                         <Run Text="Graphics Card:  " FontWeight="Bold"/>
-                        <Run Text="{Binding GPUName, Mode=OneWay}"/>
+                        <Run Text="{Binding GPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
                     <Button x:Name="InfoPanelCloseButton" Content="Close" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
