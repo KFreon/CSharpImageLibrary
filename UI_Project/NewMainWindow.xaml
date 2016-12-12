@@ -173,7 +173,7 @@
             <ControlTemplate x:Key="GeneralAlphaSettingsTemplate">
                 <DockPanel>
                     <Label Content="Alpha Settings" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                    <CheckBox Content="Remove Alpha Channel" Foreground="White" IsChecked="{Binding RemoveGeneralAlpha}" DockPanel.Dock="Top"/>
+                    <CheckBox Content="Remove Alpha Channel" Foreground="White" IsChecked="{Binding RemoveGeneralAlpha}" DockPanel.Dock="Top" Margin="5,0,0,0"/>
                 </DockPanel>
             </ControlTemplate>
 
@@ -501,7 +501,7 @@
                 </Image.RenderTransform>
             </Image>
         </UsefulWPF:PanAndZoomBorder>
-
+        
         <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="0,5,25,5" Height="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="211*"/>
@@ -873,21 +873,21 @@
                 <DockPanel LastChildFill="True">
                     <Label Content="Bulk Conversion" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
                     <Label Content="Enables many images to be converted at once. Use the settings below to set the target format and alpha settings for each format." DockPanel.Dock="Top"/>
-                    <DockPanel DockPanel.Dock="Bottom" Margin="20,5">
+                    <DockPanel x:Name="BottomStatus" DockPanel.Dock="Bottom" Margin="20,5">
                         <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="White"/>
                         <ProgressBar DockPanel.Dock="Left" Width="300" HorizontalAlignment="Left" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}"/>
                     </DockPanel>
 
-                    <DockPanel DockPanel.Dock="Bottom" MinHeight="35">
+                    <DockPanel x:Name="BottomButtons" DockPanel.Dock="Bottom" MinHeight="35" IsEnabled="{Binding BulkConvertRunning, Converter={StaticResource InverseBoolConverter}}">
                         <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
                         <Button x:Name="BulkFolderBrowseButton" Content="Add Folder" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="10,0,0,0" Click="BulkFolderBrowseButton_Click"/>
                         <CheckBox x:Name="BulkFolderBrowseRecurseChecker" Content="Recursive?" IsChecked="{Binding BulkFolderBrowseRecurse}" VerticalAlignment="Center" Foreground="White" Margin="5,0,0,0"/>
-                        <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click"/>
+                        <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click" Margin="0,0,10,0"/>
                         <Button x:Name="BulkConvertButton"  Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" FontSize="20" FontWeight="Bold" Click="BulkConvertButton_Click"/>
                     </DockPanel>
 
 
-                    <Grid DockPanel.Dock="Top" Margin="5,10">
+                    <Grid DockPanel.Dock="Top" Margin="5,10" IsEnabled="{Binding BulkConvertRunning, Converter={StaticResource InverseBoolConverter}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="1*"/>
                             <ColumnDefinition Width="1*"/>

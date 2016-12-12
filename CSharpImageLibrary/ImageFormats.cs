@@ -476,49 +476,18 @@ namespace CSharpImageLibrary
         }
 
         /// <summary>
-        /// Calculates the full size of an image based on size, format, and mipmap count.
+        /// Calculates the compressed size of an image with given parameters.
         /// </summary>
-        /// <param name="saveFormat">Format of saved image.</param>
-        /// <param name="width">Width of top mipmap.</param>
-        /// <param name="height">Height of top mipmap.</param>
-        /// <param name="numMips">Number of mipmaps image CAN HAVE. Must be the max number. i.e. cannot have partially generated mipmaps.</param>
-        /// <returns>Compressed size in bytes.</returns>
-        public static int GetCompressedSize(ImageEngineFormat saveFormat, int width, int height, int numMips)
+        /// <param name="numMipmaps">Number of mipmaps in image. JPG etc only have 1.</param>
+        /// <param name="format">Format of image.</param>
+        /// <param name="width">Width of image (top mip if mip-able)</param>
+        /// <param name="height">Height of image (top mip if mip-able)</param>
+        /// <returns>Size of compressed image.</returns>
+        public static int GetCompressedSize(int numMipmaps, ImageEngineFormat format, int width, int height)
         {
-            int estimate = DDS.DDSGeneral.GetMipOffset(numMips , saveFormat, width, height);
-
-            int size = 128;
-            int divisor = 1;
-            if (ImageFormats.IsBlockCompressed(saveFormat))
-                divisor = 4;
-
-            int tempMipCount = 0;
-            while (width >= 1 && height >= 1)
-            {
-                if (tempMipCount == numMips)
-                    break;
-
-                int tempWidth = width;
-                int tempHeight = height;
-
-                if (ImageFormats.IsBlockCompressed(saveFormat))
-                {
-                    if (tempWidth < 4)
-                        tempWidth = 4;
-                    if (tempHeight < 4)
-                        tempHeight = 4;
-                }
-
-
-                size += tempWidth / divisor * tempHeight / divisor * ImageFormats.GetBlockSize(saveFormat);
-                width /= 2;
-                height /= 2;
-                tempMipCount++;
-            }
-
-            //Console.WriteLine(size - estimate);
-            return size > estimate ? size : estimate;
+            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, format, width, height);
         }
+        
 
 
         /// <summary>
@@ -528,10 +497,11 @@ namespace CSharpImageLibrary
         /// <param name="topWidth">Width of top mipmap.</param>
         /// <param name="topHeight">Height of top mipmap.</param>
         /// <param name="numChannels">Number of channels in image.</param>
+        /// <param name="inclMips">Include size of mipmaps.</param>
         /// <returns>Uncompressed size in bytes including mipmaps.</returns>
-        public static int GetUncompressedSizeWithMips(int topWidth, int topHeight, int numChannels)
+        public static int GetUncompressedSize(int topWidth, int topHeight, int numChannels, bool inclMips)
         {
-            return (int)(numChannels * (topWidth * topHeight) *3d/4d);
+            return (int)(numChannels * (topWidth * topHeight) * (inclMips ? 4d/3d : 1d));
         }
 
         

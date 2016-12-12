@@ -200,12 +200,16 @@ namespace CSharpImageLibrary
         internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, AlphaSettings alphaSetting, int maxDimension = 0, int mipToSave = 0, List<uint> customMasks = null)
         {
             List<MipMap> newMips = new List<MipMap>(MipMaps);
+
+            int width = newMips[0].Width;
+            int height = newMips[0].Height;
+
             bool isMippable = ImageFormats.IsFormatMippable(format);
             if ((isMippable && mipChoice == MipHandling.GenerateNew) || (isMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
                 DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
-            if (maxDimension != 0 && maxDimension < newMips[0].Width && maxDimension < newMips[0].Height) 
+            if (maxDimension != 0 && maxDimension < width && maxDimension < height) 
             {
                 if (!UsefulThings.General.IsPowerOfTwo(maxDimension))
                     throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
@@ -220,7 +224,7 @@ namespace CSharpImageLibrary
                 else
                 {
                     // KFreon: Get the amount the image needs to be scaled. Find largest dimension and get it's scale.
-                    double scale = maxDimension * 1f / (newMips[0].Width > newMips[0].Height ? newMips[0].Width: newMips[0].Height);
+                    double scale = maxDimension * 1d / (width > height ? width : height);
 
                     // KFreon: No mip. Resize.
                     newMips[0] = Resize(newMips[0], scale);
@@ -228,23 +232,39 @@ namespace CSharpImageLibrary
             }
 
             // KFreon: Ensure we have a power of two for dimensions FOR DDS ONLY
-            double fixScale = 0;
-            if (format.ToString().Contains("DDS") && (!UsefulThings.General.IsPowerOfTwo(newMips[0].Width) || !UsefulThings.General.IsPowerOfTwo(newMips[0].Height)))
+            double fixXScale = 0;
+            double fixYScale = 0;
+            if (ImageFormats.IsBlockCompressed(format) && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
             {
-                int newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Width);
-                int newHeigh = UsefulThings.General.RoundToNearestPowerOfTwo(newMips[0].Height);
+                double newWidth = 0;
+                double newHeight = 0;
 
-                // TODO: Enable DDS' properly when not square. Related to sub 4x4 issue of "virtual" space and padding.
+                // Takes into account aspect ratio (a little bit)
+                double aspect = width / height;
+                if (aspect > 1)
+                {
+                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(width);
+                    var tempScale = newWidth / width;
+                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo((int)(height * tempScale));
+                }
+                else
+                {
+                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo(height);
+                    var tempScale = newHeight / height;
+                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo((int)(width * tempScale));
+                }
 
-                // KFreon: Assuming same scale in both dimensions...
-                fixScale = 1.0*newWidth / newMips[0].Width;
-                newMips[0] = Resize(newMips[0], fixScale);
+
+                // Little extra bit to allow integer cast from Double with the correct answer. Occasionally dimensions * scale would be 511.99999999998 instead of 512, so adding a little allows the integer cast to return correct value.
+                fixXScale = 1d * newWidth / width + 0.001;  
+                fixYScale = 1d * newHeight / height + 0.001;
+                newMips[0] = Resize(newMips[0], fixXScale, fixYScale);
             }
 
-            if (fixScale != 0 || mipChoice == MipHandling.KeepTopOnly)
+            if (fixXScale != 0 || fixYScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
-            if (fixScale != 0 && isMippable && mipChoice != MipHandling.KeepTopOnly)
+            if ((fixXScale != 0 || fixXScale != 0) && isMippable && mipChoice != MipHandling.KeepTopOnly)
                 DDSGeneral.BuildMipMaps(newMips);
 
 
@@ -261,26 +281,18 @@ namespace CSharpImageLibrary
             return destination;
         }      
         
-
-        internal static MipMap Resize(MipMap mipMap, double scale)
+        internal static MipMap Resize(MipMap mipMap, double scale, bool preserveAspect = true)
         {
-            int origWidth = mipMap.Width;
-            int origHeight = mipMap.Height;
-            int origStride = origWidth * 4;
-            int newWidth = (int)(origWidth * scale);
-            int newHeight = (int)(origHeight * scale);
-            int newStride = newWidth * 4;
-
-            // TODO: Issues with incorrect sizing when non-square
-            var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
-
-            byte[] newPixels = null;
-            if (newHeight > newWidth)
-                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, decodeWidth: newWidth).GetPixelsAsBGRA32();
+            if (preserveAspect)
+                return Resize(mipMap, scale, 0);  // Could be either scale dimension, doesn't matter.
             else
-                newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, decodeHeight: newHeight).GetPixelsAsBGRA32();
+                return Resize(mipMap, scale, scale);
+        }
 
-            return new MipMap(newPixels, newWidth, newHeight);
+        internal static MipMap Resize(MipMap mipMap, double xScale, double yScale)
+        {
+            var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
+            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height);
 
             #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
@@ -360,6 +372,27 @@ namespace CSharpImageLibrary
             
             return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, alphaPresent);*/
             #endregion Old code
+        }
+
+        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height)
+        {
+            // TODO: Issues with incorrect sizing when non-square
+
+            lock (baseBMP)
+                if (!baseBMP.IsFrozen)
+                    baseBMP.Freeze();
+
+            int origWidth = width;
+            int origHeight = height;
+            int origStride = origWidth * 4;
+            int newWidth = (int)(origWidth * xScale);
+            int newHeight = (int)(origHeight * yScale);
+            int newStride = newWidth * 4;
+
+            byte[] newPixels = null;
+            newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight).GetPixelsAsBGRA32();
+
+            return new MipMap(newPixels, newWidth, newHeight);
         }
 
 

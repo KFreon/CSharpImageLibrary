@@ -8,6 +8,7 @@ using System.Linq;
 using System.Management;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -230,12 +231,12 @@ namespace UI_Project
                 if (saveCommand == null)
                     saveCommand = new CommandHandler(() =>
                     {
-                        Task.Run(() =>
+                        Task.Run(async () =>
                         {
                             Busy = true;
                             try
                             {
-                                LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                                await LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
                             }
                             catch (Exception e)
                             {
@@ -346,6 +347,19 @@ namespace UI_Project
             set
             {
                 SetProperty(ref bulkFolderBrowseRecurse, value);
+            }
+        }
+
+        bool bulkConvertRunning = false;
+        public bool BulkConvertRunning
+        {
+            get
+            {
+                return bulkConvertRunning;
+            }
+            set
+            {
+                SetProperty(ref bulkConvertRunning, value);
             }
         }
 
@@ -552,7 +566,7 @@ namespace UI_Project
                 if (LoadedImage == null)
                     return -1;
 
-                return ImageFormats.GetUncompressedSizeWithMips(LoadedImage.Width, LoadedImage.Height, LoadedImage.NumberOfChannels);
+                return ImageFormats.GetUncompressedSize(LoadedImage.Width, LoadedImage.Height, LoadedImage.NumberOfChannels, LoadedImage.NumMipMaps > 1);
             }
         }
 
@@ -644,9 +658,8 @@ namespace UI_Project
                 if (SaveFormat.ToString().Contains("_"))
                 {
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
-                    return ImageFormats.GetCompressedSize(SaveFormat, Width, Height,
-                        SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ?
-                        1 : estimatedMips);
+                    return ImageFormats.GetCompressedSize(SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 1 : estimatedMips, 
+                        SaveFormat, Width, Height);
                 }
 
                 return saveCompressedSize;
@@ -970,6 +983,7 @@ namespace UI_Project
             BulkProgressMax = 0;
             BulkStatus = "Ready";
             BulkConvertFinished = false;
+            BulkConvertRunning = false;
             BulkConvertFiles.Clear();
             BulkConvertFailed.Clear();
 
@@ -984,32 +998,42 @@ namespace UI_Project
             BulkProgressValue = 0;
             BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             BulkConvertFinished = false;
-            
+            BulkConvertRunning = true;
 
-            await Task.Run(() =>
+
+            await Task.Run(async () =>
             {
-                foreach (var file in BulkConvertFiles)
-                {
-                    using (ImageEngineImage img = new ImageEngineImage(file))
+                // Test if can parallelise uncompressed saving
+                // Below says: Only formats that don't support mips or do but aren't block compressed - can be parallised.
+                bool supportsParallel = !ImageFormats.IsFormatMippable(SaveFormat);
+                supportsParallel |= !supportsParallel && !ImageFormats.IsBlockCompressed(SaveFormat);
+
+                
+                if (supportsParallel)
+                    await DoBulkParallel();
+                else
+                    foreach (var file in BulkConvertFiles)
                     {
-                        string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
-                        string path = Path.Combine(BulkUseSourceDestination ? Path.GetDirectoryName(file) : BulkSaveFolder, filename);
-
-                        path = UsefulThings.General.FindValidNewFileName(path);
-
-                        try
+                        using (ImageEngineImage img = new ImageEngineImage(file))
                         {
-                            img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                            string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
+                            string path = Path.Combine(BulkUseSourceDestination ? Path.GetDirectoryName(file) : BulkSaveFolder, filename);
+
+                            path = UsefulThings.General.FindValidNewFileName(path);
+
+                            try
+                            {
+                                await img.Save(path, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                            }
+                            catch (Exception e)
+                            {
+                                BulkConvertFailed.Add(path + "  Reason: " + e.ToString());
+                            }
                         }
-                        catch (Exception e)
-                        {
-                            BulkConvertFailed.Add(path + "  Reason: " + e.ToString());
-                        }
+
+                        BulkProgressValue++;
+                        BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
                     }
-
-                    BulkProgressValue++;
-                    BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
-                }
             });
 
 
@@ -1019,6 +1043,63 @@ namespace UI_Project
 
             BulkProgressValue = BulkProgressMax;
             BulkConvertFinished = true;
+            BulkConvertRunning = false;
+        }
+
+        Task DoBulkParallel()
+        {
+            BufferBlock<string> fileNameStore = new BufferBlock<string>();
+            int maxParallelism = ImageEngine.NumThreads == 1 ? 1 :
+                (ImageEngine.NumThreads == -1 ? Environment.ProcessorCount : ImageEngine.NumThreads);
+
+
+            // Define block to perform each conversion
+            var encoder = new TransformBlock<string, Tuple<byte[], string>>(file =>
+            {
+                byte[] data = null;
+
+                string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
+                string path = Path.Combine(BulkUseSourceDestination ? Path.GetDirectoryName(file) : BulkSaveFolder, filename);
+                path = UsefulThings.General.FindValidNewFileName(path);
+
+                using (ImageEngineImage img = new ImageEngineImage(file))
+                {
+                    try
+                    {
+                        data = img.Save(SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                    }
+                    catch (Exception e)
+                    {
+                        BulkConvertFailed.Add(path + "  Reason: " + e.ToString());
+                    }
+                }
+
+                BulkProgressValue++;
+                BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
+                return new Tuple<byte[], string>(data, path);
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxParallelism, BoundedCapacity = maxParallelism });
+
+            // Define block to write converted data to disk
+            var diskWriter = new ActionBlock<Tuple<byte[], string>>(tuple =>
+            {
+                File.WriteAllBytes(tuple.Item2, tuple.Item1);
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 2, BoundedCapacity = maxParallelism });  // Limit to 2 disk write operations at a time, but allow many to be stored in it's buffer.
+
+
+            // Link blocks together
+            fileNameStore.LinkTo(encoder, new DataflowLinkOptions { PropagateCompletion = true });
+            encoder.LinkTo(diskWriter, new DataflowLinkOptions { PropagateCompletion = true });
+
+            // Begin production
+            new Action(async () =>
+            {
+                foreach (var file in BulkConvertFiles)
+                    await fileNameStore.SendAsync(file);
+
+                fileNameStore.Complete();
+            }).Invoke();
+
+            return diskWriter.Completion;
         }
     }
 }

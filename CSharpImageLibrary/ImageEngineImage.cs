@@ -159,10 +159,12 @@ namespace CSharpImageLibrary
         /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
         /// <param name="customMasks">Custom user defined masks for colours.</param>
-        public void Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true, List<uint> customMasks = null)
+        public async Task Save(string destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true, List<uint> customMasks = null)
         {
             var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha, customMasks);
-            File.WriteAllBytes(destination, data);
+
+            using (FileStream fs = new FileStream(destination, FileMode.Create))
+                await fs.WriteAsync(data, 0, data.Length);
         }
 
 

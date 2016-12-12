@@ -105,8 +105,6 @@ namespace UI_Project
             if (this.Height >= SystemParameters.WorkArea.Height)
                 this.Height = SystemParameters.WorkArea.Height - 100; // For a bit of space and in case of taskbar weirdness
 
-            // TODO: Remove unnecessary Try Catch when an if will do.
-
             // "Global" exception handler - kills the application if this is hit.
             Application.Current.DispatcherUnhandledException += (sender, args) =>
             {
@@ -160,6 +158,10 @@ namespace UI_Project
         {
             ConvertButton.Visibility = Visibility.Visible;
             ClosePanelButton.Visibility = Visibility.Collapsed;
+
+            // Reset zoom etc
+            SaveImageViewBox.Reset();
+            LoadedImageViewBox.Reset();
 
             vm.LoadImage(filename);
         }
@@ -226,9 +228,9 @@ namespace UI_Project
                 BulkAdd(ofd.FileNames);
         }
 
-        private void BulkConvertButton_Click(object sender, RoutedEventArgs e)
+        private async void BulkConvertButton_Click(object sender, RoutedEventArgs e)
         {
-            vm.DoBulkConvert();
+            await vm.DoBulkConvert();
         }
 
         private void BulkCloseButton_Click(object sender, RoutedEventArgs e)
@@ -263,10 +265,7 @@ namespace UI_Project
                 return;
 
             if (e.Key == Key.Delete)
-            {
-                for (int i = 0; i < box.SelectedItems.Count; i++)
-                    vm.BulkConvertFiles.Remove((string)box.SelectedItems[i]);
-            }
+                vm.BulkConvertFiles.RemoveRange(box.SelectedItems.Cast<string>());
         }
 
         private void SaveFormatCombo_DropDownOpened(object sender, EventArgs e)
@@ -291,17 +290,9 @@ namespace UI_Project
                 ImageEngineFormat selectedFormat = (ImageEngineFormat)value;
                 bool disableContainer = false;
 
-
-
                 // Check supported save formats.
                 if (ImageFormats.SaveUnsupported.Contains(selectedFormat))
                     disableContainer = true;
-
-
-                // Check dimensions if selecting a DXT format
-                if ((selectedFormat.ToString().Contains("DXT") || selectedFormat.ToString().Contains("ATI")) && vm.IsImageLoaded && !CSharpImageLibrary.DDS.DDSGeneral.CheckSize_DXT(vm.LoadedImage.Width, vm.LoadedImage.Height))
-                    disableContainer = true;
-
 
                 if (disableContainer)
                 {
