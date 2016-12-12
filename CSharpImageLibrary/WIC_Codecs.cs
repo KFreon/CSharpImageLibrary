@@ -31,7 +31,7 @@ namespace CSharpImageLibrary
             try
             {
                 BitmapImage bmp = AttemptUsingWindowsCodecs(testData, 0, 0);
-
+                bmp.Freeze();
                 if (bmp == null)
                 {
                     ImageEngine.WindowsWICCodecsAvailable = false;
@@ -129,6 +129,7 @@ namespace CSharpImageLibrary
                 BitmapImage bmp = AttemptUsingWindowsCodecs(stream, alternateWidth, alternateHeight);
                 if (bmp == null)
                     return null;
+                bmp.Freeze();
 
                 mipmaps.Add(new MipMap(bmp.GetPixelsAsBGRA32(), bmp.PixelWidth, bmp.PixelHeight));
             }
@@ -160,6 +161,8 @@ namespace CSharpImageLibrary
             {
                 Debug.WriteLine(notsupportedexception);
             }
+
+            img.Freeze();
             return img;
         }
 
@@ -188,6 +191,7 @@ namespace CSharpImageLibrary
                 Debug.WriteLine(notsupportedexception);
             }
 
+            img.Freeze();
             return img;
         }
 
@@ -216,6 +220,7 @@ namespace CSharpImageLibrary
                 Debug.WriteLine(notsupportedexception);
             }
 
+            img.Freeze();
             return img;
         }
         #endregion Loading
@@ -266,6 +271,8 @@ namespace CSharpImageLibrary
             encoder.Frames.Add(frame);
             MemoryStream ms = new MemoryStream(estimatedImageSize);  // Big enough to reduce memory copying.
             encoder.Save(ms);
+            frame.Freeze();
+            
             return ms;
         }
     }

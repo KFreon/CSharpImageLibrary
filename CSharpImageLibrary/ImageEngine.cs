@@ -292,6 +292,7 @@ namespace CSharpImageLibrary
         internal static MipMap Resize(MipMap mipMap, double xScale, double yScale)
         {
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
+            baseBMP.Freeze();
             return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height);
 
             #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
@@ -376,12 +377,6 @@ namespace CSharpImageLibrary
 
         internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height)
         {
-            // TODO: Issues with incorrect sizing when non-square
-
-            lock (baseBMP)
-                if (!baseBMP.IsFrozen)
-                    baseBMP.Freeze();
-
             int origWidth = width;
             int origHeight = height;
             int origStride = origWidth * 4;
@@ -390,7 +385,9 @@ namespace CSharpImageLibrary
             int newStride = newWidth * 4;
 
             byte[] newPixels = null;
-            newPixels = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight).GetPixelsAsBGRA32();
+            var bmp = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight);
+            bmp.Freeze();
+            newPixels = bmp.GetPixelsAsBGRA32();
 
             return new MipMap(newPixels, newWidth, newHeight);
         }

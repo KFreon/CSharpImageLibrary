@@ -104,6 +104,10 @@ namespace CSharpImageLibrary.DDS
 
             mipOffset = 128;  // Needs resetting after checking there's mips in this image.
 
+            // TESTUNIG
+            if (estimatedMips == 0)
+                estimatedMips = 1;
+
             int orig_estimatedMips = estimatedMips; // Store original count for later (uncompressed only I think)
 
             // KFreon: Decide which mip to start loading at - going to just load a few mipmaps if asked instead of loading all, then choosing later. That's slow.
@@ -379,6 +383,7 @@ namespace CSharpImageLibrary.DDS
             MipMap[] newmips = new MipMap[estimatedMips];
 
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(currentMip.Pixels, currentMip.Width, currentMip.Height);
+            baseBMP.Freeze();
 
             Action<int> action = new Action<int>(item =>
             {
@@ -496,7 +501,7 @@ namespace CSharpImageLibrary.DDS
 
         internal static int GetCompressedSizeOfImage(int mipCount, ImageEngineFormat format, int baseWidth, int baseHeight)
         {
-            return GetCompressedSizeUpToIndex(mipCount - 1, format, baseWidth, baseWidth);
+            return GetCompressedSizeUpToIndex(mipCount - 1, format, baseWidth, baseHeight);
         }
         #endregion Mipmap Management
     }

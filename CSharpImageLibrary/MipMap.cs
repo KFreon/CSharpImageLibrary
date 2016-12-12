@@ -140,7 +140,9 @@ namespace CSharpImageLibrary
         /// <returns>WriteableBitmap of image.</returns>
         public BitmapSource ToImage()
         {
-            return UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);
+            var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);
+            bmp.Freeze();
+            return bmp;
         }
     }
 }
