@@ -108,7 +108,7 @@ namespace UI_Project
             // "Global" exception handler - kills the application if this is hit.
             Application.Current.DispatcherUnhandledException += (sender, args) =>
             {
-                MessageBox.Show("Unhandled exception occured." + Environment.NewLine + args.ToString());
+                MessageBox.Show("Unhandled exception occured." + Environment.NewLine + args.Exception);
                 this.Close();  // Might not work I guess, but either way, it's going down.
             };
         }
