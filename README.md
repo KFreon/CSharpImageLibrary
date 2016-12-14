@@ -6,6 +6,16 @@ For those not on Windows 8.1+, manual codecs are used.
 
 [Nuget Package](https://www.nuget.org/packages/CSharpImageLibrary/)
 
+Screenshots
+====
+Convert Panel Open (DXT5 loaded, converting to G8_L8)
+![None](http://i.imgur.com/7R1o4XM.jpg "Standard Convert Panel Open")
+
+Bulk Convert Panel Open
+![None](http://i.imgur.com/554NPu1.jpg "Bulk Convert Panel Open")
+
+
+
 Current Features
 ====
 - Supported formats: DXT1-5 [Otherwise known as BC1,2,3], V8U8, G8/L8, ATI1, ATI2/3Dc [Otherwise known as BC4 and 5], ARGB (and variants e.g. ABGR), jpg, png, bmp, tga, gif, TIFF.   
