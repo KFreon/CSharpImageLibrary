@@ -13,8 +13,6 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class BMP_Header : AbstractHeader
     {
-        // TODO: All headers be broked
-
         /// <summary>
         /// File header for BMP file.
         /// Contains general file information such as size and data offset.

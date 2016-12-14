@@ -855,7 +855,7 @@
         </DockPanel>
 
 
-        <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
+        <Button x:Name="LoadButton" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
             <i:Interaction.Behaviors>
                 <ei:DataStateBehavior Binding="{Binding IsImageLoaded}" Value="False" TrueState="Big" FalseState="Normal"/>
             </i:Interaction.Behaviors>
@@ -867,7 +867,21 @@
                     <TranslateTransform/>
                 </TransformGroup>
             </Button.RenderTransform>
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                    <Setter Property="Content" Value="Load"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding LoadFailed}" Value="True">
+                            <Setter Property="Content" Value="Load failed!"/>
+                            <Setter Property="FontSize" Value="10"/>
+                            <Setter Property="BorderBrush" Value="Red"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
         </Button>
+        
         <Border x:Name="BulkConvertBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding BulkConvertOpen}">
             <Border Style="{StaticResource FadedInnerBorder}">
                 <DockPanel LastChildFill="True">

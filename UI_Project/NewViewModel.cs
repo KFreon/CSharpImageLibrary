@@ -3,10 +3,12 @@ using CSharpImageLibrary.DDS;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using System.Windows.Media;
@@ -30,6 +32,21 @@ namespace UI_Project
 
     public class NewViewModel : ViewModelBase
     {
+        Stopwatch timer = new Stopwatch();
+
+        bool loadFailed = false;
+        public bool LoadFailed
+        {
+            get
+            {
+                return loadFailed;
+            }
+            set
+            {
+                SetProperty(ref loadFailed, value);
+            }
+        }
+
         bool busy = false;
         public bool Busy
         {
@@ -257,7 +274,7 @@ namespace UI_Project
         {
             get
             {
-                return SaveFormat == ImageEngineFormat.DDS_DXT1 ? !DXT1AlphaRemove : RemoveGeneralAlpha;
+                return SaveFormat == ImageEngineFormat.DDS_DXT1 ? DXT1AlphaRemove : RemoveGeneralAlpha;
             }
         }
 
@@ -609,14 +626,15 @@ namespace UI_Project
                 {
                     UpdateLoadedPreview();
 
-                    if(SavePreview != null)
-                        UpdateSavePreview();
+                    if (SavePreview != null)
+                        UpdateSavePreview(false); // Already have the image, just need to change some alpha bits around.
                 }
             }
         }
         #endregion Loaded Image Properties
 
         #region Save Properties
+        ImageEngineImage savePreviewIMG = null;
         WriteableBitmap savePreview = null;
         public WriteableBitmap SavePreview
         {
@@ -842,6 +860,10 @@ namespace UI_Project
 
         public NewViewModel() : base()
         {
+            // Space out the Output Window a bit
+            Trace.WriteLine("");
+            Trace.WriteLine("");
+
             SliderTimer.Interval = TimeSpan.FromSeconds(1);
             SliderTimer.Tick += (arg, arg2) =>
             {
@@ -852,15 +874,35 @@ namespace UI_Project
 
         internal async Task LoadImage(string path)
         {
-            var bytes = File.ReadAllBytes(path);
-            await LoadImage(bytes);
+            timer.Restart();
+            byte[] bytes = null;
+            try
+            {
+                bytes = File.ReadAllBytes(path);
+            }
+            catch (Exception e)
+            {
+                Trace.WriteLine($"Failed to read image from disk: {e.Message}");
+                LoadFailed = true;
+                return;
+            }
+
+            bool success = await LoadImage(bytes);
+            if (!success)
+                return;
+
             LoadedImage.FilePath = path;
             SavePath = DefaultSavePath;
             OnPropertyChanged(nameof(LoadedPath));
         }
 
-        internal async Task LoadImage(byte[] data)
+        internal async Task<bool> LoadImage(byte[] data)
         {
+            LoadFailed = false;
+
+            if (!timer.IsRunning)
+                timer.Restart();
+
             CloseImage(false); // Don't need to update the UI here, it'll get updated after loading the image. But do need to reset some things
             WindowTitle = "Image Engine - View";
 
@@ -872,10 +914,24 @@ namespace UI_Project
             UpdatePreview(LoadedImage.MipMaps[0]);*/
 
             // Wait for full load to be done
-            LoadedImage = await fullLoad;
+
+            try
+            {
+                LoadedImage = await fullLoad;
+            }
+            catch(Exception e)
+            {
+                LoadFailed = true;
+                return false;
+            }
+
             UpdateLoadedPreview();
 
             SaveFormat = LoadedFormat;
+
+            timer.Stop();
+            Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
+            return true;
         }
 
         void UpdateLoadedPreview()
@@ -911,24 +967,27 @@ namespace UI_Project
                 RedrawEitherPreview(bmp, pixels, width, height);
         }
 
-        public async Task UpdateSavePreview()
+        public async Task UpdateSavePreview(bool needRegenerate = true)
         {
-            // Save and reload to give accurate depiction of what it'll look like when saved.
-            ImageEngineImage img = await Task.Run(() =>
-            {
-                byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
-                SaveCompressedSize = data.Length;
-                return new ImageEngineImage(data);
-            });
+            timer.Restart();
+            if (needRegenerate)
+                await Task.Run(() =>
+                {
+                    // Save and reload to give accurate depiction of what it'll look like when saved.
+                    byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                    SaveCompressedSize = data.Length;
+                    savePreviewIMG = new ImageEngineImage(data);                    
+                });
 
-            var pixels = GetPixels(img.MipMaps[0]);
+            byte[] pixels = GetPixels(savePreviewIMG.MipMaps[0]);
 
-            UpdatePreview(ref savePreview, img.Width, img.Height, pixels);
-
-            img.Dispose();
+            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, pixels);
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
+
+            timer.Stop();
+            Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
         }
 
         void RedrawEitherPreview(WriteableBitmap bmp, byte[] pixels, int width, int height)
@@ -986,6 +1045,7 @@ namespace UI_Project
             BulkConvertRunning = false;
             BulkConvertFiles.Clear();
             BulkConvertFailed.Clear();
+            LoadFailed = false;
 
             // Notify
             if (updateUI)

@@ -93,7 +93,7 @@ namespace CSharpImageLibrary.DDS
 
                 // Z solution for: x2 + y2 + z2 = 1, unit normal vectors. Only consider +ve root as ATI2 is a tangent space mapping and Z must be +ve.
                 // Also when 1 - x2 - y2 < 0, Z = NaN, but is compensated for in ExpandTo255.
-                double Z = Math.Sqrt(1d - (Math.Pow(red, 2d) + Math.Pow(green, 2d)));
+                double Z = Math.Sqrt(1d - (red * red + green * green));
 
                 // Clamp value to range
                 if (Z > 1)

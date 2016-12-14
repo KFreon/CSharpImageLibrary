@@ -30,12 +30,19 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// Version of JFIF file was created with.
         /// </summary>
-        public int Version { get; private set; }
+        public string Version { get; private set; }
+
+        public enum UnitsType
+        {
+            None = 0,
+            DotsPerInch = 1,
+            DotsPerCentimeter = 2,
+        }
 
         /// <summary>
         /// Units of resolution. Dunno what means what though.
         /// </summary>
-        public byte ResolutionUnits { get; private set; }
+        public UnitsType ResolutionUnits { get; private set; }
 
         /// <summary>
         /// Horizontal resolution in unit specified by <see cref="ResolutionUnits"/>.
@@ -46,8 +53,18 @@ namespace CSharpImageLibrary.Headers
         /// Vertical resolution in unit specified by <see cref="ResolutionUnits"/>.
         /// </summary>
         public int VerticalResolution { get; private set; }
-        public int xpix { get; private set; }
-        public int ypix { get; private set; } // TODO: Check if this is size of image or thumbnail.
+
+        /// <summary>
+        /// Horizontal pixel count of Thumbnail stored in image.
+        /// If no thumbnail, set to 0.
+        /// </summary>
+        public int XThumbnailPixelCount { get; private set; }
+
+        /// <summary>
+        /// Vertical pixel count of Thumbnail stored in image.
+        /// If no thumbnail, set to 0.
+        /// </summary>
+        public int YThumbnailPixelCount { get; private set; }
         #endregion Properties
 
         /// <summary>
@@ -81,12 +98,12 @@ namespace CSharpImageLibrary.Headers
 
             DataSectionLength = BitConverter.ToInt16(temp, 4);
             Identifier = BitConverter.ToString(temp, 6, 5);
-            Version = BitConverter.ToInt16(temp, 11);
-            ResolutionUnits = temp[13];
-            HorizontalResolution = BitConverter.ToInt16(temp, 14);
-            VerticalResolution = BitConverter.ToInt16(temp, 16);
-            xpix = temp[17];
-            ypix = temp[18];
+            Version = temp[11] + ".0" + temp[12];
+            ResolutionUnits = (UnitsType)temp[13];
+            HorizontalResolution = MyBitConverter.ToInt16(temp, 14, MyBitConverter.Endianness.BigEndian);
+            VerticalResolution = MyBitConverter.ToInt16(temp, 16, MyBitConverter.Endianness.BigEndian);
+            XThumbnailPixelCount = temp[18];
+            YThumbnailPixelCount = temp[19];
 
             return HeaderSize;
         }

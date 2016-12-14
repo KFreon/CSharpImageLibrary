@@ -197,8 +197,10 @@ namespace CSharpImageLibrary.DDS
                     // Calculate mipOffset and dimensions
                     int offset, width, height;
                     offset = GetMipOffset(mipIndex, format, header.Width, header.Height);
-                    width = (int)(header.Width / Math.Pow(2, mipIndex));
-                    height = (int)(header.Height / Math.Pow(2, mipIndex));
+
+                    double divisor = mipIndex == 0 ? 1d : 2 << (mipIndex - 1);   // Divisor represents 2^mipIndex - Math.Pow seems very slow.
+                    width = (int)(header.Width / divisor);
+                    height = (int)(header.Height / divisor);
 
                     MipMap mipmap = null;
                     try
@@ -389,7 +391,7 @@ namespace CSharpImageLibrary.DDS
             {
                 int index = item;
                 MipMap newmip;
-                var scale = 1d / Math.Pow(2, index);
+                var scale = 1d / (2 << (index - 1));  // Shifting is 2^index - Math.Pow seems extraordinarly slow.
                 newmip = ImageEngine.Resize(baseBMP, scale, scale, currentMip.Width, currentMip.Height);
                 newmips[index - 1] = newmip;
             });
@@ -440,7 +442,7 @@ namespace CSharpImageLibrary.DDS
             }
 
             int dependentDimension = mainWidth > mainHeight ? mainWidth : mainHeight;
-            int mipIndex = (int)Math.Log((dependentDimension / desiredMipDimension), 2) - 1;
+            int mipIndex = (int)Math.Log((dependentDimension / desiredMipDimension), 2);
             if (mipIndex < -1)
                 throw new InvalidDataException($"Invalid dimensions for mipmapping. Got desired: {desiredMipDimension} and dependent: {dependentDimension}");
 
@@ -491,8 +493,15 @@ namespace CSharpImageLibrary.DDS
             if (ImageFormats.IsBlockCompressed(format))
                 divisor = 4;
 
+            double shift = 1d / (4 << (int)(2 * (mipIndex - 1)));
+
+            if (mipIndex == 0)
+                shift = 1d;
+            else if (mipIndex == -1)
+                shift = 4d;
+
             double sumPart = mipIndex == -1 ? 0 :
-                (1d / 3d) * (4d - Math.Pow(4, -mipIndex));
+                (1d / 3d) * (4d - shift);   // Shifting represents 4^-mipIndex. Math.Pow seems slow.
 
             double totalSize = 128 + (sumPart * ImageFormats.GetBlockSize(format) * (baseWidth / divisor) * (baseHeight / divisor));
 

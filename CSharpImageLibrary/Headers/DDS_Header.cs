@@ -14,7 +14,7 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class DDS_Header : AbstractHeader
     {
-        const int HeaderSize = 148;
+        const int HeaderSize = 152;
 
         /// <summary>
         /// Characters beginning a file that indicate file is a DDS image.
@@ -362,10 +362,19 @@ namespace CSharpImageLibrary.Headers
             /// </summary>
             public D3D10_RESOURCE_DIMENSION resourceDimension;
 
+            public enum D3D10_RESOURCE_MISC_FLAGS
+            {
+                D3D10_RESOURCE_MISC_GENERATE_MIPS = 0x1,
+                D3D10_RESOURCE_MISC_SHARED = 0x2,
+                D3D10_RESOURCE_MISC_TEXTURECUBE = 0x4,
+                D3D10_RESOURCE_MISC_SHARED_KEYEDMUTEX = 0x10,
+                D3D10_RESOURCE_MISC_GDI_COMPATIBLE = 0x20
+            }
+
             /// <summary>
             /// Identifies less common options. e.g. 0x4 = DDS_RESOURCE_MISC_TEXTURECUBE
             /// </summary>
-            public uint miscFlag;
+            public D3D10_RESOURCE_MISC_FLAGS miscFlag;
 
             /// <summary>
             /// Number of elements in array.
@@ -383,13 +392,14 @@ namespace CSharpImageLibrary.Headers
             /// Read DX10-DXGI header from full DDS header block.
             /// </summary>
             /// <param name="fullHeaderBlock">Entire DDS header block.</param>
-            public DDS_DXGI_DX10_Additional(byte[] fullHeaderBlock)
+            /// <param name="offset">Offset at which this header starts in full block.</param>
+            public DDS_DXGI_DX10_Additional(byte[] fullHeaderBlock, int offset = 128)
             {
-                dxgiFormat = (DXGI_FORMAT)BitConverter.ToInt32(fullHeaderBlock, 124);
-                resourceDimension = (D3D10_RESOURCE_DIMENSION)BitConverter.ToInt64(fullHeaderBlock, 128);
-                miscFlag = BitConverter.ToUInt32(fullHeaderBlock, 136);
-                arraySize = BitConverter.ToUInt32(fullHeaderBlock, 140);
-                miscFlags2 = (DXGI_MiscFlags)BitConverter.ToInt32(fullHeaderBlock, 144);
+                dxgiFormat = (DXGI_FORMAT)BitConverter.ToInt32(fullHeaderBlock, offset);
+                resourceDimension = (D3D10_RESOURCE_DIMENSION)BitConverter.ToInt64(fullHeaderBlock, offset + 4);
+                miscFlag = (D3D10_RESOURCE_MISC_FLAGS)BitConverter.ToUInt32(fullHeaderBlock, offset + 12);
+                arraySize = BitConverter.ToUInt32(fullHeaderBlock, offset + 16);
+                miscFlags2 = (DXGI_MiscFlags)BitConverter.ToUInt32(fullHeaderBlock, offset + 20);
             }
 
             /// <summary>

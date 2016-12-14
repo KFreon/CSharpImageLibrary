@@ -50,8 +50,8 @@ namespace CSharpImageLibrary.Headers
                 Length = MyBitConverter.ToInt32(headerBlock, offset, MyBitConverter.Endianness.BigEndian);
                 ChunkType = MyBitConverter.ToInt32(headerBlock, offset + 4, MyBitConverter.Endianness.BigEndian);
                 ChunkData = new byte[Length];
-                Array.Copy(headerBlock, ChunkData, Length);
-                CRC = MyBitConverter.ToInt32(headerBlock, offset + 4 + Length, MyBitConverter.Endianness.BigEndian);
+                Array.Copy(headerBlock, offset + 8, ChunkData, 0, Length);
+                CRC = MyBitConverter.ToInt32(headerBlock, offset + 8 + Length, MyBitConverter.Endianness.BigEndian);
             }
         }
 
@@ -83,22 +83,37 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public ColourType colourType { get; private set; }
 
+
+        public enum CompressionMethods
+        {
+            Deflate = 0,
+        }
         /// <summary>
         /// Compression Method. Currently must be 0 (deflate)
         /// </summary>
-        public byte CompressionMethod { get; private set; }
+        public CompressionMethods CompressionMethod { get; private set; }
 
+
+        public enum FilterMethods
+        {
+            Adaptive = 0,
+        }
         /// <summary>
         /// Indicates preprocessing method performed before compression.
         /// Currently must be 0 (Adaptive filtering)
         /// </summary>
-        public byte FilterMethod { get; private set; }
+        public FilterMethods FilterMethod { get; private set; }
 
+        public enum InterlaceMethdods
+        {
+            None = 0,
+            Adam7 = 1,
+        }
         /// <summary>
         /// Indicates interlacing method.
         /// 0 = none, 1 = Adam7
         /// </summary>
-        public byte InterlaceMethod { get; private set; }
+        public InterlaceMethdods InterlaceMethod { get; private set; }
         #endregion Properties
 
         /// <summary>
@@ -148,9 +163,9 @@ namespace CSharpImageLibrary.Headers
             Height = MyBitConverter.ToInt32(header.ChunkData, 4, MyBitConverter.Endianness.BigEndian);
             BitDepth = header.ChunkData[8];
             colourType = (ColourType)header.ChunkData[9];
-            CompressionMethod = header.ChunkData[10];
-            FilterMethod = header.ChunkData[11];
-            InterlaceMethod = header.ChunkData[12];
+            CompressionMethod = (CompressionMethods)header.ChunkData[10];
+            FilterMethod = (FilterMethods)header.ChunkData[11];
+            InterlaceMethod = (InterlaceMethdods)header.ChunkData[12];
 
             return -1;  // Since we don't know the length of the entire header, no point returning any value.
         }

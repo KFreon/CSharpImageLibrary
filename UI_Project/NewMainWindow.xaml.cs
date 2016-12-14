@@ -106,11 +106,12 @@ namespace UI_Project
                 this.Height = SystemParameters.WorkArea.Height - 100; // For a bit of space and in case of taskbar weirdness
 
             // "Global" exception handler - kills the application if this is hit.
-            Application.Current.DispatcherUnhandledException += (sender, args) =>
-            {
-                MessageBox.Show("Unhandled exception occured." + Environment.NewLine + args.Exception);
-                this.Close();  // Might not work I guess, but either way, it's going down.
-            };
+            if (!Debugger.IsAttached)
+                Application.Current.DispatcherUnhandledException += (sender, args) =>
+                {
+                    MessageBox.Show("Unhandled exception occured." + Environment.NewLine + args.Exception);
+                    this.Close();  // Might not work I guess, but either way, it's going down.
+                };
         }
 
         void CloseSavePanel()
@@ -305,7 +306,16 @@ namespace UI_Project
         private void TOPWINDOW_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape)
-                vm.CloseCommand.Execute(null);
+            {
+                if (vm.InfoPanelOpen)
+                    vm.InfoPanelOpen = false;
+                else if (vm.SettingsPanelOpen)
+                    vm.SettingsPanelOpen = false;
+                else if (vm.BulkConvertOpen)
+                    vm.BulkConvertOpen = false;
+                else
+                    vm.CloseCommand.Execute(null);
+            }
         }
 
         private void ImageCloseButton_Click(object sender, RoutedEventArgs e)

@@ -227,6 +227,9 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_RGB:
                     blocksize = 3;
                     break;
+                case ImageEngineFormat.DDS_CUSTOM:
+                    blocksize = 4;
+                    break;
             }
             return blocksize;
         }
