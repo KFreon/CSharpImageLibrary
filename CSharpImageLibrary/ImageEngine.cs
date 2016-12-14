@@ -275,7 +275,7 @@ namespace CSharpImageLibrary
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
-                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height, alphaSetting).ToArray();
+                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height, alphaSetting);
             }
 
             return destination;

@@ -34,45 +34,8 @@ namespace UI_Project
     {
         Stopwatch timer = new Stopwatch();
 
-        bool loadFailed = false;
-        public bool LoadFailed
-        {
-            get
-            {
-                return loadFailed;
-            }
-            set
-            {
-                SetProperty(ref loadFailed, value);
-            }
-        }
 
-        bool busy = false;
-        public bool Busy
-        {
-            get
-            {
-                return busy;
-            }
-            set
-            {
-                SetProperty(ref busy, value);
-            }
-        }
-
-        bool infoPanelOpen = false;
-        public bool InfoPanelOpen
-        {
-            get
-            {
-                return infoPanelOpen;
-            }
-            set
-            {
-                SetProperty(ref infoPanelOpen, value);
-            }
-        }
-
+        #region Settings Panel Properties
         bool settingsPanelOpen = false;
         public bool SettingsPanelOpen
         {
@@ -130,6 +93,22 @@ namespace UI_Project
                     EnableThreading = false;
             }
         }
+        #endregion Settings Panel Properties
+
+        #region Info Panel Properties
+        bool infoPanelOpen = false;
+        public bool InfoPanelOpen
+        {
+            get
+            {
+                return infoPanelOpen;
+            }
+            set
+            {
+                SetProperty(ref infoPanelOpen, value);
+            }
+        }
+
 
         string cpuName = "Unknown";
         public string CPUName
@@ -226,6 +205,7 @@ namespace UI_Project
                 return gpuName;
             }
         }
+        #endregion Info Panel Properties
 
         #region Commands
         CommandHandler closeCommand = null;
@@ -261,6 +241,7 @@ namespace UI_Project
                             }
                             SaveAttempted = true;
                             Busy = false;
+                            SavePath = UsefulThings.General.FindValidNewFileName(SavePath);  // Ensure save path is pointing to a new valid filepath
                         });
                     });
 
@@ -270,6 +251,21 @@ namespace UI_Project
         }
         #endregion Commands
 
+        #region General Properties
+        bool busy = false;
+        public bool Busy
+        {
+            get
+            {
+                return busy;
+            }
+            set
+            {
+                SetProperty(ref busy, value);
+            }
+        }
+
+        #region Alpha and Colour related Properties
         bool GeneralRemovingAlpha
         {
             get
@@ -337,7 +333,9 @@ namespace UI_Project
                 return new List<uint>() { AMask, RMask, GMask, BMask };
             }
         }
+        #endregion Alpha and Colour related Properties
 
+        #region Bulk Convert Properties
         public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<string> BulkConvertFailed { get; set; } = new MTRangedObservableCollection<string>();
 
@@ -457,35 +455,32 @@ namespace UI_Project
                 SetProperty(ref bulkProgressValue, value);
             }
         }
-
-
-        bool saveAttempted = false;
-        public bool SaveAttempted
-        {
-            get
-            {
-                return saveAttempted; 
-            }
-            set
-            {
-                SetProperty(ref saveAttempted, value);
-            }
-        }
-
-        string saveError = null;
-        public string SaveError
-        {
-            get
-            {
-                return saveError;
-            }
-            set
-            {
-                SetProperty(ref saveError, value);
-            }
-        }
+        #endregion Bulk Convert Properties
 
         #region Loaded Image Properties
+        bool loadFailed = false;
+        public bool LoadFailed
+        {
+            get
+            {
+                return loadFailed;
+            }
+            set
+            {
+                SetProperty(ref loadFailed, value);
+            }
+        }
+
+
+        public bool IsImageLoaded
+        {
+            get
+            {
+                return LoadedImage != null;
+            }
+        }
+
+
         int mipIndex = 0;
         public int MipIndex
         {
@@ -634,6 +629,33 @@ namespace UI_Project
         #endregion Loaded Image Properties
 
         #region Save Properties
+        bool saveAttempted = false;
+        public bool SaveAttempted
+        {
+            get
+            {
+                return saveAttempted;
+            }
+            set
+            {
+                SetProperty(ref saveAttempted, value);
+            }
+        }
+
+        string saveError = null;
+        public string SaveError
+        {
+            get
+            {
+                return saveError;
+            }
+            set
+            {
+                SetProperty(ref saveError, value);
+            }
+        }
+
+
         ImageEngineImage savePreviewIMG = null;
         WriteableBitmap savePreview = null;
         public WriteableBitmap SavePreview
@@ -748,6 +770,8 @@ namespace UI_Project
                 // Change extension as required
                 FixExtension();
 
+                // Ensure SavePath doesn't already exist
+                SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
 
                 // Regenerate save preview
                 if (changed && SavePreview != null)
@@ -849,14 +873,8 @@ namespace UI_Project
             }
         }
         #endregion Save Properties
+        #endregion General Properties
 
-        public bool IsImageLoaded
-        {
-            get
-            {
-                return LoadedImage != null;
-            }
-        }
 
         public NewViewModel() : base()
         {
