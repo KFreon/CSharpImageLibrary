@@ -1,4 +1,5 @@
-﻿using CSharpImageLibrary.Headers;
+﻿using CSharpImageLibrary.DDS;
+using CSharpImageLibrary.Headers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -288,26 +289,6 @@ namespace CSharpImageLibrary
 
             MipMaps[0] = ImageEngine.Resize(closestMip, newScale);
             MipMaps.RemoveRange(1, NumMipMaps - 1);
-        }
-
-
-        /// <summary>
-        /// Generates mipmaps in place. Mostly useful only for DDS images.
-        /// </summary>
-        /// <returns>Number of mipmaps.</returns>
-        public int BuildMipMaps()
-        {
-            return DDSGeneral.BuildMipMaps(MipMaps, false);
-        }
-
-        /// <summary>
-        /// Removes all mipmaps except the top one.
-        /// </summary>
-        public void RemoveMipMaps()
-        {
-            var top = MipMaps.Pop(0);
-            MipMaps.Clear();
-            MipMaps.Add(top);
         }
     }
 }
