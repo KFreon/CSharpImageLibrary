@@ -144,15 +144,23 @@ namespace UI_Project
             UsefulThings.WPF.WindowBlur.EnableBlur(this);
         }
 
+        string prev_LoadDialogFolder = null;
         private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog()
             {
                 Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
-                Title = "Select image to load"
+                Title = "Select image to load",
             };
+
+            if (prev_LoadDialogFolder != null)
+                ofd.InitialDirectory = prev_LoadDialogFolder;
+
             if (ofd.ShowDialog() == true)
+            {
                 Load(ofd.FileName);
+                prev_LoadDialogFolder = Path.GetDirectoryName(ofd.FileName);
+            }
         }
 
         void Load(string filename)
@@ -216,6 +224,7 @@ namespace UI_Project
             BulkDropDragHandler.Drop(sender, e);
         }
 
+        string prev_bulkBrowseSingleFolder = null;
         private void BulkBrowseButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog()
@@ -225,8 +234,14 @@ namespace UI_Project
                 Multiselect = true
             };
 
+            if (prev_bulkBrowseSingleFolder != null)
+                ofd.InitialDirectory = prev_bulkBrowseSingleFolder;
+
             if (ofd.ShowDialog() == true)
+            {
                 BulkAdd(ofd.FileNames);
+                prev_bulkBrowseSingleFolder = Path.GetDirectoryName(ofd.FileNames[0]);
+            }
         }
 
         private async void BulkConvertButton_Click(object sender, RoutedEventArgs e)
@@ -247,6 +262,7 @@ namespace UI_Project
             vm.BulkConvertOpen = true;
         }
 
+        string prev_bulkSaveDialogFolder = null;
         private void BulkSaveBrowse_Click(object sender, RoutedEventArgs e)
         {
             CommonOpenFileDialog folderBrowser = new CommonOpenFileDialog()
@@ -255,8 +271,14 @@ namespace UI_Project
                 Title = "Select folder to save converted files to."
             };
 
+            if (prev_bulkSaveDialogFolder != null)
+                folderBrowser.InitialDirectory = prev_bulkSaveDialogFolder;
+
             if (folderBrowser.ShowDialog() == CommonFileDialogResult.Ok)
+            {
                 vm.BulkSaveFolder = folderBrowser.FileName;
+                prev_bulkSaveDialogFolder = folderBrowser.FileName;
+            }
         }
 
         private void BulkConvertListBox_KeyDown(object sender, KeyEventArgs e)
@@ -340,6 +362,7 @@ namespace UI_Project
             vm.FixExtension(true);  // Indicate property should notify
         }
 
+        string prev_bulkBrowseManyFolder = null;
         private void BulkFolderBrowseButton_Click(object sender, RoutedEventArgs e)
         {
             var fbd = new CommonOpenFileDialog()
@@ -348,8 +371,14 @@ namespace UI_Project
                 Title = "Select folder to add",
             };
 
+            if (prev_bulkBrowseManyFolder != null)
+                fbd.InitialDirectory = prev_bulkBrowseManyFolder;
+
             if (fbd.ShowDialog() == CommonFileDialogResult.Ok)
+            {
                 BulkAdd(Directory.EnumerateFiles(fbd.FileName, "*", vm.BulkFolderBrowseRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly));
+                prev_bulkBrowseManyFolder = fbd.FileName;
+            }
         }
 
         void BulkAdd(IEnumerable<string> files)
