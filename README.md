@@ -27,11 +27,13 @@ BitmapImage bitmap = new BitmapImage(img.MipMaps[0]);   // Pseudo code of course
 
 
 NEW TESTS!!
+
 Performance Results in Release Mode, working on a 2k texture with Alpha and Mipmaps.
+---
 ![None](http://i.imgur.com/4Q39A0D.jpg "Performance Results in Release Mode, working on a 2k texture with Alpha and Mipmaps.")
 
 
-
+---
 THIS IS OLD NOW.
 Overall results for loading (in Debug mode)
 
