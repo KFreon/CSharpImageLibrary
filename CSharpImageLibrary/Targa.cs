@@ -38,6 +38,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
+using System.Diagnostics;
+using UsefulThings;
 
 namespace CSharpImageLibrary
 {
@@ -249,6 +251,8 @@ namespace CSharpImageLibrary
         private string strFileName = string.Empty;
         private int intStride = 0;
         private int intPadding = 0;
+        public byte[] ImageData = null;
+        public ColorPalette Palette = null;
         private GCHandle ImageByteHandle;
         private GCHandle ThumbnailByteHandle;
         private System.Collections.Generic.List<System.Collections.Generic.List<byte>> rows = new System.Collections.Generic.List<System.Collections.Generic.List<byte>>();
@@ -262,10 +266,10 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a new instance of the TargaImage object.
         /// </summary>
-        public TargaImage()
+        public TargaImage(TargaHeader prevHeader = null)
         {
             this.objTargaFooter = new TargaFooter();
-            this.objTargaHeader = new TargaHeader();
+            this.objTargaHeader = prevHeader ?? new TargaHeader();
             this.objTargaExtensionArea = new TargaExtensionArea();
             this.bmpTargaImage = null;
             this.bmpImageThumbnail = null;
@@ -311,10 +315,10 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Gets a Bitmap representation of the loaded file.
         /// </summary>
-        public Bitmap Image
+        /*public Bitmap Image
         {
             get { return this.bmpTargaImage; }
-        }
+        }*/
 
         /// <summary>
         /// Gets the thumbnail of the loaded file if there is one in the file.
@@ -422,10 +426,10 @@ namespace CSharpImageLibrary
         /// Creates TGA image from stream.
         /// </summary>
         /// <param name="stream">Stream containing image.</param>
-        public TargaImage(Stream stream) : this() 
+        /// <param name="prevHeader">TargaHeader if previously loaded.</param>
+        public TargaImage(Stream stream, TargaHeader prevHeader = null) : this(prevHeader) 
         {
-            byte[] filebytes = new byte[stream.Length];
-            stream.Read(filebytes, 0, (int)stream.Length);
+            byte[] filebytes = stream.ReadBytes((int)stream.Length);
             LoadFromStream(filebytes);
         }
 
@@ -443,7 +447,9 @@ namespace CSharpImageLibrary
                     using (binReader = new BinaryReader(filestream))
                     {
                         this.LoadTGAFooterInfo(binReader);
-                        this.LoadTGAHeaderInfo(binReader);
+                        if (Header.ImageType == ImageType.NO_IMAGE_DATA)
+                            LoadTGAHeaderInfo(binReader, Header);
+
                         this.LoadTGAExtensionArea(binReader);
                         this.LoadTGAImage(binReader);
                     }
@@ -526,7 +532,7 @@ namespace CSharpImageLibrary
         /// Loads the Targa Header information from the file.
         /// </summary>
         /// <param name="binReader">A BinaryReader that points the loaded file byte stream.</param>
-        private void LoadTGAHeaderInfo(BinaryReader binReader)
+        public static void LoadTGAHeaderInfo(BinaryReader binReader, TargaHeader objTargaHeader)
         {
 
             if (binReader != null && binReader.BaseStream != null && binReader.BaseStream.Length > 0 && binReader.BaseStream.CanSeek == true)
@@ -537,18 +543,18 @@ namespace CSharpImageLibrary
                     binReader.BaseStream.Seek(0, SeekOrigin.Begin);
 
                     // read the header properties from the file
-                    this.objTargaHeader.SetImageIDLength(binReader.ReadByte());
-                    this.objTargaHeader.SetColorMapType((ColorMapType)binReader.ReadByte());
-                    this.objTargaHeader.SetImageType((ImageType)binReader.ReadByte());
+                    objTargaHeader.SetImageIDLength(binReader.ReadByte());
+                    objTargaHeader.SetColorMapType((ColorMapType)binReader.ReadByte());
+                    objTargaHeader.SetImageType((ImageType)binReader.ReadByte());
 
-                    this.objTargaHeader.SetColorMapFirstEntryIndex(binReader.ReadInt16());
-                    this.objTargaHeader.SetColorMapLength(binReader.ReadInt16());
-                    this.objTargaHeader.SetColorMapEntrySize(binReader.ReadByte());
+                    objTargaHeader.SetColorMapFirstEntryIndex(binReader.ReadInt16());
+                    objTargaHeader.SetColorMapLength(binReader.ReadInt16());
+                    objTargaHeader.SetColorMapEntrySize(binReader.ReadByte());
 
-                    this.objTargaHeader.SetXOrigin(binReader.ReadInt16());
-                    this.objTargaHeader.SetYOrigin(binReader.ReadInt16());
-                    this.objTargaHeader.SetWidth(binReader.ReadInt16());
-                    this.objTargaHeader.SetHeight(binReader.ReadInt16());
+                    objTargaHeader.SetXOrigin(binReader.ReadInt16());
+                    objTargaHeader.SetYOrigin(binReader.ReadInt16());
+                    objTargaHeader.SetWidth(binReader.ReadInt16());
+                    objTargaHeader.SetHeight(binReader.ReadInt16());
 
                     byte pixeldepth = binReader.ReadByte();
                     switch (pixeldepth)
@@ -557,31 +563,29 @@ namespace CSharpImageLibrary
                         case 16:
                         case 24:
                         case 32:
-                            this.objTargaHeader.SetPixelDepth(pixeldepth);
+                            objTargaHeader.SetPixelDepth(pixeldepth);
                             break;
 
                         default:
-                            this.ClearAll();
                             throw new Exception("Targa Image only supports 8, 16, 24, or 32 bit pixel depths.");
                     }
 
 
                     byte ImageDescriptor = binReader.ReadByte();
-                    this.objTargaHeader.SetAttributeBits((byte)Utilities.GetBits(ImageDescriptor, 0, 4));
+                    objTargaHeader.SetAttributeBits((byte)Utilities.GetBits(ImageDescriptor, 0, 4));
 
-                    this.objTargaHeader.SetVerticalTransferOrder((VerticalTransferOrder)Utilities.GetBits(ImageDescriptor, 5, 1));
-                    this.objTargaHeader.SetHorizontalTransferOrder((HorizontalTransferOrder)Utilities.GetBits(ImageDescriptor, 4, 1));
+                    objTargaHeader.SetVerticalTransferOrder((VerticalTransferOrder)Utilities.GetBits(ImageDescriptor, 5, 1));
+                    objTargaHeader.SetHorizontalTransferOrder((HorizontalTransferOrder)Utilities.GetBits(ImageDescriptor, 4, 1));
 
                     // load ImageID value if any
-                    if (this.objTargaHeader.ImageIDLength > 0)
+                    if (objTargaHeader.ImageIDLength > 0)
                     {
-                        byte[] ImageIDValueBytes = binReader.ReadBytes(this.objTargaHeader.ImageIDLength);
-                        this.objTargaHeader.SetImageIDValue(System.Text.Encoding.ASCII.GetString(ImageIDValueBytes).TrimEnd('\0'));
+                        byte[] ImageIDValueBytes = binReader.ReadBytes(objTargaHeader.ImageIDLength);
+                        objTargaHeader.SetImageIDValue(System.Text.Encoding.ASCII.GetString(ImageIDValueBytes).TrimEnd('\0'));
                     }
                 }
                 catch (Exception ex)
                 {
-                    this.ClearAll();
                     throw ex;
                 }
 
@@ -589,16 +593,16 @@ namespace CSharpImageLibrary
                 // load color map if it's included and/or needed
                 // Only needed for UNCOMPRESSED_COLOR_MAPPED and RUN_LENGTH_ENCODED_COLOR_MAPPED
                 // image types. If color map is included for other file types we can ignore it.
-                if (this.objTargaHeader.ColorMapType == ColorMapType.COLOR_MAP_INCLUDED)
+                if (objTargaHeader.ColorMapType == ColorMapType.COLOR_MAP_INCLUDED)
                 {
-                    if (this.objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
-                        this.objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
+                    if (objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
+                        objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
                     {
-                        if (this.objTargaHeader.ColorMapLength > 0)
+                        if (objTargaHeader.ColorMapLength > 0)
                         {
                             try
                             {
-                                for (int i = 0; i < this.objTargaHeader.ColorMapLength; i++)
+                                for (int i = 0; i < objTargaHeader.ColorMapLength; i++)
                                 {
                                     int a = 0;
                                     int r = 0;
@@ -606,33 +610,32 @@ namespace CSharpImageLibrary
                                     int b = 0;
 
                                     // load each color map entry based on the ColorMapEntrySize value
-                                    switch (this.objTargaHeader.ColorMapEntrySize)
+                                    switch (objTargaHeader.ColorMapEntrySize)
                                     {
                                         case 15:
                                             byte[] color15 = binReader.ReadBytes(2);
                                             // remember that the bytes are stored in reverse oreder
-                                            this.objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color15[1], color15[0]));
+                                            objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color15[1], color15[0]));
                                             break;
                                         case 16:
                                             byte[] color16 = binReader.ReadBytes(2);
                                             // remember that the bytes are stored in reverse oreder
-                                            this.objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color16[1], color16[0]));
+                                            objTargaHeader.ColorMap.Add(Utilities.GetColorFrom2Bytes(color16[1], color16[0]));
                                             break;
                                         case 24:
                                             b = Convert.ToInt32(binReader.ReadByte());
                                             g = Convert.ToInt32(binReader.ReadByte());
                                             r = Convert.ToInt32(binReader.ReadByte());
-                                            this.objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(r, g, b));
+                                            objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(r, g, b));
                                             break;
                                         case 32:
                                             a = Convert.ToInt32(binReader.ReadByte());
                                             b = Convert.ToInt32(binReader.ReadByte());
                                             g = Convert.ToInt32(binReader.ReadByte());
                                             r = Convert.ToInt32(binReader.ReadByte());
-                                            this.objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(a, r, g, b));
+                                            objTargaHeader.ColorMap.Add(System.Drawing.Color.FromArgb(a, r, g, b));
                                             break;
                                         default:
-                                            this.ClearAll();
                                             throw new Exception("TargaImage only supports ColorMap Entry Sizes of 15, 16, 24 or 32 bits.");
 
                                     }
@@ -642,7 +645,6 @@ namespace CSharpImageLibrary
                             }
                             catch (Exception ex)
                             {
-                                this.ClearAll();
                                 throw ex;
                             }
 
@@ -651,7 +653,6 @@ namespace CSharpImageLibrary
                         }
                         else
                         {
-                            this.ClearAll();
                             throw new Exception("Image Type requires a Color Map and Color Map Length is zero.");
                         }
                     }
@@ -660,10 +661,9 @@ namespace CSharpImageLibrary
                 }
                 else
                 {
-                    if (this.objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
-                        this.objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
+                    if (objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
+                        objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
                     {
-                        this.ClearAll();
                         throw new Exception("Image Type requires a Color Map and there was not a Color Map included in the file.");
                     }
                 }
@@ -672,7 +672,6 @@ namespace CSharpImageLibrary
             }
             else
             {
-                this.ClearAll();
                 throw new Exception(@"Error loading file, could not read file from disk.");
             }
         }
@@ -1043,13 +1042,13 @@ namespace CSharpImageLibrary
             this.intPadding = this.intStride - ((((int)this.objTargaHeader.Width * (int)this.objTargaHeader.PixelDepth) + 7) / 8);
 
             // get the image data bytes
-            byte[] bimagedata = this.LoadImageBytes(binReader);
+            ImageData = this.LoadImageBytes(binReader);
 
             // since the Bitmap constructor requires a poiter to an array of image bytes
             // we have to pin down the memory used by the byte array and use the pointer 
             // of this pinned memory to create the Bitmap.
             // This tells the Garbage Collector to leave the memory alone and DO NOT touch it.
-            this.ImageByteHandle = GCHandle.Alloc(bimagedata, GCHandleType.Pinned);
+            this.ImageByteHandle = GCHandle.Alloc(ImageData, GCHandleType.Pinned);
 
             // make sure we don't have a phantom Bitmap
             if (this.bmpTargaImage != null)
@@ -1076,6 +1075,9 @@ namespace CSharpImageLibrary
                                             pf,
                                             this.ImageByteHandle.AddrOfPinnedObject());
 
+            Palette = bmpTargaImage.Palette;
+            ImageByteHandle.Free();
+
 
             this.LoadThumbnail(binReader, pf);
 
@@ -1084,9 +1086,6 @@ namespace CSharpImageLibrary
             // load the color map into the Bitmap, if it exists
             if (this.objTargaHeader.ColorMap.Count > 0)
             {
-                // get the Bitmap's current palette
-                ColorPalette pal = this.bmpTargaImage.Palette;
-
                 // loop trough each color in the loaded file's color map
                 for (int i = 0; i < this.objTargaHeader.ColorMap.Count; i++)
                 {
@@ -1094,21 +1093,12 @@ namespace CSharpImageLibrary
                     if (this.objTargaExtensionArea.AttributesType == 0 ||
                         this.objTargaExtensionArea.AttributesType == 1)
                         // use 255 for alpha ( 255 = opaque/visible ) so we can see the image
-                        pal.Entries[i] = Color.FromArgb(255, this.objTargaHeader.ColorMap[i].R, this.objTargaHeader.ColorMap[i].G, this.objTargaHeader.ColorMap[i].B);
+                        Palette.Entries[i] = Color.FromArgb(255, this.objTargaHeader.ColorMap[i].R, this.objTargaHeader.ColorMap[i].G, this.objTargaHeader.ColorMap[i].B);
 
                     else
                         // use whatever value is there
-                        pal.Entries[i] = this.objTargaHeader.ColorMap[i];
+                        Palette.Entries[i] = this.objTargaHeader.ColorMap[i];
 
-                }
-
-                // set the new palette back to the Bitmap object
-                this.bmpTargaImage.Palette = pal;
-
-                // set the palette to the thumbnail also, if there is one
-                if (this.bmpImageThumbnail != null)
-                {
-                    this.bmpImageThumbnail.Palette = pal;
                 }
             }
             else
@@ -1119,28 +1109,13 @@ namespace CSharpImageLibrary
                 if (this.objTargaHeader.PixelDepth == 8 && (this.objTargaHeader.ImageType == ImageType.UNCOMPRESSED_BLACK_AND_WHITE ||
                     this.objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_BLACK_AND_WHITE))
                 {
-                    // get the current palette
-                    ColorPalette pal = this.bmpTargaImage.Palette;
-
                     // create the Greyscale palette
                     for (int i = 0; i < 256; i++)
                     {
-                        pal.Entries[i] = Color.FromArgb(i, i, i);
-                    }
-
-                    // set the new palette back to the Bitmap object
-                    this.bmpTargaImage.Palette = pal;
-
-                    // set the palette to the thumbnail also, if there is one
-                    if (this.bmpImageThumbnail != null)
-                    {
-                        this.bmpImageThumbnail.Palette = pal;
+                        Palette.Entries[i] = Color.FromArgb(i, i, i);
                     }
                 }
-
-
             }
-
         }
 
         /// <summary>
@@ -1326,9 +1301,9 @@ namespace CSharpImageLibrary
 
                     if (data != null && data.Length > 0)
                     {
-                        this.ThumbnailByteHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
+                        /*this.ThumbnailByteHandle = GCHandle.Alloc(data, GCHandleType.Pinned);
                         this.bmpImageThumbnail = new Bitmap(iWidth, iHeight, iStride, pfPixelFormat,
-                                                        this.ThumbnailByteHandle.AddrOfPinnedObject());
+                                                        this.ThumbnailByteHandle.AddrOfPinnedObject());*/
 
                     }
 
@@ -1380,22 +1355,6 @@ namespace CSharpImageLibrary
             this.row.Clear();
             this.strFileName = string.Empty;
 
-        }
-
-        /// <summary>
-        /// Loads a Targa image file into a Bitmap object.
-        /// </summary>
-        /// <param name="sFileName">The Targa image filename</param>
-        /// <returns>A Bitmap object with the Targa image loaded into it.</returns>
-        public static Bitmap LoadTargaImage(string sFileName)
-        {
-            Bitmap b = null;
-            using (TargaImage ti = new TargaImage(sFileName))
-            {
-                b = new Bitmap(ti.Image);
-            }
-
-            return b;
         }
 
         #region IDisposable Members
@@ -1475,6 +1434,14 @@ namespace CSharpImageLibrary
 
             }
             disposed = true;
+        }
+
+        internal BitmapSource ToWPF()
+        {
+            var actual = GetPixelFormat();
+            var bmp = new WriteableBitmap(Header.Width, Header.Height, 96,96, System.Windows.Media.PixelFormats.Bgra32, UsefulThings.WPF.Images.ConvertGDIPaletteToWPF(Palette));
+            bmp.WritePixels(new System.Windows.Int32Rect(0, 0, Header.Width, Header.Height), ImageData, this.Stride, 0);
+            return bmp;
         }
 
 
