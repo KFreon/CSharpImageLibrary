@@ -80,6 +80,18 @@ namespace CSharpImageLibrary
 
 
         /// <summary>
+        /// Uncompressed size of main image (no mipmaps)
+        /// </summary>
+        public int UncompressedSize
+        {
+            get
+            {
+                return ImageFormats.GetUncompressedSize(Width, Height, NumberOfChannels, false);
+            }
+        }
+
+
+        /// <summary>
         /// Number of channels in image. 
         /// NOTE: Still stored in memory as BGRA regardless.
         /// </summary>
@@ -124,6 +136,16 @@ namespace CSharpImageLibrary
                 Load(ms, maxDimension);
         }
 
+
+        /// <summary>
+        /// Creates image from mipmap.
+        /// </summary>
+        /// <param name="mip">Mipmap to use as source.</param>
+        public ImageEngineImage(MipMap mip)
+        {
+            MipMaps.Add(mip);
+        }
+
         /// <summary>
         /// Gets string representation of ImageEngineImage.
         /// </summary>
@@ -166,6 +188,23 @@ namespace CSharpImageLibrary
 
             using (FileStream fs = new FileStream(destination, FileMode.Create))
                 await fs.WriteAsync(data, 0, data.Length);
+        }
+
+        /// <summary>
+        /// Saves image in specified format to stream.
+        /// Stream position not reset before or after.
+        /// </summary>
+        /// <param name="destination">Stream to write to at current position.</param>
+        /// <param name="format">Format to save to.</param>
+        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
+        /// <param name="desiredMaxDimension">Maximum dimension of saved image. Keeps aspect.</param>
+        /// <param name="mipToSave">Specifies a mipmap to save within the whole.</param>
+        /// <param name="removeAlpha">True = removes alpha. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
+        /// <param name="customMasks">Custom user defined masks for DDS colours.</param>
+        public void Save(Stream destination, ImageEngineFormat format, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true, List<uint> customMasks = null)
+        {
+            var data = Save(format, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha, customMasks);
+            destination.Write(data, 0, data.Length);
         }
 
 

@@ -18,6 +18,9 @@ namespace CSharpImageLibrary
     /// </summary>
     public static class WIC_Codecs
     {
+        /// <summary>
+        /// JPG Quality setting. Higher values = higher quality and image size.
+        /// </summary>
         public static int JPGCompressionSetting = 90;
 
         /// <summary>

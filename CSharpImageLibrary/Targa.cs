@@ -40,208 +40,209 @@ using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
 using System.Diagnostics;
 using UsefulThings;
+using static CSharpImageLibrary.TargaImage;
 
 namespace CSharpImageLibrary
 {
-    internal static class TargaConstants
-    {
-        // constant byte lengths for various fields in the Targa format
-        internal const int HeaderByteLength = 18;
-        internal const int FooterByteLength = 26;
-        internal const int FooterSignatureOffsetFromEnd = 18;
-        internal const int FooterSignatureByteLength = 16;
-        internal const int FooterReservedCharByteLength = 1;
-        internal const int ExtensionAreaAuthorNameByteLength = 41;
-        internal const int ExtensionAreaAuthorCommentsByteLength = 324;
-        internal const int ExtensionAreaJobNameByteLength = 41;
-        internal const int ExtensionAreaSoftwareIDByteLength = 41;
-        internal const int ExtensionAreaSoftwareVersionLetterByteLength = 1;
-        internal const int ExtensionAreaColorCorrectionTableValueLength = 256;
-        internal const string TargaFooterASCIISignature = "TRUEVISION-XFILE";
-    }
-
-
-    /// <summary>
-    /// The Targa format of the file.
-    /// </summary>
-    public enum TGAFormat
-    {
-        /// <summary>
-        /// Unknown Targa Image format.
-        /// </summary>
-        UNKNOWN = 0,
-
-        /// <summary>
-        /// Original Targa Image format.
-        /// </summary>
-        /// <remarks>Targa Image does not have a Signature of ""TRUEVISION-XFILE"".</remarks>
-        ORIGINAL_TGA = 100,
-
-        /// <summary>
-        /// New Targa Image format
-        /// </summary>
-        /// <remarks>Targa Image has a TargaFooter with a Signature of ""TRUEVISION-XFILE"".</remarks>
-        NEW_TGA = 200
-    }
-
-
-    /// <summary>
-    /// Indicates the type of color map, if any, included with the image file. 
-    /// </summary>
-    public enum ColorMapType : byte
-    {
-        /// <summary>
-        /// No color map was included in the file.
-        /// </summary>
-        NO_COLOR_MAP = 0,
-
-        /// <summary>
-        /// Color map was included in the file.
-        /// </summary>
-        COLOR_MAP_INCLUDED = 1
-    }
-
-
-    /// <summary>
-    /// The type of image read from the file.
-    /// </summary>
-    public enum ImageType : byte
-    {
-        /// <summary>
-        /// No image data was found in file.
-        /// </summary>
-        NO_IMAGE_DATA = 0,
-
-        /// <summary>
-        /// Image is an uncompressed, indexed color-mapped image.
-        /// </summary>
-        UNCOMPRESSED_COLOR_MAPPED = 1,
-
-        /// <summary>
-        /// Image is an uncompressed, RGB image.
-        /// </summary>
-        UNCOMPRESSED_TRUE_COLOR = 2,
-
-        /// <summary>
-        /// Image is an uncompressed, Greyscale image.
-        /// </summary>
-        UNCOMPRESSED_BLACK_AND_WHITE = 3,
-
-        /// <summary>
-        /// Image is a compressed, indexed color-mapped image.
-        /// </summary>
-        RUN_LENGTH_ENCODED_COLOR_MAPPED = 9,
-
-        /// <summary>
-        /// Image is a compressed, RGB image.
-        /// </summary>
-        RUN_LENGTH_ENCODED_TRUE_COLOR = 10,
-
-        /// <summary>
-        /// Image is a compressed, Greyscale image.
-        /// </summary>
-        RUN_LENGTH_ENCODED_BLACK_AND_WHITE = 11
-    }
-
-
-    /// <summary>
-    /// The top-to-bottom ordering in which pixel data is transferred from the file to the screen.
-    /// </summary>
-    public enum VerticalTransferOrder
-    {
-        /// <summary>
-        /// Unknown transfer order.
-        /// </summary>
-        UNKNOWN = -1,
-
-        /// <summary>
-        /// Transfer order of pixels is from the bottom to top.
-        /// </summary>
-        BOTTOM = 0,
-
-        /// <summary>
-        /// Transfer order of pixels is from the top to bottom.
-        /// </summary>
-        TOP = 1
-    }
-
-
-    /// <summary>
-    /// The left-to-right ordering in which pixel data is transferred from the file to the screen.
-    /// </summary>
-    public enum HorizontalTransferOrder
-    {
-        /// <summary>
-        /// Unknown transfer order.
-        /// </summary>
-        UNKNOWN = -1,
-
-        /// <summary>
-        /// Transfer order of pixels is from the right to left.
-        /// </summary>
-        RIGHT = 0,
-
-        /// <summary>
-        /// Transfer order of pixels is from the left to right.
-        /// </summary>
-        LEFT = 1
-    }
-
-
-    /// <summary>
-    /// Screen destination of first pixel based on the VerticalTransferOrder and HorizontalTransferOrder.
-    /// </summary>
-    public enum FirstPixelDestination
-    {
-        /// <summary>
-        /// Unknown first pixel destination.
-        /// </summary>
-        UNKNOWN = 0,
-
-        /// <summary>
-        /// First pixel destination is the top-left corner of the image.
-        /// </summary>
-        TOP_LEFT = 1,
-
-        /// <summary>
-        /// First pixel destination is the top-right corner of the image.
-        /// </summary>
-        TOP_RIGHT = 2,
-
-        /// <summary>
-        /// First pixel destination is the bottom-left corner of the image.
-        /// </summary>
-        BOTTOM_LEFT = 3,
-
-        /// <summary>
-        /// First pixel destination is the bottom-right corner of the image.
-        /// </summary>
-        BOTTOM_RIGHT = 4
-    }
-
-
-    /// <summary>
-    /// The RLE packet type used in a RLE compressed image.
-    /// </summary>
-    public enum RLEPacketType
-    {
-        /// <summary>
-        /// A raw RLE packet type.
-        /// </summary>
-        RAW = 0,
-
-        /// <summary>
-        /// A run-length RLE packet type.
-        /// </summary>
-        RUN_LENGTH = 1
-    }
-
-
     /// <summary>
     /// Reads and loads a Truevision TGA Format image file.
     /// </summary>
-    public class TargaImage : IDisposable
+    internal class TargaImage : IDisposable
     {
+        internal static class TargaConstants
+        {
+            // constant byte lengths for various fields in the Targa format
+            internal const int HeaderByteLength = 18;
+            internal const int FooterByteLength = 26;
+            internal const int FooterSignatureOffsetFromEnd = 18;
+            internal const int FooterSignatureByteLength = 16;
+            internal const int FooterReservedCharByteLength = 1;
+            internal const int ExtensionAreaAuthorNameByteLength = 41;
+            internal const int ExtensionAreaAuthorCommentsByteLength = 324;
+            internal const int ExtensionAreaJobNameByteLength = 41;
+            internal const int ExtensionAreaSoftwareIDByteLength = 41;
+            internal const int ExtensionAreaSoftwareVersionLetterByteLength = 1;
+            internal const int ExtensionAreaColorCorrectionTableValueLength = 256;
+            internal const string TargaFooterASCIISignature = "TRUEVISION-XFILE";
+        }
+
+
+        /// <summary>
+        /// The Targa format of the file.
+        /// </summary>
+        public enum TGAFormat
+        {
+            /// <summary>
+            /// Unknown Targa Image format.
+            /// </summary>
+            UNKNOWN = 0,
+
+            /// <summary>
+            /// Original Targa Image format.
+            /// </summary>
+            /// <remarks>Targa Image does not have a Signature of ""TRUEVISION-XFILE"".</remarks>
+            ORIGINAL_TGA = 100,
+
+            /// <summary>
+            /// New Targa Image format
+            /// </summary>
+            /// <remarks>Targa Image has a TargaFooter with a Signature of ""TRUEVISION-XFILE"".</remarks>
+            NEW_TGA = 200
+        }
+
+
+        /// <summary>
+        /// Indicates the type of color map, if any, included with the image file. 
+        /// </summary>
+        public enum ColorMapTypes: byte
+        {
+            /// <summary>
+            /// No color map was included in the file.
+            /// </summary>
+            NO_COLOR_MAP = 0,
+
+            /// <summary>
+            /// Color map was included in the file.
+            /// </summary>
+            COLOR_MAP_INCLUDED = 1
+        }
+
+
+        /// <summary>
+        /// The type of image read from the file.
+        /// </summary>
+        public enum ImageType : byte
+        {
+            /// <summary>
+            /// No image data was found in file.
+            /// </summary>
+            NO_IMAGE_DATA = 0,
+
+            /// <summary>
+            /// Image is an uncompressed, indexed color-mapped image.
+            /// </summary>
+            UNCOMPRESSED_COLOR_MAPPED = 1,
+
+            /// <summary>
+            /// Image is an uncompressed, RGB image.
+            /// </summary>
+            UNCOMPRESSED_TRUE_COLOR = 2,
+
+            /// <summary>
+            /// Image is an uncompressed, Greyscale image.
+            /// </summary>
+            UNCOMPRESSED_BLACK_AND_WHITE = 3,
+
+            /// <summary>
+            /// Image is a compressed, indexed color-mapped image.
+            /// </summary>
+            RUN_LENGTH_ENCODED_COLOR_MAPPED = 9,
+
+            /// <summary>
+            /// Image is a compressed, RGB image.
+            /// </summary>
+            RUN_LENGTH_ENCODED_TRUE_COLOR = 10,
+
+            /// <summary>
+            /// Image is a compressed, Greyscale image.
+            /// </summary>
+            RUN_LENGTH_ENCODED_BLACK_AND_WHITE = 11
+        }
+
+
+        /// <summary>
+        /// The top-to-bottom ordering in which pixel data is transferred from the file to the screen.
+        /// </summary>
+        public enum VerticalTransferOrder
+        {
+            /// <summary>
+            /// Unknown transfer order.
+            /// </summary>
+            UNKNOWN = -1,
+
+            /// <summary>
+            /// Transfer order of pixels is from the bottom to top.
+            /// </summary>
+            BOTTOM = 0,
+
+            /// <summary>
+            /// Transfer order of pixels is from the top to bottom.
+            /// </summary>
+            TOP = 1
+        }
+
+
+        /// <summary>
+        /// The left-to-right ordering in which pixel data is transferred from the file to the screen.
+        /// </summary>
+        public enum HorizontalTransferOrder
+        {
+            /// <summary>
+            /// Unknown transfer order.
+            /// </summary>
+            UNKNOWN = -1,
+
+            /// <summary>
+            /// Transfer order of pixels is from the right to left.
+            /// </summary>
+            RIGHT = 0,
+
+            /// <summary>
+            /// Transfer order of pixels is from the left to right.
+            /// </summary>
+            LEFT = 1
+        }
+
+
+        /// <summary>
+        /// Screen destination of first pixel based on the VerticalTransferOrder and HorizontalTransferOrder.
+        /// </summary>
+        public enum FirstPixelDestination
+        {
+            /// <summary>
+            /// Unknown first pixel destination.
+            /// </summary>
+            UNKNOWN = 0,
+
+            /// <summary>
+            /// First pixel destination is the top-left corner of the image.
+            /// </summary>
+            TOP_LEFT = 1,
+
+            /// <summary>
+            /// First pixel destination is the top-right corner of the image.
+            /// </summary>
+            TOP_RIGHT = 2,
+
+            /// <summary>
+            /// First pixel destination is the bottom-left corner of the image.
+            /// </summary>
+            BOTTOM_LEFT = 3,
+
+            /// <summary>
+            /// First pixel destination is the bottom-right corner of the image.
+            /// </summary>
+            BOTTOM_RIGHT = 4
+        }
+
+
+        /// <summary>
+        /// The RLE packet type used in a RLE compressed image.
+        /// </summary>
+        public enum RLEPacketType
+        {
+            /// <summary>
+            /// A raw RLE packet type.
+            /// </summary>
+            RAW = 0,
+
+            /// <summary>
+            /// A run-length RLE packet type.
+            /// </summary>
+            RUN_LENGTH = 1
+        }
+
+
         private TargaHeader objTargaHeader = null;
         private TargaExtensionArea objTargaExtensionArea = null;
         private TargaFooter objTargaFooter = null;
@@ -544,7 +545,7 @@ namespace CSharpImageLibrary
 
                     // read the header properties from the file
                     objTargaHeader.SetImageIDLength(binReader.ReadByte());
-                    objTargaHeader.SetColorMapType((ColorMapType)binReader.ReadByte());
+                    objTargaHeader.SetColorMapType((ColorMapTypes)binReader.ReadByte());
                     objTargaHeader.SetImageType((ImageType)binReader.ReadByte());
 
                     objTargaHeader.SetColorMapFirstEntryIndex(binReader.ReadInt16());
@@ -593,7 +594,7 @@ namespace CSharpImageLibrary
                 // load color map if it's included and/or needed
                 // Only needed for UNCOMPRESSED_COLOR_MAPPED and RUN_LENGTH_ENCODED_COLOR_MAPPED
                 // image types. If color map is included for other file types we can ignore it.
-                if (objTargaHeader.ColorMapType == ColorMapType.COLOR_MAP_INCLUDED)
+                if (objTargaHeader.ColorMapType == ColorMapTypes.COLOR_MAP_INCLUDED)
                 {
                     if (objTargaHeader.ImageType == ImageType.UNCOMPRESSED_COLOR_MAPPED ||
                         objTargaHeader.ImageType == ImageType.RUN_LENGTH_ENCODED_COLOR_MAPPED)
@@ -1453,10 +1454,10 @@ namespace CSharpImageLibrary
     /// This class holds all of the header properties of a Targa image. 
     /// This includes the TGA File Header section the ImageID and the Color Map.
     /// </summary>
-    public class TargaHeader
+    internal class TargaHeader
     {
         private byte bImageIDLength = 0;
-        private ColorMapType eColorMapType = ColorMapType.NO_COLOR_MAP;
+        private ColorMapTypes eColorMapType = ColorMapTypes.NO_COLOR_MAP;
         private ImageType eImageType = ImageType.NO_IMAGE_DATA;
         private short sColorMapFirstEntryIndex = 0;
         private short sColorMapLength = 0;
@@ -1498,7 +1499,7 @@ namespace CSharpImageLibrary
         /// NO_COLOR_MAP - indicates that no color-map data is included with this image.
         /// COLOR_MAP_INCLUDED - indicates that a color-map is included with this image.
         /// </summary>
-        public ColorMapType ColorMapType
+        public ColorMapTypes ColorMapType
         {
             get { return this.eColorMapType; }
         }
@@ -1507,7 +1508,7 @@ namespace CSharpImageLibrary
         /// Sets the ColorMapType property, available only to objects in the same assembly as TargaHeader.
         /// </summary>
         /// <param name="eColorMapType">One of the ColorMapType enumeration values.</param>
-        internal protected void SetColorMapType(ColorMapType eColorMapType)
+        internal protected void SetColorMapType(ColorMapTypes eColorMapType)
         {
             this.eColorMapType = eColorMapType;
         }
@@ -1838,7 +1839,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Holds Footer infomation read from the image file.
     /// </summary>
-    public class TargaFooter
+    internal class TargaFooter
     {
         private int intExtensionAreaOffset = 0;
         private int intDeveloperDirectoryOffset = 0;
@@ -1931,7 +1932,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// This class holds all of the Extension Area properties of the Targa image. If an Extension Area exists in the file.
     /// </summary>
-    public class TargaExtensionArea
+    internal class TargaExtensionArea
     {
         int intExtensionSize = 0;
         string strAuthorName = string.Empty;

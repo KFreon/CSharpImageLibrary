@@ -16,7 +16,7 @@ namespace CSharpImageLibrary.Headers
         /// <summary>
         /// Base TGA header.
         /// </summary>
-        public TargaHeader header { get; } = new TargaHeader();
+        internal TargaHeader header { get; } = new TargaHeader();
 
         /// <summary>
         /// Image format.

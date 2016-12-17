@@ -189,6 +189,11 @@ namespace CSharpImageLibrary
             return GetBlockSize(format) >= 8;
         }
 
+        /// <summary>
+        /// Determines if alpha channel COULD be present in given format.
+        /// </summary>
+        /// <param name="format">Format to check alpha in.</param>
+        /// <returns>True if alpha can be present.</returns>
         public static bool IsAlphaPresent(PixelFormat format)
         {
             return format.ToString().Contains("a", StringComparison.OrdinalIgnoreCase);
