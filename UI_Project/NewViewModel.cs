@@ -233,7 +233,10 @@ namespace UI_Project
                             Busy = true;
                             try
                             {
-                                await LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                                if (SplitChannels)
+                                    LoadedImage.SplitChannels(SavePath);
+                                else
+                                    await LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
                             }
                             catch (Exception e)
                             {
@@ -251,7 +254,57 @@ namespace UI_Project
         }
         #endregion Commands
 
+        #region Merge Channels Properties
+        bool mergePanelOpen = false;
+        public bool MergeChannelsPanelOpen
+        {
+            get
+            {
+                return mergePanelOpen;
+            }
+            set
+            {
+                SetProperty(ref mergePanelOpen, value);
+            }
+        }
+
+        public MTRangedObservableCollection<MergeChannelsImage> MergeChannelsImages { get; set; } = new MTRangedObservableCollection<MergeChannelsImage>();
+
+        public bool MergeChannelsReady
+        {
+            get
+            {
+                if (MergeChannelsImages.Count == 0)
+                    return false;
+
+                var dimensions = MergeChannelsImages.Where(t => t.IsRed || t.IsAlpha || t.IsBlue || t.IsGreen);
+                if (dimensions.Count() == 0)
+                    return false;
+
+                int width = dimensions.First().Width;
+                int height = dimensions.First().Height;
+
+                return dimensions.All(t => t.Width == width) && dimensions.All(t => t.Height == height);
+            }
+        }
+        #endregion Merge Channels Properties
+
         #region General Properties
+        bool splitChannels = false;
+        public bool SplitChannels
+        {
+            get
+            {
+                return splitChannels;
+            }
+            set
+            {
+                SetProperty(ref splitChannels, value);
+                if (value)
+                    SaveFormat = ImageEngineFormat.PNG;
+            }
+        }
+
         bool busy = false;
         public bool Busy
         {
@@ -726,6 +779,43 @@ namespace UI_Project
             }
         }
 
+        internal async Task MergeChannels()
+        {
+            // Get all channels
+            var red = MergeChannelsImages.FirstOrDefault(t => t.IsRed);
+            var blue = MergeChannelsImages.FirstOrDefault(t => t.IsBlue);
+            var green = MergeChannelsImages.FirstOrDefault(t => t.IsGreen);
+            var alpha = MergeChannelsImages.FirstOrDefault(t => t.IsAlpha);
+
+            // Merge selected channels
+            int length = red?.Pixels.Length ?? blue?.Pixels.Length ?? green?.Pixels.Length ?? alpha?.Pixels.Length ?? 0;
+            int width = red?.Width ?? blue?.Width ?? green?.Width ?? alpha?.Width ?? 0;
+            int height = red?.Height ?? blue?.Height ?? green?.Height ?? alpha?.Height ?? 0;
+
+            CloseImage(true);
+
+            await Task.Run(() =>
+            {
+                byte[] merged = new byte[length];
+                for (int i = 0; i < length; i += 4)
+                {
+                    merged[i] = blue?.Pixels[i] ?? 0;
+                    merged[i + 1] = green?.Pixels[i + 1] ?? 0;
+                    merged[i + 2] = red?.Pixels[i + 2] ?? 0;
+                    merged[i + 3] = alpha?.Pixels[i + 3] ?? 0;
+                }
+
+                var mip = new MipMap(merged, width, height);
+                LoadedImage = new ImageEngineImage(mip);
+                
+            });
+
+            LoadFailed = false;
+            UpdateLoadedPreview();
+            SaveFormat = ImageEngineFormat.PNG;
+            MergeChannelsPanelOpen = false;
+        }
+
         string savePath = null;
         public string SavePath
         {
@@ -888,6 +978,8 @@ namespace UI_Project
                 UpdateSavePreview();
                 SliderTimer.Stop();
             };
+
+            MergeChannelsImages.CollectionChanged += (sender, args) => OnPropertyChanged(nameof(MergeChannelsReady));
         }
 
         internal async Task LoadImage(string path)

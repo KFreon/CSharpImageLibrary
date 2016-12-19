@@ -29,6 +29,8 @@ namespace UI_Project
 
         UsefulThings.WPF.DragDropHandler<NewViewModel> DragDropHandler = null;
         UsefulThings.WPF.DragDropHandler<NewViewModel> BulkDropDragHandler = null;
+        UsefulThings.WPF.DragDropHandler<NewViewModel> MergeDropHandler = null;
+
 
 
 
@@ -83,6 +85,13 @@ namespace UI_Project
 
                 DropAction = (model, files) => BulkAdd(files)
             };
+
+            MergeDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
+            {
+                DropValidator = BulkDropDragHandler.DropValidator,  // Same validator as bulk
+                DropAction = (model, files) => Task.Run(() => MergeLoad(files))
+            };
+
             InitializeComponent();
             DataContext = vm;
 
@@ -422,6 +431,192 @@ namespace UI_Project
         private void InfoPanelCloseButton_Click(object sender, RoutedEventArgs e)
         {
             vm.InfoPanelOpen = false;
+        }
+
+
+        private void ChannelMergerOpenButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.MergeChannelsPanelOpen = true;
+        }
+
+        private void MergeRedSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+
+            // Set red on item exclusively
+            item.IsRed = true;
+            item.IsGreen = false;
+            item.IsBlue = false;
+            item.IsAlpha = false;
+
+            // Make sure nothing else has it
+            foreach (var image in vm.MergeChannelsImages)
+            {
+                if (image == item)
+                    continue;
+
+                image.IsRed = false;
+            }
+        }
+
+        private void MergeGreenSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+
+            // Set green on item exclusively
+            item.IsRed = false;
+            item.IsGreen = true;
+            item.IsBlue = false;
+            item.IsAlpha = false;
+
+            // Make sure nothing else has it
+            foreach (var image in vm.MergeChannelsImages)
+            {
+                if (image == item)
+                    continue;
+
+                image.IsGreen = false;
+            }
+        }
+
+        private void MergeBlueSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+
+            // Set blue on item exclusively
+            item.IsRed = false;
+            item.IsGreen = false;
+            item.IsBlue = true;
+            item.IsAlpha = false;
+
+            // Make sure nothing else has it
+            foreach (var image in vm.MergeChannelsImages)
+            {
+                if (image == item)
+                    continue;
+
+                image.IsBlue = false;
+            }
+        }
+
+        private void MergeAlphaSelector_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+
+            // Set alpha on item exclusively
+            item.IsRed = false;
+            item.IsGreen = false;
+            item.IsBlue = false;
+            item.IsAlpha = true;
+
+            // Make sure nothing else has it
+            foreach (var image in vm.MergeChannelsImages)
+            {
+                if (image == item)
+                    continue;
+
+                image.IsAlpha = false;
+            }
+        }
+
+        int mergeStart = 0;
+        string prev_MergeLoadDialogFolder = null;
+        private async void MergeLoadButton_Click(object sender, RoutedEventArgs e)
+        {
+            CommonOpenFileDialog fb = new CommonOpenFileDialog()
+            {
+                Multiselect = true,
+                Title = "Select images to load as channels."
+            };
+
+            if (prev_MergeLoadDialogFolder != null)
+                fb.InitialDirectory = prev_MergeLoadDialogFolder;
+
+            if (fb.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                await Task.Run(() => MergeLoad(fb.FileNames));
+                prev_MergeLoadDialogFolder = Path.GetDirectoryName(fb.FileNames.First());
+                mergeStart = vm.MergeChannelsImages.Count;
+            }
+        }
+
+        void MergeLoad(IEnumerable<string> files)
+        {
+            // Determine which channels exist
+            bool checkRed = !vm.MergeChannelsImages.Any(t => t.IsRed);
+            bool checkBlue = !vm.MergeChannelsImages.Any(t => t.IsBlue);
+            bool checkGreen = !vm.MergeChannelsImages.Any(t => t.IsGreen);
+            bool checkAlpha = !vm.MergeChannelsImages.Any(t => t.IsAlpha);
+
+            var newFiles = files.ToList();
+            var newImages = new MergeChannelsImage[newFiles.Count];
+
+            var action = new Action<int>(index => newImages[index] = new MergeChannelsImage(newFiles[index]));
+
+            if (ImageEngine.EnableThreading)
+                Parallel.For(0, newFiles.Count, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action);
+            else
+                for (int i = 0; i < newFiles.Count; i++)
+                    action(i);
+
+            foreach (var img in newImages)
+            {
+                if (checkRed && img.DisplayName.EndsWith("_R", StringComparison.OrdinalIgnoreCase))
+                {
+                    img.IsRed = true;
+                    checkRed = false;
+                }
+                else if (checkBlue && img.DisplayName.EndsWith("_B", StringComparison.OrdinalIgnoreCase))
+                {
+                    img.IsBlue = true;
+                    checkBlue = false;
+                }
+                else if (checkGreen && img.DisplayName.EndsWith("_G", StringComparison.OrdinalIgnoreCase))
+                {
+                    img.IsGreen = true;
+                    checkGreen = false;
+                }
+                else if (checkAlpha && img.DisplayName.EndsWith("_A", StringComparison.OrdinalIgnoreCase))
+                {
+                    img.IsAlpha = true;
+                    checkAlpha = false;
+                }
+            }
+
+            vm.MergeChannelsImages.AddRange(newImages);
+        }
+
+        private void MergeDeselector_Click(object sender, RoutedEventArgs e)
+        {
+            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+
+            // Clear everything
+            item.IsRed = false;
+            item.IsGreen = false;
+            item.IsBlue = false;
+            item.IsAlpha = false;
+        }
+
+        private void MergeCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.MergeChannelsPanelOpen = false;
+            vm.MergeChannelsImages.Clear();
+        }
+
+        private async void MergeMergeButton_Click(object sender, RoutedEventArgs e)
+        {
+            await vm.MergeChannels();
+            vm.MergeChannelsImages.Clear();
+        }
+
+        private void MergeChannelPanel_Drop(object sender, DragEventArgs e)
+        {
+            MergeDropHandler.Drop(sender, e);
+        }
+
+        private void MergeChannelPanel_DragOver(object sender, DragEventArgs e)
+        {
+            MergeDropHandler.DragOver(e);
         }
     }
 }

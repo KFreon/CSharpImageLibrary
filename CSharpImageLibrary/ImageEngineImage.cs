@@ -143,6 +143,8 @@ namespace CSharpImageLibrary
         /// <param name="mip">Mipmap to use as source.</param>
         public ImageEngineImage(MipMap mip)
         {
+            if (MipMaps == null)
+                MipMaps = new List<MipMap>();
             MipMaps.Add(mip);
         }
 
@@ -188,6 +190,16 @@ namespace CSharpImageLibrary
 
             using (FileStream fs = new FileStream(destination, FileMode.Create))
                 await fs.WriteAsync(data, 0, data.Length);
+        }
+
+
+        /// <summary>
+        /// Saves each channel separately incl Alpha.
+        /// </summary>
+        /// <param name="savePath">General save path. Appends channel name too.</param>
+        public void SplitChannels(string savePath)
+        {
+            ImageEngine.SplitChannels(MipMaps[0], savePath);
         }
 
         /// <summary>
@@ -238,8 +250,7 @@ namespace CSharpImageLibrary
         /// </summary>
         public void Dispose()
         {
-            if (MipMaps == null)
-                return;
+            // Nothing for now I guess...
         }
 
         /// <summary>

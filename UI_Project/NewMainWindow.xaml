@@ -487,6 +487,10 @@
                     Visibility="{Binding SettingsPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
             <Button x:Name="InfoPanelOpenButton" Content="System Information" DockPanel.Dock="Right" Margin="0,1,10,1" Click="InfoPanelOpenButton_Click" 
                     Visibility="{Binding InfoPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
+
+            <Button x:Name="ChannelMergerOpenButton" Content="Merge Channels" DockPanel.Dock="Right" Margin="0,1,10,1" Click="ChannelMergerOpenButton_Click"
+                    Visibility="{Binding MergeChannelsPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
+
             <TextBlock x:Name="TitleBlock" Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False" FontSize="22"/>
         </DockPanel>
 
@@ -804,8 +808,11 @@
                         <TextBox x:Name="SavePathBox" Text="{Binding SavePath, UpdateSourceTrigger=PropertyChanged}" Margin="5,0" LostFocus="SavePathBox_LostFocus"/>
                     </DockPanel>
 
+                    <CheckBox x:Name="ChannelSeparatorCheckbox" DockPanel.Dock="Top" Content="Save Channels Separately" Foreground="White" Margin="3,10,0,0" 
+                              IsChecked="{Binding SplitChannels}"/>
 
-                    <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False">
+                    <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False" 
+                               Visibility="{Binding SplitChannels, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}">
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
                             <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center" FontSize="16">
                         <Run Text="Compressed Size: " FontWeight="Bold"/>
@@ -840,16 +847,31 @@
                         <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
                         <ContentControl x:Name="CustomDDSSettingsPanel" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource CustomDDSSettings}" Style="{StaticResource CustomDDSSettingsVisibility}"/>
                         <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
-
                     </DockPanel>
 
-                    <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top">
+                    <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top" Visibility="{Binding SplitChannels, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}">
                         <ContentControl x:Name="GeneralAlphaSettings" DockPanel.Dock="Top" Template="{StaticResource GeneralAlphaSettingsTemplate}" Style="{StaticResource GeneralAlphaSettingsPanelVisibility}"/>
                         <ContentControl x:Name="DXT1AlphaSettings" DockPanel.Dock="Top" Style="{StaticResource DXT1AlphaSettingVisibility}" Template="{StaticResource DXT1AlphaSettingTemplate}"/>
                         <ContentControl x:Name="JPGQualitySettings" DockPanel.Dock="Top" Style="{StaticResource JPGSettingsVisibility}" Template="{StaticResource JPGSettingsTemplate}"/>
                     </DockPanel>
 
-                    <ContentControl x:Name="MipSettingsArea" DockPanel.Dock="Top" Visibility="{Binding IsSaveFormatMippable, Converter={StaticResource BoolToVisConverter}}" Margin="0,10,0,0" Template="{StaticResource MipSettingsTemplate}"/>
+                    <ContentControl x:Name="MipSettingsArea" DockPanel.Dock="Top" Margin="0,10,0,0" Template="{StaticResource MipSettingsTemplate}">
+                        <ContentControl.Style>
+                            <Style TargetType="FrameworkElement">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSaveFormatMippable}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+
+                                    <DataTrigger Binding="{Binding SplitChannels}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ContentControl.Style>
+                    </ContentControl>
                 </DockPanel>
             </ScrollViewer>
         </DockPanel>
@@ -1048,6 +1070,93 @@
 
                     <Button x:Name="InfoPanelCloseButton" Content="Close" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
                             Click="InfoPanelCloseButton_Click" Margin="0,5,0,0"/>
+                </DockPanel>
+            </Border>
+        </Border>
+
+        <Border x:Name="MergeChannelPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding MergeChannelsPanelOpen}" Drop="MergeChannelPanel_Drop" DragOver="MergeChannelPanel_DragOver">
+            <Border Style="{StaticResource FadedInnerBorder}">
+                <DockPanel Margin="5,0,5,5">
+                    <Label Content="Merge Channels" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
+                    <Image MaxWidth="1024" MaxHeight="1024" DockPanel.Dock="Bottom"/>
+                    <DockPanel DockPanel.Dock="Bottom" Margin="5,10,5,10">
+                        <Button x:Name="MergeLoadButton" Content="Load" DockPanel.Dock="Left" Click="MergeLoadButton_Click" />
+                        <Button x:Name="MergeCloseButton" Content="Close" DockPanel.Dock="Right" Click="MergeCloseButton_Click"/>
+                        <Button x:Name="MergeMergeButton" Content="Merge!" Click="MergeMergeButton_Click" FontWeight="Bold" Margin="10,0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource {x:Type Button}}" TargetType="Button">
+                                    <Setter Property="Visibility" Value="Visible"/>
+
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MergeChannelsImages.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+
+                                        <DataTrigger Binding="{Binding MergeChannelsReady}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </DockPanel>
+                    <ListBox x:Name="MergeChannelSourceBox" DockPanel.Dock="Top" ItemsSource="{Binding MergeChannelsImages}" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <ItemContainerTemplate>
+                                <DockPanel MaxWidth="300" MaxHeight="300">
+                                    <DockPanel.Style>
+                                        <Style TargetType="DockPanel">
+                                            <Setter Property="Background" Value="Transparent"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsAlpha}" Value="true">
+                                                    <Setter Property="Background" Value="#7F808080"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding IsRed}" Value="true">
+                                                    <Setter Property="Background" Value="#7FFF0000"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding IsGreen}" Value="true">
+                                                    <Setter Property="Background" Value="#7F008000"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding IsBlue}" Value="true">
+                                                    <Setter Property="Background" Value="#7F0000FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DockPanel.Style>
+                                    <Image MaxWidth="128" MaxHeight="128" DockPanel.Dock="Top" Source="{Binding Thumbnail}"/>
+                                    <DockPanel Background="Transparent" LastChildFill="False">
+                                        <DockPanel.Resources>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Width" Value="20"/>
+                                                <Setter Property="Height" Value="20"/>
+                                                <Setter Property="Margin" Value="2"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Style>
+                                        </DockPanel.Resources>
+
+                                        <TextBlock Text="{Binding DisplayName}" DockPanel.Dock="Top" Foreground="White" TextWrapping="Wrap"/>
+
+                                        <Label Content="Set as Channel:" Foreground="White" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeRedSelector" Content="R" Click="MergeRedSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeGreenSelector" Content="G" Click="MergeGreenSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeBlueSelector" Content="B" Click="MergeBlueSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeAlphaSelector" Content="A" Click="MergeAlphaSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeDeselector" Content="X" Foreground="Red" BorderBrush="Red" BorderThickness="0.5" DockPanel.Dock="Left" Click="MergeDeselector_Click"/>
+                                    </DockPanel>
+                                </DockPanel>
+                            </ItemContainerTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel MaxWidth="{Binding ElementName=MergeChannelPanel, Path=ActualWidth}"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
                 </DockPanel>
             </Border>
         </Border>

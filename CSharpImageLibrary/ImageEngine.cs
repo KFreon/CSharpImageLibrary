@@ -196,6 +196,48 @@ namespace CSharpImageLibrary
             return header;
         }
 
+        internal static void SplitChannels(MipMap mip, string savePath)
+        {
+            char[] channels = new char[] { 'B', 'G', 'R', 'A' };
+            for (int i = 0; i < 4; i++)
+            {
+                // Extract channel into grayscale image
+                var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
+
+                // Save channel
+                var gray = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height);
+                PngBitmapEncoder encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(gray));
+                byte[] bytes = null;
+                using (MemoryStream ms = new MemoryStream(grayChannel.Length))
+                {
+                    encoder.Save(ms);
+                    bytes = ms.ToArray();
+                }
+
+                if (bytes == null)
+                    throw new InvalidDataException("Failed to save channel. Reason unknown.");
+
+                string tempPath = Path.GetFileNameWithoutExtension(savePath) + "_" + channels[i] + ".png";
+                string channelPath = Path.Combine(Path.GetDirectoryName(savePath), UsefulThings.General.FindValidNewFileName(tempPath));
+                File.WriteAllBytes(channelPath, bytes);
+            }
+        }
+
+        static byte[] BuildGrayscaleFromChannel(byte[] pixels, int channel)
+        {
+            byte[] destination = new byte[pixels.Length];
+            int count = 0;
+            for (int i = channel; i < pixels.Length; i+=4)
+            {
+                for (int j = 0; j < 3; j++)
+                    destination[count++] = pixels[i];
+                destination[count++] = 0xFF;
+            }
+
+            return destination;
+        }
+
 
         /// <summary>
         /// Save mipmaps as given format to stream.
@@ -295,7 +337,7 @@ namespace CSharpImageLibrary
         internal static MipMap Resize(MipMap mipMap, double scale, bool preserveAspect = true)
         {
             if (preserveAspect)
-                return Resize(mipMap, scale, 0);  // Could be either scale dimension, doesn't matter.
+                return Resize(mipMap, scale, scale);  // Could be either scale dimension, doesn't matter.
             else
                 return Resize(mipMap, scale, scale);
         }
