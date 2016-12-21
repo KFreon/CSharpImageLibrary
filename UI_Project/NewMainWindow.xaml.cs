@@ -89,7 +89,7 @@ namespace UI_Project
             MergeDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
             {
                 DropValidator = BulkDropDragHandler.DropValidator,  // Same validator as bulk
-                DropAction = (model, files) => Task.Run(() => MergeLoad(files))
+                DropAction = (model, files) => Task.Run(() => vm.MergeLoad(files))
             };
 
             InitializeComponent();
@@ -344,6 +344,8 @@ namespace UI_Project
                     vm.SettingsPanelOpen = false;
                 else if (vm.BulkConvertOpen)
                     vm.BulkConvertOpen = false;
+                else if (vm.MergeChannelsPanelOpen)
+                    vm.MergeChannelsPanelOpen = false;
                 else
                     vm.CloseCommand.Execute(null);
             }
@@ -534,56 +536,10 @@ namespace UI_Project
 
             if (fb.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                await Task.Run(() => MergeLoad(fb.FileNames));
+                await Task.Run(() => vm.MergeLoad(fb.FileNames));
                 prev_MergeLoadDialogFolder = Path.GetDirectoryName(fb.FileNames.First());
                 mergeStart = vm.MergeChannelsImages.Count;
             }
-        }
-
-        void MergeLoad(IEnumerable<string> files)
-        {
-            // Determine which channels exist
-            bool checkRed = !vm.MergeChannelsImages.Any(t => t.IsRed);
-            bool checkBlue = !vm.MergeChannelsImages.Any(t => t.IsBlue);
-            bool checkGreen = !vm.MergeChannelsImages.Any(t => t.IsGreen);
-            bool checkAlpha = !vm.MergeChannelsImages.Any(t => t.IsAlpha);
-
-            var newFiles = files.ToList();
-            var newImages = new MergeChannelsImage[newFiles.Count];
-
-            var action = new Action<int>(index => newImages[index] = new MergeChannelsImage(newFiles[index]));
-
-            if (ImageEngine.EnableThreading)
-                Parallel.For(0, newFiles.Count, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action);
-            else
-                for (int i = 0; i < newFiles.Count; i++)
-                    action(i);
-
-            foreach (var img in newImages)
-            {
-                if (checkRed && img.DisplayName.EndsWith("_R", StringComparison.OrdinalIgnoreCase))
-                {
-                    img.IsRed = true;
-                    checkRed = false;
-                }
-                else if (checkBlue && img.DisplayName.EndsWith("_B", StringComparison.OrdinalIgnoreCase))
-                {
-                    img.IsBlue = true;
-                    checkBlue = false;
-                }
-                else if (checkGreen && img.DisplayName.EndsWith("_G", StringComparison.OrdinalIgnoreCase))
-                {
-                    img.IsGreen = true;
-                    checkGreen = false;
-                }
-                else if (checkAlpha && img.DisplayName.EndsWith("_A", StringComparison.OrdinalIgnoreCase))
-                {
-                    img.IsAlpha = true;
-                    checkAlpha = false;
-                }
-            }
-
-            vm.MergeChannelsImages.AddRange(newImages);
         }
 
         private void MergeDeselector_Click(object sender, RoutedEventArgs e)

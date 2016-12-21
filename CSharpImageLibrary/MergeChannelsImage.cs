@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using UsefulThings.WPF;
 
-namespace UI_Project
+namespace CSharpImageLibrary
 {
     public class MergeChannelsImage : ViewModelBase
     {
@@ -34,6 +34,7 @@ namespace UI_Project
             set
             {
                 SetProperty(ref isRed, value);
+                OnPropertyChanged(nameof(HasAssignedChannel));
             }
         }
 
@@ -47,6 +48,7 @@ namespace UI_Project
             set
             {
                 SetProperty(ref isGreen, value);
+                OnPropertyChanged(nameof(HasAssignedChannel));
             }
         }
 
@@ -60,6 +62,7 @@ namespace UI_Project
             set
             {
                 SetProperty(ref isBlue, value);
+                OnPropertyChanged(nameof(HasAssignedChannel));
             }
         }
 
@@ -73,6 +76,15 @@ namespace UI_Project
             set
             {
                 SetProperty(ref isAlpha, value);
+                OnPropertyChanged(nameof(HasAssignedChannel));
+            }
+        }
+
+        public bool HasAssignedChannel
+        {
+            get
+            {
+                return IsAlpha || IsRed || IsBlue || IsGreen;
             }
         }
 

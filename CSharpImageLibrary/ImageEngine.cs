@@ -13,6 +13,8 @@ using System.Runtime.InteropServices;
 using System.ComponentModel;
 using CSharpImageLibrary.Headers;
 using CSharpImageLibrary.DDS;
+using System.Collections.Concurrent;
+using System.Threading.Tasks.Dataflow;
 
 namespace CSharpImageLibrary
 {
@@ -205,7 +207,7 @@ namespace CSharpImageLibrary
                 var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
 
                 // Save channel
-                var gray = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height);
+                var gray = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height, PixelFormats.Gray8);
                 PngBitmapEncoder encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(gray));
                 byte[] bytes = null;
@@ -226,13 +228,14 @@ namespace CSharpImageLibrary
 
         static byte[] BuildGrayscaleFromChannel(byte[] pixels, int channel)
         {
-            byte[] destination = new byte[pixels.Length];
+            byte[] destination = new byte[pixels.Length / 4];
             int count = 0;
             for (int i = channel; i < pixels.Length; i+=4)
             {
-                for (int j = 0; j < 3; j++)
+                /*for (int j = 0; j < 3; j++)
                     destination[count++] = pixels[i];
-                destination[count++] = 0xFF;
+                destination[count++] = 0xFF;*/
+                destination[count++] = pixels[i];
             }
 
             return destination;
@@ -499,6 +502,166 @@ namespace CSharpImageLibrary
 
 
             return parsedFormat;
+        }
+
+
+        /// <summary>
+        /// Performs a bulk conversion of a bunch of images given conversion parameters.
+        /// </summary>
+        /// <param name="files">List of supported files to be converted.</param>
+        /// <param name="saveFormat">Destination format of all textures.</param>
+        /// <param name="saveFolder">Destination folder of all textures. Can be null if <paramref name="useSourceAsDestination"/> is set.</param>
+        /// <param name="saveMipType">Determines how to handle mipmaps for converted images.</param>
+        /// <param name="useSourceAsDestination">True = Converted images are saved next to the originals.</param>
+        /// <param name="removeAlpha">True = Alpha is removed from converted images.</param>
+        /// <param name="customMasks">List of user specified DDS colour masks.</param>
+        /// <param name="progressReporter">Progress reporting callback.</param>
+        /// <returns></returns>
+        public static async Task<ConcurrentBag<string>> BulkConvert(IEnumerable<string> files, ImageEngineFormat saveFormat, string saveFolder,
+            MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, List<uint> customMasks = null, IProgress<int> progressReporter = null)
+        {
+            ConcurrentBag<string> Failures = new ConcurrentBag<string>();
+
+
+            // Test if can parallelise uncompressed saving
+            // Below says: Only formats that don't support mips or do but aren't block compressed - can be parallised.
+            bool supportsParallel = !ImageFormats.IsFormatMippable(saveFormat);
+            supportsParallel |= !supportsParallel && !ImageFormats.IsBlockCompressed(saveFormat);
+
+
+            if (EnableThreading && supportsParallel)
+                Failures = await DoBulkParallel(files, saveFormat, saveFolder, saveMipType, useSourceAsDestination, removeAlpha, customMasks, progressReporter);
+            else
+                foreach (var file in files)
+                {
+                    using (ImageEngineImage img = new ImageEngineImage(file))
+                    {
+                        string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(saveFormat);
+                        string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
+
+                        path = UsefulThings.General.FindValidNewFileName(path);
+
+                        try
+                        {
+                            await img.Save(path, saveFormat, saveMipType, removeAlpha: removeAlpha, customMasks: customMasks);
+                        }
+                        catch (Exception e)
+                        {
+                            Failures.Add(path + "  Reason: " + e.ToString());
+                        }
+                    }
+
+                    progressReporter?.Report(1);   // Value not relevent.
+                }
+
+
+            return Failures;
+        }
+
+        static async Task<ConcurrentBag<string>> DoBulkParallel(IEnumerable<string> files, ImageEngineFormat saveFormat, string saveFolder,
+            MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, List<uint> customMasks = null, IProgress<int> progressReporter = null)
+        {
+            ConcurrentBag<string> failures = new ConcurrentBag<string>();
+
+            BufferBlock<string> fileNameStore = new BufferBlock<string>();
+            int maxParallelism = ImageEngine.NumThreads == 1 ? 1 :
+                (ImageEngine.NumThreads == -1 ? Environment.ProcessorCount : ImageEngine.NumThreads);
+
+
+            // Define block to perform each conversion
+            var encoder = new TransformBlock<string, Tuple<byte[], string>>(file =>
+            {
+                byte[] data = null;
+
+                string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(saveFormat);
+                string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
+                path = UsefulThings.General.FindValidNewFileName(path);
+
+                using (ImageEngineImage img = new ImageEngineImage(file))
+                {
+                    try
+                    {
+                        data = img.Save(saveFormat, saveMipType, removeAlpha: removeAlpha, customMasks: customMasks);
+                    }
+                    catch (Exception e)
+                    {
+                        failures.Add(path + "  Reason: " + e.ToString());
+                    }
+                }
+
+                progressReporter.Report(1);  // Value not relevent.
+                return new Tuple<byte[], string>(data, path);
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxParallelism, BoundedCapacity = maxParallelism });
+
+            // Define block to write converted data to disk
+            var diskWriter = new ActionBlock<Tuple<byte[], string>>(tuple =>
+            {
+                File.WriteAllBytes(tuple.Item2, tuple.Item1);
+            }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 2, BoundedCapacity = maxParallelism });  // Limit to 2 disk write operations at a time, but allow many to be stored in it's buffer.
+
+
+            // Link blocks together
+            fileNameStore.LinkTo(encoder, new DataflowLinkOptions { PropagateCompletion = true });
+            encoder.LinkTo(diskWriter, new DataflowLinkOptions { PropagateCompletion = true });
+
+            // Begin production
+            new Action(async () =>
+            {
+                foreach (var file in files)
+                    await fileNameStore.SendAsync(file);
+
+                fileNameStore.Complete();
+            }).Invoke();
+
+            await diskWriter.Completion;
+
+            return failures;
+        }
+
+        /// <summary>
+        /// Merges up to 4 channels into a single image.
+        /// </summary>
+        /// <param name="blue">Blue channel. Can be null.</param>
+        /// <param name="green">Green channel. Can be null.</param>
+        /// <param name="red">Red channel. Can be null.</param>
+        /// <param name="alpha">Alpha channel. Can be null.</param>
+        /// <returns>Merged image.</returns>
+        public static ImageEngineImage MergeChannels(MergeChannelsImage blue, MergeChannelsImage green, MergeChannelsImage red, MergeChannelsImage alpha)
+        {
+            // Merge selected channels
+            int length = red?.Pixels.Length ?? blue?.Pixels.Length ?? green?.Pixels.Length ?? alpha?.Pixels.Length ?? 0;
+            int width = red?.Width ?? blue?.Width ?? green?.Width ?? alpha?.Width ?? 0;
+            int height = red?.Height ?? blue?.Height ?? green?.Height ?? alpha?.Height ?? 0;
+
+            byte[] merged = new byte[length];
+
+            if (EnableThreading)
+            {
+                var merger = new Action<int, MergeChannelsImage>((start, channel) =>
+                {
+                    for (int i = start; i < length; i += 4)
+                        merged[start] = channel?.Pixels[start] ?? 0;
+                });
+                var b = Task.Run(() => merger(0, blue));
+                var g = Task.Run(() => merger(1, green));
+                var r = Task.Run(() => merger(2, red));
+                var a = Task.Run(() => merger(3, alpha));
+
+                Task.WaitAll(b, g, r, a);
+            }
+            else
+            {
+                for (int i = 0; i < length; i += 4)
+                {
+                    merged[i] = blue?.Pixels[i] ?? 0;
+                    merged[i + 1] = green?.Pixels[i + 1] ?? 0;
+                    merged[i + 2] = red?.Pixels[i + 2] ?? 0;
+                    merged[i + 3] = alpha?.Pixels[i + 3] ?? 0;
+                }
+            }
+
+            var mip = new MipMap(merged, width, height);
+            return new ImageEngineImage(mip);
         }
     }
 }

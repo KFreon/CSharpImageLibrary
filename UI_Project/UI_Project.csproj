@@ -60,10 +60,6 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Management" />
-    <Reference Include="System.Threading.Tasks.Dataflow, Version=4.5.24.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\Microsoft.Tpl.Dataflow.4.5.24\lib\portable-net45+win8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="System.Xml" />
@@ -76,8 +72,7 @@
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
     <Reference Include="UsefulThings, Version=1.7.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\UsefulThings\UsefulThings\bin\Debug\UsefulThings.dll</HintPath>
+      <HintPath>..\packages\UsefulCSharpThings.1.7.0\lib\net462\UsefulThings.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -93,7 +88,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Design_ViewModel.cs" />
-    <Compile Include="MergeChannelsImage.cs" />
     <Compile Include="NewMainWindow.xaml.cs">
       <DependentUpon>NewMainWindow.xaml</DependentUpon>
     </Compile>
