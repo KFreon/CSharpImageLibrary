@@ -207,9 +207,9 @@ namespace CSharpImageLibrary
                 var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
 
                 // Save channel
-                var gray = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height, PixelFormats.Gray8);
+                var img = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height, PixelFormats.Gray8);
                 PngBitmapEncoder encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(gray));
+                encoder.Frames.Add(BitmapFrame.Create(img));
                 byte[] bytes = null;
                 using (MemoryStream ms = new MemoryStream(grayChannel.Length))
                 {
@@ -229,14 +229,9 @@ namespace CSharpImageLibrary
         static byte[] BuildGrayscaleFromChannel(byte[] pixels, int channel)
         {
             byte[] destination = new byte[pixels.Length / 4];
-            int count = 0;
-            for (int i = channel; i < pixels.Length; i+=4)
-            {
-                /*for (int j = 0; j < 3; j++)
-                    destination[count++] = pixels[i];
-                destination[count++] = 0xFF;*/
-                destination[count++] = pixels[i];
-            }
+            for (int i = channel, count = 0; i < pixels.Length; i+=4, count++)
+                destination[count] = pixels[i];
+            
 
             return destination;
         }
@@ -632,6 +627,11 @@ namespace CSharpImageLibrary
             int length = red?.Pixels.Length ?? blue?.Pixels.Length ?? green?.Pixels.Length ?? alpha?.Pixels.Length ?? 0;
             int width = red?.Width ?? blue?.Width ?? green?.Width ?? alpha?.Width ?? 0;
             int height = red?.Height ?? blue?.Height ?? green?.Height ?? alpha?.Height ?? 0;
+
+            // Tests
+            var testChannel = blue ?? red ?? green ?? alpha;
+            if (!testChannel.IsCompatibleWith(blue, red, green, alpha))
+                throw new ArgumentException("All channels must have the same dimensions and data length.");
 
             byte[] merged = new byte[length];
 

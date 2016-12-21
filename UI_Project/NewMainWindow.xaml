@@ -109,12 +109,31 @@
                 <Setter Property="FontWeight" Value="Bold"/>
             </Style>
 
+            <!--Required to override defaults-->
+            <ControlTemplate x:Key="ButtonHoverTemplate" TargetType="Button">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Margin="{TemplateBinding Margin}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                </Border>
+            </ControlTemplate>
+            
             <Style TargetType="Button">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderBrush" Value="LightGray"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Padding" Value="10,3"/>
+                <Setter Property="Template" Value="{StaticResource ButtonHoverTemplate}"/>
+
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect ShadowDepth="0" Color="White" BlurRadius="5" RenderingBias="Quality"/>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Background" Value="Black"/>
+                    </Trigger>
+                </Style.Triggers>
             </Style>
 
             <Style TargetType="TextBox">
