@@ -22,7 +22,7 @@ namespace CSharpImageLibrary
         /// Unknown image format. Using this as a save/load format will fail that operation.
         /// </summary>
         [Description("Unknown image format. Using this as a save/load format will fail that operation.")]
-        Unknown = 1,
+        Unknown = 0,
 
         /// <summary>
         /// Standard JPEG image handled by everything.

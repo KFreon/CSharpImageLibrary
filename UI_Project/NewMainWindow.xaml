@@ -111,7 +111,7 @@
 
             <!--Required to override defaults-->
             <ControlTemplate x:Key="ButtonHoverTemplate" TargetType="Button">
-                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Margin="{TemplateBinding Margin}">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                 </Border>
             </ControlTemplate>
@@ -128,10 +128,10 @@
                     <Trigger Property="IsMouseOver" Value="True">
                         <Setter Property="Effect">
                             <Setter.Value>
-                                <DropShadowEffect ShadowDepth="0" Color="White" BlurRadius="5" RenderingBias="Quality"/>
+                                <DropShadowEffect ShadowDepth="0" Color="LightGreen" BlurRadius="5" RenderingBias="Quality"/>
                             </Setter.Value>
                         </Setter>
-                        <Setter Property="Background" Value="Black"/>
+                        <Setter Property="Background" Value="#B2008000"/>
                     </Trigger>
                 </Style.Triggers>
             </Style>

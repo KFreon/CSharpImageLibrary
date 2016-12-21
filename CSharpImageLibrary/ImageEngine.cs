@@ -640,7 +640,7 @@ namespace CSharpImageLibrary
                 var merger = new Action<int, MergeChannelsImage>((start, channel) =>
                 {
                     for (int i = start; i < length; i += 4)
-                        merged[start] = channel?.Pixels[start] ?? 0;
+                        merged[i] = channel?.Pixels[i] ?? 0;
                 });
                 var b = Task.Run(() => merger(0, blue));
                 var g = Task.Run(() => merger(1, green));
