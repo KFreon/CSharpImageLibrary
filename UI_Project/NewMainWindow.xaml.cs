@@ -36,6 +36,10 @@ namespace UI_Project
 
         public NewMainWindow()
         {
+            // Get Properties
+            if (Properties.Settings.Default.UpgradeRequired)
+                Properties.Settings.Default.Upgrade();
+
             vm = new NewViewModel();
 
             DragDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
@@ -100,7 +104,7 @@ namespace UI_Project
 
 
             // Prevent maximised window overtaking the taskbar
-            this.MaxHeight = SystemParameters.MaximizedPrimaryScreenHeight;
+            this.MaxHeight = SystemParameters.MaximizedPrimaryScreenHeight - 5;
 
             // Setup events for linking image viewbox pan and scroll
             PanZoomLinkButton.Checked += (sender, args) => LoadedImageViewBox.Link(SaveImageViewBox);
@@ -121,6 +125,13 @@ namespace UI_Project
                     MessageBox.Show("Unhandled exception occured." + Environment.NewLine + args.Exception);
                     this.Close();  // Might not work I guess, but either way, it's going down.
                 };
+
+
+            UseWindowTransparencyChecker.IsChecked = Properties.Settings.Default.IsWindowBlurred;
+
+            // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
+            this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
+
         }
 
         void CloseSavePanel()
@@ -135,7 +146,14 @@ namespace UI_Project
 
         private void WindowMinMaxButton_Click(object sender, RoutedEventArgs e)
         {
-            this.WindowState = this.WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
+            // Only do this if coming from the button.
+            if (e != null)
+                this.WindowState = this.WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
+
+            if (this.WindowState == WindowState.Maximized)
+                MainGrid.Margin = new Thickness(10, 7, 10,7);
+            else
+                MainGrid.Margin = new Thickness(0,0,3,5);
         }
 
         private void WindowMinimiseButton_Click(object sender, RoutedEventArgs e)
@@ -150,7 +168,8 @@ namespace UI_Project
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            UsefulThings.WPF.WindowBlur.EnableBlur(this);
+            if (Properties.Settings.Default.IsWindowBlurred)
+                UsefulThings.WPF.WindowBlur.EnableBlur(this);
         }
 
         string prev_LoadDialogFolder = null;
@@ -573,6 +592,24 @@ namespace UI_Project
         private void MergeChannelPanel_DragOver(object sender, DragEventArgs e)
         {
             MergeDropHandler.DragOver(e);
+        }
+
+        private void UseWindowTransparencyChecker_Checked(object sender, RoutedEventArgs e)
+        {
+            UsefulThings.WPF.WindowBlur.EnableBlur(this);
+            Properties.Settings.Default.IsWindowBlurred = true;
+        }
+
+        private void UseWindowTransparencyChecker_Unchecked(object sender, RoutedEventArgs e)
+        {
+            //UsefulThings.WPF.WindowBlur.DisableBlur(this);
+            Properties.Settings.Default.IsWindowBlurred = false;
+        }
+
+        private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Properties.Settings.Default.NumThreads = ImageEngine.NumThreads;
+            Properties.Settings.Default.Save();
         }
     }
 }
