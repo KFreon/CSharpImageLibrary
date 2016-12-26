@@ -6,22 +6,13 @@ For those not on Windows 8.1+, manual codecs are used.
 
 [Nuget Package](https://www.nuget.org/packages/CSharpImageLibrary/)
 
-Screenshots
-====
-Convert Panel Open (DXT5 loaded, converting to G8_L8)
-![None](http://i.imgur.com/7R1o4XM.jpg "Standard Convert Panel Open")
-
-Bulk Convert Panel Open
-![None](http://i.imgur.com/554NPu1.jpg "Bulk Convert Panel Open")
-
-
-
 Current Features
 ====
 - Supported formats: DXT1-5 [Otherwise known as BC1,2,3], V8U8, G8/L8, ATI1, ATI2/3Dc [Otherwise known as BC4 and 5], ARGB (and variants e.g. ABGR), jpg, png, bmp, tga, gif, TIFF.   
 - Reads mips and uses them when saving.
 - Load and save any of the supported formats with, or without, mipmaps.
 - Access to Pixel data (RGBA) for all mipmap levels.
+- NEW: Ability to split image into its colour channels, and ability to merge up to 4 channels into a single image.
 - Speed seems pretty good.
 - Easy Object Oriented usage.
 - Library (DLL) or UI versions available (UI only on Git, Library on Nuget)
@@ -34,6 +25,15 @@ Usage
 ===
 ImageEngineImage img = new ImageEngineImage("path to image file", 512)  // Loads image at a max dimension of 512. e.g. a 1024x2048 image would be loaded in as a 256x512 image.
 BitmapImage bitmap = new BitmapImage(img.MipMaps[0]);   // Pseudo code of course, but the mipmap is raw pixels, and needs to be encoded to something else.
+
+
+Screenshots
+====
+Convert Panel Open (DXT5 loaded, converting to G8_L8)
+![None](http://i.imgur.com/7R1o4XM.jpg "Standard Convert Panel Open")
+
+Bulk Convert Panel Open
+![None](http://i.imgur.com/554NPu1.jpg "Bulk Convert Panel Open")
 
 
 NEW TESTS!!
