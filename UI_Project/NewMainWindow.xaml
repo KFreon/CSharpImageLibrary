@@ -769,7 +769,7 @@
                     </Canvas>
 
 
-                    <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False" Margin="128,0,128.333,0.333" Width="99"/>
+                    <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False" VerticalAlignment="Top"/>
                     <ScrollViewer Grid.Column="1" Margin="1,25,0.333,0.333" HorizontalScrollBarVisibility="Auto">
                         <TextBox Text="{Binding HeaderDetails, Mode=OneWay}" Background="Transparent" Foreground="White" FontSize="10"/>
                     </ScrollViewer>

@@ -110,7 +110,8 @@ namespace CSharpImageLibrary
                     // KFreon: Skip mipmaps that are too big if asked to load a smaller image
                     if (alternateDecodeDimensions)
                     {
-                        if (mipmap.Width > alternateWidth || mipmap.Height > alternateHeight)
+                        if ((alternateWidth != 0 && mipmap.Width > alternateWidth) || 
+                            (alternateHeight != 0 && mipmap.Height > alternateHeight))
                             continue;
                     }
 
@@ -122,6 +123,16 @@ namespace CSharpImageLibrary
                     // KFreon: Image has no mips, so resize largest
                     var frame = decoder.Frames[0];
                     var mip = new MipMap(frame.GetPixelsAsBGRA32(), frame.PixelWidth, frame.PixelHeight);
+
+                    // Calculate scale if required
+                    if (scale == 0)
+                    {
+                        double xScale = alternateWidth * 1.0 / frame.PixelWidth;
+                        double yScale = alternateHeight * 1.0 / frame.PixelHeight;
+
+                        scale = xScale == 0 ? yScale : xScale;
+                    }
+
                     mip = ImageEngine.Resize(mip, scale);
                     mipmaps.Add(mip);
                 }

@@ -68,9 +68,9 @@ namespace CSharpImageLibrary.DDS
                 });
 
                 // Actually perform decompression using threading, no threading, or GPU.
-                if (ImageEngine.EnableGPUAcceleration)
+                /*if (ImageEngine.EnableGPUAcceleration)
                     Debugger.Break(); 
-                else if (ImageEngine.EnableThreading)
+                else */if (ImageEngine.EnableThreading)
                     Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (texelIndex, loopstate) => action(texelIndex, loopstate));
                 else
                     for (int texelIndex = 0; texelIndex < texelCount; texelIndex++)
@@ -258,7 +258,7 @@ namespace CSharpImageLibrary.DDS
                     compressor = DDS_Encoders.CompressBC5Block;
                     break;
                 case ImageEngineFormat.DDS_DX10:
-                    Debugger.Break();
+                    //Debugger.Break();
                     break; // TODO: NOT SUPPORTED YET. DX10
                 case ImageEngineFormat.DDS_DXT1:
                     compressor = DDS_Encoders.CompressBC1Block;
@@ -346,9 +346,9 @@ namespace CSharpImageLibrary.DDS
             });
 
             // Choose an acceleration method.
-            if (ImageEngine.EnableGPUAcceleration)
+            /*if (ImageEngine.EnableGPUAcceleration)
                 Debugger.Break(); 
-            else if (ImageEngine.EnableThreading)
+            else*/ if (ImageEngine.EnableThreading)
                 Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, mipWriter);
             else
                 for (int i = 0; i < destinationTexelCount; i++)
