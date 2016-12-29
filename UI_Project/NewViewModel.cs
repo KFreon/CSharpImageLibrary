@@ -289,6 +289,70 @@ namespace UI_Project
         #endregion Merge Channels Properties
 
         #region General Properties
+        byte windowBackground_Red = 0;
+        public byte WindowBackground_Red
+        {
+            get
+            {
+                return windowBackground_Red;
+            }
+            set
+            {
+                SetProperty(ref windowBackground_Red, value);
+                OnPropertyChanged(nameof(WindowBackgroundColour));
+            }
+        }
+
+        byte windowBackground_Green = 0;
+        public byte WindowBackground_Green
+        {
+            get
+            {
+                return windowBackground_Green;
+            }
+            set
+            {
+                SetProperty(ref windowBackground_Green, value);
+                OnPropertyChanged(nameof(WindowBackgroundColour));
+            }
+        }
+
+        byte windowBackground_Blue = 0;
+        public byte WindowBackground_Blue
+        {
+            get
+            {
+                return windowBackground_Blue;
+            }
+            set
+            {
+                SetProperty(ref windowBackground_Blue, value);
+                OnPropertyChanged(nameof(WindowBackgroundColour));
+            }
+        }
+
+        byte windowBackground_Alpha = 158;
+        public byte WindowBackground_Alpha
+        {
+            get
+            {
+                return windowBackground_Alpha;
+            }
+            set
+            {
+                SetProperty(ref windowBackground_Alpha, value);
+                OnPropertyChanged(nameof(WindowBackgroundColour));
+            }
+        }
+
+        public Brush WindowBackgroundColour
+        {
+            get
+            {
+                return new SolidColorBrush(Color.FromArgb(WindowBackground_Alpha, WindowBackground_Red, WindowBackground_Green, WindowBackground_Blue));
+            }
+        }
+
         bool splitChannels = false;
         public bool SplitChannels
         {
@@ -928,6 +992,7 @@ namespace UI_Project
         #endregion General Properties
 
 
+
         public NewViewModel() : base()
         {
             // Space out the Output Window a bit
@@ -942,6 +1007,12 @@ namespace UI_Project
             };
 
             MergeChannelsImages.CollectionChanged += (sender, args) => OnPropertyChanged(nameof(MergeChannelsReady));
+
+            // Set background colour
+            WindowBackground_Alpha = Properties.Settings.Default.BackgroundAlpha;
+            WindowBackground_Red = Properties.Settings.Default.BackgroundRed;
+            WindowBackground_Green = Properties.Settings.Default.BackgroundGreen;
+            WindowBackground_Blue = Properties.Settings.Default.BackgroundBlue;
         }
 
         internal async Task LoadImage(string path)

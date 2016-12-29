@@ -602,14 +602,27 @@ namespace UI_Project
 
         private void UseWindowTransparencyChecker_Unchecked(object sender, RoutedEventArgs e)
         {
-            //UsefulThings.WPF.WindowBlur.DisableBlur(this);
+            UsefulThings.WPF.WindowBlur.DisableBlur(this);
             Properties.Settings.Default.IsWindowBlurred = false;
         }
 
         private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Properties.Settings.Default.NumThreads = ImageEngine.NumThreads;
+            Properties.Settings.Default.BackgroundAlpha = vm.WindowBackground_Alpha;
+            Properties.Settings.Default.BackgroundRed = vm.WindowBackground_Red;
+            Properties.Settings.Default.BackgroundGreen = vm.WindowBackground_Green;
+            Properties.Settings.Default.BackgroundBlue = vm.WindowBackground_Blue;
             Properties.Settings.Default.Save();
+        }
+
+        private void Settings_ColoursDefaultButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.WindowBackground_Alpha = 158;
+            vm.WindowBackground_Red = 0;
+            vm.WindowBackground_Green = 0;
+            vm.WindowBackground_Blue = 0;
+            UseWindowTransparencyChecker_Checked(null, null); // Blur background
         }
     }
 }

@@ -11,5 +11,17 @@
     <Setting Name="NumThreads" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">-1</Value>
     </Setting>
+    <Setting Name="BackgroundRed" Type="System.Byte" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="BackgroundGreen" Type="System.Byte" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="BackgroundBlue" Type="System.Byte" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="BackgroundAlpha" Type="System.Byte" Scope="User">
+      <Value Profile="(Default)">158</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -58,5 +58,53 @@ namespace UI_Project.Properties {
                 this["NumThreads"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public byte BackgroundRed {
+            get {
+                return ((byte)(this["BackgroundRed"]));
+            }
+            set {
+                this["BackgroundRed"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public byte BackgroundGreen {
+            get {
+                return ((byte)(this["BackgroundGreen"]));
+            }
+            set {
+                this["BackgroundGreen"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public byte BackgroundBlue {
+            get {
+                return ((byte)(this["BackgroundBlue"]));
+            }
+            set {
+                this["BackgroundBlue"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("158")]
+        public byte BackgroundAlpha {
+            get {
+                return ((byte)(this["BackgroundAlpha"]));
+            }
+            set {
+                this["BackgroundAlpha"] = value;
+            }
+        }
     }
 }
