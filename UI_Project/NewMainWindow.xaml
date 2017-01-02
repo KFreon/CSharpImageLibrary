@@ -192,10 +192,12 @@
             </Style>
 
             <ControlTemplate x:Key="GeneralAlphaSettingsTemplate">
-                <DockPanel>
-                    <Label Content="Alpha Settings" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                    <CheckBox Content="Remove Alpha Channel" Foreground="White" IsChecked="{Binding RemoveGeneralAlpha}" DockPanel.Dock="Top" Margin="5,0,0,0"/>
-                </DockPanel>
+                <Border BorderBrush="Gray" BorderThickness="0.5">
+                    <DockPanel>
+                        <Label Content="Alpha Settings" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
+                        <CheckBox Content="Remove Alpha Channel" Foreground="White" IsChecked="{Binding RemoveGeneralAlpha}" DockPanel.Dock="Top" Margin="5,0,0,0"/>
+                    </DockPanel>
+                </Border>
             </ControlTemplate>
 
             <Style TargetType="ContentControl" x:Key="DXT1AlphaSettingVisibility">
@@ -219,69 +221,73 @@
             </Style>
 
             <ControlTemplate x:Key="CustomDDSSettings">
-                <DockPanel DockPanel.Dock="Bottom">
-                    <Label Content="Custom DDS Colour Masks" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
-                    <Label Content="Note: These are untested and experimental. Good luck." DockPanel.Dock="Top" HorizontalAlignment="Center"/>
-                    <DockPanel LastChildFill="False">
-                        <DockPanel.Resources>
-                            <Style TargetType="TextBox">
-                                <Setter Property="Width" Value="80"/>
-                                <Setter Property="Margin" Value="0,0,10,0"/>
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            </Style>
+                <Border BorderBrush="Gray" BorderThickness="0.5">
+                    <DockPanel DockPanel.Dock="Bottom">
+                        <Label Content="Custom DDS Colour Masks" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
+                        <Label Content="Note: These are untested and experimental. Good luck." DockPanel.Dock="Top" HorizontalAlignment="Center"/>
+                        <DockPanel LastChildFill="False">
+                            <DockPanel.Resources>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Width" Value="80"/>
+                                    <Setter Property="Margin" Value="0,0,10,0"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                </Style>
 
-                            <Style TargetType="Label">
-                                <Setter Property="Foreground" Value="White"/>
-                            </Style>
-                        </DockPanel.Resources>
-                        <Label Content="Alpha:"/>
-                        <TextBox Text="{Binding AMask, StringFormat=0x{0:X8}}"/>
+                                <Style TargetType="Label">
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Style>
+                            </DockPanel.Resources>
+                            <Label Content="Alpha:"/>
+                            <TextBox Text="{Binding AMask, StringFormat=0x{0:X8}}"/>
 
-                        <Label Content="Red:"/>
-                        <TextBox Text="{Binding RMask, StringFormat=0x{0:X8}}"/>
+                            <Label Content="Red:"/>
+                            <TextBox Text="{Binding RMask, StringFormat=0x{0:X8}}"/>
 
-                        <Label Content="Green:"/>
-                        <TextBox Text="{Binding GMask, StringFormat=0x{0:X8}}"/>
+                            <Label Content="Green:"/>
+                            <TextBox Text="{Binding GMask, StringFormat=0x{0:X8}}"/>
 
-                        <Label Content="Blue:"/>
-                        <TextBox Text="{Binding BMask, StringFormat=0x{0:X8}}"/>
+                            <Label Content="Blue:"/>
+                            <TextBox Text="{Binding BMask, StringFormat=0x{0:X8}}"/>
+                        </DockPanel>
                     </DockPanel>
-                </DockPanel>
+                </Border>
             </ControlTemplate>
             
             <ControlTemplate x:Key="DXT1AlphaSettingTemplate">
-                <DockPanel>
-                    <DockPanel.Resources>
-                        <Style TargetType="RadioButton">
-                            <Setter Property="Margin" Value="8,0"/>
-                            <Setter Property="VerticalContentAlignment" Value="Center"/>
-                            <Setter Property="Foreground" Value="White"/>
-                        </Style>
-                    </DockPanel.Resources>
-
-
-                    <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
-                    <RadioButton GroupName="{TemplateBinding Name}" Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
-                    <RadioButton GroupName="{TemplateBinding Name}" Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                    <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                    <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
-                               Style="{StaticResource ValueStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                    <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
-                        <Slider.Style>
-                            <Style TargetType="Slider">
-                                <Setter Property="IsEnabled" Value="True"/>
-                                <Setter Property="Opacity" Value="1"/>
-
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DXT1AlphaRemove}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False"/>
-                                        <Setter Property="Opacity" Value="0.6"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
+                <Border BorderBrush="Gray" BorderThickness="0.5">
+                    <DockPanel>
+                        <DockPanel.Resources>
+                            <Style TargetType="RadioButton">
+                                <Setter Property="Margin" Value="8,0"/>
+                                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                <Setter Property="Foreground" Value="White"/>
                             </Style>
-                        </Slider.Style>
-                    </Slider>
-                </DockPanel>
+                        </DockPanel.Resources>
+
+
+                        <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
+                        <RadioButton GroupName="{TemplateBinding Name}" Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
+                        <RadioButton GroupName="{TemplateBinding Name}" Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                        <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                        <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
+                               Style="{StaticResource ValueStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
+                        <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
+                            <Slider.Style>
+                                <Style TargetType="Slider">
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                    <Setter Property="Opacity" Value="1"/>
+
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DXT1AlphaRemove}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Slider.Style>
+                        </Slider>
+                    </DockPanel>
+                </Border>
             </ControlTemplate>
 
             <ControlTemplate x:Key="MainFormatSelector">
@@ -306,11 +312,13 @@
             </Style>
 
             <ControlTemplate x:Key="JPGSettingsTemplate">
-                <DockPanel >
-                    <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                    <TextBlock Text="{Binding JPG_CompressionSetting, StringFormat={}{0}%}" DockPanel.Dock="Right" Style="{StaticResource ValueStyle}" VerticalAlignment="Center"/>
-                    <Slider Minimum="1" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
-                </DockPanel>
+                <Border BorderBrush="Gray" BorderThickness="0.5">
+                    <DockPanel >
+                        <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
+                        <TextBlock Text="{Binding JPG_CompressionSetting, StringFormat={}{0}%}" DockPanel.Dock="Right" Style="{StaticResource ValueStyle}" VerticalAlignment="Center"/>
+                        <Slider Minimum="1" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
+                    </DockPanel>
+                </Border>
             </ControlTemplate>
 
             <ControlTemplate x:Key="MipSettingsTemplate">
@@ -771,7 +779,7 @@
 
 
                     <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False" VerticalAlignment="Top"/>
-                    <ScrollViewer Grid.Column="1" Margin="1,25,0.333,0.333" HorizontalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Column="1" Margin="1,25,0.333,2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                         <TextBox Text="{Binding HeaderDetails, Mode=OneWay}" Background="Transparent" Foreground="White" FontSize="10"/>
                     </ScrollViewer>
                 </Grid>
@@ -819,7 +827,7 @@
                 <Button Content="Save!" VerticalAlignment="Bottom" HorizontalAlignment="Center" FontWeight="Bold" Command="{Binding SaveCommand}" Grid.Column="1"/>
             </Grid>
 
-            <ScrollViewer DockPanel.Dock="Top">
+            <ScrollViewer DockPanel.Dock="Top" VerticalScrollBarVisibility="Auto">
                 <DockPanel LastChildFill="False">
                     <Label Content="Save Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
 
@@ -834,6 +842,12 @@
 
                     <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False" 
                                Visibility="{Binding SplitChannels, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}">
+                        <ContentControl x:Name="CustomDDSSettingsPanel" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource CustomDDSSettings}" Style="{StaticResource CustomDDSSettingsVisibility}"/>
+                        <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
+
+                        <Separator DockPanel.Dock="Top"/>
+
+                        <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Top"/>
                         <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom">
                             <TextBlock Style="{StaticResource VisibleTextDisplayStyle}" TextAlignment="Center" FontSize="16">
                         <Run Text="Compressed Size: " FontWeight="Bold"/>
@@ -864,10 +878,6 @@
                             </TextBlock>
 
                         </StackPanel>
-
-                        <Label Content="Format Details" Style="{StaticResource TitleStyle}" FontSize="18" DockPanel.Dock="Bottom"/>
-                        <ContentControl x:Name="CustomDDSSettingsPanel" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource CustomDDSSettings}" Style="{StaticResource CustomDDSSettingsVisibility}"/>
-                        <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
                     </DockPanel>
 
                     <DockPanel x:Name="FormatSpecificSettingsArea" DockPanel.Dock="Top" Visibility="{Binding SplitChannels, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}">

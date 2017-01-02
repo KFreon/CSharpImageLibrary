@@ -48,9 +48,9 @@ namespace CSharpImageLibrary.DDS
         {
             RGBColour colour = new RGBColour()
             {
-                r = ((wColour >> 11) & 31) * (1f / 31f),
-                g = ((wColour >> 5) & 63) * (1f / 63f),
-                b = ((wColour >> 0) & 31) * (1f / 31f),
+                r = ((wColour >> 11) & 0x1F) / 31f,
+                g = ((wColour >> 5) & 0x3F) / 63f,
+                b = ((wColour >> 0) & 0x1F) / 31f,
                 a = 1f
             };
             return colour;
