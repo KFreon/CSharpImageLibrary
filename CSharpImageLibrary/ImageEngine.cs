@@ -149,7 +149,7 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.TGA:
                     using (var tga = new TargaImage(imageStream, ((TGA_Header)header).header))
-                        MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height) }; 
+                        MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, 1) }; 
                     break;
                 case ImageEngineFormat.DDS_DX10:
                     throw new FormatException("DX10/DXGI not supported properly yet.");
@@ -344,7 +344,7 @@ namespace CSharpImageLibrary
         {
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
             baseBMP.Freeze();
-            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height);
+            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.ComponentSize);
 
             #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
@@ -426,7 +426,7 @@ namespace CSharpImageLibrary
             #endregion Old code
         }
 
-        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height)
+        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height, int componentSize)
         {
             int origWidth = width;
             int origHeight = height;
@@ -440,7 +440,7 @@ namespace CSharpImageLibrary
             bmp.Freeze();
             newPixels = bmp.GetPixelsAsBGRA32();
 
-            return new MipMap(newPixels, newWidth, newHeight);
+            return new MipMap(newPixels, newWidth, newHeight, componentSize);
         }
 
 
@@ -627,7 +627,7 @@ namespace CSharpImageLibrary
             int length = red?.Pixels.Length ?? blue?.Pixels.Length ?? green?.Pixels.Length ?? alpha?.Pixels.Length ?? 0;
             int width = red?.Width ?? blue?.Width ?? green?.Width ?? alpha?.Width ?? 0;
             int height = red?.Height ?? blue?.Height ?? green?.Height ?? alpha?.Height ?? 0;
-
+            
             // Tests
             var testChannel = blue ?? red ?? green ?? alpha;
             if (!testChannel.IsCompatibleWith(blue, red, green, alpha))
@@ -660,7 +660,7 @@ namespace CSharpImageLibrary
                 }
             }
 
-            var mip = new MipMap(merged, width, height);
+            var mip = new MipMap(merged, width, height, testChannel.ComponentSize);
             return new ImageEngineImage(mip);
         }
     }

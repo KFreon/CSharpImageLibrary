@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulThings;
 
 namespace CSharpImageLibrary.DDS
 {
@@ -166,20 +167,53 @@ namespace CSharpImageLibrary.DDS
             else
             {
                 // Set default ordering
-                AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
-                RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
-                GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
-                BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
+                AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask) * ddspf.ComponentSize;
+                RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask) * ddspf.ComponentSize;
+                GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask) * ddspf.ComponentSize;
+                BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask) * ddspf.ComponentSize;
             }
 
-            for (int i = 0, j = sourceStart; i < pixelCount * 4; i += 4, j += sourceIncrement)
+            // Get suitable reader
+            Action<byte[], int, byte[], int, int> reader = ReadByte;
+            if (ddspf.ComponentSize == 2)
+                reader = ReadUShort;
+            else if (ddspf.ComponentSize == 4)
+                reader = ReadUInt;
+
+            int destAInd = 3 * ddspf.ComponentSize;
+            int destRInd = 0 * ddspf.ComponentSize;
+            int destGInd = 1 * ddspf.ComponentSize;
+            int destBInd = 2 * ddspf.ComponentSize;
+
+            for (int i = 0, j = sourceStart; i < pixelCount * 4 * ddspf.ComponentSize; i += 4 * ddspf.ComponentSize, j += sourceIncrement)
             {
-                destination[i] = BIndex == -1 ? (byte)0xFF : (byte)(source[j + BIndex] - signedAdjustment);
-                destination[i + 1] = GIndex == -1 ? (byte)0xFF : (byte)(source[j + GIndex] - signedAdjustment);
-                destination[i + 2] = RIndex == -1 ? (byte)0xFF : (byte)(source[j + RIndex] - signedAdjustment);
-                destination[i + 3] = AIndex == -1 ? (byte)0xFF : (source[j + AIndex]);
+                reader(source, j + BIndex, destination, i + destBInd, BIndex);
+                reader(source, j + GIndex, destination, i + destGInd, GIndex);
+                reader(source, j + RIndex, destination, i + destRInd, RIndex);
+                reader(source, j + AIndex, destination, i + destAInd, AIndex);
             }
         }
+
+        static void ReadByte(byte[] source, int sourceInd, byte[] destination, int destInd, int CInd)
+        {
+            destination[destInd] = CInd == -1 ? (byte)0xFF : source[sourceInd];
+        }
+
+        static void ReadUShort(byte[] source, int sourceInd, byte[] destination, int destInd, int CInd)
+        {
+            destination[destInd] = CInd == -1 ? (byte)0xFF : source[sourceInd];
+            destination[destInd + 1] = CInd == -1 ? (byte)0xFF : source[sourceInd + 1];
+        }
+
+        static void ReadUInt(byte[] source, int sourceInd, byte[] destination, int destInd, int CInd)
+        {
+            destination[destInd] = CInd == -1 ? (byte)0 : source[sourceInd];
+            destination[destInd + 1] = CInd == -1 ? (byte)0 : source[sourceInd + 1];
+            destination[destInd + 2] = CInd == -1 ? (byte)128 : source[sourceInd + 2];
+            destination[destInd + 3] = CInd == -1 ? (byte)63 : source[sourceInd + 3];
+        }
+
+
         #endregion Uncompressed Readers
     }
 }

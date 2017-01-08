@@ -28,6 +28,16 @@ namespace CSharpImageLibrary.Headers
         public struct DDS_PIXELFORMAT
         {
             /// <summary>
+            /// Size of components in channel in bytes. i.e. 16 bits per channel = 2 (ushort)
+            /// </summary>
+            public int ComponentSize { get; set; }
+
+            /// <summary>
+            /// Indicates whether format is a float format or not.
+            /// </summary>
+            public bool IsFloat { get; set; }
+
+            /// <summary>
             /// Sub-header Size in bytes.
             /// </summary>
             public int dwSize { get; set; }
@@ -81,6 +91,53 @@ namespace CSharpImageLibrary.Headers
                 dwGBitMask = BitConverter.ToUInt32(temp, 96);
                 dwBBitMask = BitConverter.ToUInt32(temp, 100);
                 dwABitMask = BitConverter.ToUInt32(temp, 104);
+
+                ComponentSize = 1;
+                IsFloat = false;
+
+                bool noMasks = dwABitMask == 0 && dwBBitMask == 0 && dwGBitMask == 0 && dwRBitMask == 0;
+
+                // Component Size
+                switch (dwFourCC)
+                {
+                    case FourCC.A16B16G16R16:
+                        if (noMasks)
+                        {
+                            dwABitMask = 4;
+                            dwBBitMask = 3;
+                            dwGBitMask = 2;
+                            dwRBitMask = 1;
+                            dwRGBBitCount = 16 * 4;
+                        }
+                        ComponentSize = 2;
+                        break;
+                    case FourCC.A16B16G16R16F:
+                        if (noMasks)
+                        {
+                            dwABitMask = 4;
+                            dwBBitMask = 3;
+                            dwGBitMask = 2;
+                            dwRBitMask = 1;
+                            dwRGBBitCount = 16 * 4;
+                        }
+                        ComponentSize = 2;
+                        IsFloat = true;
+                        break;
+                    case FourCC.A32B32G32R32F:
+                        if (noMasks)
+                        {
+                            dwABitMask = 4;
+                            dwBBitMask = 3;
+                            dwGBitMask = 2;
+                            dwRBitMask = 1;
+                            dwRGBBitCount = 32 * 4;
+                        }
+                        ComponentSize = 4;
+                        IsFloat = true;
+                        break;
+
+                    // Others I know, but they aren't supported for now. Too uncommon and too much work to add for fun.
+                }
             }
             
             /// <summary>
@@ -231,6 +288,65 @@ namespace CSharpImageLibrary.Headers
             /// Used for Normal (bump) Maps. Pair of 8 bit channels.
             /// </summary>
             ATI2N_3Dc = 0x32495441,
+
+            R8G8B8 = 20,
+            A8R8G8B8,
+            X8R8G8B8,
+            R5G6B5,
+            X1R5G5B5,
+            A1R5G5B5,
+            A4R4G4B4,
+            R3G3B2,
+            A8,
+            A8R3G3B2,
+            X4R4G4B4,
+            A2B10G10R10,
+            A8B8G8R8,
+            X8B8G8R8,
+            G16R16,
+            A2R10G10B10,
+            A16B16G16R16,
+
+            A8P8 = 40,
+            P8,
+
+            L8 = 50,
+            A8L8,
+            A4L4,
+
+            V8U8 = 60,
+            L6V5U5,
+            X8L8V8U8,
+            Q8W8V8U8,
+            V16U16,
+            A2W10V10U10,
+
+            UYVY = 0x59565955,
+            R8G8_B8G8 = 0x47424752,
+            YUY2 = 0x32595559,
+            G8R8_G8B8 = 0x42475247,
+
+            D16_LOCKABLE = 70,
+            D32,
+            D15S1,
+            D24S8,
+            D24X8,
+            D24X4S4,
+            D16,
+
+            D32F_LOCKABLE = 82,
+            D24FS8,
+
+            L16 = 81,
+
+            Q16Q16V16U16 = 110,
+            R16F,
+            G16R16F,
+            A16B16G16R16F,
+            R32F,
+            G32R32F,
+            A32B32G32R32F,
+            CxV8U8,
         }
 
         /// <summary>
@@ -795,8 +911,16 @@ namespace CSharpImageLibrary.Headers
 
             if (format == ImageEngineFormat.Unknown)
             {
+                // Due to some previous settings, need to check these first.
+                if (ddspf.dwABitMask <= 4 && ddspf.dwABitMask != 0 &&
+                    ddspf.dwBBitMask <= 4 && ddspf.dwBBitMask != 0 &&
+                    ddspf.dwGBitMask <= 4 && ddspf.dwGBitMask != 0 &&
+                    ddspf.dwRBitMask <= 4 && ddspf.dwRBitMask != 0)
+                    format = ImageEngineFormat.DDS_CUSTOM;
+
+
                 // KFreon: Apparently all these flags mean it's a V8U8 image...
-                if (ddspf.dwRGBBitCount == 16 &&
+                else if (ddspf.dwRGBBitCount == 16 &&
                            ddspf.dwRBitMask == 0x00FF &&
                            ddspf.dwGBitMask == 0xFF00 &&
                            ddspf.dwBBitMask == 0x00 &&

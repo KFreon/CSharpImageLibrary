@@ -18,37 +18,9 @@ namespace CSharpImageLibrary
     public class MipMap
     {
         /// <summary>
-        /// Indicates if image has any alpha present.
+        /// Size of channel components e.g. 16bit = 2.
         /// </summary>
-        //public bool AlphaPresent { get; set; }
-
-        byte[] premultipliedPixels = null;
-        /// <summary>
-        /// Gets pixels when premultiplied by the alpha channel.
-        /// </summary>
-        public byte[] PremultipliedPixels
-        {
-            get
-            {
-                if (Pixels == null)
-                    return null;
-
-                if (premultipliedPixels == null)
-                {
-                    premultipliedPixels = new byte[Pixels.Length];
-
-                    for (int ai = 3; ai < Pixels.Length; ai += 4)
-                    {
-                        for (int rgbi = 1; rgbi < 4; rgbi++)
-                            premultipliedPixels[ai - rgbi] = (byte)(Pixels[ai - rgbi] * (Pixels[ai] / 255d));
-
-                        premultipliedPixels[ai] = 0xFF;
-                    }
-                }
-
-                return premultipliedPixels;
-            }
-        }
+        public int ComponentSize { get; set; } = 1;
 
         byte[] rgbAOpaque = null;
         /// <summary>
@@ -64,13 +36,20 @@ namespace CSharpImageLibrary
                 if (rgbAOpaque == null)
                 {
                     rgbAOpaque = new byte[Pixels.Length];
-                    for (int i = 0; i < Pixels.Length; i++)
+
+                    Action<int> action = i =>
                     {
-                        if ((i + 1) % 4 == 0)
-                            rgbAOpaque[i] = 0xFF;
+                        if ((i + 1) % (4 * ComponentSize) == 0)
+                            SetAlphaOpaque(rgbAOpaque, i);
                         else
-                            rgbAOpaque[i] = Pixels[i];
-                    }
+                            CopyChannelColour(Pixels, i, rgbAOpaque, i);
+                    };
+
+                    if (ImageEngine.EnableThreading)
+                        Parallel.For(0, Pixels.Length / ComponentSize, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, index => action(index * ComponentSize));
+                    else
+                        for (int i = 0; i < Pixels.Length; i += ComponentSize)
+                            action(i);
                 }
 
                 return rgbAOpaque;
@@ -91,13 +70,22 @@ namespace CSharpImageLibrary
                 if (alphaOnlyPixels == null)
                 {
                     alphaOnlyPixels = new byte[Pixels.Length];
-                    for (int ai = 3; ai < Pixels.Length; ai += 4)
-                    {
-                        for (int rgbi = 1; rgbi < 4; rgbi++)
-                            alphaOnlyPixels[ai - rgbi] = (Pixels[ai]);
 
-                        alphaOnlyPixels[ai] = 0xFF;
-                    }
+                    Action<int> action = ai =>
+                    {
+                        // Set alpha colour to RGB to make grayscale.
+                        CopyChannelColour(Pixels, ai, alphaOnlyPixels, ai - 1 * ComponentSize);
+                        CopyChannelColour(Pixels, ai, alphaOnlyPixels, ai - 2 * ComponentSize);
+                        CopyChannelColour(Pixels, ai, alphaOnlyPixels, ai - 3 * ComponentSize);
+
+                        SetAlphaOpaque(alphaOnlyPixels, ai); // Set Alpha to opaque just in case.
+                    };
+
+                    if (ImageEngine.EnableThreading)
+                        Parallel.For(3 * ComponentSize, Pixels.Length / (4 * ComponentSize), new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, index => action(index * 4 * ComponentSize));
+                    else
+                        for (int ai = 3 * ComponentSize; ai < Pixels.Length; ai += 4 * ComponentSize)   // TODO: Alpha display is wrong, for some reason.
+                            action(ai);
                 }
 
                 return alphaOnlyPixels;
@@ -126,11 +114,12 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a Mipmap object from a WPF image.
         /// </summary>
-        public MipMap(byte[] pixels, int width, int height)
+        public MipMap(byte[] pixels, int width, int height, int componentSize)
         {
             Pixels = pixels;
             Width = width;
             Height = height;
+            ComponentSize = componentSize;
         }
 
 
@@ -143,6 +132,46 @@ namespace CSharpImageLibrary
             var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);
             bmp.Freeze();
             return bmp;
+        }
+
+        void SetAlphaOpaque(byte[] source, int index)
+        {
+            switch (ComponentSize)
+            {
+                case 1:
+                    source[index] = 0xFF;
+                    break;
+                case 2:
+                    source[index] = 0xFF;
+                    source[index + 1] = 0xFF;
+                    break;
+                case 4:
+                    source[index] = 0;
+                    source[index + 1] = 0;
+                    source[index + 2] = 128;
+                    source[index + 3] = 63;
+                    break;
+            }
+        }
+
+        void CopyChannelColour(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            switch (ComponentSize)
+            {
+                case 1:
+                    destination[destInd] = source[sourceInd];
+                    break;
+                case 2:
+                    destination[destInd] = source[sourceInd];
+                    destination[destInd + 1] = source[sourceInd + 1];
+                    break;
+                case 4:
+                    destination[destInd] = source[sourceInd];
+                    destination[destInd + 1] = source[sourceInd + 1];
+                    destination[destInd + 2] = source[sourceInd + 2];
+                    destination[destInd + 3] = source[sourceInd + 3];
+                    break;
+            }
         }
     }
 }

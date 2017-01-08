@@ -99,7 +99,7 @@ namespace CSharpImageLibrary
         /// Uncompressed ARGB DDS.
         /// </summary>
         [Description("Uncompressed ARGB DDS.")]
-        DDS_ARGB = GIF + 1,  // No specific value apparently
+        DDS_ARGB = 32,  // No specific value apparently
 
         /// <summary>
         /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
@@ -113,28 +113,28 @@ namespace CSharpImageLibrary
         /// Used for Normal (bump) maps.
         /// </summary>
         [Description("Uncompressed pair of 8 bit channels. Used for Normal (bump) maps.")]
-        DDS_V8U8 = DDS_ARGB + 1,
+        DDS_V8U8 = 60,
 
         /// <summary>
         /// Single 8 bit channel.
         /// Used for Luminescence.
         /// </summary>
         [Description("Single 8 bit channel. Used for Luminescence.")]
-        DDS_G8_L8 = DDS_V8U8 + 1,  // No specific value it seems
+        DDS_G8_L8 = 50, 
 
         /// <summary>
         /// Alpha and single channel luminescence.
         /// Uncompressed.
         /// </summary>
         [Description("Alpha and single channel luminescence. Uncompressed.")]
-        DDS_A8L8 = DDS_G8_L8 + 1,
+        DDS_A8L8 = 51,
 
         /// <summary>
         /// RGB. No alpha. 
         /// Uncompressed.
         /// </summary>
         [Description("RGB. No alpha. Uncompressed.")]
-        DDS_RGB = DDS_A8L8 + 1,
+        DDS_RGB = 20,
 
         /// <summary>
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
@@ -205,8 +205,9 @@ namespace CSharpImageLibrary
         /// 1 if not a DDS format.
         /// </summary>
         /// <param name="format">DDS format to test.</param>
+        /// <param name="componentSize">Size of channel components in bytes. e.g. 16bit = 2.</param>
         /// <returns>Number of blocks/channels in format.</returns>
-        public static int GetBlockSize(ImageEngineFormat format)
+        public static int GetBlockSize(ImageEngineFormat format, int componentSize = 1)
         {
             int blocksize = 1;
             switch (format)
@@ -224,16 +225,16 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.DDS_V8U8:
                 case ImageEngineFormat.DDS_A8L8:
-                    blocksize = 2;
+                    blocksize = 2 * componentSize;
                     break;
                 case ImageEngineFormat.DDS_ARGB:
-                    blocksize = 4;
+                    blocksize = 4 * componentSize;
                     break;
                 case ImageEngineFormat.DDS_RGB:
-                    blocksize = 3;
+                    blocksize = 3 * componentSize;
                     break;
                 case ImageEngineFormat.DDS_CUSTOM:
-                    blocksize = 4;
+                    blocksize = 4 * componentSize;
                     break;
             }
             return blocksize;
@@ -490,10 +491,11 @@ namespace CSharpImageLibrary
         /// <param name="format">Format of image.</param>
         /// <param name="width">Width of image (top mip if mip-able)</param>
         /// <param name="height">Height of image (top mip if mip-able)</param>
+        /// <param name="componentSize">Size of channel components in bytes. e.g. 16bit = 2.</param>
         /// <returns>Size of compressed image.</returns>
-        public static int GetCompressedSize(int numMipmaps, ImageEngineFormat format, int width, int height)
+        public static int GetCompressedSize(int numMipmaps, ImageEngineFormat format, int width, int height, int componentSize)
         {
-            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, format, width, height);
+            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, format, width, height, componentSize);
         }
         
 
@@ -528,6 +530,27 @@ namespace CSharpImageLibrary
                 return 4;
             else
                 return estimate;
+        }
+
+
+        /// <summary>
+        /// Returns suitably sized RGBA pixel format.
+        /// </summary>
+        /// <param name="componentSize">Size of components.</param>
+        /// <returns>RGBA PixelFormat of a suitable size.</returns>
+        public static PixelFormat DetermineSuitablePixelFormat(int componentSize)
+        {
+            switch (componentSize)
+            {
+                case 1:
+                    return PixelFormats.Bgra32;
+                case 2:
+                    return PixelFormats.Rgba64;
+                case 4:
+                    return PixelFormats.Rgba128Float;
+                default:
+                    throw new ArgumentException("ComponentSize must be 1, 2, or 4.");
+            }
         }
     }
 }
