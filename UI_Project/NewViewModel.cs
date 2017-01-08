@@ -1061,6 +1061,7 @@ namespace UI_Project
             }
 
             Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
+            timer.Restart();
             UpdateLoadedPreview();
 
             SaveFormat = LoadedFormat;

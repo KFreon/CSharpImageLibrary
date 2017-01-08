@@ -92,7 +92,8 @@ namespace CSharpImageLibrary.Headers
                 dwBBitMask = BitConverter.ToUInt32(temp, 100);
                 dwABitMask = BitConverter.ToUInt32(temp, 104);
 
-                ComponentSize = 1;
+                int numChannels = new List<uint>() { dwABitMask, dwGBitMask, dwRBitMask, dwBBitMask }.Where(t => t != 0).Count();
+                ComponentSize = dwRGBBitCount == 0 ? 1 : dwRGBBitCount / (8 * numChannels);
                 IsFloat = false;
 
                 bool noMasks = dwABitMask == 0 && dwBBitMask == 0 && dwGBitMask == 0 && dwRBitMask == 0;

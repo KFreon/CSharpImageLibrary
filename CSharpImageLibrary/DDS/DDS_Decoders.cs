@@ -53,7 +53,7 @@ namespace CSharpImageLibrary.DDS
             DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false, isPremultiplied);
         }
 
-        // BC$
+        // BC4
         internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
@@ -104,6 +104,17 @@ namespace CSharpImageLibrary.DDS
                 destination[offset + 3] = 0xFF;  // Alpha
             }
         }
+
+        internal static void DecompressBC6(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        {
+            
+        }
+
+        internal static void DecompressBC7(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        {
+
+        }
+
 
         static byte ExpandTo255(double v)
         {
@@ -180,10 +191,21 @@ namespace CSharpImageLibrary.DDS
             else if (ddspf.ComponentSize == 4)
                 reader = ReadUInt;
 
-            int destAInd = 3 * ddspf.ComponentSize;
-            int destRInd = 0 * ddspf.ComponentSize;
-            int destGInd = 1 * ddspf.ComponentSize;
-            int destBInd = 2 * ddspf.ComponentSize;
+
+            // Determine order of things
+            int destAInd = 3;
+            int destRInd = 2;
+            int destGInd = 1;
+            int destBInd = 0;
+
+            if (ddspf.ComponentSize != 1)
+            {
+                destAInd = 3 * ddspf.ComponentSize;
+                destRInd = 0 * ddspf.ComponentSize;
+                destGInd = 1 * ddspf.ComponentSize;
+                destBInd = 2 * ddspf.ComponentSize;
+            }
+            
 
             for (int i = 0, j = sourceStart; i < pixelCount * 4 * ddspf.ComponentSize; i += 4 * ddspf.ComponentSize, j += sourceIncrement)
             {
