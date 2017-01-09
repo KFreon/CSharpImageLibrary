@@ -510,7 +510,11 @@
                     <Separator Width="15" Height="1" Background="White"/>
                 </Button.Content>
             </Button>
-            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,1,50,1" Click="BulkConvertOpenButton_Click" MaxHeight="27"
+
+            <Button x:Name="HelpAboutButton" Content="About/Credits" DockPanel.Dock="Right" Margin="0,1,50,1" MaxHeight="27" Click="HelpAboutButton_Click"
+                    Visibility="{Binding ShowHelpAbout, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
+
+            <Button x:Name="BulkConvertOpenButton" Content="Bulk Convert" DockPanel.Dock="Right" Margin="0,1,10,1" Click="BulkConvertOpenButton_Click" MaxHeight="27"
                     Visibility="{Binding BulkConvertOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
             <Button x:Name="SettingsPanelOpenButton" Content="Settings" DockPanel.Dock="Right" Margin="0,1,10,1" Click="SettingsPanelOpenButton_Click" MaxHeight="27"
                     Visibility="{Binding SettingsPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
@@ -1219,6 +1223,38 @@
                         </ListBox.ItemsPanel>
                     </ListBox>
                 </DockPanel>
+            </Border>
+        </Border>
+
+        <Border x:Name="HelpAboutPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding ShowHelpAbout}">
+            <Border Style="{StaticResource FadedInnerBorder}">
+                <StackPanel HorizontalAlignment="Center" Margin="5,0">
+                    <Label Style="{StaticResource TitleStyle}" FontSize="30" Content="About-Credits" HorizontalContentAlignment="Center"/>
+
+                    <Label Style="{StaticResource TitleStyle}" Content="About" HorizontalContentAlignment="Center"/>
+                    <TextBlock Foreground="White" HorizontalAlignment="Center" TextAlignment="Center">
+                        <Run Text="This tool was written when working on ME3Explorer, and I wanted to centralise the image operations."/>
+                        <LineBreak/>
+                        <Run Text="Started with ResIL, and progressed through a couple of other libraries briefly, but all proved inadequate for loading the required DDS formats."/>
+                        <LineBreak/>
+                        <Run Text="This tool should load most DDS formats including weird ones like V8U8, ATI2, ARGB32F, etc. It also loads all common formats like PNG, JPG, TIFF, TGA, etc."/>
+                        <LineBreak/>
+                        <Run Text="It can also save to most of the supported formats. Options are there for handling alpha and mipmaps."/>
+                        <LineBreak/>
+                        <Run Text="Could have used DirectXTex from Microsoft, but I wanted something written in C#, since I was having lots of trouble with unmanaged memory management."/>
+                    </TextBlock>
+
+                    <Label Style="{StaticResource TitleStyle}" Margin="0,10,0,0" Content="Credits" HorizontalContentAlignment="Center"/>
+                    <TextBlock Foreground="White" TextAlignment="Center" HorizontalAlignment="Center">
+                        <Run Text="Microsoft - "/>
+                        <Hyperlink NavigateUri="https://github.com/Microsoft/DirectXTex" RequestNavigate="Hyperlink_RequestNavigate">
+                            DirectXTex
+                        </Hyperlink>
+                    </TextBlock>
+                    <TextBlock Foreground="White" Text="Over 9000 people on StackOverflow, I apologise for not knowing specifically." TextAlignment="Center" HorizontalAlignment="Center"/>
+
+                    <Button Content="Close" HorizontalAlignment="Center" Click="Button_Click" Margin="0,20,0,0"/>
+                </StackPanel>
             </Border>
         </Border>
     </Grid>

@@ -33,6 +33,20 @@ namespace UI_Project
     {
         Stopwatch timer = new Stopwatch();
 
+        #region Help/About Panel
+        bool showHelpAbout = false;
+        public bool ShowHelpAbout
+        {
+            get
+            {
+                return showHelpAbout;
+            }
+            set
+            {
+                SetProperty(ref showHelpAbout, value);
+            }
+        }
+        #endregion Help/About Panel
 
         #region Settings Panel Properties
         bool settingsPanelOpen = false;

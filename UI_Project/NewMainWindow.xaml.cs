@@ -624,5 +624,21 @@ namespace UI_Project
             vm.WindowBackground_Blue = 0;
             UseWindowTransparencyChecker_Checked(null, null); // Blur background
         }
+
+        private void HelpAboutButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.ShowHelpAbout = true;
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
+            e.Handled = true;
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            vm.ShowHelpAbout = false;
+        }
     }
 }
