@@ -27,10 +27,23 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public struct DDS_PIXELFORMAT
         {
+            int componentSize;
             /// <summary>
             /// Size of components in channel in bytes. i.e. 16 bits per channel = 2 (ushort)
             /// </summary>
-            public int ComponentSize { get; set; }
+            public int ComponentSize
+            {
+                get
+                {
+                    if (componentSize <= 0)
+                    {
+                        int numChannels = new List<uint>() { dwABitMask, dwGBitMask, dwRBitMask, dwBBitMask }.Where(t => t != 0).Count();
+                        componentSize = dwRGBBitCount == 0 ? 1 : dwRGBBitCount / (8 * numChannels);
+                    }
+
+                    return componentSize;
+                }
+            }
 
             /// <summary>
             /// Indicates whether format is a float format or not.
@@ -91,10 +104,8 @@ namespace CSharpImageLibrary.Headers
                 dwGBitMask = BitConverter.ToUInt32(temp, 96);
                 dwBBitMask = BitConverter.ToUInt32(temp, 100);
                 dwABitMask = BitConverter.ToUInt32(temp, 104);
-
-                int numChannels = new List<uint>() { dwABitMask, dwGBitMask, dwRBitMask, dwBBitMask }.Where(t => t != 0).Count();
-                ComponentSize = dwRGBBitCount == 0 ? 1 : dwRGBBitCount / (8 * numChannels);
                 IsFloat = false;
+                componentSize = -1;
 
                 bool noMasks = dwABitMask == 0 && dwBBitMask == 0 && dwGBitMask == 0 && dwRBitMask == 0;
 
@@ -110,19 +121,6 @@ namespace CSharpImageLibrary.Headers
                             dwRBitMask = 1;
                             dwRGBBitCount = 16 * 4;
                         }
-                        ComponentSize = 2;
-                        break;
-                    case FourCC.A16B16G16R16F:
-                        if (noMasks)
-                        {
-                            dwABitMask = 4;
-                            dwBBitMask = 3;
-                            dwGBitMask = 2;
-                            dwRBitMask = 1;
-                            dwRGBBitCount = 16 * 4;
-                        }
-                        ComponentSize = 2;
-                        IsFloat = true;
                         break;
                     case FourCC.A32B32G32R32F:
                         if (noMasks)
@@ -133,7 +131,6 @@ namespace CSharpImageLibrary.Headers
                             dwRBitMask = 1;
                             dwRGBBitCount = 32 * 4;
                         }
-                        ComponentSize = 4;
                         IsFloat = true;
                         break;
 
@@ -163,13 +160,21 @@ namespace CSharpImageLibrary.Headers
                         dwRGBBitCount = 8;
                         dwRBitMask = 0xFF;
                         break;
-                    case ImageEngineFormat.DDS_ARGB:
+                    case ImageEngineFormat.DDS_ARGB_8:
                         dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 32;
                         dwABitMask = 0xFF000000;
                         dwRBitMask = 0x00FF0000;
                         dwGBitMask = 0x0000FF00;
                         dwBBitMask = 0x000000FF;
+                        break;
+                    case ImageEngineFormat.DDS_ARGB_4:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 24;
+                        dwABitMask = 0xF000;
+                        dwRBitMask = 0x0F00;
+                        dwGBitMask = 0x00F0;
+                        dwBBitMask = 0x000F;
                         break;
                     case ImageEngineFormat.DDS_V8U8:
                         dwFlags = DDS_PFdwFlags.DDPF_SIGNED;
@@ -183,12 +188,34 @@ namespace CSharpImageLibrary.Headers
                         dwABitMask = 0xFF00;
                         dwRBitMask = 0x00FF;
                         break;
-                    case ImageEngineFormat.DDS_RGB:
+                    case ImageEngineFormat.DDS_RGB_8:
                         dwFlags = DDS_PFdwFlags.DDPF_RGB;
                         dwRBitMask = 0xFF0000;
                         dwGBitMask = 0x00FF00;
                         dwBBitMask = 0x0000FF;
                         dwRGBBitCount = 24;
+                        break;
+                    case ImageEngineFormat.DDS_G16_R16:
+                        dwFlags = DDS_PFdwFlags.DDPF_RGB;
+                        dwGBitMask = 0xFFFF0000;
+                        dwRBitMask = 0x0000FFFF;
+                        dwRGBBitCount = 32;
+                        break;
+                    case ImageEngineFormat.DDS_ABGR_8:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 32;
+                        dwABitMask = 0xFF000000;
+                        dwBBitMask = 0x00FF0000;
+                        dwGBitMask = 0x0000FF00;
+                        dwRBitMask = 0x000000FF;
+                        break;
+                    case ImageEngineFormat.DDS_ARGB_32F:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 128;
+                        dwABitMask = 0;
+                        dwRBitMask = 0;
+                        dwGBitMask = 0;
+                        dwBBitMask = 0;
                         break;
                     case ImageEngineFormat.DDS_CUSTOM:
                         if (customMasks != null)
@@ -943,13 +970,21 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwFlags == (DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_LUMINANCE))
                     format = ImageEngineFormat.DDS_A8L8;
 
+                // KFreon: G_R only.
+                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
+                        ddspf.dwABitMask == 0 &&
+                        ddspf.dwBBitMask == 0 &&
+                        ddspf.dwGBitMask != 0 &&
+                        ddspf.dwRBitMask != 0)
+                    format = ImageEngineFormat.DDS_G16_R16;
+
                 // KFreon: RGB. RGB channels have something in them, but alpha doesn't.
-                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
+                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
                         ddspf.dwABitMask == 0 &&
                         ddspf.dwBBitMask != 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_RGB;
+                    format = ImageEngineFormat.DDS_RGB_8;
 
                 // KFreon: RGB and A channels are present.
                 else if (((ddspf.dwFlags & (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) == (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
@@ -957,7 +992,7 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwBBitMask != 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_ARGB;
+                    format = ImageEngineFormat.DDS_ARGB_8;
 
                 // KFreon: If nothing else fits, but there's data in one of the bitmasks, assume it can be read.
                 else if (ddspf.dwABitMask != 0 || ddspf.dwRBitMask != 0 || ddspf.dwGBitMask != 0 || ddspf.dwBBitMask != 0)

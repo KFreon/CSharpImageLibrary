@@ -169,7 +169,7 @@
                         <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_RGB}">
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_RGB_8}">
                         <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 

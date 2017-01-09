@@ -131,10 +131,15 @@ namespace CSharpImageLibrary
                     }
                     break;
                 case ImageEngineFormat.DDS_G8_L8:
-                case ImageEngineFormat.DDS_RGB:
+                case ImageEngineFormat.DDS_ARGB_4:
+                case ImageEngineFormat.DDS_RGB_8:
                 case ImageEngineFormat.DDS_V8U8:
                 case ImageEngineFormat.DDS_A8L8:
-                case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_ARGB_8:
+                case ImageEngineFormat.DDS_ARGB_32F:
+                case ImageEngineFormat.DDS_ABGR_8:
+                case ImageEngineFormat.DDS_G16_R16:
+                case ImageEngineFormat.DDS_R5G6B5:
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
                 case ImageEngineFormat.DDS_CUSTOM:
@@ -479,7 +484,7 @@ namespace CSharpImageLibrary
             else if (format.Contains("bmp", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.BMP;
             else if (format.Contains("argb", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_ARGB;
+                parsedFormat = ImageEngineFormat.DDS_ARGB_8;
             else if (format.Contains("ati1", StringComparison.OrdinalIgnoreCase))
                 parsedFormat = ImageEngineFormat.DDS_ATI1;
             else if (format.Contains("ati2", StringComparison.OrdinalIgnoreCase) || format.Contains("3dc", StringComparison.OrdinalIgnoreCase))

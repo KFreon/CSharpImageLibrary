@@ -1115,7 +1115,7 @@ namespace UI_Project
                 await Task.Run(() =>
                 {
                     // Save and reload to give accurate depiction of what it'll look like when saved.
-                    byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                    byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
                     SaveCompressedSize = data.Length;
                     savePreviewIMG = new ImageEngineImage(data);                    
                 });

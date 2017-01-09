@@ -99,7 +99,7 @@ namespace CSharpImageLibrary
         /// Uncompressed ARGB DDS.
         /// </summary>
         [Description("Uncompressed ARGB DDS.")]
-        DDS_ARGB = 32,  // No specific value apparently
+        DDS_ABGR_8 = 32,  
 
         /// <summary>
         /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
@@ -134,7 +134,7 @@ namespace CSharpImageLibrary
         /// Uncompressed.
         /// </summary>
         [Description("RGB. No alpha. Uncompressed.")]
-        DDS_RGB = 20,
+        DDS_RGB_8 = 20,
 
         /// <summary>
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
@@ -143,12 +143,20 @@ namespace CSharpImageLibrary
         [Description("(BC5) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. Pair of 8 bit channels.")]
         DDS_ATI2_3Dc = 0x32495441,  // ATI2 backwards
 
+        DDS_ARGB_8 = 21,
+        DDS_R5G6B5 = 23,
+        DDS_ARGB_4 = 24,
+        DDS_A8 = 28,
+        DDS_G16_R16 = 34,
+        DDS_ARGB_32F = 116,
+
+
         /// <summary>
         /// Format designed for scanners. Compressed.
         /// Allows mipmaps.
         /// </summary>
         [Description("Format designed for scanners. Compressed. Allows mipmaps.")]
-        TIF = DDS_RGB + 1,
+        TIF = 240,
 
         /// <summary>
         /// Used when the exact format is not present in this enum, but enough information is present to load it. (ARGB16 or something)
@@ -186,7 +194,19 @@ namespace CSharpImageLibrary
         /// <returns>True if block compressed.</returns>
         public static bool IsBlockCompressed(ImageEngineFormat format)
         {
-            return GetBlockSize(format) >= 8;
+            switch (format)
+            {
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                case ImageEngineFormat.DDS_ATI2_3Dc:  // TODO BC6,7
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
@@ -225,13 +245,19 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.DDS_V8U8:
                 case ImageEngineFormat.DDS_A8L8:
-                    blocksize = 2 * componentSize;
+                case ImageEngineFormat.DDS_ARGB_4:
+                    blocksize = 2;
                     break;
-                case ImageEngineFormat.DDS_ARGB:
-                    blocksize = 4 * componentSize;
+                case ImageEngineFormat.DDS_ARGB_8:
+                case ImageEngineFormat.DDS_ABGR_8:
+                case ImageEngineFormat.DDS_G16_R16:
+                    blocksize = 4;
                     break;
-                case ImageEngineFormat.DDS_RGB:
-                    blocksize = 3 * componentSize;
+                case ImageEngineFormat.DDS_RGB_8:
+                    blocksize = 3;
+                    break;
+                case ImageEngineFormat.DDS_ARGB_32F:
+                    blocksize = 16;
                     break;
                 case ImageEngineFormat.DDS_CUSTOM:
                     blocksize = 4 * componentSize;

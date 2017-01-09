@@ -450,7 +450,7 @@ namespace CSharpImageLibrary.DDS
             int requiredOffset = GetMipOffset(mipIndex, format, mainHeight, mainWidth, componentSize);  // +128 for header
 
             // KFreon: Something wrong with the count here by 1 i.e. the estimate is 1 more than it should be 
-            if (format == ImageEngineFormat.DDS_ARGB)
+            if (format == ImageEngineFormat.DDS_ARGB_8)  // TODO: Might not just be 8 bit, still don't know why it's wrong.
                 requiredOffset -= 2;
 
             mipOffset = requiredOffset;

@@ -80,7 +80,7 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion Compressed
 
-        internal static int WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT ddspf)
+        internal static int WriteUncompressed(byte[] source, int source_ComponentSize, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf)
         {
             int byteCount = ddspf.dwRGBBitCount / 8;
             byte signedAdjust = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED ? SignedAdjustment : (byte)0;
@@ -106,44 +106,91 @@ namespace CSharpImageLibrary.DDS
             int GIndex = 0;
             int BIndex = 0;
 
-            // Set default ordering
-            AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask);
-            RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask);
-            GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask);
-            BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask);
+            // Determine channel ordering
+            AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask) * ddspf.ComponentSize;
+            RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask) * ddspf.ComponentSize;
+            GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask) * ddspf.ComponentSize;
+            BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask) * ddspf.ComponentSize;
 
-            for (int i = 0; i < source.Length; i+=4, destStart += byteCount)
+            // Determine writer
+            Action<byte[], int, byte[], int> writer = WriteByte;
+            if (ddspf.ComponentSize == 2)
+                writer = WriteUShort;
+            else if (ddspf.ComponentSize == 4)
+                writer = WriteFloat;
+
+            int destAInd = 3;
+            int destRInd = 2;
+            int destGInd = 1;
+            int destBInd = 0;
+
+            if (ddspf.ComponentSize != 1)
             {
-                byte blue = (byte)(source[i] + signedAdjust);
-                byte green = (byte)(source[i + 1] + signedAdjust);
-                byte red = (byte)(source[i + 2] + signedAdjust);
-                byte alpha = (byte)(source[i + 3]);
+                destAInd = 3 * ddspf.ComponentSize;
+                destRInd = 0 * ddspf.ComponentSize;
+                destGInd = 1 * ddspf.ComponentSize;
+                destBInd = 2 * ddspf.ComponentSize;
+            }
 
-                if (twoChannel)
+            for (int i = 0; i < source.Length; i += 4 * ddspf.ComponentSize, destStart += byteCount)
+            {
+                if (twoChannel) // No large components - silly spec...
                 {
+                    byte blue = (byte)(source[i] + signedAdjust);
+                    byte green = (byte)(source[i + 1] + signedAdjust);
+                    byte red = (byte)(source[i + 2] + signedAdjust);
+                    byte alpha = source[i + 3];
+
                     destination[destStart] = AMask > RMask ? red : alpha;
                     destination[destStart + 1] = AMask > RMask ? alpha : red;
                 }
-                else if (oneChannel)
+                else if (oneChannel) // No large components - silly spec...
+                {
+                    byte blue = (byte)(source[i] + signedAdjust);
+                    byte green = (byte)(source[i + 1] + signedAdjust);
+                    byte red = (byte)(source[i + 2] + signedAdjust);
+                    byte alpha = source[i + 3];
+
                     destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
+                }
                 else
                 {
                     if (AMask != 0)
-                        destination[destStart + AIndex] = alpha;
+                        writer(source, i + destAInd, destination, destStart + AIndex);
 
                     if (RMask != 0)
-                        destination[destStart + RIndex] = red;
+                        writer(source, i + destRInd, destination, destStart + RIndex);
 
                     if (GMask != 0)
-                        destination[destStart + GIndex] = green;
+                        writer(source, i + destGInd, destination, destStart + GIndex);
 
                     if (BMask != 0)
-                        destination[destStart + BIndex] = blue;
+                        writer(source, i + destBInd, destination, destStart + BIndex);
                 }
             }
 
             return destStart;
         }
+
+        static void WriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            destination[destInd] = source[sourceInd];
+        }
+
+        static void WriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            destination[destInd] = source[sourceInd];
+            destination[destInd + 1] = source[sourceInd + 1];
+        }
+
+        static void WriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            destination[destInd] = source[sourceInd];
+            destination[destInd + 1] = source[sourceInd + 1];
+            destination[destInd + 2] = source[sourceInd + 2];
+            destination[destInd + 3] = source[sourceInd + 3];
+        }
+
 
         static int Shift(byte channel, uint mask)
         {
