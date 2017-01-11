@@ -82,15 +82,15 @@ namespace CSharpImageLibrary.DDS
 
         internal static int WriteUncompressed(byte[] source, int source_ComponentSize, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf)
         {
-            int byteCount = ddspf.dwRGBBitCount / 8;
-            byte signedAdjust = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED ? SignedAdjustment : (byte)0;
-            bool oneChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
-            bool twoChannel = oneChannel && (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS;
+            int byteCount = dest_ddspf.dwRGBBitCount / 8;
+            byte signedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED ? SignedAdjustment : (byte)0;
+            bool oneChannel = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
+            bool twoChannel = oneChannel && (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS;
 
-            uint AMask = ddspf.dwABitMask;
-            uint RMask = ddspf.dwRBitMask;
-            uint GMask = ddspf.dwGBitMask;
-            uint BMask = ddspf.dwBBitMask;
+            uint AMask = dest_ddspf.dwABitMask;
+            uint RMask = dest_ddspf.dwRBitMask;
+            uint GMask = dest_ddspf.dwGBitMask;
+            uint BMask = dest_ddspf.dwBBitMask;
 
             ///// Figure out channel existance and ordering.
             // Setup array that indicates channel offset from pixel start.
@@ -107,16 +107,16 @@ namespace CSharpImageLibrary.DDS
             int BIndex = 0;
 
             // Determine channel ordering
-            AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask) * ddspf.ComponentSize;
-            RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask) * ddspf.ComponentSize;
-            GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask) * ddspf.ComponentSize;
-            BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask) * ddspf.ComponentSize;
+            AIndex = AMask == 0 ? -1 : maskOrder.IndexOf(AMask) * dest_ddspf.ComponentSize;
+            RIndex = RMask == 0 ? -1 : maskOrder.IndexOf(RMask) * dest_ddspf.ComponentSize;
+            GIndex = GMask == 0 ? -1 : maskOrder.IndexOf(GMask) * dest_ddspf.ComponentSize;
+            BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask) * dest_ddspf.ComponentSize;
 
             // Determine writer
-            Action<byte[], int, byte[], int> writer = WriteByte;
-            if (ddspf.ComponentSize == 2)
+            Action<byte[], int, byte[], int> readerWriter = WriteByte;
+            if (dest_ddspf.ComponentSize == 2)
                 writer = WriteUShort;
-            else if (ddspf.ComponentSize == 4)
+            else if (dest_ddspf.ComponentSize == 4)
                 writer = WriteFloat;
 
             int destAInd = 3;
@@ -124,15 +124,15 @@ namespace CSharpImageLibrary.DDS
             int destGInd = 1;
             int destBInd = 0;
 
-            if (ddspf.ComponentSize != 1)
+            if (dest_ddspf.ComponentSize != 1)
             {
-                destAInd = 3 * ddspf.ComponentSize;
-                destRInd = 0 * ddspf.ComponentSize;
-                destGInd = 1 * ddspf.ComponentSize;
-                destBInd = 2 * ddspf.ComponentSize;
+                destAInd = 3 * dest_ddspf.ComponentSize;
+                destRInd = 0 * dest_ddspf.ComponentSize;
+                destGInd = 1 * dest_ddspf.ComponentSize;
+                destBInd = 2 * dest_ddspf.ComponentSize;
             }
 
-            for (int i = 0; i < source.Length; i += 4 * ddspf.ComponentSize, destStart += byteCount)
+            for (int i = 0; i < source.Length; i += 4 * dest_ddspf.ComponentSize, destStart += byteCount)
             {
                 if (twoChannel) // No large components - silly spec...
                 {
@@ -172,18 +172,65 @@ namespace CSharpImageLibrary.DDS
             return destStart;
         }
 
-        static void WriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
+        static void ReadByteWriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
         {
             destination[destInd] = source[sourceInd];
         }
 
-        static void WriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
+        static void ReadUshortWriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            destination[destInd] = (byte)(BitConverter.ToUInt16(source, sourceInd) / uint.MaxValue);
+        }
+
+        static void ReadFloatWriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            destination[destInd] = (byte)(BitConverter.ToSingle(source, sourceInd) * 255f);
+        }
+
+
+
+        static void ReadByteWriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            destination[destInd] = 0;
+            destination[destInd + 1] = source[sourceInd];
+        }
+
+        static void ReadUshortWriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
         {
             destination[destInd] = source[sourceInd];
             destination[destInd + 1] = source[sourceInd + 1];
         }
 
-        static void WriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
+        static void ReadFloatWriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            byte[] bytes = BitConverter.GetBytes((ushort)(BitConverter.ToSingle(source, sourceInd) * uint.MaxValue));
+
+            destination[destInd] = bytes[0];
+            destination[destInd + 1] = bytes[1];
+        }
+
+
+        static void ReadByteWriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            byte[] bytes = BitConverter.GetBytes(source[sourceInd] / 255f);
+
+            destination[destInd] = bytes[0];
+            destination[destInd + 1] = bytes[1];
+            destination[destInd + 2] = bytes[2];
+            destination[destInd + 3] = bytes[3];
+        }
+
+        static void ReadUShortWriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
+        {
+            byte[] bytes = BitConverter.GetBytes(BitConverter.ToUInt16(source, sourceInd) / ushort.MaxValue);
+
+            destination[destInd] = bytes[0];
+            destination[destInd + 1] = bytes[1];
+            destination[destInd + 2] = bytes[2];
+            destination[destInd + 3] = bytes[3];
+        }
+
+        static void ReadFloatWriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
         {
             destination[destInd] = source[sourceInd];
             destination[destInd + 1] = source[sourceInd + 1];
