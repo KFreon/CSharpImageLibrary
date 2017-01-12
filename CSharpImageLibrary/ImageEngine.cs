@@ -154,7 +154,7 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.TGA:
                     using (var tga = new TargaImage(imageStream, ((TGA_Header)header).header))
-                        MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, 1) }; 
+                        //MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, 1) }; 
                     break;
                 case ImageEngineFormat.DDS_DX10:
                     throw new FormatException("DX10/DXGI not supported properly yet.");
@@ -209,7 +209,7 @@ namespace CSharpImageLibrary
             for (int i = 0; i < 4; i++)
             {
                 // Extract channel into grayscale image
-                var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
+                /*var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
 
                 // Save channel
                 var img = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height, PixelFormats.Gray8);
@@ -227,7 +227,7 @@ namespace CSharpImageLibrary
 
                 string tempPath = Path.GetFileNameWithoutExtension(savePath) + "_" + channels[i] + ".png";
                 string channelPath = Path.Combine(Path.GetDirectoryName(savePath), UsefulThings.General.FindValidNewFileName(tempPath));
-                File.WriteAllBytes(channelPath, bytes);
+                File.WriteAllBytes(channelPath, bytes);*/
             }
         }
 
@@ -349,7 +349,7 @@ namespace CSharpImageLibrary
         {
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
             baseBMP.Freeze();
-            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.ComponentSize);
+            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height);
 
             #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
@@ -431,7 +431,7 @@ namespace CSharpImageLibrary
             #endregion Old code
         }
 
-        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height, int componentSize)
+        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height)
         {
             int origWidth = width;
             int origHeight = height;
@@ -440,12 +440,24 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * yScale);
             int newStride = newWidth * 4;
 
-            byte[] newPixels = null;
+            float[] newPixels = null;
             var bmp = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight);
             bmp.Freeze();
-            newPixels = bmp.GetPixelsAsBGRA32();
+            newPixels = GetPixelsAsFloats(bmp);
 
-            return new MipMap(newPixels, newWidth, newHeight, componentSize);
+            return new MipMap(newPixels, newWidth, newHeight);
+        }
+
+        internal static float[] GetPixelsAsFloats(BitmapSource bmp)
+        {
+            var source = bmp;
+            if (bmp.Format != PixelFormats.Rgb128Float)
+                source = new FormatConvertedBitmap(bmp, PixelFormats.Rgb128Float, null, 0);
+
+            float[] pixels = new float[source.PixelHeight * source.PixelWidth * 4];
+            source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+
+            return pixels;
         }
 
 
@@ -665,8 +677,8 @@ namespace CSharpImageLibrary
                 }
             }
 
-            var mip = new MipMap(merged, width, height, testChannel.ComponentSize);
-            return new ImageEngineImage(mip);
+            //var mip = new MipMap(merged, width, height);
+            return new ImageEngineImage(null);
         }
     }
 }

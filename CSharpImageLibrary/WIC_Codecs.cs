@@ -115,14 +115,14 @@ namespace CSharpImageLibrary
                             continue;
                     }
 
-                    mipmaps.Add(new MipMap(mipmap.GetPixelsAsBGRA32(), mipmap.PixelWidth, mipmap.PixelHeight, 1));
+                    mipmaps.Add(new MipMap(ImageEngine.GetPixelsAsFloats(mipmap), mipmap.PixelWidth, mipmap.PixelHeight));
                 }
 
                 if (mipmaps.Count == 0)
                 {
                     // KFreon: Image has no mips, so resize largest
                     var frame = decoder.Frames[0];
-                    var mip = new MipMap(frame.GetPixelsAsBGRA32(), frame.PixelWidth, frame.PixelHeight, 1);
+                    var mip = new MipMap(ImageEngine.GetPixelsAsFloats(frame), frame.PixelWidth, frame.PixelHeight);
 
                     // Calculate scale if required
                     if (scale == 0)
@@ -145,7 +145,7 @@ namespace CSharpImageLibrary
                     return null;
                 bmp.Freeze();
 
-                mipmaps.Add(new MipMap(bmp.GetPixelsAsBGRA32(), bmp.PixelWidth, bmp.PixelHeight, 1));
+                mipmaps.Add(new MipMap(ImageEngine.GetPixelsAsFloats(bmp), bmp.PixelWidth, bmp.PixelHeight));
             }
 
             return mipmaps;
@@ -240,7 +240,7 @@ namespace CSharpImageLibrary
         #endregion Loading
 
 
-        internal static byte[] SaveWithCodecs(byte[] imageData, ImageEngineFormat format, int width, int height, AlphaSettings alphaSetting)
+        internal static byte[] SaveWithCodecs(float[] imageData, ImageEngineFormat format, int width, int height, AlphaSettings alphaSetting)
         {
             var image = UsefulThings.WPF.Images.CreateWriteableBitmap(imageData, width, height);
             image.Freeze();

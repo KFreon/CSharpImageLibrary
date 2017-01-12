@@ -14,13 +14,13 @@ namespace CSharpImageLibrary.DDS
         static byte SignedAdjustment = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
 
         #region Compressed
-        internal static void CompressBC1Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
+        internal static void CompressBC1Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition, true, (alphaSetting == AlphaSettings.RemoveAlphaChannel ? 0 : DXT1AlphaThreshold), alphaSetting);
         }
 
 
-        internal static void CompressBC2Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
+        internal static void CompressBC2Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // Compress Alpha
             if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
@@ -34,8 +34,8 @@ namespace CSharpImageLibrary.DDS
                 int position = sourcePosition + 3;  // Only want to read alphas
                 for (int i = 0; i < 8; i += 2)
                 {
-                    destination[destPosition + i] = (byte)((imgData[position] & 0xF0) | (imgData[position + 4] >> 4));
-                    destination[destPosition + i + 1] = (byte)((imgData[position + 8] & 0xF0) | (imgData[position + 12] >> 4));
+                    destination[destPosition + i] = (byte)(((byte)(imgData[position] * 255f) & 0xF0) | ((byte)(imgData[position + 4] * 255f) >> 4));
+                    destination[destPosition + i + 1] = (byte)(((byte)(imgData[position + 8] * 255f) & 0xF0) | ((byte)(imgData[position + 12] * 255f) >> 4));
 
                     position += sourceLineLength;
                 }
@@ -46,7 +46,7 @@ namespace CSharpImageLibrary.DDS
             CompressRGBTexel(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, false, 0f, alphaSetting);
         }
 
-        internal static void CompressBC3Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
+        internal static void CompressBC3Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // Compress Alpha
             if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
@@ -63,14 +63,14 @@ namespace CSharpImageLibrary.DDS
         }
 
         // ATI1
-        internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
+        internal static void CompressBC4Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
         }
 
 
         // ATI2 3Dc
-        internal static void CompressBC5Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
+        internal static void CompressBC5Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
             // Green: Channel 1.
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 1, false);
@@ -80,7 +80,7 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion Compressed
 
-        internal static int WriteUncompressed(byte[] source, int source_ComponentSize, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf)
+        internal static int WriteUncompressed(float[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf)
         {
             int byteCount = dest_ddspf.dwRGBBitCount / 8;
             byte signedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED ? SignedAdjustment : (byte)0;
@@ -113,24 +113,16 @@ namespace CSharpImageLibrary.DDS
             BIndex = BMask == 0 ? -1 : maskOrder.IndexOf(BMask) * dest_ddspf.ComponentSize;
 
             // Determine writer
-            Action<byte[], int, byte[], int> readerWriter = WriteByte;
+            Action<float[], int, byte[], int> writer = ReadFloatWriteByte;
             if (dest_ddspf.ComponentSize == 2)
-                writer = WriteUShort;
+                writer = ReadFloatWriteUShort;
             else if (dest_ddspf.ComponentSize == 4)
-                writer = WriteFloat;
+                writer = ReadFloatWriteFloat;
 
-            int destAInd = 3;
-            int destRInd = 2;
-            int destGInd = 1;
-            int destBInd = 0;
-
-            if (dest_ddspf.ComponentSize != 1)
-            {
-                destAInd = 3 * dest_ddspf.ComponentSize;
-                destRInd = 0 * dest_ddspf.ComponentSize;
-                destGInd = 1 * dest_ddspf.ComponentSize;
-                destBInd = 2 * dest_ddspf.ComponentSize;
-            }
+            int sourceAInd = 3;
+            int sourceRInd = 0;
+            int sourceGInd = 1;
+            int sourceBInd = 2;
 
             for (int i = 0; i < source.Length; i += 4 * dest_ddspf.ComponentSize, destStart += byteCount)
             {
@@ -139,122 +131,62 @@ namespace CSharpImageLibrary.DDS
                     byte blue = (byte)(source[i] + signedAdjust);
                     byte green = (byte)(source[i + 1] + signedAdjust);
                     byte red = (byte)(source[i + 2] + signedAdjust);
-                    byte alpha = source[i + 3];
+                    /*byte alpha = source[i + 3];
 
                     destination[destStart] = AMask > RMask ? red : alpha;
-                    destination[destStart + 1] = AMask > RMask ? alpha : red;
+                    destination[destStart + 1] = AMask > RMask ? alpha : red;*/
                 }
                 else if (oneChannel) // No large components - silly spec...
                 {
                     byte blue = (byte)(source[i] + signedAdjust);
                     byte green = (byte)(source[i + 1] + signedAdjust);
                     byte red = (byte)(source[i + 2] + signedAdjust);
-                    byte alpha = source[i + 3];
+                    //byte alpha = source[i + 3];
 
                     destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
                 }
                 else
                 {
                     if (AMask != 0)
-                        writer(source, i + destAInd, destination, destStart + AIndex);
+                        writer(source, i + sourceAInd, destination, destStart + AIndex);
 
                     if (RMask != 0)
-                        writer(source, i + destRInd, destination, destStart + RIndex);
+                        writer(source, i + sourceRInd, destination, destStart + RIndex);
 
                     if (GMask != 0)
-                        writer(source, i + destGInd, destination, destStart + GIndex);
+                        writer(source, i + sourceGInd, destination, destStart + GIndex);
 
                     if (BMask != 0)
-                        writer(source, i + destBInd, destination, destStart + BIndex);
+                        writer(source, i + sourceBInd, destination, destStart + BIndex);
                 }
             }
 
             return destStart;
         }
 
-        static void ReadByteWriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
+        static void ReadFloatWriteByte(float[] source, int sourceInd, byte[] destination, int destInd)
         {
-            destination[destInd] = source[sourceInd];
-        }
-
-        static void ReadUshortWriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
-        {
-            destination[destInd] = (byte)(BitConverter.ToUInt16(source, sourceInd) / uint.MaxValue);
-        }
-
-        static void ReadFloatWriteByte(byte[] source, int sourceInd, byte[] destination, int destInd)
-        {
-            destination[destInd] = (byte)(BitConverter.ToSingle(source, sourceInd) * 255f);
+            destination[destInd] = (byte)(source[sourceInd] * 255f);
         }
 
 
-
-        static void ReadByteWriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
+        static void ReadFloatWriteUShort(float[] source, int sourceInd, byte[] destination, int destInd)
         {
-            destination[destInd] = 0;
-            destination[destInd + 1] = source[sourceInd];
-        }
-
-        static void ReadUshortWriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
-        {
-            destination[destInd] = source[sourceInd];
-            destination[destInd + 1] = source[sourceInd + 1];
-        }
-
-        static void ReadFloatWriteUShort(byte[] source, int sourceInd, byte[] destination, int destInd)
-        {
-            byte[] bytes = BitConverter.GetBytes((ushort)(BitConverter.ToSingle(source, sourceInd) * uint.MaxValue));
+            byte[] bytes = BitConverter.GetBytes((ushort)(source[sourceInd] * uint.MaxValue));
 
             destination[destInd] = bytes[0];
             destination[destInd + 1] = bytes[1];
         }
 
 
-        static void ReadByteWriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
+        static void ReadFloatWriteFloat(float[] source, int sourceInd, byte[] destination, int destInd)
         {
-            byte[] bytes = BitConverter.GetBytes(source[sourceInd] / 255f);
+            byte[] bytes = BitConverter.GetBytes(source[sourceInd]);
 
             destination[destInd] = bytes[0];
             destination[destInd + 1] = bytes[1];
             destination[destInd + 2] = bytes[2];
             destination[destInd + 3] = bytes[3];
-        }
-
-        static void ReadUShortWriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
-        {
-            byte[] bytes = BitConverter.GetBytes(BitConverter.ToUInt16(source, sourceInd) / ushort.MaxValue);
-
-            destination[destInd] = bytes[0];
-            destination[destInd + 1] = bytes[1];
-            destination[destInd + 2] = bytes[2];
-            destination[destInd + 3] = bytes[3];
-        }
-
-        static void ReadFloatWriteFloat(byte[] source, int sourceInd, byte[] destination, int destInd)
-        {
-            destination[destInd] = source[sourceInd];
-            destination[destInd + 1] = source[sourceInd + 1];
-            destination[destInd + 2] = source[sourceInd + 2];
-            destination[destInd + 3] = source[sourceInd + 3];
-        }
-
-
-        static int Shift(byte channel, uint mask)
-        {
-            int shifted = 0;
-            if (mask != 0)
-            {
-                shifted = channel;
-
-                // Shift colour to position of mask. This method moves the mask back towards 0 a number of times, and the channel colour the same number "up".
-                while ((mask & 0xFF) == 0)
-                {
-                    mask >>= 8;
-                    shifted <<= 8;
-                }
-            }
-
-            return shifted;
         }
     }
 }

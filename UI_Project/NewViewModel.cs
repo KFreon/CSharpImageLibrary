@@ -814,8 +814,13 @@ namespace UI_Project
                 if (SaveFormat.ToString().Contains("_") && LoadedImage != null)
                 {
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
+                    var header = LoadedImage.Header as CSharpImageLibrary.Headers.DDS_Header;
+                    int componentSize = 1;
+                    if (header != null)
+                        componentSize = ((CSharpImageLibrary.Headers.DDS_Header)LoadedImage.Header).ddspf.ComponentSize;
+
                     return ImageFormats.GetCompressedSize(SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 1 : estimatedMips, 
-                        SaveFormat, Width, Height, LoadedImage.MipMaps[0].ComponentSize);
+                        SaveFormat, Width, Height, componentSize);
                 }
 
                 return saveCompressedSize;
@@ -1086,7 +1091,7 @@ namespace UI_Project
             UpdateUI();
         }
 
-        byte[] GetPixels(MipMap mip)
+        float[] GetPixels(MipMap mip)
         {
             var pixels = mip.Pixels;
             if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)  // Get a different set of pixels
@@ -1096,16 +1101,13 @@ namespace UI_Project
             return pixels;
         }
 
-        static int OldComponentSize = 0;
-        void UpdatePreview(ref WriteableBitmap bmp, int width, int height, byte[] pixels)
+        void UpdatePreview(ref WriteableBitmap bmp, int width, int height, float[] pixels)
         {
             // Create Preview Object if required - need to recreate if alpha setting changes to premultiplied
-            if (bmp == null || (bmp.PixelHeight != height || bmp.PixelWidth != width || OldComponentSize != LoadedImage.MipMaps[0].ComponentSize))
-                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, width, height, ImageFormats.DetermineSuitablePixelFormat(LoadedImage.MipMaps[0].ComponentSize));
+            if (bmp == null || (bmp.PixelHeight != height || bmp.PixelWidth != width))
+                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, width, height, PixelFormats.Rgba128Float);
             else
                 RedrawEitherPreview(bmp, pixels, width, height);
-
-            OldComponentSize = LoadedImage.MipMaps[0].ComponentSize;
         }
 
         public async Task UpdateSavePreview(bool needRegenerate = true)
@@ -1120,7 +1122,7 @@ namespace UI_Project
                     savePreviewIMG = new ImageEngineImage(data);                    
                 });
 
-            byte[] pixels = GetPixels(savePreviewIMG.MipMaps[0]);
+            float[] pixels = GetPixels(savePreviewIMG.MipMaps[0]);
 
             UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, pixels);
 
@@ -1131,10 +1133,10 @@ namespace UI_Project
             Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
         }
 
-        void RedrawEitherPreview(WriteableBitmap bmp, byte[] pixels, int width, int height)
+        void RedrawEitherPreview(WriteableBitmap bmp, float[] pixels, int width, int height)
         {
             var rect = new System.Windows.Int32Rect(0, 0, width, height);
-            bmp.WritePixels(rect, pixels, width * 4 * LoadedImage.MipMaps[0].ComponentSize, 0);
+            bmp.WritePixels(rect, pixels, width * 4 * 4, 0);
         }
 
         void UpdateUI()

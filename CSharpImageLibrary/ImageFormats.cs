@@ -557,26 +557,5 @@ namespace CSharpImageLibrary
             else
                 return estimate;
         }
-
-
-        /// <summary>
-        /// Returns suitably sized RGBA pixel format.
-        /// </summary>
-        /// <param name="componentSize">Size of components.</param>
-        /// <returns>RGBA PixelFormat of a suitable size.</returns>
-        public static PixelFormat DetermineSuitablePixelFormat(int componentSize)
-        {
-            switch (componentSize)
-            {
-                case 1:
-                    return PixelFormats.Bgra32;
-                case 2:
-                    return PixelFormats.Rgba64;
-                case 4:
-                    return PixelFormats.Rgba128Float;
-                default:
-                    throw new ArgumentException("ComponentSize must be 1, 2, or 4.");
-            }
-        }
     }
 }

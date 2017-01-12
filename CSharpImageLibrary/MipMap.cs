@@ -17,16 +17,11 @@ namespace CSharpImageLibrary
     /// </summary>
     public class MipMap
     {
-        /// <summary>
-        /// Size of channel components e.g. 16bit = 2.
-        /// </summary>
-        public int ComponentSize { get; set; } = 1;
-
-        byte[] rgbAOpaque = null;
+        float[] rgbAOpaque = null;
         /// <summary>
         /// Gives RGB only, but suitable to display on an RGBA image i.e. sets alpha to opaque.
         /// </summary>
-        public byte[] RGBAOpaque
+        public float[] RGBAOpaque
         {
             get
             {
@@ -35,32 +30,26 @@ namespace CSharpImageLibrary
 
                 if (rgbAOpaque == null)
                 {
-                    rgbAOpaque = new byte[Pixels.Length];
+                    rgbAOpaque = new float[Pixels.Length];
 
-                    Action<int> action = i =>
+                    for (int i = 0; i < Pixels.Length; i+=4)
                     {
-                        if ((i + 1) % (4 * ComponentSize) == 0)
-                            SetAlphaOpaque(rgbAOpaque, i);
-                        else
-                            CopyChannelColour(Pixels, i, rgbAOpaque, i);
-                    };
-
-                    if (ImageEngine.EnableThreading)
-                        Parallel.For(0, Pixels.Length / ComponentSize, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, index => action(index * ComponentSize));
-                    else
-                        for (int i = 0; i < Pixels.Length; i += ComponentSize)
-                            action(i);
+                        rgbAOpaque[i] = Pixels[i];
+                        rgbAOpaque[i + 1] = Pixels[i + 1];
+                        rgbAOpaque[i + 2] = Pixels[i + 2];
+                        rgbAOpaque[i + 3] = 1f;
+                    }
                 }
 
                 return rgbAOpaque;
             }
         }
 
-        byte[] alphaOnlyPixels = null;
+        float[] alphaOnlyPixels = null;
         /// <summary>
         /// Returns a grayscale image of the alpha mask.
         /// </summary>
-        public byte[] AlphaOnlyPixels
+        public float[] AlphaOnlyPixels
         {
             get
             {
@@ -69,23 +58,16 @@ namespace CSharpImageLibrary
 
                 if (alphaOnlyPixels == null)
                 {
-                    alphaOnlyPixels = new byte[Pixels.Length];
+                    alphaOnlyPixels = new float[Pixels.Length];
 
-                    Action<int> action = ai =>
+                    for (int ai = 3; ai < Pixels.Length; ai+=4)
                     {
-                        // Set alpha colour to RGB to make grayscale.
-                        CopyChannelColour(Pixels, ai, alphaOnlyPixels, ai - 1 * ComponentSize);
-                        CopyChannelColour(Pixels, ai, alphaOnlyPixels, ai - 2 * ComponentSize);
-                        CopyChannelColour(Pixels, ai, alphaOnlyPixels, ai - 3 * ComponentSize);
+                        alphaOnlyPixels[ai - 1] = Pixels[ai];
+                        alphaOnlyPixels[ai - 2] = Pixels[ai];
+                        alphaOnlyPixels[ai - 3] = Pixels[ai];
 
-                        SetAlphaOpaque(alphaOnlyPixels, ai); // Set Alpha to opaque just in case.
-                    };
-
-                    if (ImageEngine.EnableThreading)
-                        Parallel.For(3 * ComponentSize, Pixels.Length / (4 * ComponentSize), new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, index => action(index * 4 * ComponentSize));
-                    else
-                        for (int ai = 3 * ComponentSize; ai < Pixels.Length; ai += 4 * ComponentSize)   // TODO: Alpha display is wrong, for some reason.
-                            action(ai);
+                        alphaOnlyPixels[ai] = 1f;
+                    }
                 }
 
                 return alphaOnlyPixels;
@@ -95,7 +77,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Pixels in bitmap image.
         /// </summary>
-        public byte[] Pixels
+        public float[] Pixels
         {
             get; set;
         }
@@ -114,12 +96,11 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a Mipmap object from a WPF image.
         /// </summary>
-        public MipMap(byte[] pixels, int width, int height, int componentSize)
+        public MipMap(float[] pixels, int width, int height)
         {
             Pixels = pixels;
             Width = width;
             Height = height;
-            ComponentSize = componentSize;
         }
 
 
@@ -136,7 +117,7 @@ namespace CSharpImageLibrary
 
         void SetAlphaOpaque(byte[] source, int index)
         {
-            switch (ComponentSize)
+            /*switch (ComponentSize)
             {
                 case 1:
                     source[index] = 0xFF;
@@ -151,12 +132,12 @@ namespace CSharpImageLibrary
                     source[index + 2] = 128;
                     source[index + 3] = 63;
                     break;
-            }
+            }*/
         }
 
         void CopyChannelColour(byte[] source, int sourceInd, byte[] destination, int destInd)
         {
-            switch (ComponentSize)
+            /*switch (ComponentSize)
             {
                 case 1:
                     destination[destInd] = source[sourceInd];
@@ -171,7 +152,7 @@ namespace CSharpImageLibrary
                     destination[destInd + 2] = source[sourceInd + 2];
                     destination[destInd + 3] = source[sourceInd + 3];
                     break;
-            }
+            }*/
         }
     }
 }

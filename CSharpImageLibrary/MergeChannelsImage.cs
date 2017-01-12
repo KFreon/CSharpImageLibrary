@@ -153,7 +153,7 @@ namespace CSharpImageLibrary
                 Width = img.Width;
                 Height = img.Height;
                 Thumbnail = img.GetWPFBitmap(128);
-                Pixels = img.MipMaps[0].Pixels;
+                //Pixels = img.MipMaps[0].Pixels;
             }
         }
 

@@ -18,13 +18,13 @@ namespace CSharpImageLibrary.DDS
         // TODO: Virtual/physical size. Less than 4x4 texels
 
         #region Compressed Readers
-        internal static void DecompressBC1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        internal static void DecompressBC1Block(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, true, false);
         }
 
 
-        internal static void DecompressBC2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
+        internal static void DecompressBC2Block(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
         {
             // KFreon: Decompress alpha (only half of the texel count though, since each byte is 2 texels of alpha)
             for (int i = 0; i < 8; i++)
@@ -34,9 +34,9 @@ namespace CSharpImageLibrary.DDS
                 // alphaOffset = effectively column offset in a row of bitmap. Since a compressed byte has 2 pixels worth of alpha, i % 2 * 8 skips 2 pixels of BGRA each byte read, +3 selects alpha channel.
                 // lineOffset = texels aren't contiguous i.e. each row in texel isn't next to each other when decompressed. Need to skip to next line in entire bitmap. i / 2 is truncated by int cast, 
                 // so every 2 cycles (4 pixels, a full texel row) a bitmap line is skipped to the next line in texel.
-                int offset = decompressedStart + ((i % 2) * 8 + 3) + (decompressedLineLength * (i / 2));
-                destination[offset] = (byte)((source[sourceStart + i] & 0xF0));
-                destination[offset + 4] = (byte)(source[sourceStart + i] & 0x0F << 4);
+                int offset = decompressedStart + ((i % 2) * 8 + 3 * 4) + (decompressedLineLength * (i / 2));
+                destination[offset] = (source[sourceStart + i] & 0xF0) / 255f;
+                destination[offset + 4] = (source[sourceStart + i] & 0x0F << 4) / 255f;
             }
 
             // +8 skips the above alpha, otherwise it's just a BC1 RGB block
@@ -44,17 +44,17 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        internal static void DecompressBC3Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
+        internal static void DecompressBC3Block(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
         {
             // Alpha, +3 to select that channel.
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 3, decompressedLineLength, false);
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 3 * 4, decompressedLineLength, false);
 
             // RGB
             DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false, isPremultiplied);
         }
 
         // BC4
-        internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        internal static void DecompressATI1(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
 
@@ -64,14 +64,14 @@ namespace CSharpImageLibrary.DDS
                 int offset = GetDecompressedOffset(decompressedStart, decompressedLineLength, i);
 
                 // Since one channel (blue) was set by the decompression above, just need to set the remaining channels
-                destination[offset + 1] = destination[offset];
-                destination[offset + 2] = destination[offset];
-                destination[offset + 3] = 0xFF;  // Alpha
+                destination[offset + 1] = destination[offset] / 255f;
+                destination[offset + 2] = destination[offset] / 255f;
+                destination[offset + 3] = 1f;  // Alpha
             }
         }
 
         // BC5
-        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        internal static void DecompressATI2Block(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             // Green = +1 -- BGRA
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 1, decompressedLineLength, false);
@@ -89,8 +89,8 @@ namespace CSharpImageLibrary.DDS
 
                 // Get Red and Green on the range -1 - 1
                 // *2-1 moves the range from 0 - 1, to -1 - 1
-                double green = destination[offset + 1] / 127.5 - 1d;
-                double red = destination[offset + 2] / 127.5 - 1d;    // 127.5 = 255/2
+                float green = destination[offset + 1] * 2f - 1f;
+                float red = destination[offset + 2] * 2f - 1f;    
 
                 // Z solution for: x2 + y2 + z2 = 1, unit normal vectors. Only consider +ve root as ATI2 is a tangent space mapping and Z must be +ve.
                 // Also when 1 - x2 - y2 < 0, Z = NaN, but is compensated for in ExpandTo255.
@@ -100,8 +100,8 @@ namespace CSharpImageLibrary.DDS
                 if (Z > 1)
                     Z = 1;
 
-                destination[offset] = ExpandTo255(Z);  // Blue
-                destination[offset + 3] = 0xFF;  // Alpha
+                destination[offset] = (float)Z;  // Blue
+                destination[offset + 3] = 1f;  // Alpha
             }
         }
 
@@ -131,7 +131,7 @@ namespace CSharpImageLibrary.DDS
         #endregion Compressed Readers
 
         #region Uncompressed Readers
-        internal static void ReadUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf)
+        internal static void ReadUncompressed(byte[] source, int sourceStart, float[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
             int signedAdjustment = ((ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) ? SignedAdjustment : 0;
             int sourceIncrement = ddspf.dwRGBBitCount / 8;  // /8 for bits to bytes conversion
@@ -185,29 +185,20 @@ namespace CSharpImageLibrary.DDS
             }
 
             // Get suitable reader
-            Action<byte[], int, byte[], int, int> reader = ReadByte;
+            Action<byte[], int, float[], int, int> reader = ReadByte;
             if (ddspf.ComponentSize == 2)
                 reader = ReadUShort;
             else if (ddspf.ComponentSize == 4)
-                reader = ReadUInt;
+                reader = ReadFloat;
 
 
             // Determine order of things
             int destAInd = 3;
-            int destRInd = 2;
+            int destRInd = 0;
             int destGInd = 1;
-            int destBInd = 0;
+            int destBInd = 2;          
 
-            if (ddspf.ComponentSize != 1)
-            {
-                destAInd = 3 * ddspf.ComponentSize;
-                destRInd = 0 * ddspf.ComponentSize;
-                destGInd = 1 * ddspf.ComponentSize;
-                destBInd = 2 * ddspf.ComponentSize;
-            }
-            
-
-            for (int i = 0, j = sourceStart; i < pixelCount * 4 * ddspf.ComponentSize; i += 4 * ddspf.ComponentSize, j += sourceIncrement)
+            for (int i = 0, j = sourceStart; i < pixelCount * 4; i += 4, j += sourceIncrement)
             {
                 reader(source, j + BIndex, destination, i + destBInd, BIndex);
                 reader(source, j + GIndex, destination, i + destGInd, GIndex);
@@ -216,23 +207,19 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        static void ReadByte(byte[] source, int sourceInd, byte[] destination, int destInd, int CInd)
+        static void ReadByte(byte[] source, int sourceInd, float[] destination, int destInd, int CInd)
         {
-            destination[destInd] = CInd == -1 ? (byte)0xFF : source[sourceInd];
+            destination[destInd] = CInd == -1 ? 1f : (source[sourceInd] / 255f);
         }
 
-        static void ReadUShort(byte[] source, int sourceInd, byte[] destination, int destInd, int CInd)
+        static void ReadUShort(byte[] source, int sourceInd, float[] destination, int destInd, int CInd)
         {
-            destination[destInd] = CInd == -1 ? (byte)0xFF : source[sourceInd];
-            destination[destInd + 1] = CInd == -1 ? (byte)0xFF : source[sourceInd + 1];
+            destination[destInd] = CInd == -1 ? 1f : (BitConverter.ToUInt16(source, sourceInd) / ushort.MaxValue);
         }
 
-        static void ReadUInt(byte[] source, int sourceInd, byte[] destination, int destInd, int CInd)
+        static void ReadFloat(byte[] source, int sourceInd, float[] destination, int destInd, int CInd)
         {
-            destination[destInd] = CInd == -1 ? (byte)0 : source[sourceInd];
-            destination[destInd + 1] = CInd == -1 ? (byte)0 : source[sourceInd + 1];
-            destination[destInd + 2] = CInd == -1 ? (byte)128 : source[sourceInd + 2];
-            destination[destInd + 3] = CInd == -1 ? (byte)63 : source[sourceInd + 3];
+            destination[destInd] = CInd == -1 ? 1f : BitConverter.ToSingle(source, sourceInd);
         }
 
 

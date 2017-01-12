@@ -38,7 +38,11 @@ namespace UI_Project
         {
             // Get Properties
             if (Properties.Settings.Default.UpgradeRequired)
+            {
                 Properties.Settings.Default.Upgrade();
+                Properties.Settings.Default.UpgradeRequired = false;
+                Properties.Settings.Default.Save();
+            }
 
             vm = new NewViewModel();
 
@@ -128,6 +132,13 @@ namespace UI_Project
 
 
             UseWindowTransparencyChecker.IsChecked = Properties.Settings.Default.IsWindowBlurred;
+            if (Properties.Settings.Default.NumThreads == 1)
+            {
+                vm.NumThreads = -1;
+                vm.EnableThreading = false;
+            }
+            else
+                vm.NumThreads = Properties.Settings.Default.NumThreads;
 
             // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
@@ -608,7 +619,7 @@ namespace UI_Project
 
         private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            Properties.Settings.Default.NumThreads = ImageEngine.NumThreads;
+            Properties.Settings.Default.NumThreads = ImageEngine.EnableThreading ? ImageEngine.NumThreads : 1;
             Properties.Settings.Default.BackgroundAlpha = vm.WindowBackground_Alpha;
             Properties.Settings.Default.BackgroundRed = vm.WindowBackground_Red;
             Properties.Settings.Default.BackgroundGreen = vm.WindowBackground_Green;

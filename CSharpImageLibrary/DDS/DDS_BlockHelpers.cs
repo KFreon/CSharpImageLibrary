@@ -67,7 +67,7 @@ namespace CSharpImageLibrary.DDS
             return (uint)(temp.r * 31f + 0.5f) << 11 | (uint)(temp.g * 63f + 0.5f) << 5 | (uint)(temp.b * 31f + 0.5f);
         }
 
-        static RGBColour ReadColourFromTexel(byte[] texel, int i, bool premultiply)
+        static RGBColour ReadColourFromTexel(float[] texel, int i, bool premultiply)
         {
             // Pull out rgb from texel
             // Create current pixel colour
@@ -78,10 +78,10 @@ namespace CSharpImageLibrary.DDS
                 return current;  // Fully transparent colour
 
 
-            current.a = texel[i + 3] / 255f;
-            current.r = (texel[i + 2] / 255f) * (premultiply ? current.a : 1.0f);
-            current.g = (texel[i + 1] / 255f) * (premultiply ? current.a : 1.0f);
-            current.b = (texel[i] / 255f) * (premultiply ? current.a : 1.0f);
+            current.a = texel[i + 3];
+            current.r = texel[i + 2] * (premultiply ? current.a : 1.0f);
+            current.g = texel[i + 1] * (premultiply ? current.a : 1.0f);
+            current.b = texel[i] * (premultiply ? current.a : 1.0f);
             
             return current;
         }
@@ -334,7 +334,7 @@ namespace CSharpImageLibrary.DDS
             return new RGBColour[] { min, max };
         }
 
-        static int CheckDXT1TexelFullTransparency(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, double alphaRef)
+        static int CheckDXT1TexelFullTransparency(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, double alphaRef)
         {
             int uColourKey = 0;
             int position = sourcePosition;
@@ -369,7 +369,7 @@ namespace CSharpImageLibrary.DDS
         /// <summary>
         /// Not exactly sure what this does or why.
         /// </summary>
-        static void DoColourFixErrorCorrection(RGBColour[] Colour, byte[] imgData, int sourcePosition, int sourceLineLength, AlphaSettings alphaSetting)
+        static void DoColourFixErrorCorrection(RGBColour[] Colour, float[] imgData, int sourcePosition, int sourceLineLength, AlphaSettings alphaSetting)
         {
             RGBColour[] Error = new RGBColour[16];
             for (int i = 0; i < 4; i++)
@@ -393,9 +393,9 @@ namespace CSharpImageLibrary.DDS
 
 
                     // 5:6:5 range adaptation?
-                    Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
-                    Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
-                    Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
+                    //Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
+                    //Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
+                    //Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
 
                     DoSomeDithering(current, index, Colour, index, Error);
 
@@ -447,7 +447,7 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        static uint DoOtherColourFixErrorCorrection(byte[] imgData, int sourcePosition, int sourceLineLength, int uSteps, double alphaRef, AlphaSettings alphaSetting, RGBColour[] step, RGBColour Dir)
+        static uint DoOtherColourFixErrorCorrection(float[] imgData, int sourcePosition, int sourceLineLength, int uSteps, double alphaRef, AlphaSettings alphaSetting, RGBColour[] step, RGBColour Dir)
         {
             uint dw = 0;
             RGBColour[] Error = new RGBColour[16];
@@ -549,7 +549,7 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        internal static void CompressRGBTexel(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, AlphaSettings alphaSetting)
+        internal static void CompressRGBTexel(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, bool isDXT1, double alphaRef, AlphaSettings alphaSetting)
         {
             int uSteps = 4;
 
@@ -657,38 +657,18 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion RGB DXT
 
-        private static int GetClosestValue(byte[] arr, byte c)
-        {
-            int min = int.MaxValue;
-            int index = 0;
-            int minIndex = 0;
-            for (int i = 0; i < arr.Length; i++)
-            {
-                int check = arr[i] - c;
-                check = (check ^ (check >> 7)) - (check >> 7);
-                if (check < min)
-                {
-                    min = check;
-                    minIndex = index;
-                }
-
-                index++;
-            }
-            return minIndex;
-        }
-
         
-        public static void Compress8BitBlock(byte[] source, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, int channel, bool isSigned)
+        public static void Compress8BitBlock(float[] source, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, int channel, bool isSigned)
         {
             // KFreon: Get min and max
-            byte min = byte.MaxValue;
-            byte max = byte.MinValue;
+            float min = 1f;
+            float max = 0f;
             int count = sourcePosition + channel;
             for (int i = 1; i <= 4; i++)
             {
                 for (int j= 0; j < 4; j++)
                 {
-                    byte colour = source[count];
+                    float colour = source[count];
                     if (colour > max)
                         max = colour;
                     else if (colour < min)
@@ -700,7 +680,7 @@ namespace CSharpImageLibrary.DDS
             }
 
             // Build Palette
-            byte[] Colours = Build8BitPalette(min, max, isSigned);
+            float[] Colours = Build8BitPalette(min, max, isSigned);
 
             // Compress Pixels
             ulong line = 0;
@@ -711,8 +691,19 @@ namespace CSharpImageLibrary.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     int ind = (i << 2) + j;
-                    byte colour = source[count];
-                    int index = GetClosestValue(Colours, colour);
+                    float colour = source[count];
+                    int index = 0;
+                    float temp_min = float.MaxValue;
+                    for(int k = 0; k < Colours.Length; k++)
+                    {
+                        float temp = Colours[k] - colour;
+                        if (temp < temp_min)
+                        {
+                            temp_min = temp;
+                            index = k;
+                        }
+                    }
+
                     indicies.Add(index);
                     line |= (ulong)index << (ind * 3);
                     count += 4;  // Only need 1 channel
@@ -722,8 +713,8 @@ namespace CSharpImageLibrary.DDS
             }
 
             byte[] compressed = BitConverter.GetBytes(line);
-            destination[destPosition] = min;
-            destination[destPosition + 1] = max;
+            destination[destPosition] = (byte)(min * 255f);
+            destination[destPosition + 1] = (byte)(max * 255f);
             for (int i = 2; i < 8; i++)
                 destination[destPosition + i] = compressed[i - 2];
         }
@@ -731,13 +722,13 @@ namespace CSharpImageLibrary.DDS
 
         #region Block Decompression
         
-        internal static void Decompress8BitBlock(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool isSigned)
+        internal static void Decompress8BitBlock(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool isSigned)
         {
             // KFreon: Read min and max colours (not necessarily in that order)
-            byte min = source[sourceStart];
-            byte max = source[sourceStart + 1];
+            float min = source[sourceStart] / 255f;
+            float max = source[sourceStart + 1] / 255f;
 
-            byte[] Colours = Build8BitPalette(min, max, isSigned);
+            float[] Colours = Build8BitPalette(min, max, isSigned);
 
             // KFreon: Decompress pixels
             ulong bitmask = (ulong)source[sourceStart + 2] << 0 | (ulong)source[sourceStart + 3] << 8 | (ulong)source[sourceStart + 4] << 16 |   // KFreon: Read all 6 compressed bytes into single.
@@ -751,36 +742,12 @@ namespace CSharpImageLibrary.DDS
                 {
                     int index = i * 4 + j;
                     int destPos = decompressedStart + j * 4 + (i * decompressedLineLength);
-                    destination[destPos] = (byte)Colours[bitmask >> (index * 3) & 0x7];
+                    destination[destPos] = Colours[bitmask >> (index * 3) & 0x7];
                 }
             }
         }
 
-        // TODO: Seems unused
-        internal static byte[] Decompress8BitBlock(byte[] source, int sourceStart, bool isSigned)
-        {
-            byte[] DecompressedBlock = new byte[16];
-
-            // KFreon: Read min and max colours (not necessarily in that order)
-            byte min = source[sourceStart];
-            byte max = source[sourceStart + 1];
-
-            byte[] Colours = Build8BitPalette(min, max, isSigned);
-
-            // KFreon: Decompress pixels
-            ulong bitmask = (ulong)source[sourceStart + 2] << 0 | (ulong)source[sourceStart + 3] << 8 | (ulong)source[sourceStart + 4] << 16 |   // KFreon: Read all 6 compressed bytes into single.
-                (ulong)source[sourceStart + 5] << 24 | (ulong)source[sourceStart + 6] << 32 | (ulong)source[sourceStart + 7] << 40;
-
-
-            // KFreon: Bitshift and mask compressed data to get 3 bit indicies, and retrieve indexed colour of pixel.
-            for (int i = 0; i < 16; i++)
-                DecompressedBlock[i] = (byte)Colours[bitmask >> (i * 3) & 0x7];
-
-            return DecompressedBlock;
-        }
-
-
-        internal static void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1, bool isPremultiplied)
+        internal static void DecompressRGBBlock(byte[] source, int sourcePosition, float[] destination, int destinationStart, int destinationLineLength, bool isDXT1, bool isPremultiplied)
         {
             ushort colour0;
             ushort colour1;
@@ -811,7 +778,7 @@ namespace CSharpImageLibrary.DDS
                     UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos, isPremultiplied);
 
                     if (isDXT1)
-                        destination[destPos + 3] = 0xFF;
+                        destination[destPos + 3] = 1f;
                 }
             }
         }
@@ -826,14 +793,14 @@ namespace CSharpImageLibrary.DDS
         /// <param name="position">Position in destination to write RGB at.</param>
         /// <param name="isPremultiplied">True = RGB interpreted as being premultiplied with A channel.</param>
         /// <returns>RGB bytes</returns>
-        private static void UnpackDXTColour(int colour, byte[] destination, int position, bool isPremultiplied)
+        private static void UnpackDXTColour(int colour, float[] destination, int position, bool isPremultiplied)
         {
             double alpha = isPremultiplied ? (destination[position + 3] / 255d) : 1d; // Normalise to 0-1.
 
             // Read RGB 5:6:5 data, expand to 8 bit.
-            destination[position + 2] = (byte)(((colour & 0xF800) >> 8) / alpha);  // Red, but format is BGR, so last
-            destination[position + 1] = (byte)(((colour & 0x7E0) >> 3) / alpha);  // Green
-            destination[position] = (byte)(((colour & 0x1F) << 3) / alpha);      // Blue
+            destination[position + 2] = (float)(((colour & 0xF800) >> 8) / alpha) / 255f;  // Red, but format is BGR, so last
+            destination[position + 1] = (float)(((colour & 0x7E0) >> 3) / alpha) / 255f;  // Green
+            destination[position] = (float)(((colour & 0x1F) << 3) / alpha) / 255f;      // Blue
         }
 
         /// <summary>
@@ -878,9 +845,9 @@ namespace CSharpImageLibrary.DDS
         /// <param name="max">Second main colour (often actually maximum)</param>
         /// <param name="isSigned">true = sets signed alpha range (-254 -- 255), false = 0 -- 255</param>
         /// <returns>8 byte colour palette.</returns>
-        internal static byte[] Build8BitPalette(byte min, byte max, bool isSigned)
+        internal static float[] Build8BitPalette(float min, float max, bool isSigned)
         {
-            byte[] Colours = new byte[8];
+            float[] Colours = new float[8];
             Colours[0] = min;
             Colours[1] = max;
 
@@ -888,22 +855,22 @@ namespace CSharpImageLibrary.DDS
             if (min > max)
             {
                 // KFreon: Interpolate other colours
-                Colours[2] = (byte)((6d * min + 1d * max + 3) / 7d);  // NO idea what the +3 is...not in the Microsoft spec, but seems to be everywhere else.
-                Colours[3] = (byte)((5d * min + 2d * max + 3) / 7d);
-                Colours[4] = (byte)((4d * min + 3d * max + 3) / 7d);
-                Colours[5] = (byte)((3d * min + 4d * max + 3) / 7d);
-                Colours[6] = (byte)((2d * min + 5d * max + 3) / 7d);
-                Colours[7] = (byte)((1d * min + 6d * max + 3) / 7d);
+                Colours[2] = (float)((6d * min + 1d * max) / 7d);  // NO idea what the +3 is...not in the Microsoft spec, but seems to be everywhere else.
+                Colours[3] = (float)((5d * min + 2d * max) / 7d);
+                Colours[4] = (float)((4d * min + 3d * max) / 7d);
+                Colours[5] = (float)((3d * min + 4d * max) / 7d);
+                Colours[6] = (float)((2d * min + 5d * max) / 7d);
+                Colours[7] = (float)((1d * min + 6d * max) / 7d);
             }
             else
             {
                 // KFreon: Interpolate other colours and add Opacity or something...
-                Colours[2] = (byte)((4d * min + 1d * max + 3) / 5d);
-                Colours[3] = (byte)((3d * min + 2d * max + 3) / 5d);
-                Colours[4] = (byte)((2d * min + 3d * max + 3) / 5d);
-                Colours[5] = (byte)((1d * min + 4d * max + 3) / 5d);
-                Colours[6] = (byte)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
-                Colours[7] = 255;
+                Colours[2] = (float)((4d * min + 1d * max) / 5d);
+                Colours[3] = (float)((3d * min + 2d * max) / 5d);
+                Colours[4] = (float)((2d * min + 3d * max) / 5d);
+                Colours[5] = (float)((1d * min + 4d * max) / 5d);
+                Colours[6] = (float)(isSigned ? -254 : 0);  // KFreon: snorm and unorm have different alpha ranges
+                Colours[7] = 1f;
             }
 
             return Colours;
