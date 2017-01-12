@@ -457,6 +457,14 @@ namespace CSharpImageLibrary
             float[] pixels = new float[source.PixelHeight * source.PixelWidth * 4];
             source.CopyPixels(pixels, source.PixelWidth * 4 * 4, 0);
 
+            for (int i = 0; i < pixels.Length; i+=4)
+            {
+                pixels[i] = (float)Math.Pow(pixels[i], 1 / 2.2);
+                pixels[i + 1] = (float)Math.Pow(pixels[i + 1], 1 / 2.2);
+                pixels[i + 2] = (float)Math.Pow(pixels[i + 2], 1 / 2.2);
+                // Alpha not scaled weird, so no need here.
+            }
+
             return pixels;
         }
 

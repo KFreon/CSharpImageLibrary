@@ -34,9 +34,9 @@ namespace CSharpImageLibrary
 
                     for (int i = 0; i < Pixels.Length; i+=4)
                     {
-                        rgbAOpaque[i] = Pixels[i];
-                        rgbAOpaque[i + 1] = Pixels[i + 1];
-                        rgbAOpaque[i + 2] = Pixels[i + 2];
+                        rgbAOpaque[i] = (float)Math.Pow(Pixels[i], 2.2);
+                        rgbAOpaque[i + 1] = (float)Math.Pow(Pixels[i + 1], 2.2);
+                        rgbAOpaque[i + 2] = (float)Math.Pow(Pixels[i + 2], 2.2);
                         rgbAOpaque[i + 3] = 1f;
                     }
                 }

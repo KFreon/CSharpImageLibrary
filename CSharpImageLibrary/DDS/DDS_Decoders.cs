@@ -65,8 +65,8 @@ namespace CSharpImageLibrary.DDS
                 int offset = GetDecompressedOffset(decompressedStart, decompressedLineLength, i);
 
                 // Since one channel (blue) was set by the decompression above, just need to set the remaining channels
-                destination[offset + 1] = destination[offset] / 255f;
-                destination[offset + 2] = destination[offset] / 255f;
+                destination[offset + 1] = destination[offset];
+                destination[offset + 2] = destination[offset];
                 destination[offset + 3] = 1f;  // Alpha
             }
         }
@@ -78,8 +78,8 @@ namespace CSharpImageLibrary.DDS
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 1, decompressedLineLength, false);
 
 
-            // Red = +2, source + 8 to skip first compressed block. 
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart + 2, decompressedLineLength, false);
+            // Red = +0, source + 8 to skip first compressed block. 
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false);
 
             
 
