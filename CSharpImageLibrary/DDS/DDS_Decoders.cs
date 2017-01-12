@@ -13,9 +13,6 @@ namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_Decoders
     {
-        // Since a pixel channel colour is always a byte, this is constant. I realise this isn't good when colours are bigger than a byte or floats, but I'll get there.
-        const int SignedAdjustment = 128;
-
         // TODO: Virtual/physical size. Less than 4x4 texels
 
         #region Compressed Readers
@@ -74,14 +71,13 @@ namespace CSharpImageLibrary.DDS
         // BC5
         internal static void DecompressATI2Block(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            // Green = +1 -- BGRA
+            // Green = +1
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 1, decompressedLineLength, false);
 
 
             // Red = +0, source + 8 to skip first compressed block. 
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false);
 
-            
 
             // KFreon: Alpha is 255, and blue needs to be calculated
             for (int i = 0; i < 16; i++)
@@ -98,10 +94,10 @@ namespace CSharpImageLibrary.DDS
                 double Z = Math.Sqrt(1d - (red * red + green * green));
 
                 // Clamp value to range
-                if (Z > 1)
+                if (double.IsNaN(Z) || Z > 1 || Z == 0)
                     Z = 1;
 
-                destination[offset] = (float)Z;  // Blue
+                destination[offset + 2] = (float)Z;  // Blue
                 destination[offset + 3] = 1f;  // Alpha
             }
         }
@@ -134,7 +130,7 @@ namespace CSharpImageLibrary.DDS
         #region Uncompressed Readers
         internal static void ReadUncompressed(byte[] source, int sourceStart, float[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            int signedAdjustment = ((ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) ? SignedAdjustment : 0;
+            bool requiresSignedAdjustment = ((ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED);
             int sourceIncrement = ddspf.dwRGBBitCount / 8;  // /8 for bits to bytes conversion
             bool oneChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
             bool twoChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS && oneChannel;
@@ -197,7 +193,9 @@ namespace CSharpImageLibrary.DDS
             int destAInd = 3;
             int destRInd = 0;
             int destGInd = 1;
-            int destBInd = 2;          
+            int destBInd = 2;
+
+            const float signedAdjustment = 127f / 255f;  // For now, just bytes - ushort will be slightly different
 
             for (int i = 0, j = sourceStart; i < pixelCount * 4; i += 4, j += sourceIncrement)
             {
@@ -205,6 +203,29 @@ namespace CSharpImageLibrary.DDS
                 reader(source, j + GIndex, destination, i + destGInd, GIndex);
                 reader(source, j + RIndex, destination, i + destRInd, RIndex);
                 reader(source, j + AIndex, destination, i + destAInd, AIndex);
+
+                // Signed stuff
+                if (requiresSignedAdjustment)
+                {
+                    if (BIndex != -1)
+                    {
+                        float test = destination[i + destBInd] - signedAdjustment;
+                        destination[i + destBInd] = test > 0 ? test : 1f - test;
+                    }
+                    if (GIndex != -1)
+                    {
+                        float test = destination[i + destGInd] - signedAdjustment;
+                        destination[i + destGInd] = test > 0 ? test : 1f - test;
+                    }
+
+                    if (RIndex != -1)
+                    {
+                        float test = destination[i + destRInd] - signedAdjustment;
+                        destination[i + destRInd] = test > 0 ? test : 1f - test;
+                    }
+
+                    // Alpha requires no adjustment
+                }
             }
         }
 
