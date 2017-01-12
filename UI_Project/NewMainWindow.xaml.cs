@@ -395,11 +395,6 @@ namespace UI_Project
             UsefulThings.WPF.General.DoBorderlessWindowDragMove(this, e);
         }
 
-        private void TOPWINDOW_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            Console.WriteLine();
-        }
-
         private void SavePathBox_LostFocus(object sender, RoutedEventArgs e)
         {
             vm.FixExtension(true);  // Indicate property should notify

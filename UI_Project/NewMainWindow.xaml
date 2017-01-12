@@ -15,7 +15,7 @@
         mc:Ignorable="d"
         Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" 
-        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" MouseDown="TOPWINDOW_MouseDown" Closing="TOPWINDOW_Closing">
+        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" Closing="TOPWINDOW_Closing">
     <Window.Resources>
         <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
         <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>

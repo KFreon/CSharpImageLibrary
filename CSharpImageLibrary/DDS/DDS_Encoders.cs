@@ -11,8 +11,6 @@ namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_Encoders
     {
-        static byte SignedAdjustment = 128;  // KFreon: This is for adjusting out of signed land.  This gets removed on load and re-added on save.
-
         #region Compressed
         internal static void CompressBC1Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
@@ -65,7 +63,7 @@ namespace CSharpImageLibrary.DDS
         // ATI1
         internal static void CompressBC4Block(float[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting)
         {
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false);
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 0, false);
         }
 
 
@@ -75,15 +73,15 @@ namespace CSharpImageLibrary.DDS
             // Green: Channel 1.
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 1, false);
 
-            // Red: Channel 2, 8 destination offset to be after Green.
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 2, false);
+            // Red: Channel 0, 8 destination offset to be after Green.
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 0, false);
         }
         #endregion Compressed
 
         internal static int WriteUncompressed(float[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf)
         {
             int byteCount = dest_ddspf.dwRGBBitCount / 8;
-            byte signedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED ? SignedAdjustment : (byte)0;
+            bool requiresSignedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED;
             bool oneChannel = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
             bool twoChannel = oneChannel && (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS;
 
@@ -97,6 +95,15 @@ namespace CSharpImageLibrary.DDS
             // e.g. Alpha is usually first, and is given offset 0.
             // NOTE: Ordering array is in ARGB order, and the stored indices change depending on detected channel order.
             // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
+
+            if (dest_ddspf.dwFourCC == DDS_Header.FourCC.A32B32G32R32F)
+            {
+                AMask = 4;
+                BMask = 3;
+                GMask = 2;
+                RMask = 1;
+            }
+
             List<uint> maskOrder = new List<uint>(4) { AMask, RMask, GMask, BMask };
             maskOrder.Sort();
             maskOrder.RemoveAll(t => t == 0);  // Required, otherwise indicies get all messed up when there's only two channels, but it's not indicated as such.
@@ -124,24 +131,22 @@ namespace CSharpImageLibrary.DDS
             int sourceGInd = 1;
             int sourceBInd = 2;
 
-            for (int i = 0; i < source.Length; i += 4 * dest_ddspf.ComponentSize, destStart += byteCount)
+            for (int i = 0; i < source.Length; i += 4, destStart += byteCount)
             {
                 if (twoChannel) // No large components - silly spec...
                 {
-                    byte blue = (byte)(source[i] + signedAdjust);
-                    byte green = (byte)(source[i + 1] + signedAdjust);
-                    byte red = (byte)(source[i + 2] + signedAdjust);
-                    /*byte alpha = source[i + 3];
+                    byte red = (byte)((source[i] * 255f) + (requiresSignedAdjust ? 128 : 0));
+                    byte alpha = (byte)(source[i + 3] * 255f);
 
                     destination[destStart] = AMask > RMask ? red : alpha;
-                    destination[destStart + 1] = AMask > RMask ? alpha : red;*/
+                    destination[destStart + 1] = AMask > RMask ? alpha : red;
                 }
                 else if (oneChannel) // No large components - silly spec...
                 {
-                    byte blue = (byte)(source[i] + signedAdjust);
-                    byte green = (byte)(source[i + 1] + signedAdjust);
-                    byte red = (byte)(source[i + 2] + signedAdjust);
-                    //byte alpha = source[i + 3];
+                    byte blue = (byte)((source[i] * 255f) + (requiresSignedAdjust ? 128 : 0));
+                    byte green = (byte)((source[i + 1] * 255f) + (requiresSignedAdjust ? 128 : 0));
+                    byte red = (byte)((source[i + 2] * 255f) + (requiresSignedAdjust ? 128 : 0));
+                    byte alpha = (byte)(source[i + 3] * 255f);
 
                     destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
                 }
@@ -158,6 +163,20 @@ namespace CSharpImageLibrary.DDS
 
                     if (BMask != 0)
                         writer(source, i + sourceBInd, destination, destStart + BIndex);
+
+
+                    // Signed adjustments - Only happens for bytes for now. V8U8
+                    if (requiresSignedAdjust)
+                    {
+                        if (RMask != 0)
+                            destination[destStart + RIndex] += 128;
+
+                        if (GMask != 0)
+                            destination[destStart + GIndex] += 128;
+
+                        if (BMask != 0)
+                            destination[destStart + BIndex] += 128;
+                    }
                 }
             }
 

@@ -38,6 +38,9 @@ namespace CSharpImageLibrary.Headers
                     if (componentSize <= 0)
                     {
                         int numChannels = new List<uint>() { dwABitMask, dwGBitMask, dwRBitMask, dwBBitMask }.Where(t => t != 0).Count();
+                        if (numChannels == 0 && dwFourCC == FourCC.A32B32G32R32F)
+                            numChannels = 4;
+
                         componentSize = dwRGBBitCount == 0 ? 1 : dwRGBBitCount / (8 * numChannels);
                     }
 

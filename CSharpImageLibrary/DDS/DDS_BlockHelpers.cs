@@ -79,9 +79,9 @@ namespace CSharpImageLibrary.DDS
 
 
             current.a = texel[i + 3];
-            current.r = texel[i + 2] * (premultiply ? current.a : 1.0f);
+            current.r = texel[i] * (premultiply ? current.a : 1.0f);
             current.g = texel[i + 1] * (premultiply ? current.a : 1.0f);
-            current.b = texel[i] * (premultiply ? current.a : 1.0f);
+            current.b = texel[i + 2] * (premultiply ? current.a : 1.0f);
             
             return current;
         }
@@ -393,9 +393,9 @@ namespace CSharpImageLibrary.DDS
 
 
                     // 5:6:5 range adaptation?
-                    //Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
-                    //Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
-                    //Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
+                    Colour[index].r = (int)(current.r * 31f + .5f) * (1f / 31f);
+                    Colour[index].g = (int)(current.g * 63f + .5f) * (1f / 63f);
+                    Colour[index].b = (int)(current.b * 31f + .5f) * (1f / 31f);
 
                     DoSomeDithering(current, index, Colour, index, Error);
 
@@ -696,7 +696,7 @@ namespace CSharpImageLibrary.DDS
                     float temp_min = float.MaxValue;
                     for(int k = 0; k < Colours.Length; k++)
                     {
-                        float temp = Colours[k] - colour;
+                        float temp = Math.Abs(Colours[k] - colour);
                         if (temp < temp_min)
                         {
                             temp_min = temp;
