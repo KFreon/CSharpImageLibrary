@@ -795,12 +795,12 @@ namespace CSharpImageLibrary.DDS
         /// <returns>RGB bytes</returns>
         private static void UnpackDXTColour(int colour, float[] destination, int position, bool isPremultiplied)
         {
-            double alpha = isPremultiplied ? (destination[position + 3] / 255d) : 1d; // Normalise to 0-1.
+            float alpha = isPremultiplied ? (destination[position + 3] / 255f) : 1f; // Normalise to 0-1.
 
             // Read RGB 5:6:5 data, expand to 8 bit.
-            destination[position] = (float)(((colour & 0xF800) >> 8) / alpha) / 255f;  // Red
-            destination[position + 1] = (float)(((colour & 0x7E0) >> 3) / alpha) / 255f;  // Green
-            destination[position + 2] = (float)(((colour & 0x1F) << 3) / alpha) / 255f;      // Blue
+            destination[position] = ((colour & 0xF800) >> 8) / (255f * alpha);  // Red
+            destination[position + 1] = ((colour & 0x7E0) >> 3) / (255f * alpha);  // Green
+            destination[position + 2] = ((colour & 0x1F) << 3) / (255f * alpha);      // Blue
         }
 
         /// <summary>

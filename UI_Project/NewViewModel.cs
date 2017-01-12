@@ -1093,11 +1093,13 @@ namespace UI_Project
 
         float[] GetPixels(MipMap mip)
         {
-            var pixels = mip.Pixels;
-            if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)  // Get a different set of pixels
+            float[] pixels = null;
+            if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)  // Get alpha channel only.
                 pixels = mip.AlphaOnlyPixels;
-            else if (AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)  // Other two are just an alpha channel different - Bitmap objects are BGRA32, so need to set the alpha to opaque when "don't want it".
+            else if (AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)  // RGB only. No alpha channel.
                 pixels = mip.RGBAOpaque;
+            else
+                pixels = mip.PremultipliedRGBA;  // Normal alpha display with transparency
             return pixels;
         }
 

@@ -34,14 +34,46 @@ namespace CSharpImageLibrary
 
                     for (int i = 0; i < Pixels.Length; i+=4)
                     {
-                        rgbAOpaque[i] = (float)Math.Pow(Pixels[i], 2.2);
-                        rgbAOpaque[i + 1] = (float)Math.Pow(Pixels[i + 1], 2.2);
-                        rgbAOpaque[i + 2] = (float)Math.Pow(Pixels[i + 2], 2.2);
+                        // Should be power 2.2, but too slow, so just 2.
+
+                        rgbAOpaque[i] = Pixels[i] * Pixels[i];
+                        rgbAOpaque[i + 1] = Pixels[i + 1] * Pixels[i + 1];
+                        rgbAOpaque[i + 2] = Pixels[i + 2] * Pixels[i + 2];
                         rgbAOpaque[i + 3] = 1f;
                     }
                 }
 
                 return rgbAOpaque;
+            }
+        }
+
+        float[] premultipliedRGBA = null;
+        /// <summary>
+        /// Gives RGB only, but suitable to display on an RGBA image i.e. sets alpha to opaque.
+        /// </summary>
+        public float[] PremultipliedRGBA
+        {
+            get
+            {
+                if (Pixels == null)
+                    return null;
+
+                if (premultipliedRGBA == null)
+                {
+                    premultipliedRGBA = new float[Pixels.Length];
+
+                    for (int i = 0; i < Pixels.Length; i += 4)
+                    {
+                        // Should be power 2.2, but too slow, so just 2.
+
+                        premultipliedRGBA[i] = Pixels[i] * Pixels[i];
+                        premultipliedRGBA[i + 1] = Pixels[i + 1] * Pixels[i + 1];
+                        premultipliedRGBA[i + 2] = Pixels[i + 2] * Pixels[i + 2];
+                        premultipliedRGBA[i + 3] = Pixels[i + 3];
+                    }
+                }
+
+                return premultipliedRGBA;
             }
         }
 
@@ -62,9 +94,10 @@ namespace CSharpImageLibrary
 
                     for (int ai = 3; ai < Pixels.Length; ai+=4)
                     {
-                        alphaOnlyPixels[ai - 1] = Pixels[ai];
-                        alphaOnlyPixels[ai - 2] = Pixels[ai];
-                        alphaOnlyPixels[ai - 3] = Pixels[ai];
+                        float a = Pixels[ai] * Pixels[ai];
+                        alphaOnlyPixels[ai - 1] = a;
+                        alphaOnlyPixels[ai - 2] = a;
+                        alphaOnlyPixels[ai - 3] = a;
 
                         alphaOnlyPixels[ai] = 1f;
                     }

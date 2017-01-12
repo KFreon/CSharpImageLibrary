@@ -112,15 +112,6 @@ namespace CSharpImageLibrary.DDS
 
         }
 
-
-        static byte ExpandTo255(double v)
-        {
-            if (double.IsNaN(v) || v == 0)
-                return 128;
-            else
-                return (byte)(((v + 1d) / 2d) * 255d);
-        }
-
         internal static int GetDecompressedOffset(int start, int lineLength, int pixelIndex)
         {
             return start + (lineLength * (pixelIndex / 4)) + (pixelIndex % 4) * 4;

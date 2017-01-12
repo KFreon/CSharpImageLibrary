@@ -450,21 +450,31 @@ namespace CSharpImageLibrary
 
         internal static float[] GetPixelsAsFloats(BitmapSource bmp)
         {
+            // Initially converted to RGBA128F, but this caused huge performance issues.
+
             var source = bmp;
-            if (bmp.Format != PixelFormats.Rgb128Float)
-                source = new FormatConvertedBitmap(bmp, PixelFormats.Rgb128Float, null, 0);
+            if (bmp.Format != PixelFormats.Bgra32)
+                source = new FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
 
             float[] pixels = new float[source.PixelHeight * source.PixelWidth * 4];
-            source.CopyPixels(pixels, source.PixelWidth * 4 * 4, 0);
+            byte[] tempPixels = new byte[source.PixelHeight * source.PixelWidth * 4];
+            source.CopyPixels(tempPixels, source.PixelWidth * 4, 0);
 
-            for (int i = 0; i < pixels.Length; i+=4)
+            Action<int> action = new Action<int>(i =>
             {
-                pixels[i] = (float)Math.Pow(pixels[i], 1 / 2.2);
-                pixels[i + 1] = (float)Math.Pow(pixels[i + 1], 1 / 2.2);
-                pixels[i + 2] = (float)Math.Pow(pixels[i + 2], 1 / 2.2);
-                // Alpha not scaled weird, so no need here.
-            }
+                pixels[i] = tempPixels[i + 2] / 255f;      // R
+                pixels[i + 1] = tempPixels[i + 1] / 255f;  // G
+                pixels[i + 2] = tempPixels[i] / 255f;      // B
+                pixels[i + 3] = tempPixels[i + 3] / 255f;  // A
+            });
 
+            if (ImageEngine.EnableThreading)
+                Parallel.For(0, tempPixels.Length / 4, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, ind => action(ind * 4));
+            else
+                for (int i = 0; i < pixels.Length; i += 4)
+                    action(i);
+
+            
             return pixels;
         }
 
