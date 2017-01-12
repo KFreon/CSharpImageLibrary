@@ -798,9 +798,9 @@ namespace CSharpImageLibrary.DDS
             double alpha = isPremultiplied ? (destination[position + 3] / 255d) : 1d; // Normalise to 0-1.
 
             // Read RGB 5:6:5 data, expand to 8 bit.
-            destination[position + 2] = (float)(((colour & 0xF800) >> 8) / alpha) / 255f;  // Red, but format is BGR, so last
+            destination[position] = (float)(((colour & 0xF800) >> 8) / alpha) / 255f;  // Red
             destination[position + 1] = (float)(((colour & 0x7E0) >> 3) / alpha) / 255f;  // Green
-            destination[position] = (float)(((colour & 0x1F) << 3) / alpha) / 255f;      // Blue
+            destination[position + 2] = (float)(((colour & 0x1F) << 3) / alpha) / 255f;      // Blue
         }
 
         /// <summary>

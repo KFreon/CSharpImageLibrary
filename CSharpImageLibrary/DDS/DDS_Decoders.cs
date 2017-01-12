@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using UsefulThings;
 
 namespace CSharpImageLibrary.DDS
@@ -47,7 +48,7 @@ namespace CSharpImageLibrary.DDS
         internal static void DecompressBC3Block(byte[] source, int sourceStart, float[] destination, int decompressedStart, int decompressedLineLength, bool isPremultiplied)
         {
             // Alpha, +3 to select that channel.
-            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 3 * 4, decompressedLineLength, false);
+            DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 3, decompressedLineLength, false);
 
             // RGB
             DDS_BlockHelpers.DecompressRGBBlock(source, sourceStart + 8, destination, decompressedStart, decompressedLineLength, false, isPremultiplied);
@@ -214,7 +215,7 @@ namespace CSharpImageLibrary.DDS
 
         static void ReadUShort(byte[] source, int sourceInd, float[] destination, int destInd, int CInd)
         {
-            destination[destInd] = CInd == -1 ? 1f : (BitConverter.ToUInt16(source, sourceInd) / ushort.MaxValue);
+            destination[destInd] = CInd == -1 ? 1f : (BitConverter.ToUInt16(source, sourceInd) / (ushort.MaxValue * 1f));
         }
 
         static void ReadFloat(byte[] source, int sourceInd, float[] destination, int destInd, int CInd)

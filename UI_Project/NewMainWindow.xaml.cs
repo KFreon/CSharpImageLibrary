@@ -140,6 +140,8 @@ namespace UI_Project
             else
                 vm.NumThreads = Properties.Settings.Default.NumThreads;
 
+            vm.UseWindowsCodecs = Properties.Settings.Default.UseWindowsCodecs;
+
             // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
 
@@ -619,11 +621,12 @@ namespace UI_Project
 
         private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            Properties.Settings.Default.NumThreads = ImageEngine.EnableThreading ? ImageEngine.NumThreads : 1;
+            Properties.Settings.Default.NumThreads = vm.EnableThreading ? vm.NumThreads : 1;
             Properties.Settings.Default.BackgroundAlpha = vm.WindowBackground_Alpha;
             Properties.Settings.Default.BackgroundRed = vm.WindowBackground_Red;
             Properties.Settings.Default.BackgroundGreen = vm.WindowBackground_Green;
             Properties.Settings.Default.BackgroundBlue = vm.WindowBackground_Blue;
+            Properties.Settings.Default.UseWindowsCodecs = vm.UseWindowsCodecs;
             Properties.Settings.Default.Save();
         }
 

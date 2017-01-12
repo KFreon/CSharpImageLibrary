@@ -455,7 +455,7 @@ namespace CSharpImageLibrary
                 source = new FormatConvertedBitmap(bmp, PixelFormats.Rgb128Float, null, 0);
 
             float[] pixels = new float[source.PixelHeight * source.PixelWidth * 4];
-            source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+            source.CopyPixels(pixels, source.PixelWidth * 4 * 4, 0);
 
             return pixels;
         }
