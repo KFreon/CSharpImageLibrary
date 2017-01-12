@@ -17,11 +17,11 @@ namespace CSharpImageLibrary
     /// </summary>
     public class MipMap
     {
-        float[] rgbAOpaque = null;
+        //float[] rgbAOpaque = null;
         /// <summary>
         /// Gives RGB only, but suitable to display on an RGBA image i.e. sets alpha to opaque.
         /// </summary>
-        public float[] RGBAOpaque
+        /*public float[] RGBAOpaque
         {
             get
             {
@@ -45,13 +45,13 @@ namespace CSharpImageLibrary
 
                 return rgbAOpaque;
             }
-        }
+        }*/
 
-        float[] premultipliedRGBA = null;
+        //float[] premultipliedRGBA = null;
         /// <summary>
         /// Gives RGB only, but suitable to display on an RGBA image i.e. sets alpha to opaque.
         /// </summary>
-        public float[] PremultipliedRGBA
+        /*public float[] PremultipliedRGBA
         {
             get
             {
@@ -75,13 +75,13 @@ namespace CSharpImageLibrary
 
                 return premultipliedRGBA;
             }
-        }
+        }*/
 
-        float[] alphaOnlyPixels = null;
+        //float[] alphaOnlyPixels = null;
         /// <summary>
         /// Returns a grayscale image of the alpha mask.
         /// </summary>
-        public float[] AlphaOnlyPixels
+        /*public float[] AlphaOnlyPixels
         {
             get
             {
@@ -105,7 +105,7 @@ namespace CSharpImageLibrary
 
                 return alphaOnlyPixels;
             }
-        }
+        }*/
 
         /// <summary>
         /// Pixels in bitmap image.

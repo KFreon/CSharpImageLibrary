@@ -1083,33 +1083,72 @@ namespace UI_Project
                 return;
 
             var mip = LoadedImage.MipMaps[MipIndex];
-            var pixels = GetPixels(mip);
 
-            UpdatePreview(ref preview, mip.Width, mip.Height, pixels);
+            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels);
 
             OnPropertyChanged(nameof(Preview));
             UpdateUI();
         }
 
-        float[] GetPixels(MipMap mip)
+        AlphaDisplaySettings previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
+        unsafe void UpdatePreview(ref WriteableBitmap bmp, int width, int height, float[] pixels)
         {
-            float[] pixels = null;
-            if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)  // Get alpha channel only.
-                pixels = mip.AlphaOnlyPixels;
-            else if (AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)  // RGB only. No alpha channel.
-                pixels = mip.RGBAOpaque;
-            else
-                pixels = mip.PremultipliedRGBA;  // Normal alpha display with transparency
-            return pixels;
-        }
+            var rect = new System.Windows.Int32Rect(0, 0, width, height);
 
-        void UpdatePreview(ref WriteableBitmap bmp, int width, int height, float[] pixels)
-        {
-            // Create Preview Object if required - need to recreate if alpha setting changes to premultiplied
-            if (bmp == null || (bmp.PixelHeight != height || bmp.PixelWidth != width))
+            if (bmp == null || width != bmp.PixelWidth || height != bmp.PixelHeight)
                 bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, width, height, PixelFormats.Rgba128Float);
-            else
-                RedrawEitherPreview(bmp, pixels, width, height);
+
+            if ((previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha) || (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha))
+                bmp.WritePixels(rect, pixels, bmp.BackBufferStride, 0);
+            else if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)
+            {
+                bmp.Lock();
+
+                float* back = (float*)bmp.BackBuffer.ToPointer();
+                for (int ai = 3; ai < pixels.Length; ai += 4)
+                {
+                    *back++ = pixels[ai];
+                    *back++ = pixels[ai];
+                    *back++ = pixels[ai];
+                    *back++ = 1f;  // Alpha opaque
+                }
+
+                bmp.AddDirtyRect(rect);
+                bmp.Unlock();
+            }
+            else if (previousAlphaSetting == AlphaDisplaySettings.NoAlpha && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha)
+            {
+                bmp.Lock();
+
+                float* back = (float*)bmp.BackBuffer.ToPointer();
+                back += 3;
+                for (int i = 3; i < pixels.Length; i += 4)
+                {
+                    *back = pixels[i];
+                    back += 4;
+                }
+
+                bmp.AddDirtyRect(rect);
+                bmp.Unlock();
+
+            }
+            else if (previousAlphaSetting == AlphaDisplaySettings.PremultiplyAlpha && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
+            {
+                bmp.Lock();
+
+                float* back = (float*)bmp.BackBuffer.ToPointer();
+                back += 3;
+                for (int i = 3; i < pixels.Length; i += 4)
+                {
+                    *back = 1f;
+                    back += 4;
+                }
+
+                bmp.AddDirtyRect(rect);
+                bmp.Unlock();
+            }
+
+            previousAlphaSetting = AlphaDisplaySetting;
         }
 
         public async Task UpdateSavePreview(bool needRegenerate = true)
@@ -1124,9 +1163,7 @@ namespace UI_Project
                     savePreviewIMG = new ImageEngineImage(data);                    
                 });
 
-            float[] pixels = GetPixels(savePreviewIMG.MipMaps[0]);
-
-            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, pixels);
+            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels);
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
@@ -1135,11 +1172,6 @@ namespace UI_Project
             Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
         }
 
-        void RedrawEitherPreview(WriteableBitmap bmp, float[] pixels, int width, int height)
-        {
-            var rect = new System.Windows.Int32Rect(0, 0, width, height);
-            bmp.WritePixels(rect, pixels, width * 4 * 4, 0);
-        }
 
         void UpdateUI()
         {
