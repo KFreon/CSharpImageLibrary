@@ -1252,7 +1252,7 @@
                         </Hyperlink>
                     </TextBlock>
                     <TextBlock Foreground="White" Text="Over 9000 people on StackOverflow, I apologise for not knowing specifically." TextAlignment="Center" HorizontalAlignment="Center"/>
-
+                    <TextBlock Foreground="White" Text="Dawnless Sky - DAI Modding Superhero" TextAlignment="Center" HorizontalAlignment="Center"/>
                     <Button Content="Close" HorizontalAlignment="Center" Click="Button_Click" Margin="0,20,0,0"/>
                 </StackPanel>
             </Border>
