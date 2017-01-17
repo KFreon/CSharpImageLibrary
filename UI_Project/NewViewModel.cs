@@ -1080,7 +1080,7 @@ namespace UI_Project
 
             Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
             timer.Restart();
-            UpdateLoadedPreview();
+            UpdateLoadedPreview(true);
 
             SaveFormat = LoadedFormat;
 
@@ -1090,14 +1090,14 @@ namespace UI_Project
             return true;
         }
 
-        void UpdateLoadedPreview()
+        void UpdateLoadedPreview(bool forceRedraw = false)
         {
             if (MipIndex >= loadedImage.MipMaps.Count)   // Easy way out of handling indicies - Max is bound to mipcount e.g 12, but 0 based index, hence 12 = 13th value, out of range.
                 return;
 
             var mip = LoadedImage.MipMaps[MipIndex];
 
-            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels, mip.LoadedFormatDetails, false);
+            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels, mip.LoadedFormatDetails, forceRedraw);
 
             OnPropertyChanged(nameof(Preview));
             UpdateUI();
@@ -1138,8 +1138,13 @@ namespace UI_Project
             }
 
             // Change alpha display as necessary
-            if ((previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha) || (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha))
+            if (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha)
                 bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
+            else if (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
+            {
+                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
+                RemoveAlphaFromDisplay(bmp, tempPixels, rect);
+            }
             else if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)
             {
                 bmp.Lock();
@@ -1172,21 +1177,24 @@ namespace UI_Project
 
             }
             else if (previousAlphaSetting == AlphaDisplaySettings.PremultiplyAlpha && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
-            {
-                bmp.Lock();
-
-                byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
-                for (int i = 3; i < tempPixels.Length; i += 4)
-                {
-                    *back = 255;
-                    back += 4;
-                }
-
-                bmp.AddDirtyRect(rect);
-                bmp.Unlock();
-            }
+                RemoveAlphaFromDisplay(bmp, tempPixels, rect);
 
             previousAlphaSetting = AlphaDisplaySetting;
+        }
+
+        unsafe void RemoveAlphaFromDisplay(WriteableBitmap bmp, byte[] tempPixels, System.Windows.Int32Rect rect)
+        {
+            bmp.Lock();
+
+            byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
+            for (int i = 3; i < tempPixels.Length; i += 4)
+            {
+                *back = 255;
+                back += 4;
+            }
+
+            bmp.AddDirtyRect(rect);
+            bmp.Unlock();
         }
 
         public async Task UpdateSavePreview(bool needRegenerate = true)
@@ -1360,7 +1368,7 @@ namespace UI_Project
             LoadedImage = await Task.Run(() => ImageEngine.MergeChannels(blue, green, red, alpha));
 
             LoadFailed = false;
-            UpdateLoadedPreview();
+            UpdateLoadedPreview(true);
             SaveFormat = ImageEngineFormat.PNG;
             MergeChannelsPanelOpen = false;
         }

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -35,6 +36,10 @@ namespace UI_Project
 
         public NewMainWindow()
         {
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            ProfileOptimization.SetProfileRoot(path);
+            ProfileOptimization.StartProfile("Startup.Profile_ImageEngine_UI");
+
             // Get Properties
             if (Properties.Settings.Default.UpgradeRequired)
             {

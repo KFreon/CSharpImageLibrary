@@ -15,6 +15,7 @@ using CSharpImageLibrary.Headers;
 using CSharpImageLibrary.DDS;
 using System.Collections.Concurrent;
 using System.Threading.Tasks.Dataflow;
+using System.Runtime;
 
 namespace CSharpImageLibrary
 {
@@ -101,6 +102,10 @@ namespace CSharpImageLibrary
         /// </summary>
         static ImageEngine()
         {
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            ProfileOptimization.SetProfileRoot(path);
+            ProfileOptimization.StartProfile("Startup.Profile_ImageEngine");
+
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
 
             // Set NumThreads to be more sensible

@@ -548,6 +548,8 @@ namespace CSharpImageLibrary.DDS
             }
 
 
+            // TODO replace RGBColour with a SIMD vector for speed. Test difference between vector4 and vector<T>, might not be better.
+
             // Determine if texel is fully and entirely transparent. If so, can set to white and continue.
             if (isDXT1)
             {
