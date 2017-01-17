@@ -33,7 +33,6 @@ namespace UI_Project
 
 
 
-
         public NewMainWindow()
         {
             // Get Properties
@@ -153,6 +152,8 @@ namespace UI_Project
             if (SecondColumn.Width == new GridLength(0, GridUnitType.Star))
                 return;
 
+            vm.SavePanelOpen = false;
+
             Storyboard closer = (Storyboard)SecondColumn.FindResource("SecondColumnCloser");
             closer.Begin(SecondColumn);
         }
@@ -218,6 +219,7 @@ namespace UI_Project
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
+            vm.SavePanelOpen = true;
             ConvertButton.Visibility = Visibility.Collapsed;
             ClosePanelButton.Visibility = Visibility.Visible;
 

@@ -235,7 +235,7 @@ namespace UI_Project
                                 if (SplitChannels)
                                     LoadedImage.SplitChannels(SavePath);
                                 else
-                                    await LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha, customMasks: customMasks);
+                                    await LoadedImage.Save(SavePath, SaveFormatDetails, SaveMipType, removeAlpha: GeneralRemovingAlpha);
                             }
                             catch (Exception e)
                             {
@@ -439,14 +439,6 @@ namespace UI_Project
             set
             {
                 SetProperty(ref bMask, value);
-            }
-        }
-
-        List<uint> customMasks
-        {
-            get
-            {
-                return new List<uint>() { AMask, RMask, GMask, BMask };
             }
         }
         #endregion Alpha and Colour related Properties
@@ -737,7 +729,7 @@ namespace UI_Project
                 {
                     UpdateLoadedPreview();
 
-                    if (SavePreview != null)
+                    if (SavePanelOpen)
                         UpdateSavePreview(false); // Already have the image, just need to change some alpha bits around.
                 }
             }
@@ -815,12 +807,9 @@ namespace UI_Project
                 {
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
                     var header = LoadedImage.Header as CSharpImageLibrary.Headers.DDS_Header;
-                    int componentSize = 1;
-                    if (header != null)
-                        componentSize = ((CSharpImageLibrary.Headers.DDS_Header)LoadedImage.Header).ddspf.ComponentSize;
 
                     return ImageFormats.GetCompressedSize(SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 1 : estimatedMips, 
-                        SaveFormat, Width, Height, componentSize);
+                        SaveFormatDetails, Width, Height);
                 }
 
                 return saveCompressedSize;
@@ -837,11 +826,14 @@ namespace UI_Project
         {
             get
             {
+                if (SaveFormatDetails == null)
+                    return null;
+
                 string name = null;
                 if (LoadedImage?.FilePath == null)
-                    name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat}.{ImageFormats.GetExtensionOfFormat(SaveFormat)}");
+                    name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat}.{SaveFormatDetails.Extension}");
                 else
-                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{ImageFormats.GetExtensionOfFormat(SaveFormat)}";
+                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormatDetails.Extension}";
 
                 return UsefulThings.General.FindValidNewFileName(name);
             }
@@ -876,6 +868,9 @@ namespace UI_Project
                 bool changed = value != saveFormat;
 
                 SetProperty(ref saveFormat, value);
+
+                SaveFormatDetails = new ImageFormats.ImageEngineFormatDetails(SaveFormat);
+
                 OnPropertyChanged(nameof(SaveCompressedSize));
                 OnPropertyChanged(nameof(SaveCompressionRatio));
                 OnPropertyChanged(nameof(IsSaveFormatMippable));
@@ -895,7 +890,7 @@ namespace UI_Project
                 SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
 
                 // Regenerate save preview
-                if (changed && SavePreview != null)
+                if (changed && SavePanelOpen)
                     UpdateSavePreview();
             }
         }
@@ -930,7 +925,8 @@ namespace UI_Project
                 OnPropertyChanged(nameof(SaveCompressionRatio));
                 OnPropertyChanged(nameof(IsSaveSmaller));
 
-                if (SavePreview != null)
+                
+                if (SavePanelOpen)
                     UpdateSavePreview();
             }
         }
@@ -939,7 +935,7 @@ namespace UI_Project
         {
             get
             {
-                return ImageFormats.IsFormatMippable(SaveFormat);
+                return SaveFormatDetails?.IsMippable ?? false;
             }
         }
 
@@ -973,7 +969,7 @@ namespace UI_Project
             {
                 SetProperty(ref dxt1AlphaRemove, value);
 
-                if (SavePreview != null)
+                if (SavePanelOpen)
                     UpdateSavePreview();
             }
         }
@@ -993,9 +989,24 @@ namespace UI_Project
                 SliderTimer.Start();
             }
         }
+
+        bool savePanelOpen = false;
+        public bool SavePanelOpen
+        {
+            get
+            {
+                return savePanelOpen;
+            }
+            set
+            {
+                SetProperty(ref savePanelOpen, value);
+            }
+        }
         #endregion Save Properties
         #endregion General Properties
 
+
+        ImageFormats.ImageEngineFormatDetails SaveFormatDetails = null;
 
 
         public NewViewModel() : base()
@@ -1034,6 +1045,8 @@ namespace UI_Project
                 LoadFailed = true;
                 return;
             }
+
+            Trace.WriteLine($"File read took: {timer.ElapsedMilliseconds}");
 
             bool success = await LoadImage(bytes);
             if (!success)
@@ -1084,33 +1097,60 @@ namespace UI_Project
 
             var mip = LoadedImage.MipMaps[MipIndex];
 
-            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels);
+            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels, mip.LoadedFormatDetails, false);
 
             OnPropertyChanged(nameof(Preview));
             UpdateUI();
         }
 
         AlphaDisplaySettings previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
-        unsafe void UpdatePreview(ref WriteableBitmap bmp, int width, int height, float[] pixels)
+        unsafe void UpdatePreview(ref WriteableBitmap bmp, int width, int height, byte[] pixels, ImageFormats.ImageEngineFormatDetails formatDetails, bool forceRedraw)
         {
             var rect = new System.Windows.Int32Rect(0, 0, width, height);
 
-            if (bmp == null || width != bmp.PixelWidth || height != bmp.PixelHeight)
-                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(pixels, width, height, PixelFormats.Rgba128Float);
+            byte[] tempPixels = pixels;
+            if (formatDetails.ComponentSize != 1)
+            {
+                tempPixels = new byte[width * height * 4];
 
+                Action<int> action = new Action<int>(ind => tempPixels[ind] = formatDetails.ReadByte(pixels, ind * formatDetails.ComponentSize));
+
+                if (EnableThreading)
+                    Parallel.For(0, tempPixels.Length, new ParallelOptions { MaxDegreeOfParallelism = NumThreads }, ind => action(ind));
+                else
+                    for (int i = 0; i < tempPixels.Length; i++)
+                        action(i);
+            }
+
+            // Create new BitmapImage if necessary
+            if (bmp == null || width != bmp.PixelWidth || height != bmp.PixelHeight)
+            {
+                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(tempPixels, width, height);
+                forceRedraw = false;  // Don't want to redraw again after having just created it.
+                previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;    // Need for forcing a redraw without messing up the UI.
+            }
+
+            // Same as in 'if' below, just needs to be able to continue on.
+            if (forceRedraw)
+            {
+                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
+                previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;  // Need for forcing a redraw without messing up the UI.
+            }
+
+            // Change alpha display as necessary
             if ((previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha) || (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha))
-                bmp.WritePixels(rect, pixels, bmp.BackBufferStride, 0);
+                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
             else if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)
             {
                 bmp.Lock();
 
-                float* back = (float*)bmp.BackBuffer.ToPointer();
-                for (int ai = 3; ai < pixels.Length; ai += 4)
+                byte* back = (byte*)bmp.BackBuffer.ToPointer();
+                for (int ai = 3; ai < tempPixels.Length; ai += 4)
                 {
-                    *back++ = pixels[ai];
-                    *back++ = pixels[ai];
-                    *back++ = pixels[ai];
-                    *back++ = 1f;  // Alpha opaque
+                    *back++ = tempPixels[ai];
+                    *back++ = tempPixels[ai];
+                    *back++ = tempPixels[ai];
+                    *back++ = 255;  // Alpha opaque
                 }
 
                 bmp.AddDirtyRect(rect);
@@ -1120,11 +1160,10 @@ namespace UI_Project
             {
                 bmp.Lock();
 
-                float* back = (float*)bmp.BackBuffer.ToPointer();
-                back += 3;
-                for (int i = 3; i < pixels.Length; i += 4)
+                byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
+                for (int i = 3; i < tempPixels.Length; i += 4)
                 {
-                    *back = pixels[i];
+                    *back = tempPixels[i];
                     back += 4;
                 }
 
@@ -1136,11 +1175,10 @@ namespace UI_Project
             {
                 bmp.Lock();
 
-                float* back = (float*)bmp.BackBuffer.ToPointer();
-                back += 3;
-                for (int i = 3; i < pixels.Length; i += 4)
+                byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
+                for (int i = 3; i < tempPixels.Length; i += 4)
                 {
-                    *back = 1f;
+                    *back = 255;
                     back += 4;
                 }
 
@@ -1153,17 +1191,24 @@ namespace UI_Project
 
         public async Task UpdateSavePreview(bool needRegenerate = true)
         {
+            if (LoadedImage == null)
+                return;
+
+
             timer.Restart();
             if (needRegenerate)
                 await Task.Run(() =>
                 {
                     // Save and reload to give accurate depiction of what it'll look like when saved.
-                    byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                    byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
                     SaveCompressedSize = data.Length;
                     savePreviewIMG = new ImageEngineImage(data);                    
                 });
 
-            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels);
+            Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
+            timer.Restart();
+
+            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
@@ -1191,7 +1236,7 @@ namespace UI_Project
             if (SavePath == null || ImageFormats.SaveUnsupported.Contains(SaveFormat))
                 return;
 
-            string requiredExtension = "." + ImageFormats.GetExtensionOfFormat(SaveFormat);
+            string requiredExtension = "." + SaveFormatDetails.Extension;
 
             var currentExt = Path.GetExtension(savePath);
             if (currentExt == "")  // No extension
@@ -1207,8 +1252,6 @@ namespace UI_Project
         {
             // Clear things - should close panels when this happens
             LoadedImage = null;
-            Preview = null;
-            SavePreview = null;
             SavePath = null;
             SaveError = null;
             SaveAttempted = false;
@@ -1224,6 +1267,8 @@ namespace UI_Project
             BulkConvertFailed.Clear();
             MergeChannelsImages.Clear();
             LoadFailed = false;
+            previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
+            SavePanelOpen = false;
 
             // Notify
             if (updateUI)
@@ -1334,7 +1379,7 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
-            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormat, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, customMasks, progressReporter)));
+            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormatDetails, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)

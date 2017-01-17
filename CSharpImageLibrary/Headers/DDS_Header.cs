@@ -27,32 +27,6 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public struct DDS_PIXELFORMAT
         {
-            int componentSize;
-            /// <summary>
-            /// Size of components in channel in bytes. i.e. 16 bits per channel = 2 (ushort)
-            /// </summary>
-            public int ComponentSize
-            {
-                get
-                {
-                    if (componentSize <= 0)
-                    {
-                        int numChannels = new List<uint>() { dwABitMask, dwGBitMask, dwRBitMask, dwBBitMask }.Where(t => t != 0).Count();
-                        if (numChannels == 0 && dwFourCC == FourCC.A32B32G32R32F)
-                            numChannels = 4;
-
-                        componentSize = dwRGBBitCount == 0 ? 1 : dwRGBBitCount / (8 * numChannels);
-                    }
-
-                    return componentSize;
-                }
-            }
-
-            /// <summary>
-            /// Indicates whether format is a float format or not.
-            /// </summary>
-            public bool IsFloat { get; set; }
-
             /// <summary>
             /// Sub-header Size in bytes.
             /// </summary>
@@ -107,8 +81,6 @@ namespace CSharpImageLibrary.Headers
                 dwGBitMask = BitConverter.ToUInt32(temp, 96);
                 dwBBitMask = BitConverter.ToUInt32(temp, 100);
                 dwABitMask = BitConverter.ToUInt32(temp, 104);
-                IsFloat = false;
-                componentSize = -1;
 
                 bool noMasks = dwABitMask == 0 && dwBBitMask == 0 && dwGBitMask == 0 && dwRBitMask == 0;
 
@@ -134,7 +106,6 @@ namespace CSharpImageLibrary.Headers
                             dwRBitMask = 1;
                             dwRGBBitCount = 32 * 4;
                         }
-                        IsFloat = true;
                         break;
 
                     // Others I know, but they aren't supported for now. Too uncommon and too much work to add for fun.
@@ -145,8 +116,7 @@ namespace CSharpImageLibrary.Headers
             /// Build PixelFormat sub-header for a specified surface format.
             /// </summary>
             /// <param name="surfaceFormat">Format to base PixelHeader on.</param>
-            /// <param name="customMasks">Custom user defined masks for colours.</param>
-            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat, List<uint> customMasks = null) : this()
+            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat) : this()
             {
                 dwSize = 32;
                 dwFourCC = ParseFormatToFourCC(surfaceFormat);
@@ -219,22 +189,6 @@ namespace CSharpImageLibrary.Headers
                         dwRBitMask = 0;
                         dwGBitMask = 0;
                         dwBBitMask = 0;
-                        break;
-                    case ImageEngineFormat.DDS_CUSTOM:
-                        if (customMasks != null)
-                        {
-                            int numChannels = customMasks.Where(mask => mask != 0).Count();
-                            dwABitMask = customMasks[0];
-                            dwRBitMask = customMasks[1];
-                            dwGBitMask = customMasks[2];
-                            dwBBitMask = customMasks[3];
-                            dwRGBBitCount = 8 * numChannels;
-
-                            if (numChannels == 1)
-                                dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
-                            else if (numChannels == 2)
-                                dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
-                        }
                         break;
                     #endregion Uncompressed
                 }
@@ -810,6 +764,7 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public DDS_DXGI_DX10_Additional DX10_DXGI_AdditionalHeader { get; private set; }
 
+        ImageEngineFormat format = ImageEngineFormat.Unknown;
         /// <summary>
         /// Surface format of DDS.
         /// e.g. DXT1, V8U8, etc
@@ -818,7 +773,10 @@ namespace CSharpImageLibrary.Headers
         {
             get
             {
-                return DetermineDDSSurfaceFormat(ddspf);
+                if (format == ImageEngineFormat.Unknown)
+                    format = DetermineDDSSurfaceFormat(ddspf);
+
+                return format;
             }
         }
 
@@ -894,7 +852,7 @@ namespace CSharpImageLibrary.Headers
         /// <param name="Width">Width of top mipmap.</param>
         /// <param name="surfaceformat">Format header represents.</param>
         /// <param name="customMasks">Custom user defined masks for colours.</param>
-        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat, List<uint> customMasks = null)
+        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
         {
             dwSize = 124;
             dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
@@ -902,7 +860,7 @@ namespace CSharpImageLibrary.Headers
             this.Height = Height;
             dwCaps = DDSdwCaps.DDSCAPS_TEXTURE | (Mips == 1 ? 0 : DDSdwCaps.DDSCAPS_COMPLEX | DDSdwCaps.DDSCAPS_MIPMAP);
             dwMipMapCount = Mips == 1 ? 1 : Mips;
-            ddspf = new DDS_PIXELFORMAT(surfaceformat, customMasks);
+            ddspf = new DDS_PIXELFORMAT(surfaceformat);
         }
         
 

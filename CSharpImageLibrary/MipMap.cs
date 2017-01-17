@@ -20,10 +20,15 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Pixels in bitmap image.
         /// </summary>
-        public float[] Pixels
+        public byte[] Pixels
         {
             get; set;
         }
+
+        /// <summary>
+        /// Details of the format that this mipmap was created from.
+        /// </summary>
+        public ImageFormats.ImageEngineFormatDetails LoadedFormatDetails { get; private set; }
 
         /// <summary>
         /// Mipmap width.
@@ -39,11 +44,12 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Creates a Mipmap object from a WPF image.
         /// </summary>
-        public MipMap(float[] pixels, int width, int height)
+        public MipMap(byte[] pixels, int width, int height, ImageFormats.ImageEngineFormatDetails details)
         {
             Pixels = pixels;
             Width = width;
             Height = height;
+            LoadedFormatDetails = details;
         }
 
 

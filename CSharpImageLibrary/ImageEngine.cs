@@ -103,12 +103,18 @@ namespace CSharpImageLibrary
         {
             WindowsWICCodecsAvailable = WIC_Codecs.WindowsCodecsPresent();
 
+            // Set NumThreads to be more sensible
+            NumThreads = Environment.ProcessorCount - 1;
+            if (NumThreads == 0) // Single core...
+                NumThreads = 1;
+
+
             // Enable GPU Acceleration by default
             /*if (GPU.IsGPUAvailable)
                 EnableGPUAcceleration = false;*/
         }
 
-        internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int maxDimension, double scale)
+        internal static List<MipMap> LoadImage(Stream imageStream, AbstractHeader header, int maxDimension, double scale, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
             imageStream.Seek(0, SeekOrigin.Begin);
             List<MipMap> MipMaps = null;
@@ -123,11 +129,11 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_DXT3:
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
-                    MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, true);
+                    MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, true, formatDetails);
                     if (MipMaps == null)
                     {
                         // Windows codecs unavailable/failed. Load with mine.
-                        MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
+                        MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
                     }
                     break;
                 case ImageEngineFormat.DDS_G8_L8:
@@ -143,18 +149,18 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
                 case ImageEngineFormat.DDS_CUSTOM:
-                    MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension);
+                    MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
                     break;
                 case ImageEngineFormat.GIF:
                 case ImageEngineFormat.JPG:
                 case ImageEngineFormat.PNG:
                 case ImageEngineFormat.BMP:
                 case ImageEngineFormat.TIF:
-                    MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, false);
+                    MipMaps = WIC_Codecs.LoadWithCodecs(imageStream, decodeWidth, decodeHeight, scale, false, formatDetails);
                     break;
                 case ImageEngineFormat.TGA:
                     using (var tga = new TargaImage(imageStream, ((TGA_Header)header).header))
-                        //MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, 1) }; 
+                        MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, formatDetails) }; 
                     break;
                 case ImageEngineFormat.DDS_DX10:
                     throw new FormatException("DX10/DXGI not supported properly yet.");
@@ -209,7 +215,7 @@ namespace CSharpImageLibrary
             for (int i = 0; i < 4; i++)
             {
                 // Extract channel into grayscale image
-                /*var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
+                var grayChannel = BuildGrayscaleFromChannel(mip.Pixels, i);
 
                 // Save channel
                 var img = UsefulThings.WPF.Images.CreateWriteableBitmap(grayChannel, mip.Width, mip.Height, PixelFormats.Gray8);
@@ -227,7 +233,7 @@ namespace CSharpImageLibrary
 
                 string tempPath = Path.GetFileNameWithoutExtension(savePath) + "_" + channels[i] + ".png";
                 string channelPath = Path.Combine(Path.GetDirectoryName(savePath), UsefulThings.General.FindValidNewFileName(tempPath));
-                File.WriteAllBytes(channelPath, bytes);*/
+                File.WriteAllBytes(channelPath, bytes);
             }
         }
 
@@ -246,22 +252,20 @@ namespace CSharpImageLibrary
         /// Save mipmaps as given format to stream.
         /// </summary>
         /// <param name="MipMaps">List of Mips to save.</param>
-        /// <param name="format">Desired format.</param>
         /// <param name="mipChoice">Determines how to handle mipmaps.</param>
         /// <param name="maxDimension">Maximum value for either image dimension.</param>
         /// <param name="alphaSetting">Determines how to handle alpha.</param>
         /// <param name="mipToSave">0 based index on which mipmap to make top of saved image.</param>
-        /// <param name="customMasks">Custom user defined masks for colours.</param>
+        /// <param name="destFormatDetails">Details about the destination format.</param>
         /// <returns>True on success.</returns>
-        internal static byte[] Save(List<MipMap> MipMaps, ImageEngineFormat format, MipHandling mipChoice, AlphaSettings alphaSetting, int maxDimension = 0, int mipToSave = 0, List<uint> customMasks = null)
+        internal static byte[] Save(List<MipMap> MipMaps, ImageFormats.ImageEngineFormatDetails destFormatDetails, MipHandling mipChoice, AlphaSettings alphaSetting, int maxDimension = 0, int mipToSave = 0)
         {
             List<MipMap> newMips = new List<MipMap>(MipMaps);
 
             int width = newMips[0].Width;
             int height = newMips[0].Height;
 
-            bool isMippable = ImageFormats.IsFormatMippable(format);
-            if ((isMippable && mipChoice == MipHandling.GenerateNew) || (isMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
+            if ((destFormatDetails.IsMippable && mipChoice == MipHandling.GenerateNew) || (destFormatDetails.IsMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
                 DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
@@ -290,7 +294,7 @@ namespace CSharpImageLibrary
             // KFreon: Ensure we have a power of two for dimensions FOR DDS ONLY
             double fixXScale = 0;
             double fixYScale = 0;
-            if (ImageFormats.IsBlockCompressed(format) && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
+            if (destFormatDetails.IsBlockCompressed && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
             {
                 double newWidth = 0;
                 double newHeight = 0;
@@ -320,36 +324,33 @@ namespace CSharpImageLibrary
             if (fixXScale != 0 || fixYScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
-            if ((fixXScale != 0 || fixXScale != 0) && isMippable && mipChoice != MipHandling.KeepTopOnly)
+            if ((fixXScale != 0 || fixXScale != 0) && destFormatDetails.IsMippable && mipChoice != MipHandling.KeepTopOnly)
                 DDSGeneral.BuildMipMaps(newMips);
 
 
             byte[] destination = null;
-            if (format.ToString().Contains("DDS"))
-                destination = DDSGeneral.Save(newMips, format, alphaSetting, customMasks);
+            if (destFormatDetails.IsDDS)
+                destination = DDSGeneral.Save(newMips, destFormatDetails, alphaSetting);
             else
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
-                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, format, mip.Width, mip.Height, alphaSetting);
+                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, destFormatDetails.Format, mip.Width, mip.Height, alphaSetting);
             }
 
             return destination;
         }      
         
-        internal static MipMap Resize(MipMap mipMap, double scale, bool preserveAspect = true)
+        internal static MipMap Resize(MipMap mipMap, double scale)
         {
-            if (preserveAspect)
-                return Resize(mipMap, scale, scale);  // Could be either scale dimension, doesn't matter.
-            else
-                return Resize(mipMap, scale, scale);
+            return Resize(mipMap, scale, scale);  // Could be either scale dimension, doesn't matter.
         }
 
         internal static MipMap Resize(MipMap mipMap, double xScale, double yScale)
         {
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
             baseBMP.Freeze();
-            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height);
+            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.LoadedFormatDetails);
 
             #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
@@ -431,7 +432,7 @@ namespace CSharpImageLibrary
             #endregion Old code
         }
 
-        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height)
+        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
             int origWidth = width;
             int origHeight = height;
@@ -440,44 +441,11 @@ namespace CSharpImageLibrary
             int newHeight = (int)(origHeight * yScale);
             int newStride = newWidth * 4;
 
-            float[] newPixels = null;
             var bmp = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight);
             bmp.Freeze();
-            newPixels = GetPixelsAsFloats(bmp);
 
-            return new MipMap(newPixels, newWidth, newHeight);
+            return new MipMap(bmp.GetPixelsAsBGRA32(), newWidth, newHeight, formatDetails);
         }
-
-        internal static float[] GetPixelsAsFloats(BitmapSource bmp)
-        {
-            // Initially converted to RGBA128F, but this caused huge performance issues.
-
-            var source = bmp;
-            if (bmp.Format != PixelFormats.Bgra32)
-                source = new FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
-
-            float[] pixels = new float[source.PixelHeight * source.PixelWidth * 4];
-            byte[] tempPixels = new byte[source.PixelHeight * source.PixelWidth * 4];
-            source.CopyPixels(tempPixels, source.PixelWidth * 4, 0);
-
-            Action<int> action = new Action<int>(i =>
-            {
-                pixels[i] = tempPixels[i + 2] / 255f;      // R
-                pixels[i + 1] = tempPixels[i + 1] / 255f;  // G
-                pixels[i + 2] = tempPixels[i] / 255f;      // B
-                pixels[i + 3] = tempPixels[i + 3] / 255f;  // A
-            });
-
-            if (ImageEngine.EnableThreading)
-                Parallel.For(0, tempPixels.Length / 4, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, ind => action(ind * 4));
-            else
-                for (int i = 0; i < pixels.Length; i += 4)
-                    action(i);
-
-            
-            return pixels;
-        }
-
 
         /// <summary>
         /// Destroys mipmaps. Expects at least one mipmap in given list.
@@ -492,88 +460,47 @@ namespace CSharpImageLibrary
         }
 
 
-        /// <summary>
-        /// Parses a string to an ImageEngineFormat.
-        /// </summary>
-        /// <param name="format">String representation of ImageEngineFormat.</param>
-        /// <returns>ImageEngineFormat of format.</returns>
-        public static ImageEngineFormat ParseFromString(string format)
-        {
-            ImageEngineFormat parsedFormat = ImageEngineFormat.Unknown;
-
-            if (format.Contains("dxt1", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_DXT1;
-            else if (format.Contains("dxt2", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_DXT2;
-            else if (format.Contains("dxt3", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_DXT3;
-            else if (format.Contains("dxt4", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_DXT4;
-            else if (format.Contains("dxt5", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_DXT5;
-            else if (format.Contains("bmp", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.BMP;
-            else if (format.Contains("argb", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_ARGB_8;
-            else if (format.Contains("ati1", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_ATI1;
-            else if (format.Contains("ati2", StringComparison.OrdinalIgnoreCase) || format.Contains("3dc", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_ATI2_3Dc;
-            else if (format.Contains("l8", StringComparison.OrdinalIgnoreCase) || format.Contains("g8", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_G8_L8;
-            else if (format.Contains("v8u8", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.DDS_V8U8;
-            else if (format.Contains("jpg", StringComparison.OrdinalIgnoreCase) || format.Contains("jpeg", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.JPG;
-            else if (format.Contains("png", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.PNG;
-            else if (format.Contains("tiff", StringComparison.OrdinalIgnoreCase))
-                parsedFormat = ImageEngineFormat.TIF;
-
-
-            return parsedFormat;
-        }
+        
 
 
         /// <summary>
         /// Performs a bulk conversion of a bunch of images given conversion parameters.
         /// </summary>
         /// <param name="files">List of supported files to be converted.</param>
-        /// <param name="saveFormat">Destination format of all textures.</param>
         /// <param name="saveFolder">Destination folder of all textures. Can be null if <paramref name="useSourceAsDestination"/> is set.</param>
         /// <param name="saveMipType">Determines how to handle mipmaps for converted images.</param>
         /// <param name="useSourceAsDestination">True = Converted images are saved next to the originals.</param>
         /// <param name="removeAlpha">True = Alpha is removed from converted images.</param>
-        /// <param name="customMasks">List of user specified DDS colour masks.</param>
+        /// <param name="destFormatDetails">Details about destination format.</param>
         /// <param name="progressReporter">Progress reporting callback.</param>
-        /// <returns></returns>
-        public static async Task<ConcurrentBag<string>> BulkConvert(IEnumerable<string> files, ImageEngineFormat saveFormat, string saveFolder,
-            MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, List<uint> customMasks = null, IProgress<int> progressReporter = null)
+        /// <returns>Errors</returns>
+        public static async Task<ConcurrentBag<string>> BulkConvert(IEnumerable<string> files, ImageFormats.ImageEngineFormatDetails destFormatDetails, string saveFolder,
+            MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, IProgress<int> progressReporter = null)
         {
             ConcurrentBag<string> Failures = new ConcurrentBag<string>();
 
 
             // Test if can parallelise uncompressed saving
             // Below says: Only formats that don't support mips or do but aren't block compressed - can be parallised.
-            bool supportsParallel = !ImageFormats.IsFormatMippable(saveFormat);
-            supportsParallel |= !supportsParallel && !ImageFormats.IsBlockCompressed(saveFormat);
+            bool supportsParallel = !destFormatDetails.IsMippable;
+            supportsParallel |= !supportsParallel && !destFormatDetails.IsBlockCompressed;
 
 
             if (EnableThreading && supportsParallel)
-                Failures = await DoBulkParallel(files, saveFormat, saveFolder, saveMipType, useSourceAsDestination, removeAlpha, customMasks, progressReporter);
+                Failures = await DoBulkParallel(files, destFormatDetails, saveFolder, saveMipType, useSourceAsDestination, removeAlpha, progressReporter);
             else
                 foreach (var file in files)
                 {
                     using (ImageEngineImage img = new ImageEngineImage(file))
                     {
-                        string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(saveFormat);
+                        string filename = Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;
                         string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
 
                         path = UsefulThings.General.FindValidNewFileName(path);
 
                         try
                         {
-                            await img.Save(path, saveFormat, saveMipType, removeAlpha: removeAlpha, customMasks: customMasks);
+                            await img.Save(path, destFormatDetails, saveMipType, removeAlpha: removeAlpha);
                         }
                         catch (Exception e)
                         {
@@ -588,8 +515,8 @@ namespace CSharpImageLibrary
             return Failures;
         }
 
-        static async Task<ConcurrentBag<string>> DoBulkParallel(IEnumerable<string> files, ImageEngineFormat saveFormat, string saveFolder,
-            MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, List<uint> customMasks = null, IProgress<int> progressReporter = null)
+        static async Task<ConcurrentBag<string>> DoBulkParallel(IEnumerable<string> files, ImageFormats.ImageEngineFormatDetails destFormatDetails, string saveFolder,
+            MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, IProgress<int> progressReporter = null)
         {
             ConcurrentBag<string> failures = new ConcurrentBag<string>();
 
@@ -603,7 +530,7 @@ namespace CSharpImageLibrary
             {
                 byte[] data = null;
 
-                string filename = Path.GetFileNameWithoutExtension(file) + "." + ImageFormats.GetExtensionOfFormat(saveFormat);
+                string filename = Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;
                 string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
                 path = UsefulThings.General.FindValidNewFileName(path);
 
@@ -611,7 +538,7 @@ namespace CSharpImageLibrary
                 {
                     try
                     {
-                        data = img.Save(saveFormat, saveMipType, removeAlpha: removeAlpha, customMasks: customMasks);
+                        data = img.Save(destFormatDetails, saveMipType, removeAlpha: removeAlpha);
                     }
                     catch (Exception e)
                     {

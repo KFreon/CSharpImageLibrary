@@ -9,7 +9,6 @@
         xmlns:local="clr-namespace:UI_Project"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:UsefulThingsConverters="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings"
-        xmlns:UsefulThingsAnims="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:Library="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
@@ -393,11 +392,11 @@
             <ColumnDefinition x:Name="SecondColumn" Width="127*">
                 <ColumnDefinition.Resources>
                     <Storyboard x:Key="SecondColumnCloser">
-                        <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
-                            <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                        <UsefulWPF:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                            <UsefulWPF:GridLengthAnimation.EasingFunction>
                                 <CubicEase EasingMode="EaseOut"/>
-                            </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                        </UsefulThingsAnims:GridLengthAnimation>
+                            </UsefulWPF:GridLengthAnimation.EasingFunction>
+                        </UsefulWPF:GridLengthAnimation>
                     </Storyboard>
                 </ColumnDefinition.Resources>
             </ColumnDefinition>
@@ -525,6 +524,16 @@
 
         <!--Loaded Image Box-->
         <UsefulWPF:PanAndZoomBorder x:Name="LoadedImageViewBox" Grid.Row="1" Margin="0,0,25,25">
+            <UsefulWPF:PanAndZoomBorder.Style>
+                <Style>
+                    <Setter Property="UIElement.Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
+                            <Setter Property="UIElement.Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </UsefulWPF:PanAndZoomBorder.Style>
             <Image x:Name="LoadedImageImage" Source="{Binding Preview}" RenderTransformOrigin="0.5,0.5">
                 <Image.RenderTransform>
                     <TransformGroup>
@@ -596,6 +605,16 @@
 
         <!--Save Image Box-->
         <UsefulWPF:PanAndZoomBorder x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25">
+            <UsefulWPF:PanAndZoomBorder.Style>
+                <Style>
+                    <Setter Property="UIElement.Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
+                            <Setter Property="UIElement.Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </UsefulWPF:PanAndZoomBorder.Style>
             <Image Source="{Binding SavePreview}" RenderTransformOrigin="0.5,0.5">
                 <Image.RenderTransform>
                     <TransformGroup>
@@ -688,11 +707,11 @@
                         <EventTrigger RoutedEvent="Button.Click">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
-                                        <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                    <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
+                                        <UsefulWPF:GridLengthAnimation.EasingFunction>
                                             <CubicEase EasingMode="EaseOut"/>
-                                        </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                    </UsefulThingsAnims:GridLengthAnimation>
+                                        </UsefulWPF:GridLengthAnimation.EasingFunction>
+                                    </UsefulWPF:GridLengthAnimation>
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
@@ -703,11 +722,11 @@
                         <EventTrigger RoutedEvent="Button.Click">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
-                                        <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                    <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                                        <UsefulWPF:GridLengthAnimation.EasingFunction>
                                             <CubicEase EasingMode="EaseOut"/>
-                                        </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                    </UsefulThingsAnims:GridLengthAnimation>
+                                        </UsefulWPF:GridLengthAnimation.EasingFunction>
+                                    </UsefulWPF:GridLengthAnimation>
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>

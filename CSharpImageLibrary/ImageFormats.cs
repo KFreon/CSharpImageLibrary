@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -105,7 +104,7 @@ namespace CSharpImageLibrary
         /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Normal (bump) Maps. 8 bit single channel with alpha.
         /// </summary>
-        [Description("(BC4) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. 8 bit single channel with alpha.")]
+        [Description("(BC4) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. 8 bit single channel with optional 1bit alpha.")]
         DDS_ATI1 = 0x31495441,  // ATI1 backwards
 
         /// <summary>
@@ -169,7 +168,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides format functionality
     /// </summary>
-    public static class ImageFormats
+    public partial class ImageFormats
     {
         /// <summary>
         /// Contains formats not yet capable of saving.
@@ -182,7 +181,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">Image format to check.</param>
         /// <returns></returns>
-        public static bool IsFormatMippable(ImageEngineFormat format)
+        static bool IsFormatMippable(ImageEngineFormat format)
         {
             return format.ToString().Contains("DDS");
         }
@@ -192,7 +191,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">DDS Surface Format.</param>
         /// <returns>True if block compressed.</returns>
-        public static bool IsBlockCompressed(ImageEngineFormat format)
+        static bool IsBlockCompressed(ImageEngineFormat format)
         {
             switch (format)
             {
@@ -210,16 +209,6 @@ namespace CSharpImageLibrary
         }
 
         /// <summary>
-        /// Determines if alpha channel COULD be present in given format.
-        /// </summary>
-        /// <param name="format">Format to check alpha in.</param>
-        /// <returns>True if alpha can be present.</returns>
-        public static bool IsAlphaPresent(PixelFormat format)
-        {
-            return format.ToString().Contains("a", StringComparison.OrdinalIgnoreCase);
-        }
-
-        /// <summary>
         /// Gets block size of DDS format.
         /// Number of channels if not compressed.
         /// 1 if not a DDS format.
@@ -227,7 +216,7 @@ namespace CSharpImageLibrary
         /// <param name="format">DDS format to test.</param>
         /// <param name="componentSize">Size of channel components in bytes. e.g. 16bit = 2.</param>
         /// <returns>Number of blocks/channels in format.</returns>
-        public static int GetBlockSize(ImageEngineFormat format, int componentSize = 1)
+        static int GetBlockSize(ImageEngineFormat format, int componentSize = 1)
         {
             int blocksize = 1;
             switch (format)
@@ -451,10 +440,10 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="extension">String containing file extension.</param>
         /// <returns>SupportedExtension of extension.</returns>
-        public static SupportedExtensions ParseExtension(string extension)
+        static SupportedExtensions ParseExtension(string extension)
         {
             SupportedExtensions ext = SupportedExtensions.DDS;
-            string tempext = Path.GetExtension(extension).Replace(".", "");
+            string tempext = extension.Contains('.') ? Path.GetExtension(extension).Replace(".", "") : extension;
             if (!Enum.TryParse(tempext, true, out ext))
                 return SupportedExtensions.UNKNOWN;
 
@@ -467,7 +456,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="stringWithFormatInIt">String containing format somewhere in it.</param>
         /// <returns>Format in string, or UNKNOWN otherwise.</returns>
-        public static ImageEngineFormat FindFormatInString(string stringWithFormatInIt)
+        static ImageEngineFormat FindFormatInString(string stringWithFormatInIt)
         {
             ImageEngineFormat detectedFormat = ImageEngineFormat.Unknown;
             foreach (var formatName in Enum.GetNames(typeof(ImageEngineFormat)))
@@ -501,7 +490,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">Format to get file extension for.</param>
         /// <returns>File extension without dot.</returns>
-        public static string GetExtensionOfFormat(ImageEngineFormat format)
+        static string GetExtensionOfFormat(ImageEngineFormat format)
         {
             string formatString = format.ToString().ToLowerInvariant();
             if (formatString.Contains('_'))
@@ -514,14 +503,13 @@ namespace CSharpImageLibrary
         /// Calculates the compressed size of an image with given parameters.
         /// </summary>
         /// <param name="numMipmaps">Number of mipmaps in image. JPG etc only have 1.</param>
-        /// <param name="format">Format of image.</param>
+        /// <param name="formatDetails">Detailed information about format.</param>
         /// <param name="width">Width of image (top mip if mip-able)</param>
         /// <param name="height">Height of image (top mip if mip-able)</param>
-        /// <param name="componentSize">Size of channel components in bytes. e.g. 16bit = 2.</param>
         /// <returns>Size of compressed image.</returns>
-        public static int GetCompressedSize(int numMipmaps, ImageEngineFormat format, int width, int height, int componentSize)
+        public static int GetCompressedSize(int numMipmaps, ImageEngineFormatDetails formatDetails, int width, int height)
         {
-            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, format, width, height, componentSize);
+            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, formatDetails, width, height);
         }
         
 
@@ -547,15 +535,30 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">Format to channel count.</param>
         /// <returns>Max number of channels supported.</returns>
-        public static int MaxNumberOfChannels(ImageEngineFormat format)
+        static int MaxNumberOfChannels(ImageEngineFormat format)
         {
-            var estimate = GetBlockSize(format);
+            int numChannels = 4;
+            switch (format)
+            {
+                case ImageEngineFormat.DDS_A8:
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_G8_L8:
+                    numChannels = 1;
+                    break;
+                case ImageEngineFormat.DDS_A8L8:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_G16_R16:
+                case ImageEngineFormat.DDS_V8U8:
+                    numChannels = 2;
+                    break;
+                case ImageEngineFormat.DDS_R5G6B5:
+                case ImageEngineFormat.DDS_RGB_8:
+                case ImageEngineFormat.JPG:
+                    numChannels = 3;
+                    break;
+            }
 
-            // DXT and non-DDS
-            if (estimate > 4 || estimate == 1)
-                return 4;
-            else
-                return estimate;
+            return numChannels;
         }
     }
 }
