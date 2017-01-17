@@ -19,7 +19,7 @@ namespace CSharpImageLibrary.DDS
         /// This region contains stuff adpated/taken from the DirectXTex project: https://github.com/Microsoft/DirectXTex
         /// Things needed to be in the range 0-1 instead of 0-255, hence new struct etc
         /// </summary>
-        [DebuggerDisplay("R:{r} G:{g} B:{b} A:{a}")]
+        [DebuggerDisplay("R:{r}, G:{g}, B:{b}, A:{a}")]
         struct RGBColour
         {
             public float r, g, b, a;
@@ -80,9 +80,9 @@ namespace CSharpImageLibrary.DDS
                 return current;  // Fully transparent colour
 
 
-            current.a = formatDetails.ReadFloat(texel, i + 3);
-            current.r = formatDetails.ReadFloat(texel, i + 2) * (premultiply ? current.a : 1.0f);
-            current.g = formatDetails.ReadFloat(texel, i + 1) * (premultiply ? current.a : 1.0f);
+            current.a = formatDetails.ReadFloat(texel, i + 3 * formatDetails.ComponentSize);
+            current.r = formatDetails.ReadFloat(texel, i + 2 * formatDetails.ComponentSize) * (premultiply ? current.a : 1.0f);
+            current.g = formatDetails.ReadFloat(texel, i + formatDetails.ComponentSize) * (premultiply ? current.a : 1.0f);
             current.b = formatDetails.ReadFloat(texel, i) * (premultiply ? current.a : 1.0f);
             
             return current;
@@ -541,7 +541,7 @@ namespace CSharpImageLibrary.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     sourceTexel[count++] = ReadColourFromTexel(imgData, position, premultiply, formatDetails);
-                    position += 4;
+                    position += 4 * formatDetails.ComponentSize;
                 }
 
                 position = sourcePosition + sourceLineLength * i;
@@ -660,7 +660,8 @@ namespace CSharpImageLibrary.DDS
             // KFreon: Get min and max
             byte min = 255;
             byte max = 0;
-            int count = sourcePosition + channel;
+            int channelBitSize = channel * formatDetails.ComponentSize;
+            int count = sourcePosition + channelBitSize;
 
             byte[] sourceTexel = new byte[16];
             int sourceTexelInd = 0;
@@ -675,9 +676,9 @@ namespace CSharpImageLibrary.DDS
                     else if (colour < min)
                         min = colour;
 
-                    count += 4; // skip to next entry in channel
+                    count += 4 * formatDetails.ComponentSize; // skip to next entry in channel
                 }
-                count = sourcePosition + channel + sourceLineLength * i;
+                count = sourcePosition + channelBitSize + sourceLineLength * i;
             }
 
             // Build Palette
@@ -685,7 +686,6 @@ namespace CSharpImageLibrary.DDS
 
             // Compress Pixels
             ulong line = 0;
-            count = sourcePosition + channel;
             sourceTexelInd = 0;
             for (int i = 0; i < 4; i++)
             {
@@ -695,10 +695,7 @@ namespace CSharpImageLibrary.DDS
                     byte colour = sourceTexel[sourceTexelInd++];
                     int index = GetClosestValue(Colours, colour);
                     line |= (ulong)index << (ind * 3);
-                    count += 4;  // Only need 1 channel
                 }
-
-                count = sourcePosition + channel + sourceLineLength * (i + 1);
             }
 
             byte[] compressed = BitConverter.GetBytes(line);

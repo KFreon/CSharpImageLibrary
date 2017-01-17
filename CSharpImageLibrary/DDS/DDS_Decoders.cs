@@ -200,9 +200,9 @@ namespace CSharpImageLibrary.DDS
             {
                 for (int i = 0; i < destination.Length; i += 4)
                 {
-                    destination[i] -= 127;
-                    destination[i + 1] -= 127;
-                    destination[i + 2] -= 127;
+                    //destination[i] -= 128;  // Don't adjust blue
+                    destination[i + 1] -= 128;
+                    destination[i + 2] -= 128;
 
                     // Alpha not adjusted
                 }

@@ -63,7 +63,7 @@ namespace CSharpImageLibrary.DDS
         // ATI1
         internal static void CompressBC4Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 0, false, formatDetails);
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 2, false, formatDetails);
         }
 
 
@@ -74,7 +74,7 @@ namespace CSharpImageLibrary.DDS
             Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition, 1, false, formatDetails);
 
             // Red: Channel 0, 8 destination offset to be after Green.
-            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 0, false, formatDetails);
+            Compress8BitBlock(imgData, sourcePosition, sourceLineLength, destination, destPosition + 8, 2, false, formatDetails);
         }
 
         internal static void CompressBC6Block()
@@ -133,18 +133,18 @@ namespace CSharpImageLibrary.DDS
             {
                 if (twoChannel) // No large components - silly spec...
                 {
-                    byte red = (byte)(sourceFormatDetails.ReadByte(source, i) + (requiresSignedAdjust ? 127 : 0));
-                    byte alpha = sourceFormatDetails.ReadByte(source, i + 3);
+                    byte red = (byte)(sourceFormatDetails.ReadByte(source, i) + (requiresSignedAdjust ? 128 : 0));
+                    byte alpha = sourceFormatDetails.ReadByte(source, i + 3 * sourceFormatDetails.ComponentSize);
 
                     destination[destStart] = AMask > RMask ? red : alpha;
                     destination[destStart + 1] = AMask > RMask ? alpha : red;
                 }
                 else if (oneChannel) // No large components - silly spec...
                 {
-                    byte blue = (byte)(sourceFormatDetails.ReadByte(source, i) + (requiresSignedAdjust ? 127 : 0));
-                    byte green = (byte)(sourceFormatDetails.ReadByte(source, i + 1) + (requiresSignedAdjust ? 127 : 0));
-                    byte red = (byte)(sourceFormatDetails.ReadByte(source, i + 2) + (requiresSignedAdjust ? 127 : 0));
-                    byte alpha = sourceFormatDetails.ReadByte(source, i + 3);
+                    byte blue = sourceFormatDetails.ReadByte(source, i);
+                    byte green = sourceFormatDetails.ReadByte(source, i + 1 * sourceFormatDetails.ComponentSize);
+                    byte red = sourceFormatDetails.ReadByte(source, i + 2 * sourceFormatDetails.ComponentSize);
+                    byte alpha = sourceFormatDetails.ReadByte(source, i + 3 * sourceFormatDetails.ComponentSize);
 
                     destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
                 }
@@ -170,13 +170,10 @@ namespace CSharpImageLibrary.DDS
                     if (requiresSignedAdjust)
                     {
                         if (RMask != 0)
-                            destination[destStart + destRIndex] += 127;
+                            destination[destStart + destRIndex] += 128;
 
                         if (GMask != 0)
-                            destination[destStart + destGIndex] += 127;
-
-                        if (BMask != 0)
-                            destination[destStart + destBIndex] += 127;
+                            destination[destStart + destGIndex] += 128;
                     }
                 }
             }

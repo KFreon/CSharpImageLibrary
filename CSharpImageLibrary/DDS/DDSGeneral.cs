@@ -241,15 +241,13 @@ namespace CSharpImageLibrary.DDS
             DDS_Header header = new DDS_Header(mipMaps.Count, height, width, destFormatDetails.Format);
 
             int fullSize = GetCompressedSizeOfImage(mipMaps.Count, destFormatDetails, width, height);
-            fullSize += (fullSize - 128) * destFormatDetails.ComponentSize;   // Size adjustment for destination to allow for different component sizes.
+            if (destFormatDetails.ComponentSize != 1)
+                fullSize += (fullSize - 128) * destFormatDetails.ComponentSize;   // Size adjustment for destination to allow for different component sizes.
 
             byte[] destination = new byte[fullSize];
             header.WriteToArray(destination, 0);
 
-
-
             int blockSize = destFormatDetails.BlockSize;
-
             if (destFormatDetails.IsBlockCompressed)
             {
                 int mipOffset = 128;
@@ -296,9 +294,9 @@ namespace CSharpImageLibrary.DDS
             var mipWriter = new Action<int>(texelIndex =>
             {
                 // Since this is the top corner of the first texel in a line, skip 4 pixel rows (texel = 4x4 pixels) and the number of rows down the bitmap we are already.
-                int sourceLineOffset = sourceLineLength * 4 * mipmap.LoadedFormatDetails.ComponentSize * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
+                int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
-                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
+                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) * mipmap.LoadedFormatDetails.ComponentSize + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
                 compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting, mipmap.LoadedFormatDetails);
             });
 

@@ -340,7 +340,14 @@ namespace CSharpImageLibrary
             {
                 // KFreon: Try saving with built in codecs
                 var mip = newMips[0];
-                destination = WIC_Codecs.SaveWithCodecs(mip.Pixels, destFormatDetails.Format, mip.Width, mip.Height, alphaSetting);
+
+
+                // Fix formatting
+                byte[] newPixels = new byte[mip.Width * mip.Height * 4];
+                for (int i = 0, j = 0; i < newPixels.Length; i++, j += mip.LoadedFormatDetails.ComponentSize)
+                    newPixels[i] = mip.LoadedFormatDetails.ReadByte(mip.Pixels, j);
+
+                destination = WIC_Codecs.SaveWithCodecs(newPixels, destFormatDetails.Format, mip.Width, mip.Height, alphaSetting);
             }
 
             return destination;
