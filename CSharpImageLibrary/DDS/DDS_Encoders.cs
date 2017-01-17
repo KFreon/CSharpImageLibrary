@@ -150,6 +150,10 @@ namespace CSharpImageLibrary.DDS
                 }
                 else
                 {
+                    // Handle weird conditions where array isn't long enough...
+                    if (sourceAInd + i >= source.Length)
+                        break;
+
                     if (AMask != 0)
                         destFormatDetails.WriteColour(source, i + sourceAInd, sourceFormatDetails, destination, destStart + destAIndex);
 

@@ -410,7 +410,7 @@ namespace CSharpImageLibrary.DDS
             mipOffset = requiredOffset;
 
             // Should only occur when an image has 0 or 1 mipmap.
-            if (streamLength <= (requiredOffset - 128) * destFormatDetails.ComponentSize)
+            if (streamLength <= (requiredOffset - 128))
                 return false;
 
             return true;

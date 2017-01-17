@@ -598,6 +598,9 @@ namespace UI_Project
             }
             set
             {
+                if (mipIndex == value)
+                    return;
+
                 SetProperty(ref mipIndex, value);
 
                 if (LoadedImage != null)

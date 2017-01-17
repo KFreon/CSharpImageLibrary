@@ -436,6 +436,25 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
+        <StackPanel x:Name="ChannelSelectorBox" Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" Visibility="Collapsed">  <!-- DISABLED FOR NOW -->
+            <StackPanel.Resources>
+                <Style TargetType="ToggleButton">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Width" Value="17"/>
+                    <Setter Property="Height" Value="17"/>
+                    <Setter Property="Margin" Value="5,0"/>
+
+                    <Style.Triggers>
+                        
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Resources>
+            <Label Content="Channel Selectors: "/>
+            <ToggleButton x:Name="RedChannelSelector" Background="Red"/>
+            <ToggleButton x:Name="GreeNChannelSelector" Background="LightGreen"/>
+            <ToggleButton x:Name="BlueChannelSelector" Background="Blue"/>
+        </StackPanel>
+
         <DockPanel x:Name="AlphaDisplaySettingsBox" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
             <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="10" VerticalAlignment="Center"/>
             <ComboBox x:Name="AlphaDisplaySelector" FontSize="10" 
