@@ -88,7 +88,7 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion Compressed
 
-        internal static int WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, ImageFormats.ImageEngineFormatDetails destFormatDetails)
+        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, ImageFormats.ImageEngineFormatDetails destFormatDetails)
         {
             int byteCount = dest_ddspf.dwRGBBitCount / 8;
             bool requiresSignedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED;
@@ -129,60 +129,61 @@ namespace CSharpImageLibrary.DDS
             int sourceGInd = 1 * sourceFormatDetails.ComponentSize;
             int sourceBInd = 0;
 
-            for (int i = 0; i < source.Length; i += 4 * sourceFormatDetails.ComponentSize, destStart += byteCount)
+
+            var sourceInds = new int[] { sourceBInd, sourceGInd, sourceRInd, sourceAInd };
+            var destInds = new int[] { destBIndex, destGIndex, destRIndex, destAIndex };
+            var masks = new uint[] { BMask, GMask, RMask, AMask };
+
+            int sourceIncrement = 4 * sourceFormatDetails.ComponentSize;
+
+            if (ImageEngine.EnableThreading)
+                Parallel.For(0, source.Length / sourceIncrement, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, 
+                    ind => WriteUncompressedPixel(source, ind * sourceIncrement, sourceInds, sourceFormatDetails, masks, destination, destStart + ind * byteCount, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust));
+            else
+                for (int i = 0; i < source.Length; i += 4 * sourceFormatDetails.ComponentSize, destStart += byteCount)
+                    WriteUncompressedPixel(source, i, sourceInds, sourceFormatDetails, masks, destination, destStart, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust);
+        }
+
+        static void WriteUncompressedPixel(byte[] source, int sourceStart, int[] sourceInds, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, uint[] masks,
+            byte[] destination, int destStart, int[] destInds, ImageFormats.ImageEngineFormatDetails destFormatDetails, bool oneChannel, bool twoChannel, bool requiresSignedAdjust)
+        {
+            if (twoChannel) // No large components - silly spec...
             {
-                if (twoChannel) // No large components - silly spec...
-                {
-                    byte red = (byte)(sourceFormatDetails.ReadByte(source, i) + (requiresSignedAdjust ? 128 : 0));
-                    byte alpha = sourceFormatDetails.ReadByte(source, i + 3 * sourceFormatDetails.ComponentSize);
+                byte red = sourceFormatDetails.ReadByte(source, sourceStart);
+                byte alpha = sourceFormatDetails.ReadByte(source, sourceStart + 3 * sourceFormatDetails.ComponentSize);
 
-                    destination[destStart] = AMask > RMask ? red : alpha;
-                    destination[destStart + 1] = AMask > RMask ? alpha : red;
+                destination[destStart] = masks[3] > masks[2] ? red : alpha;
+                destination[destStart + 1] = masks[3] > masks[2] ? alpha : red;
+            }
+            else if (oneChannel) // No large components - silly spec...
+            {
+                byte blue = sourceFormatDetails.ReadByte(source, sourceStart);
+                byte green = sourceFormatDetails.ReadByte(source, sourceStart + 1 * sourceFormatDetails.ComponentSize);
+                byte red = sourceFormatDetails.ReadByte(source, sourceStart + 2 * sourceFormatDetails.ComponentSize);
+                byte alpha = sourceFormatDetails.ReadByte(source, sourceStart + 3 * sourceFormatDetails.ComponentSize);
+
+                destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
+            }
+            else
+            {
+                // Handle weird conditions where array isn't long enough...
+                if (sourceInds[3] + sourceStart >= source.Length)
+                    return;
+
+                for (int i = 0; i < 4; i++)
+                {
+                    uint mask = masks[i];
+                    if (mask != 0)
+                        destFormatDetails.WriteColour(source, sourceStart + sourceInds[i], sourceFormatDetails, destination, destStart + destInds[i]);
                 }
-                else if (oneChannel) // No large components - silly spec...
+
+                // Signed adjustments - Only happens for bytes for now. V8U8
+                if (requiresSignedAdjust)
                 {
-                    byte blue = sourceFormatDetails.ReadByte(source, i);
-                    byte green = sourceFormatDetails.ReadByte(source, i + 1 * sourceFormatDetails.ComponentSize);
-                    byte red = sourceFormatDetails.ReadByte(source, i + 2 * sourceFormatDetails.ComponentSize);
-                    byte alpha = sourceFormatDetails.ReadByte(source, i + 3 * sourceFormatDetails.ComponentSize);
-
-                    destination[destStart] = (byte)(blue * 0.082 + green * 0.6094 + blue * 0.3086); // Weightings taken from ATI Compressonator. Dunno if this changes things much.
-                }
-                else
-                {
-                    // Handle weird conditions where array isn't long enough...
-                    if (sourceAInd + i >= source.Length)
-                        break;
-
-                    if (AMask != 0)
-                        destFormatDetails.WriteColour(source, i + sourceAInd, sourceFormatDetails, destination, destStart + destAIndex);
-
-                    if (RMask != 0)
-                        destFormatDetails.WriteColour(source, i + sourceRInd, sourceFormatDetails, destination, destStart + destRIndex);
-
-
-                    if (GMask != 0)
-                        destFormatDetails.WriteColour(source, i + sourceGInd, sourceFormatDetails, destination, destStart + destGIndex);
-
-
-                    if (BMask != 0)
-                        destFormatDetails.WriteColour(source, i + sourceBInd, sourceFormatDetails, destination, destStart + destBIndex);
-
-
-
-                    // Signed adjustments - Only happens for bytes for now. V8U8
-                    if (requiresSignedAdjust)
-                    {
-                        if (RMask != 0)
-                            destination[destStart + destRIndex] += 128;
-
-                        if (GMask != 0)
-                            destination[destStart + destGIndex] += 128;
-                    }
+                    destination[destStart + destInds[2]] += 128;
+                    destination[destStart + destInds[1]] += 128;
                 }
             }
-
-            return destStart;
         }
     }
 }

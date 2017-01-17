@@ -312,9 +312,9 @@ namespace CSharpImageLibrary.DDS
             return mipOffset + destinationTexelCount * blockSize;
         }
 
-        static int WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageFormats.ImageEngineFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
+        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageFormats.ImageEngineFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            return DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, mipmap.LoadedFormatDetails, destFormatDetails);
+            DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, mipmap.LoadedFormatDetails, destFormatDetails);
         }
         #endregion Saving
 
