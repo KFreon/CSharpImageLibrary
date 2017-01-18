@@ -33,6 +33,55 @@ namespace UI_Project
     {
         Stopwatch timer = new Stopwatch();
 
+        bool isRedChannelOn = true;
+        public bool IsRedChannelOn
+        {
+            get
+            {
+                return isRedChannelOn;
+            }
+            set
+            {
+                SetProperty(ref isRedChannelOn, value);
+
+                if (IsImageLoaded)
+                    SetChannel(Preview, value, 2);
+            }
+        }
+
+        bool isGreenChannelOn = true;
+        public bool IsGreenChannelOn
+        {
+            get
+            {
+                return isGreenChannelOn;
+            }
+            set
+            {
+                SetProperty(ref isGreenChannelOn, value);
+
+                if (IsImageLoaded)
+                    SetChannel(Preview, value, 1);
+            }
+        }
+
+        bool isBlueChannelOn = true;
+        public bool IsBlueChannelOn
+        {
+            get
+            {
+                return isBlueChannelOn;
+            }
+            set
+            {
+                SetProperty(ref isBlueChannelOn, value);
+
+                if (IsImageLoaded)
+                    SetChannel(Preview, value, 0);
+            }
+        }
+
+
 
         #region Settings Panel Properties
         bool settingsPanelOpen = false;
@@ -580,11 +629,16 @@ namespace UI_Project
         }
 
 
+        bool isImageLoaded = false;
         public bool IsImageLoaded
         {
             get
             {
-                return LoadedImage != null;
+                return isImageLoaded;
+            }
+            set
+            {
+                SetProperty(ref isImageLoaded, value);
             }
         }
 
@@ -603,7 +657,7 @@ namespace UI_Project
 
                 SetProperty(ref mipIndex, value);
 
-                if (LoadedImage != null)
+                if (IsImageLoaded)
                     UpdateLoadedPreview();
             }
         }
@@ -686,7 +740,7 @@ namespace UI_Project
         {
             get
             {
-                if (LoadedImage == null)
+                if (!IsImageLoaded)
                     return -1;
 
                 return ImageFormats.GetUncompressedSize(LoadedImage.Width, LoadedImage.Height, LoadedImage.NumberOfChannels, LoadedImage.NumMipMaps > 1);
@@ -728,7 +782,7 @@ namespace UI_Project
             {
                 SetProperty(ref alphaDisplaySetting, value);
 
-                if (LoadedImage != null)
+                if (IsImageLoaded)
                 {
                     UpdateLoadedPreview();
 
@@ -806,7 +860,7 @@ namespace UI_Project
         {
             get
             {
-                if (SaveFormat.ToString().Contains("_") && LoadedImage != null)
+                if (SaveFormat.ToString().Contains("_") && IsImageLoaded)
                 {
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
                     var header = LoadedImage.Header as CSharpImageLibrary.Headers.DDS_Header;
@@ -1090,144 +1144,9 @@ namespace UI_Project
             timer.Stop();
             Trace.WriteLine($"Preview of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
 
+            IsImageLoaded = true;
             return true;
         }
-
-        void UpdateLoadedPreview(bool forceRedraw = false)
-        {
-            if (MipIndex >= loadedImage.MipMaps.Count)   // Easy way out of handling indicies - Max is bound to mipcount e.g 12, but 0 based index, hence 12 = 13th value, out of range.
-                return;
-
-            var mip = LoadedImage.MipMaps[MipIndex];
-
-            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels, mip.LoadedFormatDetails, forceRedraw);
-
-            OnPropertyChanged(nameof(Preview));
-            UpdateUI();
-        }
-
-        AlphaDisplaySettings previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
-        unsafe void UpdatePreview(ref WriteableBitmap bmp, int width, int height, byte[] pixels, ImageFormats.ImageEngineFormatDetails formatDetails, bool forceRedraw)
-        {
-            var rect = new System.Windows.Int32Rect(0, 0, width, height);
-
-            byte[] tempPixels = pixels;
-            if (formatDetails.ComponentSize != 1)
-            {
-                tempPixels = new byte[width * height * 4];
-
-                Action<int> action = new Action<int>(ind => tempPixels[ind] = formatDetails.ReadByte(pixels, ind * formatDetails.ComponentSize));
-
-                if (EnableThreading)
-                    Parallel.For(0, tempPixels.Length, new ParallelOptions { MaxDegreeOfParallelism = NumThreads }, ind => action(ind));
-                else
-                    for (int i = 0; i < tempPixels.Length; i++)
-                        action(i);
-            }
-
-            // Create new BitmapImage if necessary
-            if (bmp == null || width != bmp.PixelWidth || height != bmp.PixelHeight)
-            {
-                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(tempPixels, width, height);
-                forceRedraw = false;  // Don't want to redraw again after having just created it.
-                previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;    // Need for forcing a redraw without messing up the UI.
-            }
-
-            // Same as in 'if' below, just needs to be able to continue on.
-            if (forceRedraw)
-            {
-                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
-                previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;  // Need for forcing a redraw without messing up the UI.
-            }
-
-            // Change alpha display as necessary
-            if (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha)
-                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
-            else if (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
-            {
-                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
-                RemoveAlphaFromDisplay(bmp, tempPixels, rect);
-            }
-            else if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)
-            {
-                bmp.Lock();
-
-                byte* back = (byte*)bmp.BackBuffer.ToPointer();
-                for (int ai = 3; ai < tempPixels.Length; ai += 4)
-                {
-                    *back++ = tempPixels[ai];
-                    *back++ = tempPixels[ai];
-                    *back++ = tempPixels[ai];
-                    *back++ = 255;  // Alpha opaque
-                }
-
-                bmp.AddDirtyRect(rect);
-                bmp.Unlock();
-            }
-            else if (previousAlphaSetting == AlphaDisplaySettings.NoAlpha && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha)
-            {
-                bmp.Lock();
-
-                byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
-                for (int i = 3; i < tempPixels.Length; i += 4)
-                {
-                    *back = tempPixels[i];
-                    back += 4;
-                }
-
-                bmp.AddDirtyRect(rect);
-                bmp.Unlock();
-
-            }
-            else if (previousAlphaSetting == AlphaDisplaySettings.PremultiplyAlpha && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
-                RemoveAlphaFromDisplay(bmp, tempPixels, rect);
-
-            previousAlphaSetting = AlphaDisplaySetting;
-        }
-
-        unsafe void RemoveAlphaFromDisplay(WriteableBitmap bmp, byte[] tempPixels, System.Windows.Int32Rect rect)
-        {
-            bmp.Lock();
-
-            byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
-            for (int i = 3; i < tempPixels.Length; i += 4)
-            {
-                *back = 255;
-                back += 4;
-            }
-
-            bmp.AddDirtyRect(rect);
-            bmp.Unlock();
-        }
-
-        public async Task UpdateSavePreview(bool needRegenerate = true)
-        {
-            if (LoadedImage == null)
-                return;
-
-
-            timer.Restart();
-            if (needRegenerate)
-                await Task.Run(() =>
-                {
-                    // Save and reload to give accurate depiction of what it'll look like when saved.
-                    byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
-                    SaveCompressedSize = data.Length;
-                    savePreviewIMG = new ImageEngineImage(data);                    
-                });
-
-            Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
-            timer.Restart();
-
-            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
-
-            // Update Properties
-            OnPropertyChanged(nameof(SavePreview));
-
-            timer.Stop();
-            Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
-        }
-
 
         void UpdateUI()
         {
@@ -1263,6 +1182,7 @@ namespace UI_Project
         {
             // Clear things - should close panels when this happens
             LoadedImage = null;
+            IsImageLoaded = false;
             SavePath = null;
             SaveError = null;
             SaveAttempted = false;
@@ -1399,6 +1319,185 @@ namespace UI_Project
             BulkProgressValue = BulkProgressMax;
             BulkConvertFinished = true;
             BulkConvertRunning = false;
+        }
+
+        /// <summary>
+        /// Sets visibility on a channel.
+        /// </summary>
+        /// <param name="channelValue">True = channel is enabled.</param>
+        /// <param name="channel">0 = Blue, 1 = Green, 2 = Red.</param>
+        unsafe void SetChannel(WriteableBitmap bmp, bool channelValue, int channel)
+        {
+            if (bmp == null)
+                return;
+
+            bmp.Lock();
+
+            byte* ptr = (byte*)bmp.BackBuffer.ToPointer() + channel;
+
+            byte[] pixels = null;
+            if (channelValue)
+            {
+                MipMap current = LoadedImage.MipMaps[MipIndex];
+                pixels = GetPreviewPixels(current.Width, current.Height, current.Pixels, current.LoadedFormatDetails);
+
+                for (int i = channel; i < pixels.Length; i += 4)
+                {
+                    *ptr = pixels[i];
+                    ptr += 4;
+                }
+            }
+            else
+            {
+                for (int i = channel; i < bmp.PixelWidth * bmp.PixelHeight * 4; i += 4)
+                {
+                    *ptr = 0;
+                    ptr += 4;
+                }
+            }
+
+            bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, bmp.PixelWidth, bmp.PixelHeight));
+            bmp.Unlock();
+        }
+
+        byte[] GetPreviewPixels(int width, int height, byte[] pixels, ImageFormats.ImageEngineFormatDetails formatDetails)
+        {
+            byte[] tempPixels = new byte[width * height * 4];
+
+            Action<int> action = new Action<int>(ind => tempPixels[ind] = formatDetails.ReadByte(pixels, ind * formatDetails.ComponentSize));
+
+            if (EnableThreading)
+                Parallel.For(0, tempPixels.Length, new ParallelOptions { MaxDegreeOfParallelism = NumThreads }, ind => action(ind));
+            else
+                for (int i = 0; i < tempPixels.Length; i++)
+                    action(i);
+
+            return tempPixels;
+        }
+
+        void UpdateLoadedPreview(bool forceRedraw = false)
+        {
+            if (MipIndex >= loadedImage.MipMaps.Count)   // Easy way out of handling indicies - Max is bound to mipcount e.g 12, but 0 based index, hence 12 = 13th value, out of range.
+                return;
+
+            var mip = LoadedImage.MipMaps[MipIndex];
+
+            UpdatePreview(ref preview, mip.Width, mip.Height, mip.Pixels, mip.LoadedFormatDetails, forceRedraw);
+
+            OnPropertyChanged(nameof(Preview));
+            UpdateUI();
+        }
+
+        AlphaDisplaySettings previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
+        unsafe void UpdatePreview(ref WriteableBitmap bmp, int width, int height, byte[] pixels, ImageFormats.ImageEngineFormatDetails formatDetails, bool forceRedraw)
+        {
+            var rect = new System.Windows.Int32Rect(0, 0, width, height);
+
+            byte[] tempPixels = pixels;
+            if (formatDetails.ComponentSize != 1)
+                GetPreviewPixels(width, height, pixels, formatDetails);
+
+            // Create new BitmapImage if necessary
+            if (bmp == null || width != bmp.PixelWidth || height != bmp.PixelHeight)
+            {
+                bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(tempPixels, width, height);
+                forceRedraw = false;  // Don't want to redraw again after having just created it.
+                previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;    // Need for forcing a redraw without messing up the UI.
+            }
+
+            // Same as in 'if' below, just needs to be able to continue on.
+            if (forceRedraw)
+            {
+                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
+                previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;  // Need for forcing a redraw without messing up the UI.
+            }
+
+            // Change alpha display as necessary
+            if (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha)
+                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
+            else if (previousAlphaSetting == AlphaDisplaySettings.AlphaOnly && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
+            {
+                bmp.WritePixels(rect, tempPixels, bmp.BackBufferStride, 0);
+                RemoveAlphaFromDisplay(bmp, tempPixels, rect);
+            }
+            else if (AlphaDisplaySetting == AlphaDisplaySettings.AlphaOnly)
+            {
+                bmp.Lock();
+
+                byte* back = (byte*)bmp.BackBuffer.ToPointer();
+                for (int ai = 3; ai < tempPixels.Length; ai += 4)
+                {
+                    *back++ = tempPixels[ai];
+                    *back++ = tempPixels[ai];
+                    *back++ = tempPixels[ai];
+                    *back++ = 255;  // Alpha opaque
+                }
+
+                bmp.AddDirtyRect(rect);
+                bmp.Unlock();
+            }
+            else if (previousAlphaSetting == AlphaDisplaySettings.NoAlpha && AlphaDisplaySetting == AlphaDisplaySettings.PremultiplyAlpha)
+            {
+                bmp.Lock();
+
+                byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
+                for (int i = 3; i < tempPixels.Length; i += 4)
+                {
+                    *back = tempPixels[i];
+                    back += 4;
+                }
+
+                bmp.AddDirtyRect(rect);
+                bmp.Unlock();
+
+            }
+            else if (previousAlphaSetting == AlphaDisplaySettings.PremultiplyAlpha && AlphaDisplaySetting == AlphaDisplaySettings.NoAlpha)
+                RemoveAlphaFromDisplay(bmp, tempPixels, rect);
+
+            previousAlphaSetting = AlphaDisplaySetting;
+        }
+
+        unsafe void RemoveAlphaFromDisplay(WriteableBitmap bmp, byte[] tempPixels, System.Windows.Int32Rect rect)
+        {
+            bmp.Lock();
+
+            byte* back = (byte*)bmp.BackBuffer.ToPointer() + 3;
+            for (int i = 3; i < tempPixels.Length; i += 4)
+            {
+                *back = 255;
+                back += 4;
+            }
+
+            bmp.AddDirtyRect(rect);
+            bmp.Unlock();
+        }
+
+        public async Task UpdateSavePreview(bool needRegenerate = true)
+        {
+            if (!IsImageLoaded)
+                return;
+
+
+            timer.Restart();
+            if (needRegenerate)
+                await Task.Run(() =>
+                {
+                    // Save and reload to give accurate depiction of what it'll look like when saved.
+                    byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                    SaveCompressedSize = data.Length;
+                    savePreviewIMG = new ImageEngineImage(data);
+                });
+
+            Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
+            timer.Restart();
+
+            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
+
+            // Update Properties
+            OnPropertyChanged(nameof(SavePreview));
+
+            timer.Stop();
+            Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
         }
     }
 }

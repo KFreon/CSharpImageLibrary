@@ -50,7 +50,7 @@
                 <Setter Property="Opacity" Value="1"/>
 
                 <Style.Triggers>
-                    <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
+                    <DataTrigger Binding="{Binding IsImageLoaded}" Value="False">
                         <DataTrigger.EnterActions>
                             <BeginStoryboard>
                                 <Storyboard>
@@ -436,23 +436,57 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <StackPanel x:Name="ChannelSelectorBox" Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" Visibility="Collapsed">  <!-- DISABLED FOR NOW -->
+        <StackPanel x:Name="ChannelSelectorBox" Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" Style="{StaticResource UnloadedOpacityStyle}">
             <StackPanel.Resources>
                 <Style TargetType="ToggleButton">
                     <Setter Property="VerticalAlignment" Value="Center"/>
                     <Setter Property="Width" Value="17"/>
                     <Setter Property="Height" Value="17"/>
                     <Setter Property="Margin" Value="5,0"/>
+                    <Setter Property="BorderThickness" Value="0.5"/>
+                    <Setter Property="BorderBrush" Value="LightBlue"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1"/>
+                                </Border>
+
+                                <ControlTemplate.Triggers>
+                                    <EventTrigger RoutedEvent="MouseEnter">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetProperty="BorderBrush.(SolidColorBrush.Color)" To="Blue" Duration="0:0:0.05"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+
+                                    <EventTrigger RoutedEvent="MouseLeave">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetProperty="BorderBrush.(SolidColorBrush.Color)" To="LightBlue" Duration="0:0:0.05"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+
+                        </Setter.Value>
+                    </Setter>
 
                     <Style.Triggers>
-                        
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                            <Setter Property="BorderBrush" Value="White"/>
+                        </Trigger>
                     </Style.Triggers>
                 </Style>
             </StackPanel.Resources>
+            
             <Label Content="Channel Selectors: "/>
-            <ToggleButton x:Name="RedChannelSelector" Background="Red"/>
-            <ToggleButton x:Name="GreeNChannelSelector" Background="LightGreen"/>
-            <ToggleButton x:Name="BlueChannelSelector" Background="Blue"/>
+            <ToggleButton x:Name="RedChannelSelector" Background="Red" IsChecked="{Binding IsRedChannelOn}"/>
+            <ToggleButton x:Name="GreeNChannelSelector" Background="LightGreen" IsChecked="{Binding IsGreenChannelOn}"/>
+            <ToggleButton x:Name="BlueChannelSelector" Background="Blue" IsChecked="{Binding IsBlueChannelOn}"/>
         </StackPanel>
 
         <DockPanel x:Name="AlphaDisplaySettingsBox" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
