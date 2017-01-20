@@ -440,7 +440,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="extension">String containing file extension.</param>
         /// <returns>SupportedExtension of extension.</returns>
-        static SupportedExtensions ParseExtension(string extension)
+        public static SupportedExtensions ParseExtension(string extension)
         {
             SupportedExtensions ext = SupportedExtensions.DDS;
             string tempext = extension.Contains('.') ? Path.GetExtension(extension).Replace(".", "") : extension;
@@ -456,7 +456,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="stringWithFormatInIt">String containing format somewhere in it.</param>
         /// <returns>Format in string, or UNKNOWN otherwise.</returns>
-        static ImageEngineFormat FindFormatInString(string stringWithFormatInIt)
+        public static ImageEngineFormat FindFormatInString(string stringWithFormatInIt)
         {
             ImageEngineFormat detectedFormat = ImageEngineFormat.Unknown;
             foreach (var formatName in Enum.GetNames(typeof(ImageEngineFormat)))

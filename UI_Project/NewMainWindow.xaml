@@ -851,7 +851,7 @@
 
 
                     <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False" VerticalAlignment="Top"/>
-                    <ScrollViewer Grid.Column="1" Margin="1,25,0.333,2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Column="1" Margin="1,25,0.333,2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" BorderBrush="LightBlue" BorderThickness="0.5">
                         <TextBox Text="{Binding HeaderDetails, Mode=OneWay}" Background="Transparent" Foreground="White" FontSize="10"/>
                     </ScrollViewer>
                 </Grid>
