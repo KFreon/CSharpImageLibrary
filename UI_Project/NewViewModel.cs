@@ -1339,7 +1339,7 @@ namespace UI_Project
             if (channelValue)
             {
                 MipMap current = LoadedImage.MipMaps[MipIndex];
-                pixels = GetPreviewPixels(current.Width, current.Height, current.Pixels, current.LoadedFormatDetails);
+                pixels = ImageEngine.GetPixelsAsBGRA32(current.Width, current.Height, current.Pixels, current.LoadedFormatDetails);
 
                 for (int i = channel; i < pixels.Length; i += 4)
                 {
@@ -1358,21 +1358,6 @@ namespace UI_Project
 
             bmp.AddDirtyRect(new System.Windows.Int32Rect(0, 0, bmp.PixelWidth, bmp.PixelHeight));
             bmp.Unlock();
-        }
-
-        byte[] GetPreviewPixels(int width, int height, byte[] pixels, ImageFormats.ImageEngineFormatDetails formatDetails)
-        {
-            byte[] tempPixels = new byte[width * height * 4];
-
-            Action<int> action = new Action<int>(ind => tempPixels[ind] = formatDetails.ReadByte(pixels, ind * formatDetails.ComponentSize));
-
-            if (EnableThreading)
-                Parallel.For(0, tempPixels.Length, new ParallelOptions { MaxDegreeOfParallelism = NumThreads }, ind => action(ind));
-            else
-                for (int i = 0; i < tempPixels.Length; i++)
-                    action(i);
-
-            return tempPixels;
         }
 
         void UpdateLoadedPreview(bool forceRedraw = false)
@@ -1395,7 +1380,7 @@ namespace UI_Project
 
             byte[] tempPixels = pixels;
             if (formatDetails.ComponentSize != 1)
-                GetPreviewPixels(width, height, pixels, formatDetails);
+                tempPixels = ImageEngine.GetPixelsAsBGRA32(width, height, pixels, formatDetails);
 
             // Create new BitmapImage if necessary
             if (bmp == null || width != bmp.PixelWidth || height != bmp.PixelHeight)

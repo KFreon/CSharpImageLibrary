@@ -635,7 +635,34 @@ namespace CSharpImageLibrary
             }
 
             //var mip = new MipMap(merged, width, height);
-            return new ImageEngineImage(null);
+            return null;
+        }
+
+        /// <summary>
+        /// Gets pixels as a BGRA32 array regardless of their original format (float, short)
+        /// </summary>
+        /// <param name="width">Width of image.</param>
+        /// <param name="height">Height of image.</param>
+        /// <param name="pixels">Original pixels.</param>
+        /// <param name="formatDetails">Details about format pixels array is currently in.</param>
+        /// <returns>BGRA32 pixel array.</returns>
+        public static byte[] GetPixelsAsBGRA32(int width, int height, byte[] pixels, ImageFormats.ImageEngineFormatDetails formatDetails)
+        {
+            if (formatDetails.ComponentSize == 1)
+                return pixels;
+
+
+            byte[] tempPixels = new byte[width * height * 4];
+
+            Action<int> action = new Action<int>(ind => tempPixels[ind] = formatDetails.ReadByte(pixels, ind * formatDetails.ComponentSize));
+
+            if (EnableThreading)
+                Parallel.For(0, tempPixels.Length, new ParallelOptions { MaxDegreeOfParallelism = NumThreads }, ind => action(ind));
+            else
+                for (int i = 0; i < tempPixels.Length; i++)
+                    action(i);
+
+            return tempPixels;
         }
     }
 }

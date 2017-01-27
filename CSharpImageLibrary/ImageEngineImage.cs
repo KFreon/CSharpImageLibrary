@@ -18,6 +18,8 @@ namespace CSharpImageLibrary
     /// </summary>
     public class ImageEngineImage : IDisposable
     {
+        byte[] OriginalData = null;
+
         #region Properties
         /// <summary>
         /// Image header.
@@ -149,18 +151,6 @@ namespace CSharpImageLibrary
                 Load(ms, maxDimension);
         }
 
-
-        /// <summary>
-        /// Creates image from mipmap.
-        /// </summary>
-        /// <param name="mip">Mipmap to use as source.</param>
-        public ImageEngineImage(MipMap mip)
-        {
-            if (MipMaps == null)
-                MipMaps = new List<MipMap>();
-            MipMaps.Add(mip);
-        }
-
         /// <summary>
         /// Gets string representation of ImageEngineImage.
         /// </summary>
@@ -184,6 +174,11 @@ namespace CSharpImageLibrary
             Header = ImageEngine.LoadHeader(stream);
             FormatDetails = new ImageFormats.ImageEngineFormatDetails(Header.Format);
             MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0, FormatDetails);
+
+            // Read original data
+            OriginalData = new byte[CompressedSize];
+            stream.Position = 0;
+            stream.Read(OriginalData, 0, CompressedSize);
         }
 
         #region Savers
@@ -251,7 +246,83 @@ namespace CSharpImageLibrary
             else if (destFormatDetails.Format == ImageEngineFormat.DDS_DXT2 || destFormatDetails.Format == ImageEngineFormat.DDS_DXT4)
                 alphaSetting = AlphaSettings.Premultiply;
 
-            return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+
+            // If same format and stuff, can just return original data, or chunks of it.
+            if (destFormatDetails.Format == Format && !(alphaSetting == AlphaSettings.RemoveAlphaChannel))
+            {
+                int start = 0;
+                int destStart = 0;
+                int length = OriginalData.Length;
+                int newWidth = Width;
+                int newHeight = Height;
+                DDS_Header tempHeader = null;
+
+                if (destFormatDetails.IsDDS)
+                {
+                    destStart = 128;
+                    start = 128;
+                    length = OriginalData.Length;
+
+                    int mipCount = 0;
+                    switch(GenerateMips)
+                    {
+                        case MipHandling.KeepExisting:
+                            mipCount = NumMipMaps;
+                            break;
+                        case MipHandling.Default:
+                            if (NumMipMaps == 1)
+                                mipCount = DDSGeneral.BuildMipMaps(MipMaps);
+                            else
+                                mipCount = NumMipMaps;
+                            break;
+                        case MipHandling.KeepTopOnly:
+                            mipCount = 1;
+                            length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                            break;
+                    }
+
+                    if (mipToSave != 0)
+                    {
+                        mipCount = 1;
+                        newWidth = MipMaps[mipToSave].Width;
+                        newHeight = MipMaps[mipToSave].Height;
+
+                        start = ImageFormats.GetCompressedSize(mipToSave, destFormatDetails, Width, Height);
+                        length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                    }
+                    else if (desiredMaxDimension != 0 && desiredMaxDimension < Width && desiredMaxDimension < Height)
+                    {
+                        int index = MipMaps.FindIndex(t => t.Width < desiredMaxDimension && t.Height < desiredMaxDimension);
+
+                        // If none found, do a proper save and see what happens.
+                        if (index == -1)
+                            return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+
+                        mipCount -= index;
+                        newWidth = MipMaps[index].Width;
+                        newHeight = MipMaps[index].Height;
+
+                        start = ImageFormats.GetCompressedSize(index, destFormatDetails, Width, Height);
+                        length = ImageFormats.GetCompressedSize(mipCount, destFormatDetails, newWidth, newHeight);
+                    }
+
+                    // Header
+                    tempHeader = new DDS_Header(mipCount, newWidth, newHeight, destFormatDetails.Format);
+                }
+
+                byte[] data = new byte[length];
+                Array.Copy(OriginalData, start, data, destStart, length - destStart);
+
+                // Write header if existing (DDS Only)
+                if (tempHeader != null)
+                    tempHeader.WriteToArray(data, 0);
+
+                return data;
+            }
+            else
+            {
+                return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+            }
         }
         #endregion Savers
 

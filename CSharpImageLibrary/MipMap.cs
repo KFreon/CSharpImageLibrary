@@ -26,6 +26,11 @@ namespace CSharpImageLibrary
         }
 
         /// <summary>
+        /// Size of mipmap in memory.
+        /// </summary>
+        public int UncompressedSize { get; private set; }
+
+        /// <summary>
         /// Details of the format that this mipmap was created from.
         /// </summary>
         public ImageFormats.ImageEngineFormatDetails LoadedFormatDetails { get; private set; }
@@ -50,6 +55,8 @@ namespace CSharpImageLibrary
             Width = width;
             Height = height;
             LoadedFormatDetails = details;
+
+            UncompressedSize = ImageFormats.GetUncompressedSize(width, height, details.MaxNumberOfChannels, false);
         }
 
 
@@ -59,7 +66,8 @@ namespace CSharpImageLibrary
         /// <returns>WriteableBitmap of image.</returns>
         public BitmapSource ToImage()
         {
-            var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(Pixels, Width, Height);
+            var tempPixels = ImageEngine.GetPixelsAsBGRA32(Width, Height, Pixels, LoadedFormatDetails);
+            var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(tempPixels, Width, Height);
             bmp.Freeze();
             return bmp;
         }
