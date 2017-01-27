@@ -23,5 +23,8 @@
     <Setting Name="BackgroundAlpha" Type="System.Byte" Scope="User">
       <Value Profile="(Default)">158</Value>
     </Setting>
+    <Setting Name="UseWindowsCodecs" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

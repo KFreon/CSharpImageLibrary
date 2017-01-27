@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -33,12 +34,19 @@ namespace UI_Project
 
 
 
-
         public NewMainWindow()
         {
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            ProfileOptimization.SetProfileRoot(path);
+            ProfileOptimization.StartProfile("Startup.Profile_ImageEngine_UI");
+
             // Get Properties
             if (Properties.Settings.Default.UpgradeRequired)
+            {
                 Properties.Settings.Default.Upgrade();
+                Properties.Settings.Default.UpgradeRequired = false;
+                Properties.Settings.Default.Save();
+            }
 
             vm = new NewViewModel();
 
@@ -128,6 +136,15 @@ namespace UI_Project
 
 
             UseWindowTransparencyChecker.IsChecked = Properties.Settings.Default.IsWindowBlurred;
+            if (Properties.Settings.Default.NumThreads == 1)
+            {
+                vm.NumThreads = -1;
+                vm.EnableThreading = false;
+            }
+            else
+                vm.NumThreads = Properties.Settings.Default.NumThreads;
+
+            vm.UseWindowsCodecs = Properties.Settings.Default.UseWindowsCodecs;
 
             // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
@@ -139,6 +156,8 @@ namespace UI_Project
             // Only animate if not already closed.
             if (SecondColumn.Width == new GridLength(0, GridUnitType.Star))
                 return;
+
+            vm.SavePanelOpen = false;
 
             Storyboard closer = (Storyboard)SecondColumn.FindResource("SecondColumnCloser");
             closer.Begin(SecondColumn);
@@ -205,6 +224,7 @@ namespace UI_Project
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
+            vm.SavePanelOpen = true;
             ConvertButton.Visibility = Visibility.Collapsed;
             ClosePanelButton.Visibility = Visibility.Visible;
 
@@ -380,11 +400,6 @@ namespace UI_Project
         private void TOPWINDOW_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             UsefulThings.WPF.General.DoBorderlessWindowDragMove(this, e);
-        }
-
-        private void TOPWINDOW_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            Console.WriteLine();
         }
 
         private void SavePathBox_LostFocus(object sender, RoutedEventArgs e)
@@ -608,11 +623,12 @@ namespace UI_Project
 
         private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            Properties.Settings.Default.NumThreads = ImageEngine.NumThreads;
+            Properties.Settings.Default.NumThreads = vm.EnableThreading ? vm.NumThreads : 1;
             Properties.Settings.Default.BackgroundAlpha = vm.WindowBackground_Alpha;
             Properties.Settings.Default.BackgroundRed = vm.WindowBackground_Red;
             Properties.Settings.Default.BackgroundGreen = vm.WindowBackground_Green;
             Properties.Settings.Default.BackgroundBlue = vm.WindowBackground_Blue;
+            Properties.Settings.Default.UseWindowsCodecs = vm.UseWindowsCodecs;
             Properties.Settings.Default.Save();
         }
 

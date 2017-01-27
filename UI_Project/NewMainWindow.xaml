@@ -9,13 +9,12 @@
         xmlns:local="clr-namespace:UI_Project"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:UsefulThingsConverters="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings"
-        xmlns:UsefulThingsAnims="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         xmlns:Library="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="NewMainWindow" Height="900" Width="1100" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" 
-        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" MouseDown="TOPWINDOW_MouseDown" Closing="TOPWINDOW_Closing">
+        AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" Closing="TOPWINDOW_Closing">
     <Window.Resources>
         <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
         <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
@@ -51,7 +50,7 @@
                 <Setter Property="Opacity" Value="1"/>
 
                 <Style.Triggers>
-                    <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
+                    <DataTrigger Binding="{Binding IsImageLoaded}" Value="False">
                         <DataTrigger.EnterActions>
                             <BeginStoryboard>
                                 <Storyboard>
@@ -169,7 +168,7 @@
                         <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_RGB}">
+                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_RGB_8}">
                         <Setter Property="Visibility" Value="Collapsed"/>
                     </DataTrigger>
 
@@ -393,11 +392,11 @@
             <ColumnDefinition x:Name="SecondColumn" Width="127*">
                 <ColumnDefinition.Resources>
                     <Storyboard x:Key="SecondColumnCloser">
-                        <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
-                            <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                        <UsefulWPF:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                            <UsefulWPF:GridLengthAnimation.EasingFunction>
                                 <CubicEase EasingMode="EaseOut"/>
-                            </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                        </UsefulThingsAnims:GridLengthAnimation>
+                            </UsefulWPF:GridLengthAnimation.EasingFunction>
+                        </UsefulWPF:GridLengthAnimation>
                     </Storyboard>
                 </ColumnDefinition.Resources>
             </ColumnDefinition>
@@ -436,6 +435,59 @@
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
+
+        <StackPanel x:Name="ChannelSelectorBox" Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" Style="{StaticResource UnloadedOpacityStyle}">
+            <StackPanel.Resources>
+                <Style TargetType="ToggleButton">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Width" Value="17"/>
+                    <Setter Property="Height" Value="17"/>
+                    <Setter Property="Margin" Value="5,0"/>
+                    <Setter Property="BorderThickness" Value="0.5"/>
+                    <Setter Property="BorderBrush" Value="LightBlue"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="1"/>
+                                </Border>
+
+                                <ControlTemplate.Triggers>
+                                    <EventTrigger RoutedEvent="MouseEnter">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetProperty="BorderBrush.(SolidColorBrush.Color)" To="Blue" Duration="0:0:0.05"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+
+                                    <EventTrigger RoutedEvent="MouseLeave">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation Storyboard.TargetProperty="BorderBrush.(SolidColorBrush.Color)" To="LightBlue" Duration="0:0:0.05"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+
+                        </Setter.Value>
+                    </Setter>
+
+                    <Style.Triggers>
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                            <Setter Property="BorderBrush" Value="White"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Resources>
+            
+            <Label Content="Channel Selectors: "/>
+            <ToggleButton x:Name="RedChannelSelector" Background="Red" IsChecked="{Binding IsRedChannelOn}"/>
+            <ToggleButton x:Name="GreeNChannelSelector" Background="LightGreen" IsChecked="{Binding IsGreenChannelOn}"/>
+            <ToggleButton x:Name="BlueChannelSelector" Background="Blue" IsChecked="{Binding IsBlueChannelOn}"/>
+        </StackPanel>
 
         <DockPanel x:Name="AlphaDisplaySettingsBox" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
             <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="10" VerticalAlignment="Center"/>
@@ -529,6 +581,16 @@
 
         <!--Loaded Image Box-->
         <UsefulWPF:PanAndZoomBorder x:Name="LoadedImageViewBox" Grid.Row="1" Margin="0,0,25,25">
+            <UsefulWPF:PanAndZoomBorder.Style>
+                <Style>
+                    <Setter Property="UIElement.Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
+                            <Setter Property="UIElement.Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </UsefulWPF:PanAndZoomBorder.Style>
             <Image x:Name="LoadedImageImage" Source="{Binding Preview}" RenderTransformOrigin="0.5,0.5">
                 <Image.RenderTransform>
                     <TransformGroup>
@@ -539,7 +601,7 @@
             </Image>
         </UsefulWPF:PanAndZoomBorder>
         
-        <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="0,5,25,5" Height="15" Style="{StaticResource UnloadedOpacityStyle}">
+        <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="2,5,25,5" Height="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="211*"/>
                 <ColumnDefinition Width="40*"/>
@@ -600,6 +662,16 @@
 
         <!--Save Image Box-->
         <UsefulWPF:PanAndZoomBorder x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25">
+            <UsefulWPF:PanAndZoomBorder.Style>
+                <Style>
+                    <Setter Property="UIElement.Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding LoadedImage}" Value="{x:Null}">
+                            <Setter Property="UIElement.Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </UsefulWPF:PanAndZoomBorder.Style>
             <Image Source="{Binding SavePreview}" RenderTransformOrigin="0.5,0.5">
                 <Image.RenderTransform>
                     <TransformGroup>
@@ -692,11 +764,11 @@
                         <EventTrigger RoutedEvent="Button.Click">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
-                                        <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                    <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
+                                        <UsefulWPF:GridLengthAnimation.EasingFunction>
                                             <CubicEase EasingMode="EaseOut"/>
-                                        </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                    </UsefulThingsAnims:GridLengthAnimation>
+                                        </UsefulWPF:GridLengthAnimation.EasingFunction>
+                                    </UsefulWPF:GridLengthAnimation>
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
@@ -707,11 +779,11 @@
                         <EventTrigger RoutedEvent="Button.Click">
                             <BeginStoryboard>
                                 <Storyboard>
-                                    <UsefulThingsAnims:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
-                                        <UsefulThingsAnims:GridLengthAnimation.EasingFunction>
+                                    <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                                        <UsefulWPF:GridLengthAnimation.EasingFunction>
                                             <CubicEase EasingMode="EaseOut"/>
-                                        </UsefulThingsAnims:GridLengthAnimation.EasingFunction>
-                                    </UsefulThingsAnims:GridLengthAnimation>
+                                        </UsefulWPF:GridLengthAnimation.EasingFunction>
+                                    </UsefulWPF:GridLengthAnimation>
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
@@ -783,7 +855,7 @@
 
 
                     <Label Content="Header Details" Grid.Column="1" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" IsHitTestVisible="False" VerticalAlignment="Top"/>
-                    <ScrollViewer Grid.Column="1" Margin="1,25,0.333,2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Column="1" Margin="1,25,0.333,2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" BorderBrush="LightBlue" BorderThickness="0.5">
                         <TextBox Text="{Binding HeaderDetails, Mode=OneWay}" Background="Transparent" Foreground="White" FontSize="10"/>
                     </ScrollViewer>
                 </Grid>

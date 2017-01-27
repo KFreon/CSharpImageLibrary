@@ -18,6 +18,11 @@ namespace CSharpImageLibrary
     {
         #region Properties
         /// <summary>
+        /// Size of channel components in bytes. e.g. 16bit = 2.
+        /// </summary>
+        public int ComponentSize { get; private set; }
+
+        /// <summary>
         /// Pixels of this channel.
         /// </summary>
         public byte[] Pixels { get; private set; }
@@ -148,7 +153,7 @@ namespace CSharpImageLibrary
                 Width = img.Width;
                 Height = img.Height;
                 Thumbnail = img.GetWPFBitmap(128);
-                Pixels = img.MipMaps[0].Pixels;
+                //Pixels = img.MipMaps[0].Pixels;
             }
         }
 

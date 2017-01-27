@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -99,13 +98,13 @@ namespace CSharpImageLibrary
         /// Uncompressed ARGB DDS.
         /// </summary>
         [Description("Uncompressed ARGB DDS.")]
-        DDS_ARGB = GIF + 1,  // No specific value apparently
+        DDS_ABGR_8 = 32,  
 
         /// <summary>
         /// (BC4) Block Compressed Texture. Compresses 4x4 texels.
         /// Used for Normal (bump) Maps. 8 bit single channel with alpha.
         /// </summary>
-        [Description("(BC4) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. 8 bit single channel with alpha.")]
+        [Description("(BC4) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. 8 bit single channel with optional 1bit alpha.")]
         DDS_ATI1 = 0x31495441,  // ATI1 backwards
 
         /// <summary>
@@ -113,28 +112,28 @@ namespace CSharpImageLibrary
         /// Used for Normal (bump) maps.
         /// </summary>
         [Description("Uncompressed pair of 8 bit channels. Used for Normal (bump) maps.")]
-        DDS_V8U8 = DDS_ARGB + 1,
+        DDS_V8U8 = 60,
 
         /// <summary>
         /// Single 8 bit channel.
         /// Used for Luminescence.
         /// </summary>
         [Description("Single 8 bit channel. Used for Luminescence.")]
-        DDS_G8_L8 = DDS_V8U8 + 1,  // No specific value it seems
+        DDS_G8_L8 = 50, 
 
         /// <summary>
         /// Alpha and single channel luminescence.
         /// Uncompressed.
         /// </summary>
         [Description("Alpha and single channel luminescence. Uncompressed.")]
-        DDS_A8L8 = DDS_G8_L8 + 1,
+        DDS_A8L8 = 51,
 
         /// <summary>
         /// RGB. No alpha. 
         /// Uncompressed.
         /// </summary>
         [Description("RGB. No alpha. Uncompressed.")]
-        DDS_RGB = DDS_A8L8 + 1,
+        DDS_RGB_8 = 20,
 
         /// <summary>
         /// (BC5) Block Compressed Texture. Compresses 4x4 texels.
@@ -143,12 +142,20 @@ namespace CSharpImageLibrary
         [Description("(BC5) Block Compressed Texture. Compresses 4x4 texels. Used for Normal (bump) Maps. Pair of 8 bit channels.")]
         DDS_ATI2_3Dc = 0x32495441,  // ATI2 backwards
 
+        DDS_ARGB_8 = 21,
+        DDS_R5G6B5 = 23,
+        DDS_ARGB_4 = 24,
+        DDS_A8 = 28,
+        DDS_G16_R16 = 34,
+        DDS_ARGB_32F = 116,
+
+
         /// <summary>
         /// Format designed for scanners. Compressed.
         /// Allows mipmaps.
         /// </summary>
         [Description("Format designed for scanners. Compressed. Allows mipmaps.")]
-        TIF = DDS_RGB + 1,
+        TIF = 240,
 
         /// <summary>
         /// Used when the exact format is not present in this enum, but enough information is present to load it. (ARGB16 or something)
@@ -161,7 +168,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Provides format functionality
     /// </summary>
-    public static class ImageFormats
+    public partial class ImageFormats
     {
         /// <summary>
         /// Contains formats not yet capable of saving.
@@ -174,7 +181,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">Image format to check.</param>
         /// <returns></returns>
-        public static bool IsFormatMippable(ImageEngineFormat format)
+        static bool IsFormatMippable(ImageEngineFormat format)
         {
             return format.ToString().Contains("DDS");
         }
@@ -184,19 +191,21 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">DDS Surface Format.</param>
         /// <returns>True if block compressed.</returns>
-        public static bool IsBlockCompressed(ImageEngineFormat format)
+        static bool IsBlockCompressed(ImageEngineFormat format)
         {
-            return GetBlockSize(format) >= 8;
-        }
-
-        /// <summary>
-        /// Determines if alpha channel COULD be present in given format.
-        /// </summary>
-        /// <param name="format">Format to check alpha in.</param>
-        /// <returns>True if alpha can be present.</returns>
-        public static bool IsAlphaPresent(PixelFormat format)
-        {
-            return format.ToString().Contains("a", StringComparison.OrdinalIgnoreCase);
+            switch (format)
+            {
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_DXT1:
+                case ImageEngineFormat.DDS_DXT2:
+                case ImageEngineFormat.DDS_DXT3:
+                case ImageEngineFormat.DDS_DXT4:
+                case ImageEngineFormat.DDS_DXT5:
+                case ImageEngineFormat.DDS_ATI2_3Dc:  // TODO BC6,7
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
@@ -205,8 +214,9 @@ namespace CSharpImageLibrary
         /// 1 if not a DDS format.
         /// </summary>
         /// <param name="format">DDS format to test.</param>
+        /// <param name="componentSize">Size of channel components in bytes. e.g. 16bit = 2.</param>
         /// <returns>Number of blocks/channels in format.</returns>
-        public static int GetBlockSize(ImageEngineFormat format)
+        static int GetBlockSize(ImageEngineFormat format, int componentSize = 1)
         {
             int blocksize = 1;
             switch (format)
@@ -224,16 +234,22 @@ namespace CSharpImageLibrary
                     break;
                 case ImageEngineFormat.DDS_V8U8:
                 case ImageEngineFormat.DDS_A8L8:
+                case ImageEngineFormat.DDS_ARGB_4:
                     blocksize = 2;
                     break;
-                case ImageEngineFormat.DDS_ARGB:
+                case ImageEngineFormat.DDS_ARGB_8:
+                case ImageEngineFormat.DDS_ABGR_8:
+                case ImageEngineFormat.DDS_G16_R16:
                     blocksize = 4;
                     break;
-                case ImageEngineFormat.DDS_RGB:
+                case ImageEngineFormat.DDS_RGB_8:
                     blocksize = 3;
                     break;
+                case ImageEngineFormat.DDS_ARGB_32F:
+                    blocksize = 16;
+                    break;
                 case ImageEngineFormat.DDS_CUSTOM:
-                    blocksize = 4;
+                    blocksize = 4 * componentSize;
                     break;
             }
             return blocksize;
@@ -427,7 +443,7 @@ namespace CSharpImageLibrary
         public static SupportedExtensions ParseExtension(string extension)
         {
             SupportedExtensions ext = SupportedExtensions.DDS;
-            string tempext = Path.GetExtension(extension).Replace(".", "");
+            string tempext = extension.Contains('.') ? Path.GetExtension(extension).Replace(".", "") : extension;
             if (!Enum.TryParse(tempext, true, out ext))
                 return SupportedExtensions.UNKNOWN;
 
@@ -474,7 +490,7 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">Format to get file extension for.</param>
         /// <returns>File extension without dot.</returns>
-        public static string GetExtensionOfFormat(ImageEngineFormat format)
+        static string GetExtensionOfFormat(ImageEngineFormat format)
         {
             string formatString = format.ToString().ToLowerInvariant();
             if (formatString.Contains('_'))
@@ -487,13 +503,13 @@ namespace CSharpImageLibrary
         /// Calculates the compressed size of an image with given parameters.
         /// </summary>
         /// <param name="numMipmaps">Number of mipmaps in image. JPG etc only have 1.</param>
-        /// <param name="format">Format of image.</param>
+        /// <param name="formatDetails">Detailed information about format.</param>
         /// <param name="width">Width of image (top mip if mip-able)</param>
         /// <param name="height">Height of image (top mip if mip-able)</param>
         /// <returns>Size of compressed image.</returns>
-        public static int GetCompressedSize(int numMipmaps, ImageEngineFormat format, int width, int height)
+        public static int GetCompressedSize(int numMipmaps, ImageEngineFormatDetails formatDetails, int width, int height)
         {
-            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, format, width, height);
+            return DDS.DDSGeneral.GetCompressedSizeOfImage(numMipmaps, formatDetails, width, height);
         }
         
 
@@ -519,15 +535,30 @@ namespace CSharpImageLibrary
         /// </summary>
         /// <param name="format">Format to channel count.</param>
         /// <returns>Max number of channels supported.</returns>
-        public static int MaxNumberOfChannels(ImageEngineFormat format)
+        static int MaxNumberOfChannels(ImageEngineFormat format)
         {
-            var estimate = GetBlockSize(format);
+            int numChannels = 4;
+            switch (format)
+            {
+                case ImageEngineFormat.DDS_A8:
+                case ImageEngineFormat.DDS_ATI1:
+                case ImageEngineFormat.DDS_G8_L8:
+                    numChannels = 1;
+                    break;
+                case ImageEngineFormat.DDS_A8L8:
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_G16_R16:
+                case ImageEngineFormat.DDS_V8U8:
+                    numChannels = 2;
+                    break;
+                case ImageEngineFormat.DDS_R5G6B5:
+                case ImageEngineFormat.DDS_RGB_8:
+                case ImageEngineFormat.JPG:
+                    numChannels = 3;
+                    break;
+            }
 
-            // DXT and non-DDS
-            if (estimate > 4 || estimate == 1)
-                return 4;
-            else
-                return estimate;
+            return numChannels;
         }
     }
 }

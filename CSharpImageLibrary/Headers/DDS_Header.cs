@@ -81,14 +81,42 @@ namespace CSharpImageLibrary.Headers
                 dwGBitMask = BitConverter.ToUInt32(temp, 96);
                 dwBBitMask = BitConverter.ToUInt32(temp, 100);
                 dwABitMask = BitConverter.ToUInt32(temp, 104);
+
+                bool noMasks = dwABitMask == 0 && dwBBitMask == 0 && dwGBitMask == 0 && dwRBitMask == 0;
+
+                // Component Size
+                switch (dwFourCC)
+                {
+                    case FourCC.A16B16G16R16:
+                        if (noMasks)
+                        {
+                            dwABitMask = 4;
+                            dwBBitMask = 3;
+                            dwGBitMask = 2;
+                            dwRBitMask = 1;
+                            dwRGBBitCount = 16 * 4;
+                        }
+                        break;
+                    case FourCC.A32B32G32R32F:
+                        if (noMasks)
+                        {
+                            dwABitMask = 4;
+                            dwBBitMask = 3;
+                            dwGBitMask = 2;
+                            dwRBitMask = 1;
+                            dwRGBBitCount = 32 * 4;
+                        }
+                        break;
+
+                    // Others I know, but they aren't supported for now. Too uncommon and too much work to add for fun.
+                }
             }
             
             /// <summary>
             /// Build PixelFormat sub-header for a specified surface format.
             /// </summary>
             /// <param name="surfaceFormat">Format to base PixelHeader on.</param>
-            /// <param name="customMasks">Custom user defined masks for colours.</param>
-            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat, List<uint> customMasks = null) : this()
+            public DDS_PIXELFORMAT(ImageEngineFormat surfaceFormat) : this()
             {
                 dwSize = 32;
                 dwFourCC = ParseFormatToFourCC(surfaceFormat);
@@ -105,13 +133,21 @@ namespace CSharpImageLibrary.Headers
                         dwRGBBitCount = 8;
                         dwRBitMask = 0xFF;
                         break;
-                    case ImageEngineFormat.DDS_ARGB:
+                    case ImageEngineFormat.DDS_ARGB_8:
                         dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 32;
                         dwABitMask = 0xFF000000;
                         dwRBitMask = 0x00FF0000;
                         dwGBitMask = 0x0000FF00;
                         dwBBitMask = 0x000000FF;
+                        break;
+                    case ImageEngineFormat.DDS_ARGB_4:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 24;
+                        dwABitMask = 0xF000;
+                        dwRBitMask = 0x0F00;
+                        dwGBitMask = 0x00F0;
+                        dwBBitMask = 0x000F;
                         break;
                     case ImageEngineFormat.DDS_V8U8:
                         dwFlags = DDS_PFdwFlags.DDPF_SIGNED;
@@ -125,28 +161,34 @@ namespace CSharpImageLibrary.Headers
                         dwABitMask = 0xFF00;
                         dwRBitMask = 0x00FF;
                         break;
-                    case ImageEngineFormat.DDS_RGB:
+                    case ImageEngineFormat.DDS_RGB_8:
                         dwFlags = DDS_PFdwFlags.DDPF_RGB;
                         dwRBitMask = 0xFF0000;
                         dwGBitMask = 0x00FF00;
                         dwBBitMask = 0x0000FF;
                         dwRGBBitCount = 24;
                         break;
-                    case ImageEngineFormat.DDS_CUSTOM:
-                        if (customMasks != null)
-                        {
-                            int numChannels = customMasks.Where(mask => mask != 0).Count();
-                            dwABitMask = customMasks[0];
-                            dwRBitMask = customMasks[1];
-                            dwGBitMask = customMasks[2];
-                            dwBBitMask = customMasks[3];
-                            dwRGBBitCount = 8 * numChannels;
-
-                            if (numChannels == 1)
-                                dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
-                            else if (numChannels == 2)
-                                dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
-                        }
+                    case ImageEngineFormat.DDS_G16_R16:
+                        dwFlags = DDS_PFdwFlags.DDPF_RGB;
+                        dwGBitMask = 0xFFFF0000;
+                        dwRBitMask = 0x0000FFFF;
+                        dwRGBBitCount = 32;
+                        break;
+                    case ImageEngineFormat.DDS_ABGR_8:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 32;
+                        dwABitMask = 0xFF000000;
+                        dwBBitMask = 0x00FF0000;
+                        dwGBitMask = 0x0000FF00;
+                        dwRBitMask = 0x000000FF;
+                        break;
+                    case ImageEngineFormat.DDS_ARGB_32F:
+                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwRGBBitCount = 128;
+                        dwABitMask = 0;
+                        dwRBitMask = 0;
+                        dwGBitMask = 0;
+                        dwBBitMask = 0;
                         break;
                     #endregion Uncompressed
                 }
@@ -231,6 +273,65 @@ namespace CSharpImageLibrary.Headers
             /// Used for Normal (bump) Maps. Pair of 8 bit channels.
             /// </summary>
             ATI2N_3Dc = 0x32495441,
+
+            R8G8B8 = 20,
+            A8R8G8B8,
+            X8R8G8B8,
+            R5G6B5,
+            X1R5G5B5,
+            A1R5G5B5,
+            A4R4G4B4,
+            R3G3B2,
+            A8,
+            A8R3G3B2,
+            X4R4G4B4,
+            A2B10G10R10,
+            A8B8G8R8,
+            X8B8G8R8,
+            G16R16,
+            A2R10G10B10,
+            A16B16G16R16,
+
+            A8P8 = 40,
+            P8,
+
+            L8 = 50,
+            A8L8,
+            A4L4,
+
+            V8U8 = 60,
+            L6V5U5,
+            X8L8V8U8,
+            Q8W8V8U8,
+            V16U16,
+            A2W10V10U10,
+
+            UYVY = 0x59565955,
+            R8G8_B8G8 = 0x47424752,
+            YUY2 = 0x32595559,
+            G8R8_G8B8 = 0x42475247,
+
+            D16_LOCKABLE = 70,
+            D32,
+            D15S1,
+            D24S8,
+            D24X8,
+            D24X4S4,
+            D16,
+
+            D32F_LOCKABLE = 82,
+            D24FS8,
+
+            L16 = 81,
+
+            Q16Q16V16U16 = 110,
+            R16F,
+            G16R16F,
+            A16B16G16R16F,
+            R32F,
+            G32R32F,
+            A32B32G32R32F,
+            CxV8U8,
         }
 
         /// <summary>
@@ -663,6 +764,7 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public DDS_DXGI_DX10_Additional DX10_DXGI_AdditionalHeader { get; private set; }
 
+        ImageEngineFormat format = ImageEngineFormat.Unknown;
         /// <summary>
         /// Surface format of DDS.
         /// e.g. DXT1, V8U8, etc
@@ -671,7 +773,10 @@ namespace CSharpImageLibrary.Headers
         {
             get
             {
-                return DetermineDDSSurfaceFormat(ddspf);
+                if (format == ImageEngineFormat.Unknown)
+                    format = DetermineDDSSurfaceFormat(ddspf);
+
+                return format;
             }
         }
 
@@ -747,7 +852,7 @@ namespace CSharpImageLibrary.Headers
         /// <param name="Width">Width of top mipmap.</param>
         /// <param name="surfaceformat">Format header represents.</param>
         /// <param name="customMasks">Custom user defined masks for colours.</param>
-        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat, List<uint> customMasks = null)
+        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
         {
             dwSize = 124;
             dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
@@ -755,7 +860,7 @@ namespace CSharpImageLibrary.Headers
             this.Height = Height;
             dwCaps = DDSdwCaps.DDSCAPS_TEXTURE | (Mips == 1 ? 0 : DDSdwCaps.DDSCAPS_COMPLEX | DDSdwCaps.DDSCAPS_MIPMAP);
             dwMipMapCount = Mips == 1 ? 1 : Mips;
-            ddspf = new DDS_PIXELFORMAT(surfaceformat, customMasks);
+            ddspf = new DDS_PIXELFORMAT(surfaceformat);
         }
         
 
@@ -795,8 +900,16 @@ namespace CSharpImageLibrary.Headers
 
             if (format == ImageEngineFormat.Unknown)
             {
+                // Due to some previous settings, need to check these first.
+                if (ddspf.dwABitMask <= 4 && ddspf.dwABitMask != 0 &&
+                    ddspf.dwBBitMask <= 4 && ddspf.dwBBitMask != 0 &&
+                    ddspf.dwGBitMask <= 4 && ddspf.dwGBitMask != 0 &&
+                    ddspf.dwRBitMask <= 4 && ddspf.dwRBitMask != 0)
+                    format = ImageEngineFormat.DDS_CUSTOM;
+
+
                 // KFreon: Apparently all these flags mean it's a V8U8 image...
-                if (ddspf.dwRGBBitCount == 16 &&
+                else if (ddspf.dwRGBBitCount == 16 &&
                            ddspf.dwRBitMask == 0x00FF &&
                            ddspf.dwGBitMask == 0xFF00 &&
                            ddspf.dwBBitMask == 0x00 &&
@@ -818,13 +931,21 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwFlags == (DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_LUMINANCE))
                     format = ImageEngineFormat.DDS_A8L8;
 
+                // KFreon: G_R only.
+                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
+                        ddspf.dwABitMask == 0 &&
+                        ddspf.dwBBitMask == 0 &&
+                        ddspf.dwGBitMask != 0 &&
+                        ddspf.dwRBitMask != 0)
+                    format = ImageEngineFormat.DDS_G16_R16;
+
                 // KFreon: RGB. RGB channels have something in them, but alpha doesn't.
-                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
+                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
                         ddspf.dwABitMask == 0 &&
                         ddspf.dwBBitMask != 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_RGB;
+                    format = ImageEngineFormat.DDS_RGB_8;
 
                 // KFreon: RGB and A channels are present.
                 else if (((ddspf.dwFlags & (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) == (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
@@ -832,7 +953,7 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwBBitMask != 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_ARGB;
+                    format = ImageEngineFormat.DDS_ARGB_8;
 
                 // KFreon: If nothing else fits, but there's data in one of the bitmasks, assume it can be read.
                 else if (ddspf.dwABitMask != 0 || ddspf.dwRBitMask != 0 || ddspf.dwGBitMask != 0 || ddspf.dwBBitMask != 0)

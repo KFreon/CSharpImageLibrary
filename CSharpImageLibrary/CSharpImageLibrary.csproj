@@ -102,6 +102,7 @@
     <Compile Include="Headers\PNG_Header.cs" />
     <Compile Include="Headers\TGA_Header.cs" />
     <Compile Include="Headers\TIFF_Header.cs" />
+    <Compile Include="ImageEngineFormatDetails.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="MergeChannelsImage.cs" />
     <Compile Include="MipMap.cs" />

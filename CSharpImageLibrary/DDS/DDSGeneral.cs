@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
 
@@ -25,32 +26,33 @@ namespace CSharpImageLibrary.DDS
 
 
         #region Loading
-        private static MipMap ReadUncompressedMipMap(MemoryStream stream, int mipOffset, int mipWidth, int mipHeight, DDS_Header.DDS_PIXELFORMAT ddspf)
+        private static MipMap ReadUncompressedMipMap(MemoryStream stream, int mipOffset, int mipWidth, int mipHeight, DDS_Header.DDS_PIXELFORMAT ddspf, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
             byte[] data = stream.GetBuffer();
-            byte[] mipmap = new byte[mipHeight * mipWidth * 4];
-            DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, ddspf);
+            byte[] mipmap = new byte[mipHeight * mipWidth * 4 * formatDetails.ComponentSize];
+            DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, ddspf, formatDetails);
 
-            return new MipMap(mipmap, mipWidth, mipHeight);
+            return new MipMap(mipmap, mipWidth, mipHeight, formatDetails);
         }
 
-        private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int blockSize, int mipOffset, bool isPremultiplied, Action<byte[], int, byte[], int, int, bool> DecompressBlock)
+        private static MipMap ReadCompressedMipMap(MemoryStream compressed, int mipWidth, int mipHeight, int mipOffset, ImageFormats.ImageEngineFormatDetails formatDetails, Action<byte[], int, byte[], int, int, bool> DecompressBlock)
         {
             // Gets stream as data. Note that this array isn't necessarily the correct size. Likely to have garbage at the end.
             // Don't want to use ToArray as that creates a new array. Don't want that.
             byte[] CompressedData = compressed.GetBuffer();
 
-            byte[] decompressedData = new byte[4 * mipWidth * mipHeight];
+            byte[] decompressedData = new byte[4 * mipWidth * mipHeight * formatDetails.ComponentSize];
             int decompressedRowLength = mipWidth * 4;
             int texelRowSkip = decompressedRowLength * 4;
 
             int texelCount = (mipWidth * mipHeight) / 16;
             int numTexelsInRow = mipWidth / 4;
+
             if (texelCount != 0)
             {
                 Action<int, ParallelLoopState> action = new Action<int, ParallelLoopState>((texelIndex, loopstate) =>
                 {
-                    int compressedPosition = mipOffset + texelIndex * blockSize;
+                    int compressedPosition = mipOffset + texelIndex * formatDetails.BlockSize;
                     int decompressedStart = (int)(texelIndex / numTexelsInRow) * texelRowSkip + (texelIndex % numTexelsInRow) * 16;
 
                     // Problem with how I handle dimensions (no virtual padding or anything yet)
@@ -59,7 +61,7 @@ namespace CSharpImageLibrary.DDS
 
                     try
                     {
-                        DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength, isPremultiplied);
+                        DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength, formatDetails.IsPremultipliedFormat);
                     }
                     catch (IndexOutOfRangeException e)
                     {
@@ -78,25 +80,24 @@ namespace CSharpImageLibrary.DDS
             }
             // No else here cos the lack of texels means it's below texel dimensions (4x4). So the resulting block is set to 0. Not ideal, but who sees 2x2 mipmaps?
 
-            return new MipMap(decompressedData, mipWidth, mipHeight);
+            return new MipMap(decompressedData, mipWidth, mipHeight, formatDetails);
         }
 
         
 
-        internal static List<MipMap> LoadDDS(MemoryStream compressed, DDS_Header header, int desiredMaxDimension)
+        internal static List<MipMap> LoadDDS(MemoryStream compressed, DDS_Header header, int desiredMaxDimension, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
             MipMap[] MipMaps = null;
 
             int mipWidth = header.Width;
             int mipHeight = header.Height;
             ImageEngineFormat format = header.Format;
-            int blockSize = ImageFormats.GetBlockSize(format);
 
             int estimatedMips = header.dwMipMapCount;
             int mipOffset = 128;  // Includes header. 
             // TODO: Incorrect mip offset for DX10
 
-            if (!EnsureMipInImage(compressed.Length, mipWidth, mipHeight, 4, format, out mipOffset))  // Update number of mips too
+            if (!EnsureMipInImage(compressed.Length, mipWidth, mipHeight, 4, formatDetails, out mipOffset))  // Update number of mips too
                 estimatedMips = 1;
 
             if (estimatedMips == 0)
@@ -113,7 +114,7 @@ namespace CSharpImageLibrary.DDS
             // KFreon: Decide which mip to start loading at - going to just load a few mipmaps if asked instead of loading all, then choosing later. That's slow.
             if (desiredMaxDimension != 0 && estimatedMips > 1)
             {
-                if (!EnsureMipInImage(compressed.Length, mipWidth, mipHeight, desiredMaxDimension, format, out mipOffset))  // Update number of mips too
+                if (!EnsureMipInImage(compressed.Length, mipWidth, mipHeight, desiredMaxDimension, formatDetails, out mipOffset))  // Update number of mips too
                     throw new InvalidDataException($"Requested mipmap does not exist in this image. Top Image Size: {mipWidth}x{mipHeight}, requested mip max dimension: {desiredMaxDimension}.");
 
                 // Not the first mipmap. 
@@ -145,32 +146,13 @@ namespace CSharpImageLibrary.DDS
             compressed.Position = mipOffset;
 
             // Block Compressed texture chooser.
-            Action<byte[], int, byte[], int, int, bool> DecompressBCBlock = null;
-            switch (format)
-            {
-                case ImageEngineFormat.DDS_DXT1:
-                    DecompressBCBlock = DDS_Decoders.DecompressBC1Block;
-                    break;
-                case ImageEngineFormat.DDS_DXT2:
-                case ImageEngineFormat.DDS_DXT3:
-                    DecompressBCBlock = DDS_Decoders.DecompressBC2Block;
-                    break;
-                case ImageEngineFormat.DDS_DXT4:
-                case ImageEngineFormat.DDS_DXT5:
-                    DecompressBCBlock = DDS_Decoders.DecompressBC3Block;
-                    break;
-                case ImageEngineFormat.DDS_ATI1:
-                    DecompressBCBlock = DDS_Decoders.DecompressATI1;
-                    break;
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                    DecompressBCBlock = DDS_Decoders.DecompressATI2Block;
-                    break;
-            }
+            Action<byte[], int, byte[], int, int, bool> DecompressBCBlock = formatDetails.BlockDecoder;
 
             MipMaps = new MipMap[estimatedMips];
+            int blockSize = formatDetails.BlockSize;
 
             // KFreon: Read mipmaps
-            if (ImageFormats.IsBlockCompressed(format))    // Threading done in the decompression, not here.
+            if (formatDetails.IsBlockCompressed)    // Threading done in the decompression, not here.
             {
                 for (int m = 0; m < estimatedMips; m++)
                 {
@@ -179,7 +161,7 @@ namespace CSharpImageLibrary.DDS
                     {
                         break;
                     }
-                    MipMap mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, blockSize, mipOffset, (format == ImageEngineFormat.DDS_DXT2 || format == ImageEngineFormat.DDS_DXT4), DecompressBCBlock);
+                    MipMap mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, mipOffset, formatDetails, DecompressBCBlock);
 
                     MipMaps[m] = mipmap;
                     mipOffset += (int)(mipWidth * mipHeight * (blockSize / 16d)); // Also put the division in brackets cos if the mip dimensions are high enough, the multiplications can exceed int.MaxValue)
@@ -196,7 +178,7 @@ namespace CSharpImageLibrary.DDS
                 {
                     // Calculate mipOffset and dimensions
                     int offset, width, height;
-                    offset = GetMipOffset(mipIndex, format, header.Width, header.Height);
+                    offset = GetMipOffset(mipIndex, formatDetails, header.Width, header.Height);
 
                     double divisor = mipIndex == 0 ? 1d : 2 << (mipIndex - 1);   // Divisor represents 2^mipIndex - Math.Pow seems very slow.
                     width = (int)(header.Width / divisor);
@@ -205,7 +187,7 @@ namespace CSharpImageLibrary.DDS
                     MipMap mipmap = null;
                     try
                     {
-                        mipmap = ReadUncompressedMipMap(compressed, offset, width, height, header.ddspf);
+                        mipmap = ReadUncompressedMipMap(compressed, offset, width, height, header.ddspf, formatDetails);
                     }
                     catch (Exception e)
                     {
@@ -242,36 +224,12 @@ namespace CSharpImageLibrary.DDS
             return UsefulThings.General.IsPowerOfTwo(width) && UsefulThings.General.IsPowerOfTwo(height);
         }
 
-        internal static byte[] Save(List<MipMap> mipMaps, ImageEngineFormat saveFormat, AlphaSettings alphaSetting, List<uint> customMasks = null)
+        internal static byte[] Save(List<MipMap> mipMaps, ImageFormats.ImageEngineFormatDetails destFormatDetails, AlphaSettings alphaSetting)
         {
             // Set compressor for Block Compressed textures
-            Action<byte[], int, int, byte[], int, AlphaSettings> compressor = null;
+            Action<byte[], int, int, byte[], int, AlphaSettings, ImageFormats.ImageEngineFormatDetails> compressor = destFormatDetails.BlockEncoder;
 
-            bool needCheckSize = saveFormat.ToString().Contains("DXT") || saveFormat.ToString().Contains("ATI");
-
-            switch (saveFormat)
-            {
-                case ImageEngineFormat.DDS_ATI1:
-                    compressor = DDS_Encoders.CompressBC4Block;
-                    break;
-                case ImageEngineFormat.DDS_ATI2_3Dc:
-                    compressor = DDS_Encoders.CompressBC5Block;
-                    break;
-                case ImageEngineFormat.DDS_DX10:
-                    //Debugger.Break();
-                    break; // TODO: NOT SUPPORTED YET. DX10
-                case ImageEngineFormat.DDS_DXT1:
-                    compressor = DDS_Encoders.CompressBC1Block;
-                    break;
-                case ImageEngineFormat.DDS_DXT2:
-                case ImageEngineFormat.DDS_DXT3:
-                    compressor = DDS_Encoders.CompressBC2Block;
-                    break;
-                case ImageEngineFormat.DDS_DXT4:
-                case ImageEngineFormat.DDS_DXT5:
-                    compressor = DDS_Encoders.CompressBC3Block;
-                    break;
-            }
+            bool needCheckSize = destFormatDetails.IsBlockCompressed;
 
             int height = mipMaps[0].Height;
             int width = mipMaps[0].Width;
@@ -279,20 +237,18 @@ namespace CSharpImageLibrary.DDS
             if (needCheckSize && !CheckSize_DXT(width, height))
                 throw new InvalidOperationException($"DXT compression formats require dimensions to be multiples of 4. Got: {width}x{height}.");
 
+            // Create header and write to destination
+            DDS_Header header = new DDS_Header(mipMaps.Count, height, width, destFormatDetails.Format);
 
-            int fullSize = GetCompressedSizeOfImage(mipMaps.Count, saveFormat, width, height);
-            // +1 to get the full size, not just the offset of the last mip.
-            //int fullSize = GetMipOffset(mipMaps.Count + 1, saveFormat, mipMaps[0].Width, mipMaps[0].Height);
+            int fullSize = GetCompressedSizeOfImage(mipMaps.Count, destFormatDetails, width, height);
+            if (destFormatDetails.ComponentSize != 1)
+                fullSize += (fullSize - 128) * destFormatDetails.ComponentSize;   // Size adjustment for destination to allow for different component sizes.
 
             byte[] destination = new byte[fullSize];
-
-            // Create header and write to destination
-            DDS_Header header = new DDS_Header(mipMaps.Count, height, width, saveFormat, customMasks);
             header.WriteToArray(destination, 0);
 
-            int blockSize = ImageFormats.GetBlockSize(saveFormat);
-
-            if (ImageFormats.IsBlockCompressed(saveFormat))
+            int blockSize = destFormatDetails.BlockSize;
+            if (destFormatDetails.IsBlockCompressed)
             {
                 int mipOffset = 128;
                 foreach (MipMap mipmap in mipMaps)
@@ -312,9 +268,9 @@ namespace CSharpImageLibrary.DDS
                     }
 
                     // Get MipOffset
-                    int offset = GetMipOffset(mipIndex, saveFormat, width, height);
+                    int offset = GetMipOffset(mipIndex, destFormatDetails, width, height);
 
-                    WriteUncompressedMipMap(destination, offset, mipMaps[mipIndex], saveFormat, header.ddspf);
+                    WriteUncompressedMipMap(destination, offset, mipMaps[mipIndex], destFormatDetails, header.ddspf);
                 });
 
                 if (ImageEngine.EnableThreading)
@@ -324,16 +280,15 @@ namespace CSharpImageLibrary.DDS
                         action(i);
             }
 
-            
-
             return destination;
         }
 
 
-        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings> compressor, AlphaSettings alphaSetting)  
+        static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings, ImageFormats.ImageEngineFormatDetails> compressor, 
+            AlphaSettings alphaSetting)  
         {
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
-            int sourceLineLength = mipmap.Width * 4;
+            int sourceLineLength = mipmap.Width * 4 * mipmap.LoadedFormatDetails.ComponentSize;
             int numTexelsInLine = mipmap.Width / 4;
 
             var mipWriter = new Action<int>(texelIndex =>
@@ -341,8 +296,8 @@ namespace CSharpImageLibrary.DDS
                 // Since this is the top corner of the first texel in a line, skip 4 pixel rows (texel = 4x4 pixels) and the number of rows down the bitmap we are already.
                 int sourceLineOffset = sourceLineLength * 4 * (texelIndex / numTexelsInLine);  // Length in bytes x 3 lines x texel line index (how many texel sized lines down the image are we). Index / width will truncate, so for the first texel line, it'll be < 0. For the second texel line, it'll be < 1 and > 0.
 
-                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
-                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting);
+                int sourceTopLeftCorner = ((texelIndex % numTexelsInLine) * 16) * mipmap.LoadedFormatDetails.ComponentSize + sourceLineOffset; // *16 since its 4 pixels with 4 channels each. Index % numTexels will effectively reset each line.
+                compressor(mipmap.Pixels, sourceTopLeftCorner, sourceLineLength, destination, mipOffset + texelIndex * blockSize, alphaSetting, mipmap.LoadedFormatDetails);
             });
 
             // Choose an acceleration method.
@@ -357,9 +312,9 @@ namespace CSharpImageLibrary.DDS
             return mipOffset + destinationTexelCount * blockSize;
         }
 
-        static int WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageEngineFormat saveFormat, DDS_Header.DDS_PIXELFORMAT ddspf)
+        static void WriteUncompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, ImageFormats.ImageEngineFormatDetails destFormatDetails, DDS_Header.DDS_PIXELFORMAT ddspf)
         {
-            return DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf);
+            DDS_Encoders.WriteUncompressed(mipmap.Pixels, destination, mipOffset, ddspf, mipmap.LoadedFormatDetails, destFormatDetails);
         }
         #endregion Saving
 
@@ -392,7 +347,7 @@ namespace CSharpImageLibrary.DDS
                 int index = item;
                 MipMap newmip;
                 var scale = 1d / (2 << (index - 1));  // Shifting is 2^index - Math.Pow seems extraordinarly slow.
-                newmip = ImageEngine.Resize(baseBMP, scale, scale, currentMip.Width, currentMip.Height);
+                newmip = ImageEngine.Resize(baseBMP, scale, scale, currentMip.Width, currentMip.Height, currentMip.LoadedFormatDetails);
                 newmips[index - 1] = newmip;
             });
 
@@ -429,10 +384,10 @@ namespace CSharpImageLibrary.DDS
         /// <param name="mainWidth">Width of image.</param>
         /// <param name="mainHeight">Height of image.</param>
         /// <param name="desiredMipDimension">Max dimension of desired mip.</param>
-        /// <param name="format">Format of image.</param>
+        /// <param name="destFormatDetails">Destination format details.</param>
         /// <param name="mipOffset">Offset of desired mipmap in image.</param>
-        /// <returns></returns>
-        public static bool EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMipDimension, ImageEngineFormat format, out int mipOffset)
+        /// <returns>True if mip in image.</returns>
+        public static bool EnsureMipInImage(long streamLength, int mainWidth, int mainHeight, int desiredMipDimension, ImageFormats.ImageEngineFormatDetails destFormatDetails, out int mipOffset)
         {
             if (mainWidth <= desiredMipDimension && mainHeight <= desiredMipDimension)
             {
@@ -446,28 +401,28 @@ namespace CSharpImageLibrary.DDS
             if (mipIndex < -1)
                 throw new InvalidDataException($"Invalid dimensions for mipmapping. Got desired: {desiredMipDimension} and dependent: {dependentDimension}");
 
-            int requiredOffset = GetMipOffset(mipIndex, format, mainHeight, mainWidth);  // +128 for header
+            int requiredOffset = GetMipOffset(mipIndex, destFormatDetails, mainHeight, mainWidth);  // +128 for header
 
             // KFreon: Something wrong with the count here by 1 i.e. the estimate is 1 more than it should be 
-            if (format == ImageEngineFormat.DDS_ARGB)
+            if (destFormatDetails.Format == ImageEngineFormat.DDS_ARGB_8)  // TODO: Might not just be 8 bit, still don't know why it's wrong.
                 requiredOffset -= 2;
 
             mipOffset = requiredOffset;
 
             // Should only occur when an image has 0 or 1 mipmap.
-            if (streamLength <= requiredOffset)
+            if (streamLength <= (requiredOffset - 128))
                 return false;
 
             return true;
         }
 
-        internal static int GetMipOffset(double mipIndex, ImageEngineFormat format, int baseWidth, int baseHeight)
+        internal static int GetMipOffset(double mipIndex, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
             // -1 because if we want the offset of the mip, it's the sum of all sizes before it NOT including itself.
-            return GetCompressedSizeUpToIndex(mipIndex - 1, format, baseWidth, baseHeight);  
+            return GetCompressedSizeUpToIndex(mipIndex - 1, destFormatDetails, baseWidth, baseHeight);  
         }
 
-        internal static int GetCompressedSizeUpToIndex(double mipIndex, ImageEngineFormat format, int baseWidth, int baseHeight)
+        internal static int GetCompressedSizeUpToIndex(double mipIndex, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
             /*
                 Mipmapping halves both dimensions per mip down. Dimensions are then divided by 4 if block compressed as a texel is 4x4 pixels.
@@ -490,7 +445,7 @@ namespace CSharpImageLibrary.DDS
 
 
             double divisor = 1;
-            if (ImageFormats.IsBlockCompressed(format))
+            if (destFormatDetails.IsBlockCompressed)
                 divisor = 4;
 
             double shift = 1d / (4 << (int)(2 * (mipIndex - 1)));
@@ -503,14 +458,14 @@ namespace CSharpImageLibrary.DDS
             double sumPart = mipIndex == -1 ? 0 :
                 (1d / 3d) * (4d - shift);   // Shifting represents 4^-mipIndex. Math.Pow seems slow.
 
-            double totalSize = 128 + (sumPart * ImageFormats.GetBlockSize(format) * (baseWidth / divisor) * (baseHeight / divisor));
+            double totalSize = 128 + (sumPart * destFormatDetails.BlockSize * (baseWidth / divisor) * (baseHeight / divisor));
 
             return (int)totalSize;
         }
 
-        internal static int GetCompressedSizeOfImage(int mipCount, ImageEngineFormat format, int baseWidth, int baseHeight)
+        internal static int GetCompressedSizeOfImage(int mipCount, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
-            return GetCompressedSizeUpToIndex(mipCount - 1, format, baseWidth, baseHeight);
+            return GetCompressedSizeUpToIndex(mipCount - 1, destFormatDetails, baseWidth, baseHeight);
         }
         #endregion Mipmap Management
     }

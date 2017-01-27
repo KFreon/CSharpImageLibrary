@@ -106,5 +106,17 @@ namespace UI_Project.Properties {
                 this["BackgroundAlpha"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UseWindowsCodecs {
+            get {
+                return ((bool)(this["UseWindowsCodecs"]));
+            }
+            set {
+                this["UseWindowsCodecs"] = value;
+            }
+        }
     }
 }

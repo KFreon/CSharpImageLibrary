@@ -60,15 +60,16 @@ namespace CSharpImageLibrary
         /// <param name="decodeWidth">Width to decode to. Aspect unchanged if decodeHeight = 0.</param>
         /// <param name="decodeHeight">Height to decode to. Aspect unchanged if decodeWidth = 0.</param>
         /// <param name="scale">DOMINANT. decodeWidth and decodeHeight ignored if this is > 0. Amount to scale by. Range 0-1.</param>
+        /// <param name="formatDetails">Details about the format being loaded.</param>
         /// <param name="isDDS">True = Image is a DDS.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, double scale, bool isDDS)
+        internal static List<MipMap> LoadWithCodecs(string imageFile, int decodeWidth, int decodeHeight, double scale, bool isDDS, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
             if (isDDS && !ImageEngine.WindowsWICCodecsAvailable)
                 return null;
 
             using (FileStream fs = new FileStream(imageFile, FileMode.Open, FileAccess.Read, FileShare.Read))
-                return LoadWithCodecs(fs, decodeWidth, decodeHeight, scale, isDDS);
+                return LoadWithCodecs(fs, decodeWidth, decodeHeight, scale, isDDS, formatDetails);
         }
 
 
@@ -80,8 +81,9 @@ namespace CSharpImageLibrary
         /// <param name="decodeHeight">Height to decode as. Aspect ratio unchanged if decodeWidth = 0.</param>
         /// <param name="isDDS">True = image is a DDS.</param>
         /// <param name="scale">DOMINANT. DecodeWidth and DecodeHeight ignored if this is > 0. Amount to scale by. Range 0-1.</param>
+        /// <param name="formatDetails">Details about the format being loaded.</param>
         /// <returns>BGRA Pixel Data as stream.</returns>
-        internal static List<MipMap> LoadWithCodecs(Stream stream, int decodeWidth, int decodeHeight, double scale, bool isDDS)
+        internal static List<MipMap> LoadWithCodecs(Stream stream, int decodeWidth, int decodeHeight, double scale, bool isDDS, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
             if (isDDS && !ImageEngine.WindowsWICCodecsAvailable)
                 return null;
@@ -115,14 +117,14 @@ namespace CSharpImageLibrary
                             continue;
                     }
 
-                    mipmaps.Add(new MipMap(mipmap.GetPixelsAsBGRA32(), mipmap.PixelWidth, mipmap.PixelHeight));
+                    mipmaps.Add(new MipMap(mipmap.GetPixelsAsBGRA32(), mipmap.PixelWidth, mipmap.PixelHeight, formatDetails));
                 }
 
                 if (mipmaps.Count == 0)
                 {
                     // KFreon: Image has no mips, so resize largest
                     var frame = decoder.Frames[0];
-                    var mip = new MipMap(frame.GetPixelsAsBGRA32(), frame.PixelWidth, frame.PixelHeight);
+                    var mip = new MipMap(frame.GetPixelsAsBGRA32(), frame.PixelWidth, frame.PixelHeight, formatDetails);
 
                     // Calculate scale if required
                     if (scale == 0)
@@ -145,7 +147,7 @@ namespace CSharpImageLibrary
                     return null;
                 bmp.Freeze();
 
-                mipmaps.Add(new MipMap(bmp.GetPixelsAsBGRA32(), bmp.PixelWidth, bmp.PixelHeight));
+                mipmaps.Add(new MipMap(bmp.GetPixelsAsBGRA32(), bmp.PixelWidth, bmp.PixelHeight, formatDetails));
             }
 
             return mipmaps;
