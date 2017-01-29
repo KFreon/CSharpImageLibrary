@@ -656,5 +656,13 @@ namespace UI_Project
         {
             vm.ShowHelpAbout = false;
         }
+
+        private void PropertiesButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (InfoRow.Height.Value == 1.2)
+                InfoRow.Height = new GridLength(80, GridUnitType.Pixel);
+            else
+                InfoRow.Height = new GridLength(1.2, GridUnitType.Star);
+        }
     }
 }

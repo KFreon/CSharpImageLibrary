@@ -853,7 +853,7 @@
                 </Button>
             </DockPanel>
 
-            <Label Content="Properties" HorizontalAlignment="Center" DockPanel.Dock="Top" Margin="0,10,0,3" Style="{StaticResource TitleStyle}"/>
+            <Button x:Name="PropertiesButton" Content="Properties" HorizontalAlignment="Center" DockPanel.Dock="Top" Margin="0,10,0,3" FontSize="20" FontWeight="Bold" BorderThickness="0.5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="PropertiesButton_Click"/>
 
             <DockPanel x:Name="MainLoadedPropertiesPanel" DockPanel.Dock="Top">
                 <DockPanel DockPanel.Dock="Top">
