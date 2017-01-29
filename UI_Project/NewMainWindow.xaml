@@ -610,20 +610,47 @@
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Left"/>
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Right" Grid.Column="2"/>
             <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock x:Name="WidthIndicator" Text="{Binding Width}" HorizontalAlignment="Center" Grid.Column="1" Style="{StaticResource ValueStyle}" FontWeight="Bold"/>
+            <TextBlock x:Name="WidthIndicator" Text="{Binding Width}" Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="HorizontalAlignment" Value="Left"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MipIndex}" Value="0">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Padding" Value="4,2"/>
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="Foreground" Value="Wheat"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock x:Name="MipWidthIndicator" Text="{Binding MipWidth, StringFormat=({0})}" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Grid.Column="1" FontWeight="Bold">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource ValueStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MipIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <Line X1="1" X2="100" Y1="15" Y2="15" Style="{StaticResource DimensionIndicatorStyle}" Grid.Column="2"/>
         </Grid>
 
         <Grid x:Name="HeightIndicatorContainer" HorizontalAlignment="Right" Grid.Row="1" Margin="0,0,0,25" Width="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="167*"/>
-                <RowDefinition Height="40*"/>
+                <RowDefinition Height="55*"/>
                 <RowDefinition Height="173*"/>
             </Grid.RowDefinitions>
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Top"/>
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Bottom" Grid.Row="2"/>
             <Line X1="1" X2="1" Y1="15" Y2="16" Style="{StaticResource DimensionIndicatorStyle}"/>
-            <TextBlock x:Name="HeightIndicator" Text="{Binding Height}" VerticalAlignment="Center" Style="{StaticResource ValueStyle}" Grid.Row="1" FontWeight="Bold">
+            <TextBlock x:Name="HeightIndicator" Text="{Binding Height}" Grid.Row="1" HorizontalAlignment="Center">
                 <TextBlock.LayoutTransform>
                     <TransformGroup>
                         <ScaleTransform/>
@@ -632,6 +659,41 @@
                         <TranslateTransform/>
                     </TransformGroup>
                 </TextBlock.LayoutTransform>
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="VerticalAlignment" Value="Top"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MipIndex}" Value="0">
+                                <Setter Property="Padding" Value="4,2"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="Wheat"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            
+            <TextBlock x:Name="MipHeightIndicator" Text="{Binding MipHeight, StringFormat=({0})}" VerticalAlignment="Bottom" Grid.Row="1" Padding="0" FontWeight="Bold">
+                <TextBlock.LayoutTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform Angle="90"/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </TextBlock.LayoutTransform>
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource ValueStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MipIndex}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
             </TextBlock>
             <Line X1="1" X2="1" Y1="15" Y2="16" Style="{StaticResource DimensionIndicatorStyle}" Margin="0,0,0,0.001" Grid.Row="2" />
         </Grid>

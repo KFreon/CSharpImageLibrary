@@ -655,6 +655,28 @@ namespace UI_Project
             }
         }
 
+        public int MipWidth
+        {
+            get
+            {
+                if (MipIndex == LoadedImage?.MipMaps.Count)
+                    return 0;
+
+                return LoadedImage?.MipMaps[MipIndex]?.Width ?? -1;
+            }
+        }
+
+        public int MipHeight
+        {
+            get
+            {
+                if (MipIndex == LoadedImage?.MipMaps.Count)
+                    return 0;
+
+                return LoadedImage?.MipMaps[MipIndex]?.Height ?? -1;
+            }
+        }
+
 
         int mipIndex = 0;
         public int MipIndex
@@ -669,7 +691,8 @@ namespace UI_Project
                     return;
 
                 SetProperty(ref mipIndex, value);
-
+                OnPropertyChanged(nameof(MipWidth));
+                OnPropertyChanged(nameof(MipHeight));
                 if (IsImageLoaded)
                     UpdateLoadedPreview();
             }
