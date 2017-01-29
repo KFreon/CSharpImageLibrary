@@ -33,6 +33,19 @@ namespace UI_Project
     {
         Stopwatch timer = new Stopwatch();
 
+        bool showHelpAbout = false;
+        public bool ShowHelpAbout
+        {
+            get
+            {
+                return showHelpAbout;
+            }
+            set
+            {
+                SetProperty(ref showHelpAbout, value);
+            }
+        }
+
         bool isRedChannelOn = true;
         public bool IsRedChannelOn
         {

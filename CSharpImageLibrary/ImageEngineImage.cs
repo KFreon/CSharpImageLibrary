@@ -18,7 +18,10 @@ namespace CSharpImageLibrary
     /// </summary>
     public class ImageEngineImage : IDisposable
     {
-        byte[] OriginalData = null;
+        /// <summary>
+        /// Original file data used to create this image.
+        /// </summary>
+        public byte[] OriginalData = null;
 
         #region Properties
         /// <summary>
