@@ -250,8 +250,11 @@ namespace CSharpImageLibrary
                 alphaSetting = AlphaSettings.Premultiply;
 
 
+            bool requiresProperSave = GenerateMips == MipHandling.Default && NumMipMaps == 1 || GenerateMips == MipHandling.GenerateNew;
+
+
             // If same format and stuff, can just return original data, or chunks of it.
-            if (destFormatDetails.Format == Format && !(alphaSetting == AlphaSettings.RemoveAlphaChannel))
+            if (destFormatDetails.Format == Format && !(alphaSetting == AlphaSettings.RemoveAlphaChannel) && !requiresProperSave)
             {
                 int start = 0;
                 int destStart = 0;
@@ -270,13 +273,8 @@ namespace CSharpImageLibrary
                     switch(GenerateMips)
                     {
                         case MipHandling.KeepExisting:
+                        case MipHandling.Default:    // Case where need more mips is handled above.
                             mipCount = NumMipMaps;
-                            break;
-                        case MipHandling.Default:
-                            if (NumMipMaps == 1)
-                                mipCount = DDSGeneral.BuildMipMaps(MipMaps);
-                            else
-                                mipCount = NumMipMaps;
                             break;
                         case MipHandling.KeepTopOnly:
                             mipCount = 1;

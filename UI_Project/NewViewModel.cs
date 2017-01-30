@@ -1093,6 +1093,8 @@ namespace UI_Project
             set
             {
                 SetProperty(ref savePanelOpen, value);
+                if (value)
+                    OnPropertyChanged(nameof(UncompressedSize));
             }
         }
         #endregion Save Properties
