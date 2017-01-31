@@ -604,7 +604,7 @@
         <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="2,5,25,5" Height="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="211*"/>
-                <ColumnDefinition Width="40*"/>
+                <ColumnDefinition Width="80"/>
                 <ColumnDefinition Width="209*"/>
             </Grid.ColumnDefinitions>
             <Line X1="1" X2="1" Y1="1" Y2="5" Style="{StaticResource DimensionIndicatorStyle}" HorizontalAlignment="Left"/>
@@ -644,7 +644,7 @@
         <Grid x:Name="HeightIndicatorContainer" HorizontalAlignment="Right" Grid.Row="1" Margin="0,0,0,25" Width="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="167*"/>
-                <RowDefinition Height="55*"/>
+                <RowDefinition Height="80"/>
                 <RowDefinition Height="173*"/>
             </Grid.RowDefinitions>
             <Line X1="1" X2="10" Y1="1" Y2="1" Style="{StaticResource DimensionIndicatorStyle}" VerticalAlignment="Top"/>
