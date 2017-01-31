@@ -265,6 +265,7 @@ namespace CSharpImageLibrary
             int newHeight = Height;
             DDS_Header tempHeader = null;
             byte[] data = null;
+            byte[] tempOriginalData = OriginalData;
 
             if (destFormatDetails.IsDDS)
             {
@@ -299,6 +300,86 @@ namespace CSharpImageLibrary
                 }
                 else
                 {
+                    if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
+                    {
+                        // Can't edit alpha directly in premultiplied formats. Not easily anyway.
+                        if (destFormatDetails.IsPremultipliedFormat)
+                            return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+
+
+                        // DDS Formats only
+                        switch (destFormatDetails.Format)
+                        {
+                            // Excluded cos they have no true alpha
+                            case ImageEngineFormat.DDS_A8:
+                            case ImageEngineFormat.DDS_A8L8:
+                            case ImageEngineFormat.DDS_ATI1:
+                            case ImageEngineFormat.DDS_ATI2_3Dc:
+                            case ImageEngineFormat.DDS_V8U8:
+                            case ImageEngineFormat.DDS_G16_R16:
+                            case ImageEngineFormat.DDS_G8_L8:
+                            case ImageEngineFormat.DDS_R5G6B5:
+                            case ImageEngineFormat.DDS_RGB_8:
+                            case ImageEngineFormat.DDS_DXT1:
+                                break;
+
+                            // Exluded cos they're alpha isn't easily edited
+                            case ImageEngineFormat.DDS_DXT2:
+                            case ImageEngineFormat.DDS_DXT4:
+                                break;
+
+                            // Excluded cos they're currently unsupported
+                            case ImageEngineFormat.DDS_CUSTOM:
+                            case ImageEngineFormat.DDS_DX10:
+                            case ImageEngineFormat.DDS_ARGB_4:
+                                break;
+
+                            case ImageEngineFormat.DDS_ABGR_8:
+                            case ImageEngineFormat.DDS_ARGB_32F:
+                            case ImageEngineFormat.DDS_ARGB_8:
+                            case ImageEngineFormat.DDS_DXT3:
+                            case ImageEngineFormat.DDS_DXT5:
+                                tempOriginalData = new byte[OriginalData.Length];
+                                Array.Copy(OriginalData, tempOriginalData, OriginalData.Length);
+
+                                // Edit alpha values
+                                int alphaStart = 128;
+                                int alphaJump = 0;
+                                byte[] alphaBlock = null;
+                                if (destFormatDetails.IsBlockCompressed)
+                                {
+                                    alphaJump = 16;
+                                    alphaBlock = new byte[8];
+                                    for (int i = 0; i < 8; i++)
+                                        alphaBlock[i] = 255;
+                                }
+                                else
+                                {
+                                    alphaJump = destFormatDetails.ComponentSize * 4;
+                                    alphaBlock = new byte[destFormatDetails.ComponentSize];
+
+                                    switch (destFormatDetails.ComponentSize)
+                                    {
+                                        case 1:
+                                            alphaBlock[0] = 255;
+                                            break;
+                                        case 2:
+                                            alphaBlock = BitConverter.GetBytes(ushort.MaxValue);
+                                            break;
+                                        case 4:
+                                            alphaBlock = BitConverter.GetBytes(1f);
+                                            break;
+                                    }
+                                }
+
+                                for (int i = alphaStart; i < OriginalData.Length; i += alphaJump)
+                                    Array.Copy(alphaBlock, 0, tempOriginalData, i, alphaBlock.Length);
+
+                                break;
+                        }
+                    }
+
+
                     switch (GenerateMips)
                     {
                         case MipHandling.KeepExisting:
@@ -344,7 +425,7 @@ namespace CSharpImageLibrary
             
             // Use existing array, otherwise create one.
             data = data ?? new byte[length];
-            Array.Copy(OriginalData, start, data, destStart, length - destStart);
+            Array.Copy(tempOriginalData, start, data, destStart, length - destStart);
 
             // Write header if existing (DDS Only)
             if (tempHeader != null)
