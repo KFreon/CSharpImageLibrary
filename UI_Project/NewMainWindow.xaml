@@ -580,7 +580,7 @@
         </DockPanel>
 
         <!--Loaded Image Box-->
-        <UsefulWPF:PanAndZoomBorder x:Name="LoadedImageViewBox" Grid.Row="1" Margin="0,0,25,25">
+        <UsefulWPF:PanAndZoomBorder x:Name="LoadedImageViewBox" Grid.Row="1" Margin="0,0,25,25" Background="Transparent">
             <UsefulWPF:PanAndZoomBorder.Style>
                 <Style>
                     <Setter Property="UIElement.Visibility" Value="Visible"/>
@@ -723,7 +723,7 @@
         <!--END Central Column-->
 
         <!--Save Image Box-->
-        <UsefulWPF:PanAndZoomBorder x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25">
+        <UsefulWPF:PanAndZoomBorder x:Name="SaveImageViewBox" Grid.Row="1" Grid.Column="2" Margin="0,0,25,25" Background="Transparent">
             <UsefulWPF:PanAndZoomBorder.Style>
                 <Style>
                     <Setter Property="UIElement.Visibility" Value="Visible"/>
