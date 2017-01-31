@@ -297,7 +297,6 @@
                     <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
                                TextWrapping="Wrap" FontSize="10"/>
                 </DockPanel>
-
             </ControlTemplate>
 
             <Style TargetType="ContentControl" x:Key="JPGSettingsVisibility">
@@ -1141,7 +1140,23 @@
                             </DockPanel.Resources>
                             <Label Content="Format Settings" DockPanel.Dock="Top" Style="{StaticResource TitleStyle}"/>
                             <Label Content="Note: Not all settings below will be valid for you." DockPanel.Dock="Top" HorizontalAlignment="Center" FontWeight="Bold"/>
-                            <ContentControl Template="{StaticResource MainFormatSelector}"/>
+                            <ContentControl Template="{StaticResource MainFormatSelector}" IsEnabled="{Binding UseSourceFormatForSaving, Converter={StaticResource InverseBoolConverter}}">
+                                <ContentControl.Style>
+                                    <Style TargetType="ContentControl" BasedOn="{StaticResource {x:Type ContentControl}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UseSourceFormatForSaving}" Value="true">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ContentControl.Style>
+                            </ContentControl>
+                            <CheckBox x:Name="BulkConvert_SameSaveFormatChecker" Foreground="White" DockPanel.Dock="Top" IsChecked="{Binding UseSourceFormatForSaving}">
+                                <TextBlock>
+                                    <Run Text="Use Source format for saving?   "/>
+                                    <Run Text="This means no images will change formats, only apply the other options, such as alpha removal and mip generation." FontSize="8"/>
+                                </TextBlock>
+                            </CheckBox>
                             <ContentControl Template="{StaticResource MipSettingsTemplate}"/>
                             <ContentControl Template="{StaticResource GeneralAlphaSettingsTemplate}"/>
                             <ContentControl Template="{StaticResource DXT1AlphaSettingTemplate}"/>

@@ -44,6 +44,18 @@ namespace UI_Project
             }
         }
 
+        bool useSourceFormatForSaving = false;
+        public bool UseSourceFormatForSaving
+        {
+            get
+            {
+                return useSourceFormatForSaving;
+            }
+            set
+            {
+                SetProperty(ref useSourceFormatForSaving, value);
+            }
+        }
 
         Stopwatch timer = new Stopwatch();
 
@@ -1362,7 +1374,7 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
-            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormatDetails, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
+            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormatDetails, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)

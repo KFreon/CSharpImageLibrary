@@ -490,16 +490,17 @@ namespace CSharpImageLibrary
         /// <param name="removeAlpha">True = Alpha is removed from converted images.</param>
         /// <param name="destFormatDetails">Details about destination format.</param>
         /// <param name="progressReporter">Progress reporting callback.</param>
+        /// <param name="useSourceFormat">No format conversion is performed if possible.</param>
         /// <returns>Errors</returns>
-        public static async Task<ConcurrentBag<string>> BulkConvert(IEnumerable<string> files, ImageFormats.ImageEngineFormatDetails destFormatDetails, string saveFolder,
+        public static async Task<ConcurrentBag<string>> BulkConvert(IEnumerable<string> files, ImageFormats.ImageEngineFormatDetails destFormatDetails, bool useSourceFormat, string saveFolder,
             MipHandling saveMipType = MipHandling.Default, bool useSourceAsDestination = false, bool removeAlpha = false, IProgress<int> progressReporter = null)
         {
             ConcurrentBag<string> Failures = new ConcurrentBag<string>();
 
 
             // Test if can parallelise uncompressed saving
-            // Below says: Only formats that don't support mips or do but aren't block compressed - can be parallised.
-            bool supportsParallel = !destFormatDetails.IsMippable;
+            // Below says: Only formats that don't support mips or do but aren't block compressed - can be parallised. Also don't parallelise if using source formats.
+            bool supportsParallel = !useSourceFormat && !destFormatDetails.IsMippable;
             supportsParallel |= !supportsParallel && !destFormatDetails.IsBlockCompressed;
 
 
@@ -510,14 +511,17 @@ namespace CSharpImageLibrary
                 {
                     using (ImageEngineImage img = new ImageEngineImage(file))
                     {
-                        string filename = Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;
+                        // Using source format can only come into this leg of the operation.
+
+
+                        string filename = useSourceFormat ? file : Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;
                         string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
 
                         path = UsefulThings.General.FindValidNewFileName(path);
 
                         try
                         {
-                            await img.Save(path, destFormatDetails, saveMipType, removeAlpha: removeAlpha);
+                            await img.Save(path, useSourceFormat ? img.FormatDetails : destFormatDetails, saveMipType, removeAlpha: removeAlpha);
                         }
                         catch (Exception e)
                         {
