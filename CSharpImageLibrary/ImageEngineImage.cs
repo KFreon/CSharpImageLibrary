@@ -249,81 +249,108 @@ namespace CSharpImageLibrary
             else if (destFormatDetails.Format == ImageEngineFormat.DDS_DXT2 || destFormatDetails.Format == ImageEngineFormat.DDS_DXT4)
                 alphaSetting = AlphaSettings.Premultiply;
 
-
-            bool requiresProperSave = GenerateMips == MipHandling.Default && NumMipMaps == 1 || GenerateMips == MipHandling.GenerateNew;
-
-
             // If same format and stuff, can just return original data, or chunks of it.
-            if (destFormatDetails.Format == Format && !(alphaSetting == AlphaSettings.RemoveAlphaChannel) && !requiresProperSave)
+            if (destFormatDetails.Format == Format)
+                return AttemptSaveUsingOriginalData(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, alphaSetting);
+            else
+                return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+        }
+
+        byte[] AttemptSaveUsingOriginalData(ImageFormats.ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension, int mipToSave, AlphaSettings alphaSetting)
+        {
+            int start = 0;
+            int destStart = 0;
+            int length = OriginalData.Length;
+            int newWidth = Width;
+            int newHeight = Height;
+            DDS_Header tempHeader = null;
+            byte[] data = null;
+
+            if (destFormatDetails.IsDDS)
             {
-                int start = 0;
-                int destStart = 0;
-                int length = OriginalData.Length;
-                int newWidth = Width;
-                int newHeight = Height;
-                DDS_Header tempHeader = null;
+                destStart = 128;
+                start = 128;
 
-                if (destFormatDetails.IsDDS)
+                int mipCount = 0;
+
+                if (mipToSave != 0)
                 {
-                    destStart = 128;
-                    start = 128;
-                    length = OriginalData.Length;
+                    mipCount = 1;
+                    newWidth = MipMaps[mipToSave].Width;
+                    newHeight = MipMaps[mipToSave].Height;
 
-                    int mipCount = 0;
-                    switch(GenerateMips)
+                    start = ImageFormats.GetCompressedSize(mipToSave, destFormatDetails, Width, Height);
+                    length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                }
+                else if (desiredMaxDimension != 0 && desiredMaxDimension < Width && desiredMaxDimension < Height)
+                {
+                    int index = MipMaps.FindIndex(t => t.Width < desiredMaxDimension && t.Height < desiredMaxDimension);
+
+                    // If none found, do a proper save and see what happens.
+                    if (index == -1)
+                        return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+
+                    mipCount -= index;
+                    newWidth = MipMaps[index].Width;
+                    newHeight = MipMaps[index].Height;
+
+                    start = ImageFormats.GetCompressedSize(index, destFormatDetails, Width, Height);
+                    length = ImageFormats.GetCompressedSize(mipCount, destFormatDetails, newWidth, newHeight);
+                }
+                else
+                {
+                    switch (GenerateMips)
                     {
                         case MipHandling.KeepExisting:
-                        case MipHandling.Default:    // Case where need more mips is handled above.
                             mipCount = NumMipMaps;
+                            break;
+                        case MipHandling.Default:
+                            if (NumMipMaps > 1)
+                                mipCount = NumMipMaps;
+                            else
+                                goto case MipHandling.GenerateNew;  // Eww goto...
+                            break;
+                        case MipHandling.GenerateNew:
+                            ImageEngine.DestroyMipMaps(MipMaps, 1);
+                            ImageEngine.TestDDSMipSize(MipMaps, destFormatDetails, Width, Height, out double fixXScale, out double fixYScale);
+
+                            // Wrong sizing, so can't use original data anyway.
+                            if (fixXScale != 0 || fixYScale != 0)
+                                return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+
+
+                            mipCount = DDSGeneral.BuildMipMaps(MipMaps);
+
+                            // Compress mipmaps excl top
+                            byte[] formattedMips = DDSGeneral.Save(MipMaps.GetRange(1, MipMaps.Count - 1), destFormatDetails, alphaSetting);
+
+                            // Get top mip size and create destination array 
+                            length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                            data = new byte[formattedMips.Length + length];
+
+                            // Copy smaller mips to destination
+                            Array.Copy(formattedMips, 128, data, length, formattedMips.Length - 128);
                             break;
                         case MipHandling.KeepTopOnly:
                             mipCount = 1;
                             length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
                             break;
                     }
-
-                    if (mipToSave != 0)
-                    {
-                        mipCount = 1;
-                        newWidth = MipMaps[mipToSave].Width;
-                        newHeight = MipMaps[mipToSave].Height;
-
-                        start = ImageFormats.GetCompressedSize(mipToSave, destFormatDetails, Width, Height);
-                        length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
-                    }
-                    else if (desiredMaxDimension != 0 && desiredMaxDimension < Width && desiredMaxDimension < Height)
-                    {
-                        int index = MipMaps.FindIndex(t => t.Width < desiredMaxDimension && t.Height < desiredMaxDimension);
-
-                        // If none found, do a proper save and see what happens.
-                        if (index == -1)
-                            return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
-
-                        mipCount -= index;
-                        newWidth = MipMaps[index].Width;
-                        newHeight = MipMaps[index].Height;
-
-                        start = ImageFormats.GetCompressedSize(index, destFormatDetails, Width, Height);
-                        length = ImageFormats.GetCompressedSize(mipCount, destFormatDetails, newWidth, newHeight);
-                    }
-
-                    // Header
-                    tempHeader = new DDS_Header(mipCount, newWidth, newHeight, destFormatDetails.Format);
                 }
 
-                byte[] data = new byte[length];
-                Array.Copy(OriginalData, start, data, destStart, length - destStart);
-
-                // Write header if existing (DDS Only)
-                if (tempHeader != null)
-                    tempHeader.WriteToArray(data, 0);
-
-                return data;
+                // Header
+                tempHeader = new DDS_Header(mipCount, newWidth, newHeight, destFormatDetails.Format);
             }
-            else
-            {
-                return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
-            }
+            
+            // Use existing array, otherwise create one.
+            data = data ?? new byte[length];
+            Array.Copy(OriginalData, start, data, destStart, length - destStart);
+
+            // Write header if existing (DDS Only)
+            if (tempHeader != null)
+                tempHeader.WriteToArray(data, 0);
+
+            return data;
         }
         #endregion Savers
 

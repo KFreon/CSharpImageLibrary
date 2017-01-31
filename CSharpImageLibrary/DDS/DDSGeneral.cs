@@ -359,7 +359,7 @@ namespace CSharpImageLibrary.DDS
                     action(item);
 
             MipMaps.AddRange(newmips);
-            return estimatedMips;
+            return MipMaps.Count;
         }
 
         /// <summary>

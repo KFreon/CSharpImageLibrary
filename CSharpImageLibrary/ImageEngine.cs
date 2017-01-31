@@ -297,34 +297,7 @@ namespace CSharpImageLibrary
             }
 
             // KFreon: Ensure we have a power of two for dimensions FOR DDS ONLY
-            double fixXScale = 0;
-            double fixYScale = 0;
-            if (destFormatDetails.IsBlockCompressed && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
-            {
-                double newWidth = 0;
-                double newHeight = 0;
-
-                // Takes into account aspect ratio (a little bit)
-                double aspect = width / height;
-                if (aspect > 1)
-                {
-                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(width);
-                    var tempScale = newWidth / width;
-                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo((int)(height * tempScale));
-                }
-                else
-                {
-                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo(height);
-                    var tempScale = newHeight / height;
-                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo((int)(width * tempScale));
-                }
-
-
-                // Little extra bit to allow integer cast from Double with the correct answer. Occasionally dimensions * scale would be 511.99999999998 instead of 512, so adding a little allows the integer cast to return correct value.
-                fixXScale = 1d * newWidth / width + 0.001;  
-                fixYScale = 1d * newHeight / height + 0.001;
-                newMips[0] = Resize(newMips[0], fixXScale, fixYScale);
-            }
+            TestDDSMipSize(newMips, destFormatDetails, width, height, out double fixXScale, out double fixYScale);
 
             if (fixXScale != 0 || fixYScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
@@ -352,6 +325,38 @@ namespace CSharpImageLibrary
 
             return destination;
         }      
+
+        internal static void TestDDSMipSize(List<MipMap> newMips, ImageFormats.ImageEngineFormatDetails destFormatDetails, int width, int height, out double fixXScale, out double fixYScale)
+        {
+            fixXScale = 0;
+            fixYScale = 0;
+            if (destFormatDetails.IsBlockCompressed && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
+            {
+                double newWidth = 0;
+                double newHeight = 0;
+
+                // Takes into account aspect ratio (a little bit)
+                double aspect = width / height;
+                if (aspect > 1)
+                {
+                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(width);
+                    var tempScale = newWidth / width;
+                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo((int)(height * tempScale));
+                }
+                else
+                {
+                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo(height);
+                    var tempScale = newHeight / height;
+                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo((int)(width * tempScale));
+                }
+
+
+                // Little extra bit to allow integer cast from Double with the correct answer. Occasionally dimensions * scale would be 511.99999999998 instead of 512, so adding a little allows the integer cast to return correct value.
+                fixXScale = 1d * newWidth / width + 0.001;
+                fixYScale = 1d * newHeight / height + 0.001;
+                newMips[0] = Resize(newMips[0], fixXScale, fixYScale);
+            }
+        }
         
         internal static MipMap Resize(MipMap mipMap, double scale)
         {
@@ -465,9 +470,9 @@ namespace CSharpImageLibrary
         /// <param name="MipMaps">List of Mipmaps.</param>
         /// <param name="mipToSave">Index of mipmap to save. 1 based, i.e. top is 1.</param>
         /// <returns>Number of mips present.</returns>
-        private static int DestroyMipMaps(List<MipMap> MipMaps, int mipToSave)
+        internal static int DestroyMipMaps(List<MipMap> MipMaps, int mipToSave)
         {
-            MipMaps.RemoveRange(mipToSave + 1, MipMaps.Count - 1);  // +1 because mipToSave is 0 based and we want to keep it
+            MipMaps.RemoveRange(mipToSave, MipMaps.Count - 1);  // +1 because mipToSave is 0 based and we want to keep it
             return 1;
         }
 
