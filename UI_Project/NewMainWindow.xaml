@@ -1072,7 +1072,7 @@
                 </Style>
             </Button.Style>
         </Button>
-        
+
         <Border x:Name="BulkConvertBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding BulkConvertOpen}">
             <Border Style="{StaticResource FadedInnerBorder}">
                 <DockPanel LastChildFill="True">
@@ -1094,8 +1094,8 @@
 
                     <Grid DockPanel.Dock="Top" Margin="5,10" IsEnabled="{Binding BulkConvertRunning, Converter={StaticResource InverseBoolConverter}}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="1*"/>
-                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="300"/>
+                            <ColumnDefinition Width="600"/>
                         </Grid.ColumnDefinitions>
 
                         <Grid.Resources>
