@@ -468,11 +468,13 @@ namespace CSharpImageLibrary
         /// Destroys mipmaps. Expects at least one mipmap in given list.
         /// </summary>
         /// <param name="MipMaps">List of Mipmaps.</param>
-        /// <param name="mipToSave">Index of mipmap to save. 1 based, i.e. top is 1.</param>
+        /// <param name="mipToSave">Index of mipmap to save.</param>
         /// <returns>Number of mips present.</returns>
-        internal static int DestroyMipMaps(List<MipMap> MipMaps, int mipToSave)
+        internal static int DestroyMipMaps(List<MipMap> MipMaps, int mipToSave = 0)
         {
-            MipMaps.RemoveRange(mipToSave, MipMaps.Count - 1);  // +1 because mipToSave is 0 based and we want to keep it
+            if (MipMaps.Count != 1)
+                MipMaps.RemoveRange(mipToSave + 1, MipMaps.Count - 1);  // +1 because mipToSave is 0 based and we want to keep it
+
             return 1;
         }
 
