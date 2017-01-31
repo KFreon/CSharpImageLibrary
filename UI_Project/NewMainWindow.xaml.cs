@@ -75,6 +75,15 @@ namespace UI_Project
             {
                 if (args.PropertyName == nameof(vm.IsImageLoaded) && !vm.IsImageLoaded)
                     CloseSavePanel();
+                else if (args.PropertyName == nameof(vm.UseHighQualityScaling))
+                {
+                    BitmapScalingMode mode = BitmapScalingMode.HighQuality;
+                    if (!vm.UseHighQualityScaling)
+                        mode = BitmapScalingMode.NearestNeighbor;
+
+                    RenderOptions.SetBitmapScalingMode(LoadedImageImage, mode);
+                    RenderOptions.SetBitmapScalingMode(SaveImageImage, mode);
+                }
             };
 
             BulkDropDragHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
@@ -148,7 +157,6 @@ namespace UI_Project
 
             // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
-
         }
 
         void CloseSavePanel()

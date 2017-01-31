@@ -31,6 +31,20 @@ namespace UI_Project
 
     public class NewViewModel : ViewModelBase
     {
+        bool useHighQualityScaling = true;
+        public bool UseHighQualityScaling
+        {
+            get
+            {
+                return useHighQualityScaling;
+            }
+            set
+            {
+                SetProperty(ref useHighQualityScaling, value);
+            }
+        }
+
+
         Stopwatch timer = new Stopwatch();
 
         bool showHelpAbout = false;
