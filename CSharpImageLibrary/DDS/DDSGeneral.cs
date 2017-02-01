@@ -442,7 +442,10 @@ namespace CSharpImageLibrary.DDS
             */
 
             // TODO: DDS going down past 4x4
-
+            bool requiresTinyAdjustment = false;
+            int selectedMipDimensions = (int)(baseWidth / Math.Pow(2d, mipIndex));
+            if (selectedMipDimensions < 4)
+                requiresTinyAdjustment = true;
 
             double divisor = 1;
             if (destFormatDetails.IsBlockCompressed)
@@ -459,13 +462,15 @@ namespace CSharpImageLibrary.DDS
                 (1d / 3d) * (4d - shift);   // Shifting represents 4^-mipIndex. Math.Pow seems slow.
 
             double totalSize = 128 + (sumPart * destFormatDetails.BlockSize * (baseWidth / divisor) * (baseHeight / divisor));
+            if (requiresTinyAdjustment)
+                totalSize += destFormatDetails.BlockSize * 2;
 
             return (int)totalSize;
         }
 
         internal static int GetCompressedSizeOfImage(int mipCount, ImageFormats.ImageEngineFormatDetails destFormatDetails, int baseWidth, int baseHeight)
         {
-            return GetCompressedSizeUpToIndex(mipCount - 1, destFormatDetails, baseWidth, baseHeight);
+            return GetCompressedSizeUpToIndex(mipCount, destFormatDetails, baseWidth, baseHeight);
         }
         #endregion Mipmap Management
     }
