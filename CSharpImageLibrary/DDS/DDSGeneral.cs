@@ -255,7 +255,11 @@ namespace CSharpImageLibrary.DDS
             {
                 int mipOffset = 128;
                 foreach (MipMap mipmap in mipMaps)
-                    mipOffset = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
+                {
+                    var temp = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
+                    if (temp != -1)  // When dimensions too low.
+                        mipOffset = temp;
+                }
             }
             else
             {
@@ -290,6 +294,9 @@ namespace CSharpImageLibrary.DDS
         static int WriteCompressedMipMap(byte[] destination, int mipOffset, MipMap mipmap, int blockSize, Action<byte[], int, int, byte[], int, AlphaSettings, ImageFormats.ImageEngineFormatDetails> compressor, 
             AlphaSettings alphaSetting)  
         {
+            if (mipmap.Width < 4 || mipmap.Height < 4)
+                return -1;
+
             int destinationTexelCount = mipmap.Width * mipmap.Height / 16;
             int sourceLineLength = mipmap.Width * 4 * mipmap.LoadedFormatDetails.ComponentSize;
             int numTexelsInLine = mipmap.Width / 4;
