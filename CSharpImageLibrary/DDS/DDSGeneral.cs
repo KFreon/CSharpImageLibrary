@@ -59,7 +59,7 @@ namespace CSharpImageLibrary.DDS
                     int decompressedStart = (int)(texelIndex / numTexelsInRow) * texelRowSkip + (texelIndex % numTexelsInRow) * 16;
 
                     // Problem with how I handle dimensions (no virtual padding or anything yet)
-                    if (!UsefulThings.General.IsPowerOfTwo(mipWidth) || !UsefulThings.General.IsPowerOfTwo(mipHeight))
+                    if (!UsefulThings.General.IsPowerOfTwo(mipWidth) || !UsefulThings.General.IsPowerOfTwo(mipHeight) || mipHeight < 4 || mipWidth < 4)  
                         return;
 
                     try
@@ -160,6 +160,7 @@ namespace CSharpImageLibrary.DDS
                 for (int m = 0; m < estimatedMips; m++)
                 {
                     // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
+                    // Don't do the mip size check here (<4) since we still need to have a MipMap object for those lower than this for an accurate count.
                     if (mipWidth <= 0 || mipHeight <= 0)  // Needed cos it doesn't throw when reading past the end for some reason.
                     {
                         break;
