@@ -667,6 +667,19 @@ namespace UI_Project
             }
         }
 
+        string loadFailError = null;
+        public string LoadFailError
+        {
+            get
+            {
+                return loadFailError;
+            }
+            set
+            {
+                SetProperty(ref loadFailError, value);
+            }
+        }
+
 
         bool isImageLoaded = false;
         public bool IsImageLoaded
@@ -1162,7 +1175,8 @@ namespace UI_Project
             }
             catch (Exception e)
             {
-                Trace.WriteLine($"Failed to read image from disk: {e.Message}");
+                Trace.WriteLine($"IO failure when reading image from disk: {e.Message}");
+                LoadFailError = $"IO failure.{Environment.NewLine} {e.Message}";
                 LoadFailed = true;
                 return;
             }
@@ -1195,6 +1209,7 @@ namespace UI_Project
             }
             catch(Exception e)
             {
+                LoadFailError = e.Message;
                 LoadFailed = true;
                 return false;
             }
@@ -1262,6 +1277,7 @@ namespace UI_Project
             BulkConvertFailed.Clear();
             MergeChannelsImages.Clear();
             LoadFailed = false;
+            LoadFailError = null;
             previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
             SavePanelOpen = false;
 

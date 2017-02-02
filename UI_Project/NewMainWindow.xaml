@@ -1063,7 +1063,7 @@
 
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding LoadFailed}" Value="True">
-                            <Setter Property="Content" Value="Load failed!"/>
+                            <Setter Property="Content" Value="{Binding LoadFailError}"/>
                             <Setter Property="FontSize" Value="10"/>
                             <Setter Property="BorderBrush" Value="Red"/>
                         </DataTrigger>

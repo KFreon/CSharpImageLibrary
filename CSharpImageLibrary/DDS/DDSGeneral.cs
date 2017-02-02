@@ -30,7 +30,10 @@ namespace CSharpImageLibrary.DDS
         {
             byte[] data = stream.GetBuffer();
             byte[] mipmap = new byte[mipHeight * mipWidth * 4 * formatDetails.ComponentSize];
-            DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, ddspf, formatDetails);
+
+            // Smaller sizes breaks things, so just exclude them
+            if (mipHeight >= 4 && mipWidth >= 4)
+                DDS_Decoders.ReadUncompressed(data, mipOffset, mipmap, mipWidth * mipHeight, ddspf, formatDetails);
 
             return new MipMap(mipmap, mipWidth, mipHeight, formatDetails);
         }
