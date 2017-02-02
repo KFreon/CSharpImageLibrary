@@ -32,8 +32,6 @@ namespace UI_Project
         UsefulThings.WPF.DragDropHandler<NewViewModel> BulkDropDragHandler = null;
         UsefulThings.WPF.DragDropHandler<NewViewModel> MergeDropHandler = null;
 
-
-
         public NewMainWindow()
         {
             var path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -157,6 +155,19 @@ namespace UI_Project
 
             // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
+
+
+
+
+            // Handle Command Line parameters
+            string[] cmdLineParams = Environment.GetCommandLineArgs();
+
+            // For now, just loading image.
+            if (cmdLineParams.Length != 0)
+            {
+                // Since only loading, just use the first one.
+                Load(cmdLineParams[1]);
+            }
         }
 
         void CloseSavePanel()
