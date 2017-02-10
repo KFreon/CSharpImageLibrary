@@ -587,7 +587,7 @@ namespace UI_Project
             }
         }
 
-        string bulkSaveFolder = null;
+        string bulkSaveFolder = "";  // Can't be null
         public string BulkSaveFolder
         {
             get

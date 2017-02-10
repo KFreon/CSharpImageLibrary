@@ -250,6 +250,20 @@ namespace CSharpImageLibrary
 
             if (alphaSetting == AlphaSettings.RemoveAlphaChannel)
                 frame = BitmapFrame.Create(new FormatConvertedBitmap(image, PixelFormats.Bgr32, image.Palette, 0));
+            else if (format == ImageEngineFormat.BMP || format == ImageEngineFormat.PNG)
+            {
+                // Check if there's any alpha.
+                bool anyAlpha = true;
+                for (int i = 3; i < imageData.Length; i += 4)
+                    if (imageData[i] != 255)
+                    {
+                        anyAlpha = true;
+                        break;
+                    }
+
+                if (!anyAlpha)
+                    frame = BitmapFrame.Create(new FormatConvertedBitmap(image, PixelFormats.Bgr32, image.Palette, 0));
+            }
             else
                 frame = BitmapFrame.Create(image);
 

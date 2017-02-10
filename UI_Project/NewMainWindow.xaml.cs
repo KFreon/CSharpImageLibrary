@@ -157,16 +157,14 @@ namespace UI_Project
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
 
 
-
-
             // Handle Command Line parameters
             string[] cmdLineParams = Environment.GetCommandLineArgs();
 
             // For now, just loading image.
-            if (cmdLineParams.Length != 0)
+            if (cmdLineParams.Length != 1)
             {
                 // Since only loading, just use the first one.
-                Load(cmdLineParams[1]);
+                Load(cmdLineParams[2]);
             }
         }
 
