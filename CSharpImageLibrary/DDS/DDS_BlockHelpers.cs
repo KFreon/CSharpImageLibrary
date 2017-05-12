@@ -707,21 +707,20 @@ namespace CSharpImageLibrary.DDS
 
         private static int GetClosestValue(byte[] arr, byte c)
         {
-            int min = int.MaxValue;
-            int index = 0;
+            int min = arr[0] - c; 
+            if (min == c)
+                return 0;
+
             int minIndex = 0;
-            for (int i = 0; i < arr.Length; i++)
+            for (int i = 1; i < arr.Length; i++)
             {
-                int check = arr[i] - c;
-                //check = (check ^ (check >> 7)) - (check >> 7);
-                check = check & 0x7FFFFFFF;  // Knock off the sign bit
+                int check = (arr[i] - c) & 0x7FFFFFFF;  // Knock off the sign bit
+
                 if (check < min)
                 {
                     min = check;
-                    minIndex = index;
+                    minIndex = i;
                 }
-
-                index++;
             }
             return minIndex;
         }
