@@ -52,7 +52,7 @@ namespace CSharpImageLibrary.DDS
         }
 
         // BC4
-        internal static void DecompressATI1(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        internal static void DecompressATI1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
 
@@ -98,22 +98,45 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
+
+        // BC6
+        internal static void DecompressBC6Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        {
+            throw new NotImplementedException("Not currently implemented.");
+        }
+
+
+        // BC7
+        internal static void DecompressBC7Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        {
+            BC7.LDRColour[] colours = BC7.DecompressBC7(source, sourceStart);
+
+            for(int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    // BGRA
+                    int BPos = decompressedStart + (i * decompressedLineLength) + (j * 4);
+                    int GPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 1;
+                    int RPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 2;
+                    int APos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 3;
+                    var colour = colours[i + j];
+
+                    destination[RPos] = (byte)colour.R;
+                    destination[GPos] = (byte)colour.G;
+                    destination[BPos] = (byte)colour.B;
+                    destination[APos] = (byte)colour.A;
+                }
+            }
+        }
+
+
         static byte ExpandTo255(double v)
         {
             if (double.IsNaN(v) || v == 0)
                 return 128;
             else
                 return (byte)(((v + 1d) / 2d) * 255d);
-        }
-
-        internal static void DecompressBC6(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
-        {
-            
-        }
-
-        internal static void DecompressBC7(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
-        {
-
         }
 
         internal static int GetDecompressedOffset(int start, int lineLength, int pixelIndex)

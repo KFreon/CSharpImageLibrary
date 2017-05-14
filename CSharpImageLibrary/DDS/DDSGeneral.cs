@@ -97,8 +97,8 @@ namespace CSharpImageLibrary.DDS
             ImageEngineFormat format = header.Format;
 
             int estimatedMips = header.dwMipMapCount;
-            int mipOffset = 128;  // Includes header. 
-            // TODO: Incorrect mip offset for DX10
+            int mipOffset = formatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;  // Includes header.   
+            int originalOffset = mipOffset;
 
             if (!EnsureMipInImage(compressed.Length, mipWidth, mipHeight, 4, formatDetails, out mipOffset))  // Update number of mips too
                 estimatedMips = 1;
@@ -106,7 +106,7 @@ namespace CSharpImageLibrary.DDS
             if (estimatedMips == 0)
                 estimatedMips = EstimateNumMipMaps(mipWidth, mipHeight);
 
-            mipOffset = 128;  // Needs resetting after checking there's mips in this image.
+            mipOffset = originalOffset;  // Needs resetting after checking there's mips in this image.
 
             // TESTUNIG
             if (estimatedMips == 0)

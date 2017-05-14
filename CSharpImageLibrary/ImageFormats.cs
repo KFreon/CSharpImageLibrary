@@ -201,7 +201,8 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_DXT3:
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
-                case ImageEngineFormat.DDS_ATI2_3Dc:  // TODO BC6,7
+                case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_DX10:
                     return true;
                 default:
                     return false;
@@ -230,6 +231,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_DXT4:
                 case ImageEngineFormat.DDS_DXT5:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
+                case ImageEngineFormat.DDS_DX10:
                     blocksize = 16;
                     break;
                 case ImageEngineFormat.DDS_V8U8:

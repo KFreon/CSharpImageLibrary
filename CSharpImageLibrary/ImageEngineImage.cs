@@ -175,7 +175,13 @@ namespace CSharpImageLibrary
         {
             CompressedSize = (int)stream.Length;
             Header = ImageEngine.LoadHeader(stream);
-            FormatDetails = new ImageFormats.ImageEngineFormatDetails(Header.Format);
+
+            // DX10
+            var DX10Format = DDS_Header.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+            if (Header is Headers.DDS_Header)
+                DX10Format = ((Headers.DDS_Header)Header).DX10_DXGI_AdditionalHeader.dxgiFormat;
+
+            FormatDetails = new ImageFormats.ImageEngineFormatDetails(Header.Format, DX10Format);
             MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0, FormatDetails);
 
             // Read original data

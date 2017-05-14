@@ -1200,7 +1200,6 @@ namespace UI_Project
                 timer.Restart();
 
             CloseImage(false); // Don't need to update the UI here, it'll get updated after loading the image. But do need to reset some things
-            WindowTitle = "Image Engine - View";
 
             // Full image
             try
@@ -1215,6 +1214,7 @@ namespace UI_Project
             }
 
             Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
+            WindowTitle = $"Image Engine - View: {timer.ElapsedMilliseconds}ms";
             timer.Restart();
             UpdateLoadedPreview(true);
 

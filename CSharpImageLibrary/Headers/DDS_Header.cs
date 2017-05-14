@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -497,10 +498,10 @@ namespace CSharpImageLibrary.Headers
             public DDS_DXGI_DX10_Additional(byte[] fullHeaderBlock, int offset = 128)
             {
                 dxgiFormat = (DXGI_FORMAT)BitConverter.ToInt32(fullHeaderBlock, offset);
-                resourceDimension = (D3D10_RESOURCE_DIMENSION)BitConverter.ToInt64(fullHeaderBlock, offset + 4);
-                miscFlag = (D3D10_RESOURCE_MISC_FLAGS)BitConverter.ToUInt32(fullHeaderBlock, offset + 12);
-                arraySize = BitConverter.ToUInt32(fullHeaderBlock, offset + 16);
-                miscFlags2 = (DXGI_MiscFlags)BitConverter.ToUInt32(fullHeaderBlock, offset + 20);
+                resourceDimension = (D3D10_RESOURCE_DIMENSION)BitConverter.ToInt32(fullHeaderBlock, offset + 4);
+                miscFlag = (D3D10_RESOURCE_MISC_FLAGS)BitConverter.ToUInt32(fullHeaderBlock, offset + 8);
+                arraySize = BitConverter.ToUInt32(fullHeaderBlock, offset + 12);
+                miscFlags2 = (DXGI_MiscFlags)BitConverter.ToUInt32(fullHeaderBlock, offset + 16);
             }
 
             /// <summary>
@@ -695,6 +696,29 @@ namespace CSharpImageLibrary.Headers
             DXGI_FORMAT_V408 = 132,
             DXGI_FORMAT_FORCE_UINT = 0xffffffff,
         }
+
+
+        public enum BC7DecodeMode
+        {
+            /// <summary>
+            /// RGB only. 3 subsets per block. RGBP 4.4.4.1 endpoints with a unique P-bit per endpoint. 
+            /// 3 bit indicies.
+            /// 16 bit partitions.
+            /// </summary>
+            Mode_0,
+
+            /// <summary>
+            /// 
+            /// </summary>
+            Mode_1,
+            Mode_2,
+            Mode_3,
+            Mode_4,
+            Mode_5, 
+            Mode_6,
+            Mode_7
+        }
+
         #endregion DXGI/DX10
 
         #region Properties
@@ -774,6 +798,8 @@ namespace CSharpImageLibrary.Headers
             get
             {
                 if (format == ImageEngineFormat.Unknown)
+                    if (ddspf.dwFourCC == FourCC.DX10)
+                        format = ImageEngineFormat.DDS_DX10;
                     format = DetermineDDSSurfaceFormat(ddspf);
 
                 return format;

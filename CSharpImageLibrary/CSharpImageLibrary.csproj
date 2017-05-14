@@ -90,6 +90,7 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DDS\BC7.cs" />
     <Compile Include="DDS\DDSGeneral.cs" />
     <Compile Include="DDS\DDS_BlockHelpers.cs" />
     <Compile Include="DDS\DDS_Decoders.cs" />

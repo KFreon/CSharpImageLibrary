@@ -104,27 +104,21 @@ namespace CSharpImageLibrary
             /// <summary>
             /// Details the given format.
             /// </summary>
-            /// <param name="format">Image Format to get details for.</param>
-            public ImageEngineFormatDetails(ImageEngineFormat format)
+            /// <param name="DX10Format">Optional DX10 format. Default = Unknown.</param>
+            /// <param name="inFormat">Image Format.</param>
+            public ImageEngineFormatDetails(ImageEngineFormat inFormat, Headers.DDS_Header.DXGI_FORMAT DX10Format = new Headers.DDS_Header.DXGI_FORMAT())
             {
-                Format = format;
-                IsPremultipliedFormat = Format == ImageEngineFormat.DDS_DXT2 || Format == ImageEngineFormat.DDS_DXT4;
-                IsDDS = Format.ToString().Contains("DDS");
-                MaxNumberOfChannels = MaxNumberOfChannels(Format);
+                Format = inFormat;
+                IsPremultipliedFormat = inFormat == ImageEngineFormat.DDS_DXT2 || inFormat == ImageEngineFormat.DDS_DXT4;
+                IsDDS = inFormat.ToString().Contains("DDS") || inFormat == ImageEngineFormat.DDS_DX10;
+                MaxNumberOfChannels = MaxNumberOfChannels(inFormat);
 
-                {
-                    var temp = Format.ToString();
-                    if (temp.Contains("DDS"))
-                        Supported_Extension = SupportedExtensions.DDS;
-                    else
-                        Supported_Extension = ParseExtension(temp);
-                }
-
+                Supported_Extension = IsDDS ? SupportedExtensions.DDS : ParseExtension(inFormat.ToString());               
                 Extension = Supported_Extension.ToString();
 
                 BitCount = 8;
                 {
-                    switch (Format)
+                    switch (inFormat)
                     {
                         case ImageEngineFormat.DDS_G8_L8:
                         case ImageEngineFormat.DDS_A8:
@@ -162,14 +156,15 @@ namespace CSharpImageLibrary
                         case ImageEngineFormat.DDS_R5G6B5:
                         case ImageEngineFormat.DDS_CUSTOM:
                         case ImageEngineFormat.DDS_DX10:
-                            throw new InvalidDataException("Bitcount thing. I dunno yet.");
+                            BitCount = GetDX10BitCount(DX10Format);
+                            break;
                     }
                 }
 
                 ComponentSize = (BitCount / 8) / MaxNumberOfChannels;
-                BlockSize = GetBlockSize(Format, ComponentSize);
-                IsBlockCompressed = IsBlockCompressed(Format);
-                IsMippable = IsFormatMippable(Format);
+                BlockSize = GetBlockSize(inFormat, ComponentSize);
+                IsBlockCompressed = IsBlockCompressed(inFormat);
+                IsMippable = IsFormatMippable(inFormat);
 
                 // Functions
                 ReadByte = ReadByteFromByte;
@@ -202,7 +197,7 @@ namespace CSharpImageLibrary
                 }
 
 
-                switch (Format)
+                switch (inFormat)
                 {
                     case ImageEngineFormat.DDS_ATI1:
                         BlockEncoder = DDS_Encoders.CompressBC4Block;
@@ -226,7 +221,7 @@ namespace CSharpImageLibrary
                         break;
                 }
 
-                switch (format)
+                switch (inFormat)
                 {
                     case ImageEngineFormat.DDS_DXT1:
                         BlockDecoder = DDS_Decoders.DecompressBC1Block;
@@ -240,13 +235,29 @@ namespace CSharpImageLibrary
                         BlockDecoder = DDS_Decoders.DecompressBC3Block;
                         break;
                     case ImageEngineFormat.DDS_ATI1:
-                        BlockDecoder = DDS_Decoders.DecompressATI1;
+                        BlockDecoder = DDS_Decoders.DecompressATI1Block;
                         break;
                     case ImageEngineFormat.DDS_ATI2_3Dc:
                         BlockDecoder = DDS_Decoders.DecompressATI2Block;
                         break;
+                    case ImageEngineFormat.DDS_DX10:
+                        BlockDecoder = DDS_Decoders.DecompressBC7Block;
+                        break;
                 }
             }
+
+            int GetDX10BitCount(Headers.DDS_Header.DXGI_FORMAT DX10Format)
+            {
+                int dx10Format = 32;
+                switch (DX10Format)
+                {
+                    // For now, 32 works.
+                }
+
+                return dx10Format;
+            }
+
+
             #region Bit Conversions
             byte ReadByteFromByte(byte[] source, int sourceStart)
             {

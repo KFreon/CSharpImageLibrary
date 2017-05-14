@@ -154,6 +154,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
                 case ImageEngineFormat.DDS_CUSTOM:
+                case ImageEngineFormat.DDS_DX10:
                     MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
                     break;
                 case ImageEngineFormat.GIF:
@@ -167,8 +168,6 @@ namespace CSharpImageLibrary
                     using (var tga = new TargaImage(imageStream, ((TGA_Header)header).header))
                         MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, formatDetails) }; 
                     break;
-                case ImageEngineFormat.DDS_DX10:
-                    throw new FormatException("DX10/DXGI not supported properly yet.");
                 default:
                     throw new FormatException($"Format unknown: {header.Format}.");
             }
