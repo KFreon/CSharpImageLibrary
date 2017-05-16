@@ -898,6 +898,12 @@
                                         <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
                                         <Run Text="{Binding LoadedFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
+                                
+                                <TextBlock x:Name="DX10FormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center" FontSize="8" TextAlignment="Center" Visibility="{Binding IsDX10Loaded, Converter={StaticResource BoolToVisConverter}}">
+                                        <Run Text="DX10 Format: " Style="{StaticResource TitleElementStyle}"/>
+                                        <LineBreak/>
+                                        <Run Text="{Binding LoadedDX10Format, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
+                                </TextBlock>
 
                                 <TextBlock x:Name="MipCountLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
                                         <Run Text="Mipmaps: " Style="{StaticResource TitleElementStyle}"/>

@@ -1,5 +1,6 @@
 ﻿using CSharpImageLibrary;
 using CSharpImageLibrary.DDS;
+using CSharpImageLibrary.Headers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -795,6 +796,22 @@ namespace UI_Project
             }
         }
 
+        public bool IsDX10Loaded
+        {
+            get
+            {
+                return LoadedImage?.Format == ImageEngineFormat.DDS_DX10;
+            }
+        }
+
+        public DDS_Header.DXGI_FORMAT LoadedDX10Format
+        {
+            get
+            {
+                return IsDX10Loaded ? ((DDS_Header)LoadedImage.Header).DX10_DXGI_AdditionalHeader.dxgiFormat : DDS_Header.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+            }
+        }
+
         public int Width
         {
             get
@@ -1231,6 +1248,8 @@ namespace UI_Project
         {
             // Update UI
             OnPropertyChanged(nameof(LoadedFormat));
+            OnPropertyChanged(nameof(IsDX10Loaded));
+            OnPropertyChanged(nameof(LoadedDX10Format));
             OnPropertyChanged(nameof(LoadedPath));
             OnPropertyChanged(nameof(LoadedCompressedSize));
             OnPropertyChanged(nameof(UncompressedSize));

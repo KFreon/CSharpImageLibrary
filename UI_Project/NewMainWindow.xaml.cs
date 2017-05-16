@@ -405,6 +405,22 @@ namespace UI_Project
                 else
                     vm.CloseCommand.Execute(null);
             }
+            else if(e.Key == Key.PageDown)
+            {
+                if (vm.IsImageLoaded)
+                {
+                    if (vm.MipIndex != 0)
+                        vm.MipIndex--;
+                }
+            }
+            else if(e.Key == Key.PageUp)
+            {
+                if (vm.IsImageLoaded)
+                {
+                    if (vm.MipIndex < vm.MipCount)
+                        vm.MipIndex++;
+                }
+            }
         }
 
         private void ImageCloseButton_Click(object sender, RoutedEventArgs e)

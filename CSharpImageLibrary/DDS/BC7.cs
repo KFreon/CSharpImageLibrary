@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -337,6 +338,11 @@ namespace CSharpImageLibrary.DDS
                 this.G = G;
                 this.A = A;
             }
+
+            public override string ToString()
+            {
+                return $"R: {R}, G: {G}, B: {B}, A: {A}";
+            }
         }
 
         public struct HDRColour
@@ -382,7 +388,7 @@ namespace CSharpImageLibrary.DDS
         public static LDRColour[] DecompressBC7(byte[] source, int sourceStart)
         {
             int start = 0;
-            while (start < 128 && GetBit(source, sourceStart, ref start) != 0) { }
+            while (start < 128 && GetBit(source, sourceStart, ref start) == 0) { }
             int mode = start - 1;
 
             var outColours = new LDRColour[NUM_PIXELS_PER_BLOCK];
@@ -407,9 +413,7 @@ namespace CSharpImageLibrary.DDS
                 for(int i = 0; i < numEndPoints; i++)
                 {
                     if (start + RGBPrecision.R > 128)
-                    {
-                        // Error
-                    }
+                        Debugger.Break();  // Error
 
                     c[i].R = GetBits(source, sourceStart, ref start, RGBPrecision.R);
                 }
@@ -418,9 +422,7 @@ namespace CSharpImageLibrary.DDS
                 for (int i = 0; i < numEndPoints; i++)
                 {
                     if (start + RGBPrecision.G > 128)
-                    {
-                        // Error
-                    }
+                        Debugger.Break();  // Error
 
                     c[i].G = GetBits(source, sourceStart, ref start, RGBPrecision.G);
                 }
@@ -429,9 +431,7 @@ namespace CSharpImageLibrary.DDS
                 for (int i = 0; i < numEndPoints; i++)
                 {
                     if (start + RGBPrecision.B > 128)
-                    {
-                        // Error
-                    }
+                        Debugger.Break();  // Error
 
                     c[i].B = GetBits(source, sourceStart, ref start, RGBPrecision.B);
                 }
@@ -440,19 +440,17 @@ namespace CSharpImageLibrary.DDS
                 for (int i = 0; i < numEndPoints; i++)
                 {
                     if (start + RGBPrecision.A > 128)
-                    {
-                        // Error
-                    }
+                        Debugger.Break();  // Error
 
                     c[i].A = RGBPrecision.A == 0 ? 255 : GetBits(source, sourceStart, ref start, RGBPrecision.A);
                 }
-
 
                 // P Bits
                 for (int i = 0; i < Modes[mode].PBits; i++)
                 {
                     if (start > 127)
                     {
+                        Debugger.Break();
                         // Error
                     }
 
@@ -492,6 +490,7 @@ namespace CSharpImageLibrary.DDS
                     int numBits = IsFixUpOffset(Modes[mode].Partitions, shape, i) ? indexPrecision - 1 : indexPrecision;
                     if (start + numBits > 128)
                     {
+                        Debugger.Break();
                         // Error
                     }
                     w1[i] = GetBits(source, sourceStart, ref start, numBits);
@@ -505,6 +504,7 @@ namespace CSharpImageLibrary.DDS
                         int numBits = i != 0 ? APrecision : APrecision - 1;
                         if (start + numBits > 128)
                         {
+                        Debugger.Break();
                             // Error
                         }
                         w2[i] = GetBits(source, sourceStart, ref start, numBits);

@@ -120,7 +120,13 @@ namespace CSharpImageLibrary.DDS
                     int GPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 1;
                     int RPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 2;
                     int APos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 3;
-                    var colour = colours[i + j];
+                    var colour = colours[(i * 4) + j];
+
+                    /*Debug.WriteLine($"{nameof(BPos)}: {BPos}");
+                    Debug.WriteLine($"{nameof(GPos)}: {GPos}");
+                    Debug.WriteLine($"{nameof(RPos)}: {RPos}");
+                    Debug.WriteLine($"{nameof(APos)}: {APos}");
+                    Debug.WriteLine("");*/
 
                     destination[RPos] = (byte)colour.R;
                     destination[GPos] = (byte)colour.G;
@@ -128,6 +134,8 @@ namespace CSharpImageLibrary.DDS
                     destination[APos] = (byte)colour.A;
                 }
             }
+
+            Console.WriteLine();
         }
 
 
