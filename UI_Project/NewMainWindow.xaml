@@ -757,7 +757,7 @@
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
-                        
+
                         <EventTrigger RoutedEvent="MouseLeave">
                             <BeginStoryboard>
                                 <Storyboard>
@@ -789,6 +789,7 @@
                 <Ellipse/>
                 <Ellipse Margin="20,0,0,0"/>
 
+
                 <Line X1="1" X2="1" Y1="0" Y2="22" Stroke="Red" StrokeThickness="2" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0.5">
                     <Line.RenderTransform>
                         <TransformGroup>
@@ -812,6 +813,7 @@
                 </Line>
             </Grid>
         </ToggleButton>
+        <Label x:Name="SaveRegeneratingLabel" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Content="Regenerating..." Foreground="LightSalmon" Visibility="{Binding SaveRegenerating, Converter={StaticResource BoolToVisConverter}}"/>
         <!--END Save Image Box-->
 
 

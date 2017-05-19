@@ -206,8 +206,8 @@ namespace CSharpImageLibrary
                         BlockEncoder = DDS_Encoders.CompressBC5Block;
                         break;
                     case ImageEngineFormat.DDS_DX10:
-                        //Debugger.Break();
-                        break; // TODO: NOT SUPPORTED YET. DX10
+                        BlockEncoder = DDS_Encoders.CompressBC7Block;
+                        break; 
                     case ImageEngineFormat.DDS_DXT1:
                         BlockEncoder = DDS_Encoders.CompressBC1Block;
                         break;

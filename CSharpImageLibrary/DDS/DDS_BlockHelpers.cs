@@ -20,7 +20,7 @@ namespace CSharpImageLibrary.DDS
         /// Things needed to be in the range 0-1 instead of 0-255, hence new struct etc
         /// </summary>
         [DebuggerDisplay("R:{r}, G:{g}, B:{b}, A:{a}")]
-        struct RGBColour
+        internal struct RGBColour
         {
             public float r, g, b, a;
 
@@ -33,11 +33,11 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        static float[] pC3 = { 1f, 1f / 2f, 0f };
-        static float[] pD3 = { 0f, 1f / 2f, 1f };
+        internal static float[] pC3 = { 1f, 1f / 2f, 0f };
+        internal static float[] pD3 = { 0f, 1f / 2f, 1f };
 
-        static float[] pC4 = { 1f, 2f / 3f, 1f / 3f, 0f };
-        static float[] pD4 = { 0f, 1f / 3f, 2f / 3f, 1f };
+        internal static float[] pC4 = { 1f, 2f / 3f, 1f / 3f, 0f };
+        internal static float[] pD4 = { 0f, 1f / 3f, 2f / 3f, 1f };
 
         static uint[] psteps3 = { 0, 2, 1 };
         static uint[] psteps4 = { 0, 2, 3, 1 };
@@ -88,7 +88,7 @@ namespace CSharpImageLibrary.DDS
             return current;
         }
 
-        private static RGBColour[] OptimiseRGB(RGBColour[] Colour, int uSteps)
+        internal static RGBColour[] OptimiseRGB(RGBColour[] Colour, int uSteps)
         {
             float[] pC = uSteps == 3 ? pC3 : pC4;
             float[] pD = uSteps == 3 ? pD3 : pD4;

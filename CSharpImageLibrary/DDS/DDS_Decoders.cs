@@ -135,7 +135,6 @@ namespace CSharpImageLibrary.DDS
                 }
             }
 
-            Console.WriteLine();
         }
 
 

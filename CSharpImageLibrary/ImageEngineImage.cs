@@ -275,8 +275,8 @@ namespace CSharpImageLibrary
 
             if (destFormatDetails.IsDDS)
             {
-                destStart = 128;
-                start = 128;
+                destStart = destFormatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;
+                start = destFormatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;
 
                 int mipCount = 0;
 

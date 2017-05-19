@@ -877,7 +877,6 @@ namespace CSharpImageLibrary.Headers
         /// <param name="Height">Height of top mipmap.</param>
         /// <param name="Width">Width of top mipmap.</param>
         /// <param name="surfaceformat">Format header represents.</param>
-        /// <param name="customMasks">Custom user defined masks for colours.</param>
         public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
         {
             dwSize = 124;
@@ -887,6 +886,16 @@ namespace CSharpImageLibrary.Headers
             dwCaps = DDSdwCaps.DDSCAPS_TEXTURE | (Mips == 1 ? 0 : DDSdwCaps.DDSCAPS_COMPLEX | DDSdwCaps.DDSCAPS_MIPMAP);
             dwMipMapCount = Mips == 1 ? 1 : Mips;
             ddspf = new DDS_PIXELFORMAT(surfaceformat);
+
+            if (surfaceformat == ImageEngineFormat.DDS_DX10)
+                DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional
+                {
+                    dxgiFormat = DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM_SRGB,
+                    resourceDimension = D3D10_RESOURCE_DIMENSION.DDS_DIMENSION_TEXTURE2D,
+                    miscFlag = DDS_DXGI_DX10_Additional.D3D10_RESOURCE_MISC_FLAGS.D3D10_RESOURCE_MISC_GENERATE_MIPS,
+                    miscFlags2 = DXGI_MiscFlags.DDS_ALPHA_MODE_UNKNOWN,
+                    arraySize = 1
+                };
         }
         
 
@@ -1042,6 +1051,15 @@ namespace CSharpImageLibrary.Headers
             headerData.AddRange(BitConverter.GetBytes(dwCaps4));
             headerData.AddRange(BitConverter.GetBytes(dwReserved2));
 
+
+            if (DX10_DXGI_AdditionalHeader.dxgiFormat != DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+            {
+                headerData.AddRange(BitConverter.GetBytes((int)DX10_DXGI_AdditionalHeader.dxgiFormat));
+                headerData.AddRange(BitConverter.GetBytes((int)DX10_DXGI_AdditionalHeader.resourceDimension));
+                headerData.AddRange(BitConverter.GetBytes((uint)DX10_DXGI_AdditionalHeader.miscFlag));
+                headerData.AddRange(BitConverter.GetBytes(DX10_DXGI_AdditionalHeader.arraySize));
+                headerData.AddRange(BitConverter.GetBytes((uint)DX10_DXGI_AdditionalHeader.miscFlags2));
+            }
 
             headerData.CopyTo(destination, index);
         }

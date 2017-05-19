@@ -244,9 +244,11 @@ namespace CSharpImageLibrary.DDS
             // Create header and write to destination
             DDS_Header header = new DDS_Header(mipMaps.Count, height, width, destFormatDetails.Format);
 
+            int headerLength = destFormatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;
+
             int fullSize = GetCompressedSizeOfImage(mipMaps.Count, destFormatDetails, width, height);
             if (destFormatDetails.ComponentSize != 1)
-                fullSize += (fullSize - 128) * destFormatDetails.ComponentSize;   // Size adjustment for destination to allow for different component sizes.
+                fullSize += (fullSize - headerLength) * destFormatDetails.ComponentSize;   // Size adjustment for destination to allow for different component sizes.
 
             byte[] destination = new byte[fullSize];
             header.WriteToArray(destination, 0);
@@ -254,7 +256,7 @@ namespace CSharpImageLibrary.DDS
             int blockSize = destFormatDetails.BlockSize;
             if (destFormatDetails.IsBlockCompressed)
             {
-                int mipOffset = 128;
+                int mipOffset = headerLength;
                 foreach (MipMap mipmap in mipMaps)
                 {
                     var temp = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);

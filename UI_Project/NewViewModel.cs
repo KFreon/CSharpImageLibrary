@@ -927,6 +927,19 @@ namespace UI_Project
             }
         }
 
+        bool saveRegenerating = false;
+        public bool SaveRegenerating
+        {
+            get
+            {
+                return saveRegenerating;
+            }
+            set
+            {
+                SetProperty(ref saveRegenerating, value);
+            }
+        }
+
         public bool IsSaveSmaller
         {
             get
@@ -1284,6 +1297,7 @@ namespace UI_Project
             SavePath = null;
             SaveError = null;
             SaveAttempted = false;
+            SaveRegenerating = false;
             MipIndex = 0;
             WindowTitle = "Image Engine";
             RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
@@ -1561,21 +1575,34 @@ namespace UI_Project
             if (!IsImageLoaded)
                 return;
 
+            SaveRegenerating = true;
 
-            timer.Restart();
-            if (needRegenerate)
-                await Task.Run(() =>
-                {
-                    // Save and reload to give accurate depiction of what it'll look like when saved.
-                    byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
-                    SaveCompressedSize = data.Length;
-                    savePreviewIMG = new ImageEngineImage(data);
-                });
+            // Don't bother regenerating things. Just show what it looks like.
+            if (SaveFormatDetails.Format == LoadedFormat)
+            {
+                SaveCompressedSize = LoadedCompressedSize;
+                savePreviewIMG = LoadedImage;
+            }
+            else
+            {
+                timer.Restart();
+                if (needRegenerate)
+                    await Task.Run(() =>
+                    {
+                        // Save and reload to give accurate depiction of what it'll look like when saved.
+                        byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                        SaveCompressedSize = data.Length;
+                        savePreviewIMG = new ImageEngineImage(data);
+                    });
 
-            Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
-            timer.Restart();
+                Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
+                timer.Restart();
+            }
+
+            
 
             UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
+            SaveRegenerating = false;
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
