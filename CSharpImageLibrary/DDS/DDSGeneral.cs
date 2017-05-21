@@ -166,7 +166,6 @@ namespace CSharpImageLibrary.DDS
                         break;
                     }
                     MipMap mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, mipOffset, formatDetails, DecompressBCBlock);
-
                     MipMaps[m] = mipmap;
                     mipOffset += (int)(mipWidth * mipHeight * (blockSize / 16d)); // Also put the division in brackets cos if the mip dimensions are high enough, the multiplications can exceed int.MaxValue)
                     mipWidth /= 2;

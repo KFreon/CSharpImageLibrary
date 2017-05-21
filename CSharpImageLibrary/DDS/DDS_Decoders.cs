@@ -102,16 +102,21 @@ namespace CSharpImageLibrary.DDS
         // BC6
         internal static void DecompressBC6Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            throw new NotImplementedException("Not currently implemented.");
+            var colours = BC6.DecompressBC6(source, sourceStart, false);
+            SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
         }
 
 
         // BC7
         internal static void DecompressBC7Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            BC7.LDRColour[] colours = BC7.DecompressBC7(source, sourceStart);
+            var colours = BC7.DecompressBC7(source, sourceStart);
+            SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
+        }
 
-            for(int i = 0; i < 4; i++)
+        static void SetColoursFromDX10(DX10_Helpers.LDRColour[] block, byte[] destination, int decompressedStart, int decompressedLineLength)
+        {
+            for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
@@ -120,13 +125,7 @@ namespace CSharpImageLibrary.DDS
                     int GPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 1;
                     int RPos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 2;
                     int APos = decompressedStart + (i * decompressedLineLength) + (j * 4) + 3;
-                    var colour = colours[(i * 4) + j];
-
-                    /*Debug.WriteLine($"{nameof(BPos)}: {BPos}");
-                    Debug.WriteLine($"{nameof(GPos)}: {GPos}");
-                    Debug.WriteLine($"{nameof(RPos)}: {RPos}");
-                    Debug.WriteLine($"{nameof(APos)}: {APos}");
-                    Debug.WriteLine("");*/
+                    var colour = block[(i * 4) + j];
 
                     destination[RPos] = (byte)colour.R;
                     destination[GPos] = (byte)colour.G;
@@ -134,7 +133,6 @@ namespace CSharpImageLibrary.DDS
                     destination[APos] = (byte)colour.A;
                 }
             }
-
         }
 
 

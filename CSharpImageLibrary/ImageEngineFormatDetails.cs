@@ -241,7 +241,10 @@ namespace CSharpImageLibrary
                         BlockDecoder = DDS_Decoders.DecompressATI2Block;
                         break;
                     case ImageEngineFormat.DDS_DX10:
-                        BlockDecoder = DDS_Decoders.DecompressBC7Block;
+                        if (DX10Format.ToString().Contains("BC7"))
+                            BlockDecoder = DDS_Decoders.DecompressBC7Block;
+                        else
+                            BlockDecoder = DDS_Decoders.DecompressBC6Block;
                         break;
                 }
             }
