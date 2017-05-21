@@ -435,6 +435,8 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
+        
+        
         <StackPanel x:Name="ChannelSelectorBox" Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" Style="{StaticResource UnloadedOpacityStyle}">
             <StackPanel.Resources>
                 <Style TargetType="ToggleButton">
@@ -813,7 +815,7 @@
                 </Line>
             </Grid>
         </ToggleButton>
-        <Label x:Name="SaveRegeneratingLabel" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Content="Regenerating..." Foreground="LightSalmon" Visibility="{Binding SaveRegenerating, Converter={StaticResource BoolToVisConverter}}"/>
+        <Label x:Name="SaveRegeneratingLabel" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Center" Content="Regenerating..." Foreground="LightSalmon" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}"/>
         <!--END Save Image Box-->
 
 
@@ -1435,5 +1437,32 @@
                 </StackPanel>
             </Border>
         </Border>
+
+        <DockPanel Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}">
+            <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <Border x:Name="LoadingBorder" BorderBrush="Red" BorderThickness="10" Padding="20,5">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Busy}" Value="True">
+                                    <DataTrigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimationUsingKeyFrames RepeatBehavior="Forever" Storyboard.TargetProperty="BorderBrush.Opacity">
+                                                    <EasingDoubleKeyFrame KeyTime="0" Value="1"/>
+                                                    <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="0"/>
+                                                    <EasingDoubleKeyFrame KeyTime="0:0:1" Value="1"/>
+                                                </DoubleAnimationUsingKeyFrames>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </DataTrigger.EnterActions>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Label Content="LOADING..." FontSize="50" Foreground="Red" FontWeight="Bold"/>
+                </Border>
+            </DockPanel>
+        </DockPanel>
     </Grid>
 </Window>

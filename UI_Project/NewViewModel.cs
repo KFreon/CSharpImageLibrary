@@ -927,19 +927,6 @@ namespace UI_Project
             }
         }
 
-        bool saveRegenerating = false;
-        public bool SaveRegenerating
-        {
-            get
-            {
-                return saveRegenerating;
-            }
-            set
-            {
-                SetProperty(ref saveRegenerating, value);
-            }
-        }
-
         public bool IsSaveSmaller
         {
             get
@@ -1226,6 +1213,8 @@ namespace UI_Project
         {
             LoadFailed = false;
 
+            Busy = true;
+
             if (!timer.IsRunning)
                 timer.Restart();
 
@@ -1254,6 +1243,7 @@ namespace UI_Project
             Trace.WriteLine($"Preview of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
 
             IsImageLoaded = true;
+            Busy = false;
             return true;
         }
 
@@ -1297,7 +1287,6 @@ namespace UI_Project
             SavePath = null;
             SaveError = null;
             SaveAttempted = false;
-            SaveRegenerating = false;
             MipIndex = 0;
             WindowTitle = "Image Engine";
             RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
@@ -1575,7 +1564,6 @@ namespace UI_Project
             if (!IsImageLoaded)
                 return;
 
-            SaveRegenerating = true;
 
             // Don't bother regenerating things. Just show what it looks like.
             if (SaveFormatDetails.Format == LoadedFormat)
@@ -1602,7 +1590,6 @@ namespace UI_Project
             
 
             UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
-            SaveRegenerating = false;
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));

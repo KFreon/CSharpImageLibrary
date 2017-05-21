@@ -173,7 +173,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Contains formats not yet capable of saving.
         /// </summary>
-        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.TGA, ImageEngineFormat.Unknown };
+        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.DDS_DX10, ImageEngineFormat.TGA, ImageEngineFormat.Unknown };
 
 
         /// <summary>
