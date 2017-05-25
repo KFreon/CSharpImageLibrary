@@ -97,7 +97,7 @@ namespace CSharpImageLibrary.DDS
             ImageEngineFormat format = header.Format;
 
             int estimatedMips = header.dwMipMapCount;
-            int mipOffset = formatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;  // Includes header.   
+            int mipOffset = formatDetails.HeaderSize;
             int originalOffset = mipOffset;
 
             if (!EnsureMipInImage(compressed.Length, mipWidth, mipHeight, 4, formatDetails, out mipOffset))  // Update number of mips too
@@ -108,7 +108,7 @@ namespace CSharpImageLibrary.DDS
 
             mipOffset = originalOffset;  // Needs resetting after checking there's mips in this image.
 
-            // TESTUNIG
+            // Ensure there's at least 1 mipmap
             if (estimatedMips == 0)
                 estimatedMips = 1;
 
@@ -121,7 +121,7 @@ namespace CSharpImageLibrary.DDS
                     throw new InvalidDataException($"Requested mipmap does not exist in this image. Top Image Size: {mipWidth}x{mipHeight}, requested mip max dimension: {desiredMaxDimension}.");
 
                 // Not the first mipmap. 
-                if (mipOffset > 128)
+                if (mipOffset > formatDetails.HeaderSize)
                 {
 
                     double divisor = mipHeight > mipWidth ? mipHeight / desiredMaxDimension : mipWidth / desiredMaxDimension;
@@ -132,7 +132,7 @@ namespace CSharpImageLibrary.DDS
                     {
                         mipHeight = header.Height;
                         mipWidth = header.Width;
-                        mipOffset = 128;
+                        mipOffset = formatDetails.HeaderSize;
                     }
                     else
                     {
@@ -141,7 +141,7 @@ namespace CSharpImageLibrary.DDS
                     }
                 }
                 else  // The first mipmap
-                    mipOffset = 128;
+                    mipOffset = formatDetails.HeaderSize;
 
             }
 
@@ -243,7 +243,7 @@ namespace CSharpImageLibrary.DDS
             // Create header and write to destination
             DDS_Header header = new DDS_Header(mipMaps.Count, height, width, destFormatDetails.Format);
 
-            int headerLength = destFormatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;
+            int headerLength = destFormatDetails.HeaderSize;
 
             int fullSize = GetCompressedSizeOfImage(mipMaps.Count, destFormatDetails, width, height);
             if (destFormatDetails.ComponentSize != 1)
@@ -403,9 +403,8 @@ namespace CSharpImageLibrary.DDS
         {
             if (mainWidth <= desiredMipDimension && mainHeight <= desiredMipDimension)
             {
-                mipOffset = 128;
+                mipOffset = destFormatDetails.HeaderSize;
                 return true; // One mip only
-                // TODO: DX10 
             }
 
             int dependentDimension = mainWidth > mainHeight ? mainWidth : mainHeight;
@@ -413,7 +412,7 @@ namespace CSharpImageLibrary.DDS
             if (mipIndex < -1)
                 throw new InvalidDataException($"Invalid dimensions for mipmapping. Got desired: {desiredMipDimension} and dependent: {dependentDimension}");
 
-            int requiredOffset = GetMipOffset(mipIndex, destFormatDetails, mainHeight, mainWidth);  // +128 for header
+            int requiredOffset = GetMipOffset(mipIndex, destFormatDetails, mainHeight, mainWidth);  
 
             // KFreon: Something wrong with the count here by 1 i.e. the estimate is 1 more than it should be 
             if (destFormatDetails.Format == ImageEngineFormat.DDS_ARGB_8)  // TODO: Might not just be 8 bit, still don't know why it's wrong.
@@ -422,7 +421,7 @@ namespace CSharpImageLibrary.DDS
             mipOffset = requiredOffset;
 
             // Should only occur when an image has 0 or 1 mipmap.
-            if (streamLength <= (requiredOffset - 128))
+            if (streamLength <= (requiredOffset - destFormatDetails.HeaderSize))
                 return false;
 
             return true;
@@ -473,7 +472,7 @@ namespace CSharpImageLibrary.DDS
             double sumPart = mipIndex == -1 ? 0 :
                 (1d / 3d) * (4d - shift);   // Shifting represents 4^-mipIndex. Math.Pow seems slow.
 
-            double totalSize = 128 + (sumPart * destFormatDetails.BlockSize * (baseWidth / divisor) * (baseHeight / divisor));
+            double totalSize = destFormatDetails.HeaderSize + (sumPart * destFormatDetails.BlockSize * (baseWidth / divisor) * (baseHeight / divisor));
             if (requiresTinyAdjustment)
                 totalSize += destFormatDetails.BlockSize * 2;
 

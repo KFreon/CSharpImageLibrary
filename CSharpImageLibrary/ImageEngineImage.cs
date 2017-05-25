@@ -114,12 +114,35 @@ namespace CSharpImageLibrary
             }
         }
 
-        public int BitCount { get { return FormatDetails.BitCount; } }
-        public int ComponentSize { get { return FormatDetails.ComponentSize; } }
-        public bool IsBlockCompressed { get { return FormatDetails.IsBlockCompressed; } }
-        public int BlockSize { get { return FormatDetails.BlockSize; } }
-        public bool IsMippable { get { return FormatDetails.IsMippable; } }
-        public string FileExtension { get { return FormatDetails.Extension; } }
+        /// <summary>
+        /// Number of bits per colour.
+        /// </summary>
+        public int BitCount =>  FormatDetails.BitCount; 
+
+        /// <summary>
+        /// Number of bytes per colour. i.e. 1 byte, 4 bytes (int), etc
+        /// </summary>
+        public int ComponentSize => FormatDetails.ComponentSize; 
+
+        /// <summary>
+        /// True = Image is a block compressed DDS.
+        /// </summary>
+        public bool IsBlockCompressed => FormatDetails.IsBlockCompressed; 
+
+        /// <summary>
+        /// Size of compressed blocks. Affected by component size. Default is 1 for normal images (jpg, etc)
+        /// </summary>
+        public int BlockSize => FormatDetails.BlockSize;
+
+        /// <summary>
+        /// True = Format is able to contain mipmaps.
+        /// </summary>
+        public bool IsMippable => FormatDetails.IsMippable;
+
+        /// <summary>
+        /// File Extension of selected format.
+        /// </summary>
+        public string FileExtension => FormatDetails.Extension;
         #endregion Properties
 
         /// <summary>
@@ -275,8 +298,8 @@ namespace CSharpImageLibrary
 
             if (destFormatDetails.IsDDS)
             {
-                destStart = destFormatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;
-                start = destFormatDetails.Format == ImageEngineFormat.DDS_DX10 ? 148 : 128;
+                destStart = destFormatDetails.HeaderSize;
+                start = destStart;
 
                 int mipCount = 0;
 
@@ -416,7 +439,7 @@ namespace CSharpImageLibrary
                             data = new byte[formattedMips.Length + length];
 
                             // Copy smaller mips to destination
-                            Array.Copy(formattedMips, 128, data, length, formattedMips.Length - 128);
+                            Array.Copy(formattedMips, destFormatDetails.HeaderSize, data, length, formattedMips.Length - destFormatDetails.HeaderSize);
                             break;
                         case MipHandling.KeepTopOnly:
                             mipCount = 1;

@@ -15,7 +15,7 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class DDS_Header : AbstractHeader
     {
-        const int HeaderSize = 152;
+        const int MaxHeaderSize = ImageFormats.DDS_DX10_HEADER_LENGTH;
 
         /// <summary>
         /// Characters beginning a file that indicate file is a DDS image.
@@ -829,7 +829,7 @@ namespace CSharpImageLibrary.Headers
         protected override long Load(Stream stream)
         {
             base.Load(stream);
-            var temp = stream.ReadBytes(HeaderSize);
+            var temp = stream.ReadBytes(MaxHeaderSize);
 
             if (!CheckIdentifier(temp))
                 throw new FormatException("Stream is not a recognised DDS image.");
@@ -858,7 +858,7 @@ namespace CSharpImageLibrary.Headers
             if (ddspf.dwFourCC == FourCC.DX10)
                 DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional(temp);
 
-            return HeaderSize;
+            return MaxHeaderSize;
         }
 
         /// <summary>

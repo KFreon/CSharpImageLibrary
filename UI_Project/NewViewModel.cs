@@ -1223,9 +1223,10 @@ namespace UI_Project
             // Full image
             try
             {
-                LoadedImage = await Task.Run(() => new ImageEngineImage(data));
+                //LoadedImage = await Task.Run(() => new ImageEngineImage(data));
+                LoadedImage = await Task.Run(() => new ImageEngineImage(data, 1024));
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 LoadFailError = e.Message;
                 LoadFailed = true;

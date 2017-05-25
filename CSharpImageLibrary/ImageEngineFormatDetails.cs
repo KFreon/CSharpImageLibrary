@@ -10,68 +10,88 @@ namespace CSharpImageLibrary
     public partial class ImageFormats
     {
         /// <summary>
+        /// Length of header in bytes when Additional DX10 Header is present.
+        /// </summary>
+        public const int DDS_DX10_HEADER_LENGTH = 148;
+
+
+        /// <summary>
+        /// Length of header when pre-DX10 format.
+        /// </summary>
+        public const int DDS_NO_DX10_HEADER_LENGTH = 128;
+
+
+
+        /// <summary>
         /// Detailed representation of an image format.
         /// </summary>
         [DebuggerDisplay("Format: {Format}, ComponentSize: {ComponentSize}")]
         public class ImageEngineFormatDetails
         {
             /// <summary>
+            /// Length of header (DDS only)
+            /// </summary>
+            public int HeaderSize => Format == ImageEngineFormat.DDS_DX10 ? DDS_DX10_HEADER_LENGTH : DDS_NO_DX10_HEADER_LENGTH;
+
+
+            /// <summary>
             /// Format of details.
             /// </summary>
-            public ImageEngineFormat Format;
+            public ImageEngineFormat Format { get; }
 
             /// <summary>
             /// Indicates whether format contains premultiplied alpha.
             /// </summary>
-            public bool IsPremultipliedFormat;
+            public bool IsPremultipliedFormat => Format == ImageEngineFormat.DDS_DXT2 || Format == ImageEngineFormat.DDS_DXT4;
 
             /// <summary>
             /// Number of bytes in colour.
             /// </summary>
-            public int ComponentSize;
+            public int ComponentSize => (BitCount / 8) / MaxNumberOfChannels;
 
             /// <summary>
             /// Number of bits in colour.
             /// </summary>
-            public int BitCount;
+            public int BitCount { get; }
 
             /// <summary>
             /// Indicates whether supported format is Block Compressed.
             /// </summary>
-            public bool IsBlockCompressed;
+            public bool IsBlockCompressed => IsBlockCompressed(Format);
 
             /// <summary>
             /// Indicates whether format supports mipmaps.
             /// </summary>
-            public bool IsMippable;
+            public bool IsMippable => IsFormatMippable(Format);
 
             /// <summary>
             /// Size of a discrete block in bytes. (e.g. 2 channel 8 bit colour = 2, DXT1 = 16). Block can mean texel (DXTn) or pixel (uncompressed)
             /// </summary>
-            public int BlockSize;
+            public int BlockSize => GetBlockSize(Format, ComponentSize);
 
             /// <summary>
             /// String representation of formats' file extension. No '.'.
             /// </summary>
-            public string Extension;
+            public string Extension => Supported_Extension.ToString();
 
             /// <summary>
             /// Enum version of formats' file extension.
             /// </summary>
-            public SupportedExtensions Supported_Extension;
+            public SupportedExtensions Supported_Extension => IsDDS ? SupportedExtensions.DDS : ParseExtension(Format.ToString());
 
             /// <summary>
             /// Indicates whether format is a DDS format.
             /// </summary>
-            public bool IsDDS;
+            public bool IsDDS => Format.ToString().Contains("DDS") || Format == ImageEngineFormat.DDS_DX10;
 
             /// <summary>
             /// Max number of supported channels. Usually 4, but some formats are 1 (G8), 2 (V8U8), or 3 (RGB) channels.
             /// </summary>
-            public int MaxNumberOfChannels;
+            public int MaxNumberOfChannels => MaxNumberOfChannels(Format);
 
             /// <summary>
             /// Writes the max value to array using the correct bit styles.
+            /// e.g. Will write int.Max when component size is int.Length (4 bytes).
             /// </summary>
             public Action<byte[], int> SetMaxValue = null;
 
@@ -93,7 +113,14 @@ namespace CSharpImageLibrary
             Func<byte[], int, byte[]> ReadUShortAsArray = null;
             Func<byte[], int, byte[]> ReadFloatAsArray = null;
 
+            /// <summary>
+            /// Holds the encoder to be used when compressing/writing image.
+            /// </summary>
             public Action<byte[], int, int, byte[], int, AlphaSettings, ImageEngineFormatDetails> BlockEncoder = null;
+
+            /// <summary>
+            /// Holds the decoder to be used when decompressing/reading image.
+            /// </summary>
             public Action<byte[], int, byte[], int, int, bool> BlockDecoder = null;
 
             /// <summary>
@@ -109,13 +136,7 @@ namespace CSharpImageLibrary
             public ImageEngineFormatDetails(ImageEngineFormat inFormat, Headers.DDS_Header.DXGI_FORMAT DX10Format = new Headers.DDS_Header.DXGI_FORMAT())
             {
                 Format = inFormat;
-                IsPremultipliedFormat = inFormat == ImageEngineFormat.DDS_DXT2 || inFormat == ImageEngineFormat.DDS_DXT4;
-                IsDDS = inFormat.ToString().Contains("DDS") || inFormat == ImageEngineFormat.DDS_DX10;
-                MaxNumberOfChannels = MaxNumberOfChannels(inFormat);
-
-                Supported_Extension = IsDDS ? SupportedExtensions.DDS : ParseExtension(inFormat.ToString());               
-                Extension = Supported_Extension.ToString();
-
+                
                 BitCount = 8;
                 {
                     switch (inFormat)
@@ -161,11 +182,6 @@ namespace CSharpImageLibrary
                     }
                 }
 
-                ComponentSize = (BitCount / 8) / MaxNumberOfChannels;
-                BlockSize = GetBlockSize(inFormat, ComponentSize);
-                IsBlockCompressed = IsBlockCompressed(inFormat);
-                IsMippable = IsFormatMippable(inFormat);
-
                 // Functions
                 ReadByte = ReadByteFromByte;
                 ReadUShort = ReadUShortFromByte;
@@ -206,7 +222,10 @@ namespace CSharpImageLibrary
                         BlockEncoder = DDS_Encoders.CompressBC5Block;
                         break;
                     case ImageEngineFormat.DDS_DX10:
-                        BlockEncoder = DDS_Encoders.CompressBC7Block;
+                        if (DX10Format.ToString().Contains("BC7"))
+                            BlockEncoder = DDS_Encoders.CompressBC7Block;
+                        else
+                            BlockEncoder = DDS_Encoders.CompressBC6Block;
                         break; 
                     case ImageEngineFormat.DDS_DXT1:
                         BlockEncoder = DDS_Encoders.CompressBC1Block;
