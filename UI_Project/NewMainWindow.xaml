@@ -578,6 +578,7 @@
                     Visibility="{Binding MergeChannelsPanelOpen, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}"/>
 
             <TextBlock x:Name="TitleBlock" Text="{Binding WindowTitle}" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" IsHitTestVisible="False" FontSize="22"/>
+            <TextBlock x:Name="LoadingTimeLabel" Text="{Binding LoadDuration}" Foreground="LightGreen" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="22"/>
         </DockPanel>
 
         <!--Loaded Image Box-->

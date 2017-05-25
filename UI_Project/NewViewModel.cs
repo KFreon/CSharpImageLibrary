@@ -779,6 +779,19 @@ namespace UI_Project
             }
         }
 
+        string loadDuration = "";
+        public string LoadDuration
+        {
+            get
+            {
+                return loadDuration;
+            }
+            set
+            {
+                SetProperty(ref loadDuration, value);
+            }
+        }
+
 
         public string LoadedPath
         {
@@ -1234,7 +1247,8 @@ namespace UI_Project
             }
 
             Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
-            WindowTitle = $"Image Engine - View: {timer.ElapsedMilliseconds}ms";
+            WindowTitle = "Image Engine - View:";
+            LoadDuration = $"{timer.ElapsedMilliseconds}ms";
             timer.Restart();
             UpdateLoadedPreview(true);
 
@@ -1290,6 +1304,7 @@ namespace UI_Project
             SaveAttempted = false;
             MipIndex = 0;
             WindowTitle = "Image Engine";
+            LoadDuration = "";
             RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
             BulkProgressValue = 0;
             BulkProgressMax = 0;
