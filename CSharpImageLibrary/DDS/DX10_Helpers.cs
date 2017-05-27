@@ -18,6 +18,12 @@ namespace CSharpImageLibrary.DDS
                 A = a;
                 B = b;
             }
+
+            public override string ToString()
+            {
+                return "A" + Environment.NewLine + $"R: {A.R} G: {A.G} B: {A.B} A: {A.A}" + Environment.NewLine +
+                    "B" + Environment.NewLine + $"R: {B.R} G: {B.G} B: {B.B} A: {B.A}";
+            }
         }
 
         
@@ -40,15 +46,26 @@ namespace CSharpImageLibrary.DDS
 
             public LDRColour(float r, float g, float b, float a)
             {
-                R = (byte)((r > 1f ? 1f : r) * 255);
-                G = (byte)((g > 1f ? 1f : g) * 255);
-                B = (byte)((b > 1f ? 1f : g) * 255);
-                A = (byte)((a > 1f ? 1f : a) * 255);
+                R = (byte)(Clamp(r, 0f, 1f) * 255);
+                G = (byte)(Clamp(g, 0f, 1f) * 255);
+                B = (byte)(Clamp(b, 0f, 1f) * 255);
+                A = (byte)(Clamp(a, 0f, 1f) * 255);
             }
 
             public override string ToString()
             {
                 return $"R: {R}, G: {G}, B: {B}, A: {A}";
+            }
+
+            static float Clamp(float val, float lower, float upper)
+            {
+                if (val > upper)
+                    return upper;
+
+                if (val < lower)
+                    return lower;
+
+                return val;
             }
         }
 

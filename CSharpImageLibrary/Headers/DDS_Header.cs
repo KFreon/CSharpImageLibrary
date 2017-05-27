@@ -480,7 +480,7 @@ namespace CSharpImageLibrary.Headers
 
             /// <summary>
             /// Number of elements in array.
-            /// For 2D textures that are cube maps, it's the number of cubes.
+            /// For 2D textures that are cube maps, it's the number of cubes. Can also be random images made with texassemble.exe.
             /// For 3D textures, must be 1.
             /// </summary>
             public uint arraySize;

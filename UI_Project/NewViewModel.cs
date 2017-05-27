@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using UsefulThings.WPF;
+using static CSharpImageLibrary.Headers.DDS_Header;
 
 namespace UI_Project
 {
@@ -1015,6 +1016,36 @@ namespace UI_Project
             }
         }
 
+        public string DX10ComboSelection
+        {
+            get
+            {
+                return DX10Format.ToString().Contains("BC6") ? "BC6" : "BC7";
+            }
+            set
+            {
+                if (value == null)
+                    _DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+                else
+                    DX10Format = value.Contains("BC6") ? DXGI_FORMAT.DXGI_FORMAT_BC6H_UF16 : DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM_SRGB;
+            }
+        }
+
+        DXGI_FORMAT _DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+        public DXGI_FORMAT DX10Format
+        {
+            get
+            {
+                return _DX10Format;
+            }
+            set
+            {
+                UpdateSaveFormat(SaveFormat, value);
+                SetProperty(ref _DX10Format, value);
+            }
+        }
+
+
         ImageEngineFormat saveFormat = ImageEngineFormat.Unknown;
         public ImageEngineFormat SaveFormat
         {
@@ -1027,34 +1058,48 @@ namespace UI_Project
                 if (ImageFormats.SaveUnsupported.Contains(value))
                     return;
 
-                bool changed = value != saveFormat;
-
+                UpdateSaveFormat(value, DX10Format);
                 SetProperty(ref saveFormat, value);
-
-                SaveFormatDetails = new ImageFormats.ImageEngineFormatDetails(SaveFormat);
-
-                OnPropertyChanged(nameof(SaveCompressedSize));
-                OnPropertyChanged(nameof(SaveCompressionRatio));
-                OnPropertyChanged(nameof(IsSaveFormatMippable));
-                OnPropertyChanged(nameof(IsSaveSmaller));
-
-                if (SavePath == null)
-                    return;
-
-                // Test paths without extensions
-                if (SavePath.Substring(0, SavePath.LastIndexOf('.')) == DefaultSavePath.Substring(0, DefaultSavePath.LastIndexOf('.')))
-                    SavePath = DefaultSavePath;
-
-                // Change extension as required
-                FixExtension();
-
-                // Ensure SavePath doesn't already exist
-                SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
-
-                // Regenerate save preview
-                if (changed && SavePanelOpen)
-                    UpdateSavePreview();
             }
+        }
+
+        private void UpdateSaveFormat(ImageEngineFormat value, DXGI_FORMAT dx10Format)
+        {
+            bool changed = value != saveFormat || (value == ImageEngineFormat.DDS_DX10 ? dx10Format != DX10Format : false);
+
+            // Do nothing until the specific DX10 format is specified.
+            if (value == ImageEngineFormat.DDS_DX10 && dx10Format == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+            {
+                // Clear display so it's clear something else needs to be done
+                savePreviewIMG.Dispose();
+                SavePreview = null;
+                return;
+            }
+
+
+            SaveFormatDetails = new ImageFormats.ImageEngineFormatDetails(value, dx10Format);
+
+            OnPropertyChanged(nameof(SaveCompressedSize));
+            OnPropertyChanged(nameof(SaveCompressionRatio));
+            OnPropertyChanged(nameof(IsSaveFormatMippable));
+            OnPropertyChanged(nameof(IsSaveSmaller));
+
+            if (SavePath == null)
+                return;
+
+            // Test paths without extensions
+            if (SavePath.Substring(0, SavePath.LastIndexOf('.')) == DefaultSavePath.Substring(0, DefaultSavePath.LastIndexOf('.')))
+                SavePath = DefaultSavePath;
+
+            // Change extension as required
+            FixExtension();
+
+            // Ensure SavePath doesn't already exist
+            SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
+
+            // Regenerate save preview
+            if (changed && SavePanelOpen)
+                UpdateSavePreview();
         }
 
         MipHandling saveMipType = MipHandling.Default;
@@ -1236,8 +1281,8 @@ namespace UI_Project
             // Full image
             try
             {
-                //LoadedImage = await Task.Run(() => new ImageEngineImage(data));
-                LoadedImage = await Task.Run(() => new ImageEngineImage(data, 1024));
+                LoadedImage = await Task.Run(() => new ImageEngineImage(data));
+                //LoadedImage = await Task.Run(() => new ImageEngineImage(data, 1024));  // Testing
             }
             catch (Exception e)
             {
@@ -1318,6 +1363,10 @@ namespace UI_Project
             LoadFailError = null;
             previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
             SavePanelOpen = false;
+            SaveFormatDetails = null;
+            savePreviewIMG?.Dispose();
+            DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+            DX10ComboSelection = null;
 
             // Notify
             if (updateUI)
@@ -1580,6 +1629,7 @@ namespace UI_Project
             if (!IsImageLoaded)
                 return;
 
+            Busy = true;
 
             // Don't bother regenerating things. Just show what it looks like.
             if (SaveFormatDetails.Format == LoadedFormat)
@@ -1612,6 +1662,8 @@ namespace UI_Project
 
             timer.Stop();
             Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
+
+            Busy = false;
         }
     }
 }

@@ -12,7 +12,7 @@
         xmlns:Library="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="NewMainWindow" Height="900" MinHeight="400" Width="1100" MinWidth="900" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
+        Title="NewMainWindow" Height="900" MinHeight="400" Width="1100" MinWidth="1010" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}"
         AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" Closing="TOPWINDOW_Closing">
     <Window.Resources>
@@ -291,6 +291,13 @@
 
             <ControlTemplate x:Key="MainFormatSelector">
                 <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,3">
+                        <Label Content="DX10 Format: " FontWeight="Bold"/>
+                        <ComboBox x:Name="DX10FormatCombo" DockPanel.Dock="Bottom" HorizontalAlignment="Left" SelectedValue="{Binding DX10ComboSelection, Mode=TwoWay}">
+                            <ComboBoxItem Content="BC6"/>
+                            <ComboBoxItem Content="BC7"/>
+                        </ComboBox>
+                    </StackPanel>
                     <Label Content="Format: " FontWeight="Bold"/>
                     <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                               DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center" DropDownOpened="SaveFormatCombo_DropDownOpened"/>

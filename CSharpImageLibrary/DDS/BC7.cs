@@ -252,16 +252,17 @@ namespace CSharpImageLibrary.DDS
 
             LDRColour[] block = new LDRColour[NUM_PIXELS_PER_BLOCK];
 
-            // Fill block for now
+            // Fill block from source data
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 4; j++)
                 {
+                    var offset = sourceStart + (i * sourceLineLength) + j * 4;
                     block[i * 4 + j] = new LDRColour(
-                        source[sourceStart + (i * sourceLineLength) + j * 4 + 2],  // Red
-                        source[sourceStart + (i * sourceLineLength) + j * 4 + 1],  // Green
-                        source[sourceStart + (i * sourceLineLength) + j * 4],      // Blue
-                        source[sourceStart + (i * sourceLineLength) + j * 4 + 3]); // Alpha
+                        source[offset + 2],  // Red
+                        source[offset + 1],  // Green
+                        source[offset],      // Blue
+                        source[offset + 3]); // Alpha
                 }
             }
 
@@ -271,6 +272,12 @@ namespace CSharpImageLibrary.DDS
 
             for (modeVal = 0; modeVal < 8 && MSEBest > 0; modeVal++)
             {
+                if (modeVal == 0 || modeVal == 2)
+                    continue;  // 3 partitions long compression time, so skip;
+
+                if (modeVal != 6)
+                    continue;  // Try just quick compression
+
                 Mode mode = Modes[modeVal];
                 int shapes = 1 << mode.PartitionBits;
                 int numRots = 1 << mode.RotationBits;
@@ -331,7 +338,7 @@ namespace CSharpImageLibrary.DDS
                                     roughMSEs[i] = roughMSEs[j];
                                     roughMSEs[j] = temp;
 
-                                    var temp2 = auShape[j];
+                                    var temp2 = auShape[i];
                                     auShape[i] = auShape[j];
                                     auShape[j] = temp2;
                                 }
@@ -375,6 +382,7 @@ namespace CSharpImageLibrary.DDS
                     }
                 }
             }
+            Console.WriteLine();
         }
 
         #region Compression Helpers
@@ -400,8 +408,8 @@ namespace CSharpImageLibrary.DDS
             }
 
             AssignIndicies(shape, indexMode, mode, OrgEndPoints, orgIdx, orgIdx2, orgErr, block);
-            OptimiseEndPoints(mode, indexMode, block, orgErr, OrgEndPoints, OptEndPoints);
-            AssignIndicies(shape, indexMode, mode, OrgEndPoints, orgIdx, orgIdx2, orgErr, block);
+            OptimiseEndPoints(mode, indexMode, block, orgErr, OrgEndPoints, OptEndPoints, shape);
+            AssignIndicies(shape, indexMode, mode, OptEndPoints, optIdx, optIdx2, optErr, block);
 
             float orgTotErr = 0, optTotErr = 0;
             for (int p = 0; p <= mode.Partitions; p++)
@@ -426,6 +434,11 @@ namespace CSharpImageLibrary.DDS
         {
             int i = 0;
             int startBit = 0;
+
+            /*foreach (var endpoint in endPoints)
+                Debug.WriteLine(endpoint);
+
+            Debug.WriteLine("");*/
 
             SetBits(ref startBit, mode.modeVal, 0, destination, destStart);
             SetBits(ref startBit, 1, 1, destination, destStart);
@@ -532,7 +545,7 @@ namespace CSharpImageLibrary.DDS
             start += length;
         }
 
-        static void OptimiseEndPoints(Mode mode, int indexMode, LDRColour[] block, float[] afOrgErr, LDRColourEndPointPair[] aOrgEndPoints, LDRColourEndPointPair[] aOptEndPoints)
+        static void OptimiseEndPoints(Mode mode, int indexMode, LDRColour[] block, float[] afOrgErr, LDRColourEndPointPair[] aOrgEndPoints, LDRColourEndPointPair[] aOptEndPoints, int shape)
         {
             LDRColour[] pixels = new LDRColour[NUM_PIXELS_PER_BLOCK];
 
@@ -541,7 +554,8 @@ namespace CSharpImageLibrary.DDS
                 // Collect pixels in region
                 int np = 0;
                 for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
-                    pixels[np++] = block[i];
+                    if (PartitionTable[mode.Partitions][shape][i] == p)
+                        pixels[np++] = block[i];
 
                 OptimiseOne(afOrgErr[p], mode, ref aOrgEndPoints[p], ref aOptEndPoints[p], indexMode, block, np);
             }
@@ -772,35 +786,35 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        static float PerturbOne(Mode mode, int ch, ref LDRColourEndPointPair newEndPoints, ref LDRColourEndPointPair oldEndPoints, float oldErr, bool do_b, int indexMode, LDRColour[] block, int np)
+        static unsafe float PerturbOne(Mode mode, int ch, ref LDRColourEndPointPair newEndPoints, ref LDRColourEndPointPair oldEndPoints, float oldErr, bool do_b, int indexMode, LDRColour[] block, int np)
         {
             LDRColourEndPointPair temp = newEndPoints = oldEndPoints;
             float minErr = oldErr;
 
             int prec = 0;
             int new_c = 0;
-            int tmp_c = 0;
+            int* tmp_c = (int*)0;
             switch (ch)
             {
                 case 0:
                     prec = mode.RGBPrecisionWithP.R;
                     new_c = do_b ? newEndPoints.B.R : newEndPoints.A.R;
-                    tmp_c = do_b ? temp.B.R : temp.A.R;
+                    tmp_c = do_b ? &temp.B.R : &temp.A.R;
                     break;
                 case 1:
                     prec = mode.RGBPrecisionWithP.G;
                     new_c = do_b ? newEndPoints.B.G : newEndPoints.A.G;
-                    tmp_c = do_b ? temp.B.G : temp.A.G;
+                    tmp_c = do_b ? &temp.B.G : &temp.A.G;
                     break;
                 case 2:
                     prec = mode.RGBPrecisionWithP.B;
                     new_c = do_b ? newEndPoints.B.B : newEndPoints.A.B;
-                    tmp_c = do_b ? temp.B.B : temp.A.B;
+                    tmp_c = do_b ? &temp.B.B : &temp.A.B;
                     break;
                 case 3:
                     prec = mode.RGBPrecisionWithP.A;
                     new_c = do_b ? newEndPoints.B.A : newEndPoints.A.A;
-                    tmp_c = do_b ? temp.B.A : temp.A.A;
+                    tmp_c = do_b ? &temp.B.A : &temp.A.A;
                     break;
             }
 
@@ -815,7 +829,7 @@ namespace CSharpImageLibrary.DDS
                     if (tmp < 0 || tmp >= (1 << prec))
                         continue;
                     else
-                        tmp_c = tmp;
+                        *tmp_c = tmp;
 
                     float totalError = MapColours(indexMode, mode, temp, np, block, minErr);
                     {
@@ -870,7 +884,7 @@ namespace CSharpImageLibrary.DDS
             LDRColour[] palette = new LDRColour[BC7_MAX_INDICIES];
             float totalErr = 0;
 
-            GeneratePaletteQuantized(endPoints, mode, palette);
+            GeneratePaletteQuantized(endPoints, mode, palette, indexMode);
             for (int i = 0; i < np; i++)
             {
                 totalErr += ComputeError(block[i], palette, indexPrec, aIndexPrec);
@@ -886,8 +900,11 @@ namespace CSharpImageLibrary.DDS
 
         static void AssignIndicies(int shape, int indexMode, Mode mode, LDRColourEndPointPair[] endPoints, int[] indicies, int[] alphaIndicies, float[] afTotalErr, LDRColour[] block)
         {
-            int numIndicies = 1 << mode.IndexPrecision;
-            int alphaNumIndicies = 1 << mode.APrecision;
+            int indexPrecision = indexMode != 0 ? mode.APrecision : mode.IndexPrecision;
+            int alphaIndexPrecision = indexMode != 0 ? mode.IndexPrecision : mode.APrecision;
+
+            int numIndicies = 1 << indexPrecision;
+            int alphaNumIndicies = 1 << alphaIndexPrecision;
 
             int highestIndexBit = numIndicies >> 1;
             int alphaHighestIndexBit = alphaNumIndicies >> 1;
@@ -899,18 +916,22 @@ namespace CSharpImageLibrary.DDS
             // Get list of possibles
             for (int p = 0; p <= mode.Partitions; p++)
             {
-                GeneratePaletteQuantized(endPoints[p], mode, palette[p]);
+                GeneratePaletteQuantized(endPoints[p], mode, palette[p], indexMode);
                 afTotalErr[p] = 0;
             }
 
             for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
             {
                 int region = PartitionTable[mode.Partitions][shape][i];
-                afTotalErr[region] += ComputeError(block[i], palette[region], numIndicies, alphaNumIndicies);
+                int[] bestIdx = new int[2];
+                float err = ComputeError(block[i], palette[region], indexPrecision, alphaIndexPrecision, bestIdx);
+                afTotalErr[region] += err;
+                indicies[i] = bestIdx[0];
+                alphaIndicies[i] = bestIdx[1];
             }
 
             // Swap endpoints as needed to ensure that indicies at index_positions have a 0 high-order bit
-            if (mode.APrecision == 0)
+            if (alphaIndexPrecision == 0)
             {
                 for (int p = 0; p <= mode.Partitions; p++)
                 {
@@ -918,7 +939,7 @@ namespace CSharpImageLibrary.DDS
                     {
                         var temp = endPoints[p].B;
                         endPoints[p].B = endPoints[p].A;
-                        endPoints[p].A = endPoints[p].B;
+                        endPoints[p].A = temp;
 
                         for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
                             if (PartitionTable[mode.Partitions][shape][i] == p)
@@ -962,26 +983,29 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        static void GeneratePaletteQuantized(LDRColourEndPointPair endPoints, Mode mode, LDRColour[] palette)
+        static void GeneratePaletteQuantized(LDRColourEndPointPair endPoints, Mode mode, LDRColour[] palette, int indexMode)
         {
-            int numIndicies = 1 << mode.IndexPrecision;
-            int alphaNumIndicies = 1 << mode.APrecision;
+            int indexPrecision = indexMode != 0 ? mode.APrecision : mode.IndexPrecision;
+            int alphaIndexPrecision = indexMode != 0 ? mode.IndexPrecision : mode.APrecision;
+
+            int numIndicies = 1 << indexPrecision;
+            int alphaNumIndicies = 1 << alphaIndexPrecision;
 
             LDRColour a = Unquantise(endPoints.A, mode.RGBPrecisionWithP);
             LDRColour b = Unquantise(endPoints.B, mode.RGBPrecisionWithP);
 
-            if (mode.APrecision == 0)
+            if (alphaIndexPrecision == 0)
             {
                 for (int i = 0; i < numIndicies; i++)
-                    palette[i] = Interpolate(a, b, i, i, mode.IndexPrecision, mode.IndexPrecision);
+                    palette[i] = Interpolate(a, b, i, i, indexPrecision, indexPrecision);
             }
             else
             {
                 for (int i = 0; i < numIndicies; i++)
-                    palette[i].A = InterpolateA(a, b, i, mode.IndexPrecision);
+                    palette[i] = InterpolateRGB(a, b, i, indexPrecision);
 
-                for (int i = 0; i < numIndicies; i++)
-                    palette[i] = InterpolateRGB(a, b, i, mode.APrecision);
+                for (int i = 0; i < alphaNumIndicies; i++)
+                    palette[i].A = InterpolateA(a, b, i, alphaIndexPrecision);
             }
         }
 
@@ -1004,7 +1028,7 @@ namespace CSharpImageLibrary.DDS
 
         static int Quantize(int c, int precision)
         {
-            int round = Math.Min(255, c + (1 << (7 - precision)));
+            byte round = (byte)Math.Min(255, c + (1 << (7 - precision)));
             return round >> (8 - precision);
         }
 
@@ -1015,8 +1039,8 @@ namespace CSharpImageLibrary.DDS
             Mode mode = Modes[modeVal];
 
             int partitions = mode.Partitions;
-            int indexPrecision = mode.IndexPrecision;
-            int alphaPrecision = mode.APrecision;
+            int indexPrecision = indexMode  != 0 ? mode.APrecision : mode.IndexPrecision;
+            int alphaPrecision = indexMode != 0 ? mode.IndexPrecision : mode.APrecision;
             int numIndicies = 1 << indexPrecision;
             int alphaNumIndicies = 1 << alphaPrecision;
 
@@ -1028,8 +1052,9 @@ namespace CSharpImageLibrary.DDS
 
             // Convert block to "HDR", I'm just putting it in the 0-1 range.
             RGBColour[] Colour = new RGBColour[block.Length];
+            float factor = 255f;
             for (int i = 0; i < block.Length; i++)
-                Colour[i] = new RGBColour(block[i].R / 255f, block[i].G / 255f, block[i].B / 255f, block[i].A / 255f);
+                Colour[i] = new RGBColour(block[i].R / factor, block[i].G / factor, block[i].B / factor, block[i].A / factor);
 
             for (int p = 0; p <= partitions; p++)
             {
@@ -1053,7 +1078,7 @@ namespace CSharpImageLibrary.DDS
 
                 if (alphaPrecision == 0)
                 {
-                    RGBColour[] MinMax= OptimiseRGB(Colour, 4);
+                    RGBColour[] MinMax= OptimiseRGBA_BC67(Colour, 4, np, pixelIndicies);
                     EndPoints[p].A = new LDRColour(MinMax[0].r, MinMax[0].g, MinMax[0].b, MinMax[0].a);
                     EndPoints[p].B = new LDRColour(MinMax[1].r, MinMax[1].g, MinMax[1].b, MinMax[1].a);
                 }
@@ -1063,10 +1088,10 @@ namespace CSharpImageLibrary.DDS
                     for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
                     {
                         minA = Math.Min(minA, block[pixelIndicies[i]].A);
-                        maxA = Math.Min(maxA, block[pixelIndicies[i]].A);
+                        maxA = Math.Max(maxA, block[pixelIndicies[i]].A);
                     }
 
-                    RGBColour[] MinMax = OptimiseRGB(Colour, 4);
+                    RGBColour[] MinMax = OptimiseRGB_BC67(Colour, 4, np, pixelIndicies);
                     EndPoints[p].A = new LDRColour(MinMax[0].r, MinMax[0].g, MinMax[0].b, MinMax[0].a);
                     EndPoints[p].B = new LDRColour(MinMax[1].r, MinMax[1].g, MinMax[1].b, MinMax[1].a);
                     EndPoints[p].A.A = minA;
@@ -1087,7 +1112,7 @@ namespace CSharpImageLibrary.DDS
                     for (int i = 0; i < numIndicies; i++)
                         palette[p][i] = InterpolateRGB(EndPoints[p].A, EndPoints[p].B, i, indexPrecision);
 
-                    for(int i = 0; i < alphaPrecision; i++)
+                    for(int i = 0; i < alphaNumIndicies; i++)
                         palette[p][i].A = InterpolateA(EndPoints[p].A, EndPoints[p].B, i, alphaPrecision);
                 }
             }
@@ -1096,38 +1121,73 @@ namespace CSharpImageLibrary.DDS
             for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
             {
                 int region = PartitionTable[partitions][shape][i];
-                totalError += ComputeError(block[i], palette[region], numIndicies, alphaNumIndicies);
+                totalError += ComputeError(block[i], palette[region], indexPrecision, alphaPrecision);
             }
 
             return totalError;
         }
 
-        private static float ComputeError(LDRColour pixelColour, LDRColour[] palette, int numIndicies, int numAlphaIndicies)
+        private static float ComputeError(LDRColour pixelColour, LDRColour[] palette, int indexPrecision, int alphaPrecision, int[] bestIdxs = null)
         {
             float totalError = 0, bestError = float.MaxValue;
 
-            // Vector dots
-            var vPixel = new Vector4(pixelColour.R, pixelColour.G, pixelColour.B, pixelColour.A);
+            int numIndicies = 1 << indexPrecision;
+            int alphaNumIndicies = 1 << alphaPrecision;
 
-            for (int i = 0; i < numIndicies && bestError > 0; i++)
+            if (bestIdxs != null)
             {
-                var tPixel = new Vector4(palette[i].R, palette[i].G, palette[i].B, palette[i].A);
-                tPixel = vPixel - tPixel;
-
-                float err = Vector4.Dot(tPixel, tPixel);
-                if (err > bestError)
-                    break;
-
-                if (err < bestError)
-                    bestError = err;
+                bestIdxs[0] = 0;
+                bestIdxs[1] = 0;
             }
 
-            totalError += bestError;
+            // Vector dots
+            var vPixel = new Vector4(pixelColour.R, pixelColour.G, pixelColour.B, pixelColour.A);
+            var vPixel3 = new Vector3(pixelColour.R, pixelColour.G, pixelColour.B);
 
-            if (numAlphaIndicies != 1)
+            if (alphaPrecision == 0)
             {
+                for (int i = 0; i < numIndicies && bestError > 0; i++)
+                {
+                    var tPixel = new Vector4(palette[i].R, palette[i].G, palette[i].B, palette[i].A);
+                    tPixel = vPixel - tPixel;
+
+                    float err = Vector4.Dot(tPixel, tPixel);
+                    if (err > bestError)
+                        break;
+
+                    if (err < bestError)
+                    {
+                        bestError = err;
+                        if (bestIdxs != null)
+                            bestIdxs[0] = i;
+                    }
+                }
+
+                totalError += bestError;
+            }
+            else
+            {
+                for (int i = 0; i < numIndicies && bestError > 0; i++)
+                {
+                    var tPixel = new Vector3(palette[i].R, palette[i].G, palette[i].B);
+                    tPixel = vPixel3 - tPixel;
+
+                    float err = Vector3.Dot(tPixel, tPixel);
+                    if (err > bestError)
+                        break;
+
+                    if (err < bestError)
+                    {
+                        bestError = err;
+                        if (bestIdxs != null)
+                            bestIdxs[0] = i;
+                    }
+                }
+
+                totalError += bestError;
+
                 bestError = float.MaxValue;
-                for (int i=0;i<numAlphaIndicies && bestError > 0; i++)
+                for (int i = 0; i < alphaNumIndicies && bestError > 0; i++)
                 {
                     float ea = pixelColour.A - palette[i].A;
                     float err = ea * ea;
@@ -1135,11 +1195,15 @@ namespace CSharpImageLibrary.DDS
                         break;
 
                     if (err < bestError)
+                    {
                         bestError = err;
+                        if (bestIdxs != null)
+                            bestIdxs[1] = i;
+                    }
                 }
+                totalError += bestError;
             }
 
-            totalError += bestError;
 
             return totalError;
         }

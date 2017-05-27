@@ -246,6 +246,7 @@ namespace UI_Project
             ClosePanelButton.Visibility = Visibility.Visible;
 
             vm.WindowTitle = "ImageEngine - View and Convert";
+            vm.LoadDuration = ""; // Blank this out as it's no longer meaningful, and takes up space.
             vm.UpdateSavePreview();
         }
 
