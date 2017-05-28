@@ -39,6 +39,12 @@ namespace CSharpImageLibrary
             /// </summary>
             public ImageEngineFormat Format { get; }
 
+
+            /// <summary>
+            /// DX10Format when Format is set to DX10.
+            /// </summary>
+            public Headers.DDS_Header.DXGI_FORMAT DX10Format { get; }
+
             /// <summary>
             /// Indicates whether format contains premultiplied alpha.
             /// </summary>
@@ -131,12 +137,14 @@ namespace CSharpImageLibrary
             /// <summary>
             /// Details the given format.
             /// </summary>
-            /// <param name="DX10Format">Optional DX10 format. Default = Unknown.</param>
+            /// <param name="dxgiFormat">Optional DX10 format. Default = Unknown.</param>
             /// <param name="inFormat">Image Format.</param>
-            public ImageEngineFormatDetails(ImageEngineFormat inFormat, Headers.DDS_Header.DXGI_FORMAT DX10Format = new Headers.DDS_Header.DXGI_FORMAT())
+            public ImageEngineFormatDetails(ImageEngineFormat inFormat, Headers.DDS_Header.DXGI_FORMAT dxgiFormat = new Headers.DDS_Header.DXGI_FORMAT())
             {
                 Format = inFormat;
-                
+
+                DX10Format = dxgiFormat;
+
                 BitCount = 8;
                 {
                     switch (inFormat)

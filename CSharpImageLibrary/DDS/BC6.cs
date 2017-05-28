@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
@@ -688,7 +689,7 @@ namespace CSharpImageLibrary.DDS
         const int F16MIN = -31743;
         const int F16MAX = 31743;
         #region Compression
-        internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destPosition)
+        internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart)
         {
             int modeVal = 0;
             ModeInfo mode = ms_aInfo[modeVal];
@@ -755,12 +756,12 @@ namespace CSharpImageLibrary.DDS
                 for (int i=0;i<items && bestErr > 0; i++)
                 {
                     shape = auShape[i];
-                    Refine(mode, ref bestErr, AllEndPoints[shape]);
+                    Refine(mode, ref bestErr, AllEndPoints[shape], block, shape, destination, destStart);
                 }
             }
         }
 
-        static void Refine(ModeInfo mode, ref float bestErr, INTColourPair[] unqantisedEndPts, INTColour[] block, int shape)
+        static void Refine(ModeInfo mode, ref float bestErr, INTColourPair[] unqantisedEndPts, INTColour[] block, int shape, byte[] destination, int destStart)
         {
             float[] orgErr = new float[BC6H_MAX_REGIONS];
             float[] optErr = new float[BC6H_MAX_REGIONS];
@@ -781,9 +782,9 @@ namespace CSharpImageLibrary.DDS
                 if (mode.Transformed)
                     TransformInverse(orgEndPoints, mode.RGBAPrec[0][0], false);  // TODO Signed
 
-                OptimiseEndPoints(orgErr, orgEndPoints, optEndPoints);
-                AssignIndicies(optEndPoints, optIdx, optErr);
-                SwapIndicies(optEndPoints, optIdx);
+                OptimiseEndPoints(mode, shape, block, orgErr, optEndPoints, orgEndPoints);
+                AssignIndicies(mode, optEndPoints, optErr, shape, block, optIdx);
+                SwapIndicies(mode, shape, optIdx, optEndPoints);
 
                 float orgTotalErr = 0f;
                 float optTotalErr = 0f;
@@ -796,10 +797,10 @@ namespace CSharpImageLibrary.DDS
                 if (mode.Transformed)
                     TransformForward(optEndPoints);
 
-                if (EndPointsFit(optEndPoints) && optTotalErr < orgTotalErr && optTotalErr < bestErr)
+                if (EndPointsFit(mode, optEndPoints) && optTotalErr < orgTotalErr && optTotalErr < bestErr)
                 {
                     bestErr = optTotalErr;
-                    EmitBlock(optEndPoints, optIdx);
+                    EmitBlock(mode, destination, destStart, shape, optEndPoints, optIdx);
                 }
                 else if (orgTotalErr < bestErr)
                 {
@@ -809,12 +810,110 @@ namespace CSharpImageLibrary.DDS
                     if (mode.Transformed)
                         TransformForward(orgEndPoints);
                     bestErr = orgTotalErr;
-                    EmitBlock(orgEndPoints, orgIdx);
+                    EmitBlock(mode, destination, destStart, shape, orgEndPoints, orgIdx);
                 }
             }
         }
 
-        static void OptimiseEndPoints(ModeInfo mode, int shape, INTColour[] block)
+        static void EmitBlock(ModeInfo mode, byte[] destination, int destStart, int shape, INTColourPair[] endPts, int[] pixelIndicies)
+        {
+            int headerBits = mode.Partitions > 0 ? 82 : 65;
+            List<ModeDescriptor> desc = ms_aDesc[mode.Mode];
+            int startBit = 0;
+
+            while (startBit < headerBits)
+            {
+                switch (desc[startBit].eField)
+                {
+                    case EField.M:
+                        SetBit(ref startBit, destination, destStart, (mode.Mode >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.D:
+                        SetBit(ref startBit, destination, destStart, (shape >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.RW:
+                        SetBit(ref startBit, destination, destStart, (endPts[0].A.R >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.RX:
+                        SetBit(ref startBit, destination, destStart, (endPts[0].B.R >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.RY:
+                        SetBit(ref startBit, destination, destStart, (endPts[1].A.R >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.RZ:
+                        SetBit(ref startBit, destination, destStart, (endPts[1].B.R >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.GW:
+                        SetBit(ref startBit, destination, destStart, (endPts[0].A.G >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.GX:
+                        SetBit(ref startBit, destination, destStart, (endPts[0].B.G >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.GY:
+                        SetBit(ref startBit, destination, destStart, (endPts[1].A.G >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.GZ:
+                        SetBit(ref startBit, destination, destStart, (endPts[1].B.G >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.BW:
+                        SetBit(ref startBit, destination, destStart, (endPts[0].A.B >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.BX:
+                        SetBit(ref startBit, destination, destStart, (endPts[0].B.B >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.BY:
+                        SetBit(ref startBit, destination, destStart, (endPts[1].A.B >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                    case EField.BZ:
+                        SetBit(ref startBit, destination, destStart, (endPts[1].B.B >> desc[startBit].m_uBit) & 0x01);
+                        break;
+                }
+            }
+
+            for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
+            {
+                if (IsFixUpOffset(mode.Partitions, shape, i))
+                    SetBits(ref startBit, mode.IndexPrecision - 1, pixelIndicies[i], destination, destStart);
+                else
+                    SetBits(ref startBit, mode.IndexPrecision, pixelIndicies[i], destination, destStart);
+            }
+        }
+
+        static void SetBits(ref int startBit, int length, int value, byte[] destination, int destStart)
+        {
+            if (length == 0)
+                return;
+
+            int index = startBit >> 3;
+            int uBase = startBit - (index << 3);
+            if (uBase + length > 8)
+            {
+                int firstIndexBits = 8 - uBase;
+                int nextiIndexBits = length - firstIndexBits;
+                destination[destStart + index] &= (byte)~(((1 << firstIndexBits) - 1) << uBase);
+                destination[destStart + index] |= (byte)(value << uBase);
+                destination[destStart + index + 1] &= (byte)~((1 << nextiIndexBits) - 1);
+                destination[destStart + index + 1] |= (byte)(value >> firstIndexBits);
+            }
+            else
+            {
+                destination[destStart + index] &= (byte)~(((1 << length) - 1) << uBase);
+                destination[destStart + index] |= (byte)(value << uBase);
+            }
+
+            startBit += length;
+        }
+
+        static void SetBit(ref int startBit, byte[] destination, int destStart, int bit)
+        {
+            int index = startBit >> 3;
+            int uBase = startBit - (index << 3);
+            destination[destStart + index] &= (byte)~(1 << uBase);
+            destination[destStart + index] |= (byte)(bit << uBase);
+            startBit++;
+        }
+
+        static void OptimiseEndPoints(ModeInfo mode, int shape, INTColour[] block, float[] orgErr, INTColourPair[] optEndPts, INTColourPair[] orgEndPts)
         {
             INTColour[] pixels = new INTColour[NUM_PIXELS_PER_BLOCK];
 
@@ -825,22 +924,234 @@ namespace CSharpImageLibrary.DDS
                     if (PartitionTable[p][shape][i] == p)
                         pixels[np++] = block[i];
 
-                OptimiseOne();
+                OptimiseOne(mode, orgErr[p], ref optEndPts[p], orgEndPts[p], np, pixels);
             }
         }
 
-        static void OptimiseOne(ModeInfo mode, float orgErr, INTColourPair optEndPts, INTColourPair orgEndPts)
+        static unsafe void OptimiseOne(ModeInfo mode, float orgErr, ref INTColourPair opt, INTColourPair orgEndPts, int np, INTColour[] block)
         {
             float optErr = orgErr;
-            optEndPts.A = orgEndPts.A;
-            optEndPts.B = orgEndPts.B;
+            opt.A = orgEndPts.A;
+            opt.B = orgEndPts.B;
 
-            INTColourPair new_a, new_b;
-            INTColourPair newEndPoints;
+            INTColourPair optEndPts = opt;
+
+            INTColourPair new_a = new INTColourPair();
+            INTColourPair new_b = new INTColourPair();
+            INTColourPair newEndPoints = new INTColourPair();
             bool do_b = false;
 
             // Optimise each separately
+            for (int ch = 0; ch < 3; ch++)
+            {
+                int* optEndPtsAChannel = null;
+                int* optEndPtsBChannel = null;
+                int* newEndPtsAChannel = null;
+                int* newEndPtsBChannel = null;
+                int* new_bBChannel = null;
+                int* new_aAChannel = null;
+
+                switch (ch)
+                {
+                    case 0:
+                        optEndPtsAChannel = &optEndPts.A.R;
+                        optEndPtsBChannel = &optEndPts.B.R;
+                        newEndPtsAChannel = &newEndPoints.A.R;
+                        newEndPtsBChannel = &newEndPoints.B.R;
+                        new_aAChannel = &new_a.A.R;
+                        new_bBChannel = &new_b.B.R;
+                        break;
+                    case 1:
+                        optEndPtsAChannel = &optEndPts.A.G;
+                        optEndPtsBChannel = &optEndPts.B.G;
+                        newEndPtsAChannel = &newEndPoints.A.G;
+                        newEndPtsBChannel = &newEndPoints.B.G;
+                        new_aAChannel = &new_a.A.G;
+                        new_bBChannel = &new_b.B.G;
+                        break;
+                    case 2:
+                        optEndPtsAChannel = &optEndPts.A.B;
+                        optEndPtsBChannel = &optEndPts.B.B;
+                        newEndPtsAChannel = &newEndPoints.A.B;
+                        newEndPtsBChannel = &newEndPoints.B.B;
+                        new_aAChannel = &new_a.A.B;
+                        new_bBChannel = &new_b.B.B;
+                        break;
+                }
+
+
+
+                // figure out which endpoint when perturbed gives the most improvement and start there
+                // if we just alternate, we can easily end up in a local minima
+                float err0 = PerturbOne(mode, ch, optErr, ref optEndPts, ref new_a, false, block, np);
+                float err1 = PerturbOne(mode, ch, optErr, ref optEndPts, ref new_b, true, block, np);
+
+                if (err0 < err1)
+                {
+                    if (err0 >= optErr)
+                        continue;
+
+                    *optEndPtsAChannel = *new_aAChannel;
+                    optErr = err0;
+                    do_b = true;
+                }
+                else
+                {
+                    if (err1 >= optErr)
+                        continue;
+
+                    *optEndPtsBChannel = *new_bBChannel;
+                    optErr = err1;
+                    do_b = false;
+                }
+
+                while (true)
+                {
+                    float err = PerturbOne(mode, ch, optErr, ref optEndPts, ref newEndPoints, do_b, block, np);
+                    if (err >= optErr)
+                        break;
+
+                    if (!do_b)
+                        *optEndPtsAChannel = *newEndPtsAChannel;
+                    else
+                        *optEndPtsBChannel = *newEndPtsBChannel;
+
+                    optErr = err;
+                    do_b = !do_b;
+                }
+            }
+
+            opt = optEndPts;
+        }
+
+        static unsafe float PerturbOne(ModeInfo mode, int ch, float oldErr, ref INTColourPair olds, ref INTColourPair news, bool do_b, INTColour[] block, int np)
+        {
+            int prec = 0;
+            int* tempAChannel = null;
+            int* tempBChannel = null;
+
+            INTColourPair newEndPoints = news;
+            INTColourPair oldEndPoints = olds;
+
+            int* newAChannel = null;
+            int* newBChannel = null;
+
+
+            INTColourPair tempEndPoints = new INTColourPair();
+            float minErr = oldErr;
+            int bestStep = 0;
+
+
+            switch (ch)
+            {
+                case 0:
+                    prec = mode.RGBAPrec[0][0].R;
+
+                    tempAChannel = &tempEndPoints.A.R;
+                    tempBChannel = &tempEndPoints.B.R;
+                    newAChannel = &newEndPoints.A.R;
+                    newBChannel = &newEndPoints.B.R;
+                    break;
+                case 1:
+                    prec = mode.RGBAPrec[0][0].G;
+
+                    tempAChannel = &tempEndPoints.A.G;
+                    tempBChannel = &tempEndPoints.B.G;
+                    newAChannel = &newEndPoints.A.G;
+                    newBChannel = &newEndPoints.B.G;
+                    break;
+                case 2:
+                    prec = mode.RGBAPrec[0][0].B;
+
+                    tempAChannel = &tempEndPoints.A.B;
+                    tempBChannel = &tempEndPoints.B.B;
+                    newAChannel = &newEndPoints.A.B;
+                    newBChannel = &newEndPoints.B.B;
+                    break;
+            }
+
             
+
+            // save endpoints
+            tempEndPoints = newEndPoints = oldEndPoints;
+            
+            for (int step = 1 << (prec - 1); step != 0; step >>= 1)
+            {
+                bool improved = false;
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    if (!do_b)
+                    {
+                        *tempAChannel = *newAChannel + sign * step;
+                        if (*tempAChannel < 0 || *tempAChannel >= (1 << prec))
+                            continue;
+                    }
+                    else
+                    {
+                        *tempBChannel = *newBChannel + sign * step;
+                        if (*tempBChannel < 0 || *tempBChannel >= (1 << prec))
+                            continue;
+                    }
+
+                    float err = MapColoursQuantised(mode, tempEndPoints, np, block);
+                    if (err < minErr)
+                    {
+                        improved = true;
+                        minErr = err;
+                        bestStep = sign * step;
+                    }
+                }
+
+                if (improved)
+                {
+                    if (!do_b)
+                        *newAChannel += bestStep;
+                    else
+                        *newBChannel += bestStep;
+                }
+            }
+
+
+            // Update outsides
+            news = newEndPoints;
+            olds = oldEndPoints;
+
+            return minErr;
+        }
+
+        static float MapColoursQuantised(ModeInfo mode, INTColourPair endPts, int np, INTColour[] block)
+        {
+            int numIndicies = 1 << mode.IndexPrecision;
+
+            INTColour[] palette = new INTColour[BC6H_MAX_INDICIES];
+            GeneratePaletteQuantised(mode, endPts, palette);
+
+            float totErr = 0;
+            for (int i = 0; i < np; i++)
+            {
+                var colours = new Vector3(block[i].R, block[i].G, block[i].B);
+                var pal = new Vector3(palette[0].R, palette[0].G, palette[0].B);
+                pal = colours - pal;
+
+                float bestErr = Vector3.Dot(pal, pal);
+
+                for (int j = 1; j < numIndicies && bestErr > 0; j++)
+                {
+                    pal = new Vector3(palette[j].R, palette[j].G, palette[j].B);
+                    pal = colours - pal;
+
+                    float err = Vector3.Dot(pal, pal);
+                    if (err > bestErr)
+                        break;
+
+                    if (err < bestErr)
+                        bestErr = err;
+                }
+
+                totErr += bestErr;
+            }
+
+            return totErr;
         }
 
         static bool EndPointsFit(ModeInfo mode, INTColourPair[] endPts)
@@ -956,7 +1267,7 @@ namespace CSharpImageLibrary.DDS
                 int region = PartitionTable[mode.Partitions][shape][i];
                 float bestErr = Norm(block[i], palette[region][0]);
                 pixelIndicies[i] = 0;
-                for (int j=1;j<numIndicies && bestErr > 0; i++)
+                for (int j = 1; j < numIndicies && bestErr > 0; j++)
                 {
                     float err = Norm(block[i], palette[region][j]);
                     if (err > bestErr)

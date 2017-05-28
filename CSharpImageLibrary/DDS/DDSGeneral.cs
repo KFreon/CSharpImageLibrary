@@ -241,7 +241,7 @@ namespace CSharpImageLibrary.DDS
                 throw new InvalidOperationException($"DXT compression formats require dimensions to be multiples of 4. Got: {width}x{height}.");
 
             // Create header and write to destination
-            DDS_Header header = new DDS_Header(mipMaps.Count, height, width, destFormatDetails.Format);
+            DDS_Header header = new DDS_Header(mipMaps.Count, height, width, destFormatDetails.Format, destFormatDetails.DX10Format);
 
             int headerLength = destFormatDetails.HeaderSize;
 

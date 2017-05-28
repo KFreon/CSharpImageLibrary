@@ -877,7 +877,7 @@ namespace CSharpImageLibrary.Headers
         /// <param name="Height">Height of top mipmap.</param>
         /// <param name="Width">Width of top mipmap.</param>
         /// <param name="surfaceformat">Format header represents.</param>
-        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat)
+        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat, DXGI_FORMAT dx10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
         {
             dwSize = 124;
             dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
@@ -890,7 +890,7 @@ namespace CSharpImageLibrary.Headers
             if (surfaceformat == ImageEngineFormat.DDS_DX10)
                 DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional
                 {
-                    dxgiFormat = DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM_SRGB,
+                    dxgiFormat = dx10Format,
                     resourceDimension = D3D10_RESOURCE_DIMENSION.DDS_DIMENSION_TEXTURE2D,
                     miscFlag = DDS_DXGI_DX10_Additional.D3D10_RESOURCE_MISC_FLAGS.D3D10_RESOURCE_MISC_GENERATE_MIPS,
                     miscFlags2 = DXGI_MiscFlags.DDS_ALPHA_MODE_UNKNOWN,

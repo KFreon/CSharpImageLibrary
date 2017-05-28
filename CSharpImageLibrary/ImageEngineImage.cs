@@ -449,7 +449,7 @@ namespace CSharpImageLibrary
                 }
 
                 // Header
-                tempHeader = new DDS_Header(mipCount, newWidth, newHeight, destFormatDetails.Format);
+                tempHeader = new DDS_Header(mipCount, newWidth, newHeight, destFormatDetails.Format, destFormatDetails.DX10Format);
             }
             
             // Use existing array, otherwise create one.
