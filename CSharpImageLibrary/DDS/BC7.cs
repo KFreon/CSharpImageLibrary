@@ -257,7 +257,7 @@ namespace CSharpImageLibrary.DDS
             {
                 for (int j = 0; j < 4; j++)
                 {
-                    var offset = sourceStart + (i * sourceLineLength) + j * 4;
+                    var offset = sourceStart + (i * sourceLineLength) + j * 4;  // TODO Component sizes
                     block[i * 4 + j] = new LDRColour(
                         source[offset + 2],  // Red
                         source[offset + 1],  // Green

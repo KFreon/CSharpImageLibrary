@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
 using static CSharpImageLibrary.DDS.DX10_Helpers;
 
 namespace CSharpImageLibrary.DDS
@@ -16,6 +17,8 @@ namespace CSharpImageLibrary.DDS
 
         const int BC6H_MAX_REGIONS = 2;
         const ushort HALF_FLOAT_MASK = 32768;
+        const int BC6H_MAX_SHAPES = 32;
+        const int BC6H_MAX_INDICIES = 16;
 
         enum EField
         {
@@ -94,6 +97,14 @@ namespace CSharpImageLibrary.DDS
                 Pad = 0;
             }
 
+            public INTColour(RGBColour colour, int pad, bool isSigned)
+            {
+                R = F16ToInt(FloatToHalf(colour.r), isSigned);
+                G = F16ToInt(FloatToHalf(colour.g), isSigned);
+                B = F16ToInt(FloatToHalf(colour.b), isSigned);
+                Pad = pad;
+            }
+
             public INTColour(INTColour c)
             {
                 R = c.R;
@@ -159,6 +170,31 @@ namespace CSharpImageLibrary.DDS
             const uint FloatExponentMask = 0x7C00;
             const uint FloatSignMask = 0x8000;
 
+            static int F16ToInt(ushort halfFloat, bool isSigned)
+            {
+                int result, s;
+                if (isSigned)
+                {
+                    s = (int)(halfFloat & FloatSignMask);
+                    halfFloat &= (ushort)(FloatMantissasMask & FloatExponentMask);
+                    if (halfFloat > F16MAX)
+                        result = F16MAX;
+                    else
+                        result = halfFloat;
+
+                    result = s != 0 ? -result : result;
+                }
+                else
+                {
+                    if ((halfFloat & FloatSignMask) != 0)
+                        result = 0;
+                    else
+                        result = halfFloat;
+                }
+
+                return result;
+            }
+
             static unsafe int HalfFloatToint(ushort halfFloat)
             {
                 uint mantissa = halfFloat & FloatMantissasMask;
@@ -193,11 +229,55 @@ namespace CSharpImageLibrary.DDS
                 
 
                 // Reinterpret cast
-                void* test = &longResult;
-                float floatResult = *(float*)test;
+                float floatResult = *(float*)&longResult;
                 return (int)(floatResult * 255);
             }
+
+            static unsafe ushort FloatToHalf(float value)
+            {
+                uint val = *((uint*)&value);
+                uint sign = (val & 0x80000_000) >> 16;
+                val = val & 0x7FFFF_FFF;  // Remove sign
+                uint result = 0;
+
+                if (val > 0x477FE000)
+                {
+                    // Too large for HALF, set to infinity.
+                    if (((val & 0x7F800000) == 0x7F800000) && ((val & 0x7FFFFF) != 0))
+                        result = 0x7FFF; // NAN
+                    else
+                        result = 0x7C00; // INF
+                }
+                else
+                {
+                    if (val < 0x38800000)
+                    {
+                        // Too small for normalised half. Convert to denormalised.
+                        int shift = (int)(113 - (val >> 23));
+                        val = (0x800000 | (val & 0x7FFFFF)) >> shift;
+                    }
+                    else
+                        val += 0xC8000000;  // Rebias exponent to represent value as normalised.
+
+                    result = ((val + 0x0FFF + ((val >> 13) & 1)) >> 13) & 0x7FFF;
+                }
+
+
+                return (ushort)(result | sign);
+            }
+
+            internal INTColour Clamp(int min, int max)
+            {
+                return new INTColour()
+                {
+                    R = Math.Min(max, Math.Max(min, this.R)),
+                    G = Math.Min(max, Math.Max(min, this.G)),
+                    B = Math.Min(max, Math.Max(min, this.B))
+                };
+            }
         }
+
+        
 
         struct INTColourPair
         {
@@ -603,5 +683,469 @@ namespace CSharpImageLibrary.DDS
             }
         }
         #endregion Decompression
+
+
+        const int F16MIN = -31743;
+        const int F16MAX = 31743;
+        #region Compression
+        internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destPosition)
+        {
+            int modeVal = 0;
+            ModeInfo mode = ms_aInfo[modeVal];
+            float bestErr = float.MaxValue;
+
+            INTColourPair[][] AllEndPoints = new INTColourPair[BC6H_MAX_SHAPES][];
+            for (int i = 0; i < BC6H_MAX_SHAPES; i++)
+                AllEndPoints[i] = new INTColourPair[BC6H_MAX_REGIONS];
+
+
+            // Populate pixel structures
+            INTColour[] block = new INTColour[NUM_PIXELS_PER_BLOCK];
+            RGBColour[] pixels = new RGBColour[NUM_PIXELS_PER_BLOCK];
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    var offset = sourceStart + (i * sourceLineLength) + j * 4;  // TODO Component sizes
+
+                    var r = source[offset + 2];  // Red
+                    var g = source[offset + 1];  // Green
+                    var b = source[offset];      // Blue
+                    var a = source[offset + 3]; // Alpha
+
+                    var pixel = new RGBColour(r / 255f, g / 255f, b / 255, a / 255);
+                    pixels[i * 4 + j] = pixel;
+                    block[i * 4 + j] = new INTColour(pixel, 0, false); // TODO Signed 
+                }
+            }
+
+            for (modeVal = 0; modeVal < ms_aInfo.Length && bestErr > 0; modeVal++)
+            {
+                int maxShapes = mode.Partitions != 0 ? 32 : 1;
+                int shape = 0;
+                int items = Math.Max(1, maxShapes >> 2);
+                float[] roughMSEs = new float[BC6H_MAX_SHAPES];
+                int[] auShape = new int[BC6H_MAX_SHAPES];
+
+                // Pick best items shapes and refine them
+                for (shape = 0; shape < maxShapes; shape++)
+                {
+                    roughMSEs[shape] = RoughMSE(AllEndPoints[shape], mode, shape, block, pixels, false);   // TODO signed
+                    auShape[shape] = shape;
+                }
+
+                // Bubble up the first items item.
+                for (int i = 0; i < items; i++)
+                {
+                    for (int j = i + 1; j < maxShapes; j++)
+                    {
+                        if (roughMSEs[i] > roughMSEs[j])
+                        {
+                            var temp = roughMSEs[i];
+                            roughMSEs[i] = roughMSEs[j];
+                            roughMSEs[j] = temp;
+
+                            var temp2 = auShape[i];
+                            auShape[i] = auShape[j];
+                            auShape[j] = temp2;
+                        }
+                    }
+                }
+
+                for (int i=0;i<items && bestErr > 0; i++)
+                {
+                    shape = auShape[i];
+                    Refine(mode, ref bestErr, AllEndPoints[shape]);
+                }
+            }
+        }
+
+        static void Refine(ModeInfo mode, ref float bestErr, INTColourPair[] unqantisedEndPts, INTColour[] block, int shape)
+        {
+            float[] orgErr = new float[BC6H_MAX_REGIONS];
+            float[] optErr = new float[BC6H_MAX_REGIONS];
+            INTColourPair[] orgEndPoints = new INTColourPair[BC6H_MAX_REGIONS];
+            INTColourPair[] optEndPoints = new INTColourPair[BC6H_MAX_REGIONS];
+            int[] orgIdx = new int[NUM_PIXELS_PER_BLOCK];
+            int[] optIdx = new int[NUM_PIXELS_PER_BLOCK];
+
+            QuantiseEndPts(mode, orgEndPoints, unqantisedEndPts);
+            AssignIndicies(mode, orgEndPoints, orgErr, shape, block, orgIdx);
+            SwapIndicies(mode, shape, orgIdx, orgEndPoints);
+
+            if (mode.Transformed)
+                TransformForward(orgEndPoints);
+
+            if (EndPointsFit(mode, orgEndPoints))
+            {
+                if (mode.Transformed)
+                    TransformInverse(orgEndPoints, mode.RGBAPrec[0][0], false);  // TODO Signed
+
+                OptimiseEndPoints(orgErr, orgEndPoints, optEndPoints);
+                AssignIndicies(optEndPoints, optIdx, optErr);
+                SwapIndicies(optEndPoints, optIdx);
+
+                float orgTotalErr = 0f;
+                float optTotalErr = 0f;
+                for (int p = 0; p <= mode.Partitions; p++)
+                {
+                    orgTotalErr += orgErr[p];
+                    optTotalErr += optErr[p];
+                }
+
+                if (mode.Transformed)
+                    TransformForward(optEndPoints);
+
+                if (EndPointsFit(optEndPoints) && optTotalErr < orgTotalErr && optTotalErr < bestErr)
+                {
+                    bestErr = optTotalErr;
+                    EmitBlock(optEndPoints, optIdx);
+                }
+                else if (orgTotalErr < bestErr)
+                {
+                    // either it stopped fitting when we optimized it, or there was no improvement
+                    // so go back to the unoptimized endpoints which we know will fit
+
+                    if (mode.Transformed)
+                        TransformForward(orgEndPoints);
+                    bestErr = orgTotalErr;
+                    EmitBlock(orgEndPoints, orgIdx);
+                }
+            }
+        }
+
+        static void OptimiseEndPoints(ModeInfo mode, int shape, INTColour[] block)
+        {
+            INTColour[] pixels = new INTColour[NUM_PIXELS_PER_BLOCK];
+
+            for (int p = 0; p <= mode.Partitions; p++)
+            {
+                int np = 0;
+                for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
+                    if (PartitionTable[p][shape][i] == p)
+                        pixels[np++] = block[i];
+
+                OptimiseOne();
+            }
+        }
+
+        static void OptimiseOne(ModeInfo mode, float orgErr, INTColourPair optEndPts, INTColourPair orgEndPts)
+        {
+            float optErr = orgErr;
+            optEndPts.A = orgEndPts.A;
+            optEndPts.B = orgEndPts.B;
+
+            INTColourPair new_a, new_b;
+            INTColourPair newEndPoints;
+            bool do_b = false;
+
+            // Optimise each separately
+            
+        }
+
+        static bool EndPointsFit(ModeInfo mode, INTColourPair[] endPts)
+        {
+            bool isSigned = false;  // TODO signed
+
+            var prec0 = mode.RGBAPrec[0][0];
+            var prec1 = mode.RGBAPrec[0][1];
+            var prec2 = mode.RGBAPrec[1][0];
+            var prec3 = mode.RGBAPrec[1][1];
+
+            INTColour[] aBits = new INTColour[4];
+            aBits[0].R = NBits(endPts[0].A.R, isSigned);
+            aBits[0].G = NBits(endPts[0].A.G, isSigned);
+            aBits[0].B = NBits(endPts[0].A.B, isSigned);
+
+            aBits[1].R = NBits(endPts[0].B.R, mode.Transformed || isSigned);
+            aBits[1].G = NBits(endPts[0].B.G, mode.Transformed || isSigned);
+            aBits[1].B = NBits(endPts[0].B.B, mode.Transformed || isSigned);
+
+            if (aBits[0].R > prec0.R || aBits[1].R > prec1.R ||
+                aBits[0].G > prec0.G || aBits[1].G > prec1.G ||
+                aBits[0].B > prec0.B || aBits[1].B > prec1.B)
+                return false;
+
+            if (mode.Partitions != 0)
+            {
+                aBits[2].R = NBits(endPts[1].A.R, mode.Transformed || isSigned);
+                aBits[2].G = NBits(endPts[1].A.G, mode.Transformed || isSigned);
+                aBits[2].B = NBits(endPts[1].A.B, mode.Transformed || isSigned);
+
+                aBits[3].R = NBits(endPts[1].B.R, mode.Transformed || isSigned);
+                aBits[3].G = NBits(endPts[1].B.G, mode.Transformed || isSigned);
+                aBits[3].B = NBits(endPts[1].B.B, mode.Transformed || isSigned);
+
+                if (aBits[2].R > prec2.R || aBits[3].R > prec3.R ||
+                aBits[2].G > prec2.G || aBits[3].G > prec3.G ||
+                aBits[2].B > prec2.B || aBits[3].B > prec3.B)
+                    return false;
+            }
+
+            return true;
+        }
+
+        static int NBits(int n, bool isSigned)
+        {
+            int nb = 0;
+            if (n == 0)
+                return 0;
+            else if (n > 0)
+            {
+                for (nb = 0;n != 0; nb++, n >>= 1)
+                {
+                    // Nothing
+                }
+                return nb + (isSigned ? 1 : 0);
+            }
+            else
+            {
+                for (nb = 0; n < -1; nb++, n >>= 1)
+                {
+                    // Nothing
+                }
+                return nb + 1;
+            }
+        }
+
+        static void TransformForward(INTColourPair[] endPts)
+        {
+            endPts[0].B -= endPts[0].A;
+            endPts[1].A -= endPts[0].A;
+            endPts[1].B -= endPts[0].A;
+        }
+
+        static void SwapIndicies(ModeInfo mode, int shape, int[] pixelIndicies, INTColourPair[] endPts)
+        {
+            int numIndicies = 1 << mode.IndexPrecision;
+            int highIndexBit = numIndicies >> 1;
+
+            for (int p = 0; p <= mode.Partitions; p++)
+            {
+                int i = FixUpTable[mode.Partitions][shape][p];
+                if ((pixelIndicies[i] & highIndexBit) != 0)
+                {
+                    var temp = endPts[p].A;
+                    endPts[p].A = endPts[p].B;
+                    endPts[p].B = temp;
+
+                    for (int j = 0; j < NUM_PIXELS_PER_BLOCK; j++)
+                        if (PartitionTable[mode.Partitions][shape][j] == p)
+                            pixelIndicies[j] = numIndicies - 1 - pixelIndicies[j];
+                }
+            }
+        }
+        
+        static void AssignIndicies(ModeInfo mode, INTColourPair[] endPts, float[] totalErr, int shape, INTColour[] block, int[] pixelIndicies)
+        {
+            int numIndicies = 1 << mode.IndexPrecision;
+
+            // build list of possibles
+            INTColour[][] palette = new INTColour[BC6H_MAX_REGIONS][];
+            for (int i = 0; i < BC6H_MAX_REGIONS; i++)
+                palette[i] = new INTColour[BC6H_MAX_INDICIES];
+
+            for (int p = 0; p <= mode.Partitions; p++)
+            {
+                GeneratePaletteQuantised(mode, endPts[p], palette[p]);
+                totalErr[p] = 0;
+            }
+
+            for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
+            {
+                int region = PartitionTable[mode.Partitions][shape][i];
+                float bestErr = Norm(block[i], palette[region][0]);
+                pixelIndicies[i] = 0;
+                for (int j=1;j<numIndicies && bestErr > 0; i++)
+                {
+                    float err = Norm(block[i], palette[region][j]);
+                    if (err > bestErr)
+                        break;
+
+                    if (err < bestErr)
+                    {
+                        bestErr = err;
+                        pixelIndicies[i] = j;
+                    }
+                }
+
+                totalErr[region] += bestErr;
+            }
+        }
+
+        static void GeneratePaletteQuantised(ModeInfo mode, INTColourPair endPoints, INTColour[] palette)
+        {
+            bool isSigned = false;  // TODO signed
+
+            int numIndicies = 1 << mode.IndexPrecision;
+            var prec = mode.RGBAPrec[0][0];
+
+            // Scale endpts
+            INTColourPair unqEndPts = new INTColourPair();
+            unqEndPts.A.R = Unquantise(endPoints.A.R, prec.R, isSigned);
+            unqEndPts.A.G = Unquantise(endPoints.A.G, prec.G, isSigned);
+            unqEndPts.A.B = Unquantise(endPoints.A.B, prec.B, isSigned);
+            unqEndPts.B.R = Unquantise(endPoints.B.R, prec.R, isSigned);
+            unqEndPts.B.G = Unquantise(endPoints.B.G, prec.G, isSigned);
+            unqEndPts.B.B = Unquantise(endPoints.B.B, prec.B, isSigned);
+
+            //interpolate
+            int[] weights = null;
+            if (mode.IndexPrecision == 3)
+                weights = AWeights3;
+            else if (mode.IndexPrecision == 4)
+                weights = AWeights4;
+
+            for (int i = 0; i < numIndicies; i++)
+            {
+                palette[i].R =FinishUnquantise((unqEndPts.A.R * (BC67_WEIGHT_MAX - weights[i]) + unqEndPts.B.R * weights[i] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT, isSigned);
+                palette[i].G =FinishUnquantise((unqEndPts.A.G * (BC67_WEIGHT_MAX - weights[i]) + unqEndPts.B.G * weights[i] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT, isSigned);
+                palette[i].B =FinishUnquantise((unqEndPts.A.B * (BC67_WEIGHT_MAX - weights[i]) + unqEndPts.B.B * weights[i] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT, isSigned);
+            }
+        }
+
+        static void QuantiseEndPts(ModeInfo mode, INTColourPair[] quantisedEndPts, INTColourPair[] unqantisedEndPts)
+        {
+            bool isSigned = false;
+
+            var prec = mode.RGBAPrec[0][0];
+            for (int p = 0; p <= mode.Partitions; p++)
+            {
+                quantisedEndPts[p].A.R = Quantise(unqantisedEndPts[p].A.R, prec.R, isSigned);
+                quantisedEndPts[p].A.G = Quantise(unqantisedEndPts[p].A.G, prec.G, isSigned);
+                quantisedEndPts[p].A.B = Quantise(unqantisedEndPts[p].A.B, prec.B, isSigned);
+
+                quantisedEndPts[p].B.R = Quantise(unqantisedEndPts[p].B.R, prec.R, isSigned);
+                quantisedEndPts[p].B.G = Quantise(unqantisedEndPts[p].B.G, prec.G, isSigned);
+                quantisedEndPts[p].B.B = Quantise(unqantisedEndPts[p].B.B, prec.B, isSigned);
+            }
+        }
+
+        private static int Quantise(int value, int prec, bool isSigned)
+        {
+            int q, s = 0;
+            if (isSigned)
+            {
+                if (value < 0)
+                {
+                    s = 1;
+                    value *= -1;
+                }
+
+                q = (prec >= 16) ? value : (value << (prec - 1)) / (F16MAX + 1);
+
+                if (s != 0)
+                    q *= -1;
+            }
+            else
+            {
+                q = (prec >= 15) ? value : (value << prec) / (F16MAX + 1);
+            }
+
+            return q;
+        }
+
+        static float RoughMSE(INTColourPair[] endPoints, ModeInfo mode, int shape, INTColour[] block, RGBColour[] pixels, bool isSigned)
+        {
+            int[] pixelIndicies = new int[NUM_PIXELS_PER_BLOCK];
+
+            float err = 0f;
+            for (int p = 0; p < mode.Partitions; p++)
+            {
+                int np = 0;
+                for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
+                    if (PartitionTable[mode.Partitions][shape][i] == p)
+                        pixelIndicies[np++] = i;
+
+                // Simple cases
+                if (np == 1)
+                {
+                    endPoints[p].A = block[pixelIndicies[0]];
+                    endPoints[p].B = block[pixelIndicies[0]];
+                    continue;
+                }
+                else if (np == 2)
+                {
+                    endPoints[p].A = block[pixelIndicies[0]];
+                    endPoints[p].B = block[pixelIndicies[1]];
+                    continue;
+                }
+
+                RGBColour[] minMax = DDS_BlockHelpers.OptimiseRGB_BC67(pixels, 4, np, pixelIndicies);
+                endPoints[p].A = new INTColour(minMax[0], endPoints[p].A.Pad, isSigned);
+                endPoints[p].B = new INTColour(minMax[1], endPoints[p].B.Pad, isSigned);
+
+                if (isSigned)
+                {
+                    endPoints[p].A = endPoints[p].A.Clamp(F16MIN, F16MAX);
+                    endPoints[p].B = endPoints[p].B.Clamp(F16MIN, F16MAX);
+                }
+                else
+                {
+                    endPoints[p].A = endPoints[p].A.Clamp(0, F16MAX);
+                    endPoints[p].B = endPoints[p].B.Clamp(0, F16MAX);
+                }
+
+                err += MapColours(mode, np, p, endPoints[p], block, pixelIndicies);
+            }
+
+            return err;
+        }
+
+
+        static float MapColours(ModeInfo mode, int np, int region, INTColourPair endPoints, INTColour[] block, int[] pixelIndicies)
+        {
+            int indexPrecision = mode.IndexPrecision;
+            int numIndicies = 1 << indexPrecision;
+
+            INTColour[] aPalette = new INTColour[BC6H_MAX_INDICIES];
+            GeneratePaletteUnquantised(endPoints, indexPrecision, aPalette);
+
+            float totalErr = 0f;
+            for (int i = 0; i < np; i++)
+            {
+                float bestErr = Norm(block[pixelIndicies[i]], aPalette[0]);
+                for (int j = 1; j < numIndicies && bestErr > 0f; j++)
+                {
+                    float err = Norm(block[pixelIndicies[i]], aPalette[j]);
+                    if (err > bestErr)
+                        break;
+
+                    if (err < bestErr)
+                        bestErr = err;
+                }
+
+                totalErr += bestErr;
+            }
+
+            return totalErr;
+        }
+
+        static float Norm(INTColour a, INTColour b)
+        {
+            float dr = a.R - b.R;
+            float dg = a.G - b.G;
+            float db = a.B - b.B;
+            return dr * dr + dg * dg + db * db;
+        }
+
+        static void GeneratePaletteUnquantised(INTColourPair endPoints, int indexPrecision, INTColour[] palette)
+        {
+            int numIndicies = 1 << indexPrecision;
+            int[] weights = indexPrecision == 3 ? AWeights3 : indexPrecision == 4 ? AWeights4 : null;
+
+            for (int i = 0; i < numIndicies; i++)
+            {
+                if (weights == null)
+                    palette[i] = new INTColour();
+                else
+                {
+                    palette[i].R = (endPoints.A.R * (BC67_WEIGHT_MAX - weights[i]) + endPoints.B.R * weights[i] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+                    palette[i].G = (endPoints.A.G * (BC67_WEIGHT_MAX - weights[i]) + endPoints.B.G * weights[i] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+                    palette[i].B = (endPoints.A.B * (BC67_WEIGHT_MAX - weights[i]) + endPoints.B.B * weights[i] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+                }
+            }
+        }
+        #endregion Compression
     }
 }
