@@ -55,15 +55,17 @@ namespace CSharpImageLibrary.DDS
 
         struct ModeInfo
         {
-            public int Mode;
+            public int modeIndex;
+            public int uMode;
             public int Partitions;
             public bool Transformed;
             public int IndexPrecision;
             public LDRColour[][] RGBAPrec;  // [BC6 max regions][2]
 
-            public ModeInfo(int mode, int partitions, bool transformed, int indexPrecision, LDRColour[] first, LDRColour[] second)
+            public ModeInfo(int modeIndex, int mode, int partitions, bool transformed, int indexPrecision, LDRColour[] first, LDRColour[] second)
             {
-                this.Mode = mode;
+                this.modeIndex = modeIndex;
+                this.uMode = mode;
                 this.Partitions = partitions;
                 this.Transformed = transformed;
                 this.IndexPrecision = indexPrecision;
@@ -114,7 +116,12 @@ namespace CSharpImageLibrary.DDS
                 Pad = c.Pad;
             }
 
-            
+            public override string ToString()
+            {
+                return $"R: {R} G: {G} B: {B}, Pad: {Pad}";
+            }
+
+
 
             public static INTColour operator -(INTColour first, INTColour second)
             {
@@ -490,20 +497,20 @@ namespace CSharpImageLibrary.DDS
 
         static ModeInfo[] ms_aInfo = new ModeInfo[]
         {
-            new ModeInfo(0x00, 1, true,  3, new LDRColour[] { new LDRColour(10,10,10,0), new LDRColour( 5, 5, 5,0) },    new LDRColour[] { new LDRColour( 5, 5, 5,0), new LDRColour( 5, 5, 5,0) }),
-            new ModeInfo(0x01, 1, true,  3, new LDRColour[] { new LDRColour(7,7,7,0),    new LDRColour( 6, 6, 6,0) },    new LDRColour[] { new LDRColour( 6, 6, 6,0), new LDRColour( 6, 6, 6,0) }),
-            new ModeInfo(0x02, 1, true,  3, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 5, 4, 4,0) },    new LDRColour[] { new LDRColour( 5, 4, 4,0), new LDRColour( 5, 4, 4,0) }),
-            new ModeInfo(0x06, 1, true,  3, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 4, 5, 4,0) },    new LDRColour[] { new LDRColour( 4, 5, 4,0), new LDRColour( 4, 5, 4,0) }),
-            new ModeInfo(0x0a, 1, true,  3, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 4, 4, 5,0) },    new LDRColour[] { new LDRColour( 4, 4, 5,0), new LDRColour( 4, 4, 5,0) }),
-            new ModeInfo(0x0e, 1, true,  3, new LDRColour[] { new LDRColour(9,9,9,0),    new LDRColour( 5, 5, 5,0) },    new LDRColour[] { new LDRColour( 5, 5, 5,0), new LDRColour( 5, 5, 5,0) }),
-            new ModeInfo(0x12, 1, true,  3, new LDRColour[] { new LDRColour(8,8,8,0),    new LDRColour( 6, 5, 5,0) },    new LDRColour[] { new LDRColour( 6, 5, 5,0), new LDRColour( 6, 5, 5,0) }),
-            new ModeInfo(0x16, 1, true,  3, new LDRColour[] { new LDRColour(8,8,8,0),    new LDRColour( 5, 6, 5,0) },    new LDRColour[] { new LDRColour( 5, 6, 5,0), new LDRColour( 5, 6, 5,0) }),
-            new ModeInfo(0x1a, 1, true,  3, new LDRColour[] { new LDRColour(8,8,8,0),    new LDRColour( 5, 5, 6,0) },    new LDRColour[] { new LDRColour( 5, 5, 6,0), new LDRColour( 5, 5, 6,0) }),
-            new ModeInfo(0x1e, 1, false, 3, new LDRColour[] { new LDRColour(6,6,6,0),    new LDRColour( 6, 6, 6,0) },    new LDRColour[] { new LDRColour( 6, 6, 6,0), new LDRColour( 6, 6, 6,0) }),
-            new ModeInfo(0x03, 0, false, 4, new LDRColour[] { new LDRColour(10,10,10,0), new LDRColour( 10, 10, 10,0) }, new LDRColour[] { new LDRColour( 0, 0, 0,0), new LDRColour( 0, 0, 0,0) }),
-            new ModeInfo(0x07, 0, true,  4, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 9, 9, 9,0) },    new LDRColour[] { new LDRColour( 0, 0, 0,0), new LDRColour( 0, 0, 0,0) }),
-            new ModeInfo(0x0b, 0, true,  4, new LDRColour[] { new LDRColour(12,12,12,0), new LDRColour( 8, 8, 8,0) },    new LDRColour[] { new LDRColour( 0, 0, 0,0), new LDRColour( 0, 0, 0,0) }),
-            new ModeInfo(0x0f, 0, true,  4, new LDRColour[] { new LDRColour(16,16,16,0), new LDRColour( 4,4, 4,0) },     new LDRColour[] { new LDRColour( 0,0, 0,0),  new LDRColour( 0,0, 0,0) } )
+            new ModeInfo(0, 0x00, 1, true,  3, new LDRColour[] { new LDRColour(10,10,10,0), new LDRColour( 5, 5, 5,0) },    new LDRColour[] { new LDRColour( 5, 5, 5,0), new LDRColour( 5, 5, 5,0) }),
+            new ModeInfo(1, 0x01, 1, true,  3, new LDRColour[] { new LDRColour(7,7,7,0),    new LDRColour( 6, 6, 6,0) },    new LDRColour[] { new LDRColour( 6, 6, 6,0), new LDRColour( 6, 6, 6,0) }),
+            new ModeInfo(2, 0x02, 1, true,  3, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 5, 4, 4,0) },    new LDRColour[] { new LDRColour( 5, 4, 4,0), new LDRColour( 5, 4, 4,0) }),
+            new ModeInfo(3, 0x06, 1, true,  3, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 4, 5, 4,0) },    new LDRColour[] { new LDRColour( 4, 5, 4,0), new LDRColour( 4, 5, 4,0) }),
+            new ModeInfo(4, 0x0a, 1, true,  3, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 4, 4, 5,0) },    new LDRColour[] { new LDRColour( 4, 4, 5,0), new LDRColour( 4, 4, 5,0) }),
+            new ModeInfo(5, 0x0e, 1, true,  3, new LDRColour[] { new LDRColour(9,9,9,0),    new LDRColour( 5, 5, 5,0) },    new LDRColour[] { new LDRColour( 5, 5, 5,0), new LDRColour( 5, 5, 5,0) }),
+            new ModeInfo(6, 0x12, 1, true,  3, new LDRColour[] { new LDRColour(8,8,8,0),    new LDRColour( 6, 5, 5,0) },    new LDRColour[] { new LDRColour( 6, 5, 5,0), new LDRColour( 6, 5, 5,0) }),
+            new ModeInfo(7, 0x16, 1, true,  3, new LDRColour[] { new LDRColour(8,8,8,0),    new LDRColour( 5, 6, 5,0) },    new LDRColour[] { new LDRColour( 5, 6, 5,0), new LDRColour( 5, 6, 5,0) }),
+            new ModeInfo(8, 0x1a, 1, true,  3, new LDRColour[] { new LDRColour(8,8,8,0),    new LDRColour( 5, 5, 6,0) },    new LDRColour[] { new LDRColour( 5, 5, 6,0), new LDRColour( 5, 5, 6,0) }),
+            new ModeInfo(9, 0x1e, 1, false, 3, new LDRColour[] { new LDRColour(6,6,6,0),    new LDRColour( 6, 6, 6,0) },    new LDRColour[] { new LDRColour( 6, 6, 6,0), new LDRColour( 6, 6, 6,0) }),
+            new ModeInfo(10, 0x03, 0, false, 4, new LDRColour[] { new LDRColour(10,10,10,0), new LDRColour( 10, 10, 10,0) }, new LDRColour[] { new LDRColour( 0, 0, 0,0), new LDRColour( 0, 0, 0,0) }),
+            new ModeInfo(11, 0x07, 0, true,  4, new LDRColour[] { new LDRColour(11,11,11,0), new LDRColour( 9, 9, 9,0) },    new LDRColour[] { new LDRColour( 0, 0, 0,0), new LDRColour( 0, 0, 0,0) }),
+            new ModeInfo(12, 0x0b, 0, true,  4, new LDRColour[] { new LDRColour(12,12,12,0), new LDRColour( 8, 8, 8,0) },    new LDRColour[] { new LDRColour( 0, 0, 0,0), new LDRColour( 0, 0, 0,0) }),
+            new ModeInfo(13, 0x0f, 0, true,  4, new LDRColour[] { new LDRColour(16,16,16,0), new LDRColour( 4,4, 4,0) },     new LDRColour[] { new LDRColour( 0,0, 0,0),  new LDRColour( 0,0, 0,0) } )
         };
         #endregion Tables
 
@@ -692,7 +699,6 @@ namespace CSharpImageLibrary.DDS
         internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart)
         {
             int modeVal = 0;
-            ModeInfo mode = ms_aInfo[modeVal];
             float bestErr = float.MaxValue;
 
             INTColourPair[][] AllEndPoints = new INTColourPair[BC6H_MAX_SHAPES][];
@@ -714,7 +720,7 @@ namespace CSharpImageLibrary.DDS
                     var b = source[offset];      // Blue
                     var a = source[offset + 3]; // Alpha
 
-                    var pixel = new RGBColour(r / 255f, g / 255f, b / 255, a / 255);
+                    var pixel = new RGBColour(r / 255f, g / 255f, b / 255f, a / 255f);
                     pixels[i * 4 + j] = pixel;
                     block[i * 4 + j] = new INTColour(pixel, 0, false); // TODO Signed 
                 }
@@ -722,6 +728,7 @@ namespace CSharpImageLibrary.DDS
 
             for (modeVal = 0; modeVal < ms_aInfo.Length && bestErr > 0; modeVal++)
             {
+                ModeInfo mode = ms_aInfo[modeVal];
                 int maxShapes = mode.Partitions != 0 ? 32 : 1;
                 int shape = 0;
                 int items = Math.Max(1, maxShapes >> 2);
@@ -753,7 +760,7 @@ namespace CSharpImageLibrary.DDS
                     }
                 }
 
-                for (int i=0;i<items && bestErr > 0; i++)
+                for (int i = 0; i < items && bestErr > 0; i++)
                 {
                     shape = auShape[i];
                     Refine(mode, ref bestErr, AllEndPoints[shape], block, shape, destination, destStart);
@@ -818,7 +825,7 @@ namespace CSharpImageLibrary.DDS
         static void EmitBlock(ModeInfo mode, byte[] destination, int destStart, int shape, INTColourPair[] endPts, int[] pixelIndicies)
         {
             int headerBits = mode.Partitions > 0 ? 82 : 65;
-            List<ModeDescriptor> desc = ms_aDesc[mode.Mode];
+            List<ModeDescriptor> desc = ms_aDesc[mode.modeIndex];
             int startBit = 0;
 
             while (startBit < headerBits)
@@ -826,7 +833,7 @@ namespace CSharpImageLibrary.DDS
                 switch (desc[startBit].eField)
                 {
                     case EField.M:
-                        SetBit(ref startBit, destination, destStart, (mode.Mode >> desc[startBit].m_uBit) & 0x01);
+                        SetBit(ref startBit, destination, destStart, (mode.uMode >> desc[startBit].m_uBit) & 0x01);
                         break;
                     case EField.D:
                         SetBit(ref startBit, destination, destStart, (shape >> desc[startBit].m_uBit) & 0x01);
@@ -1203,7 +1210,7 @@ namespace CSharpImageLibrary.DDS
                 return 0;
             else if (n > 0)
             {
-                for (nb = 0;n != 0; nb++, n >>= 1)
+                for (nb = 0; n != 0; nb++, n >>= 1)
                 {
                     // Nothing
                 }
