@@ -244,11 +244,11 @@ namespace CSharpImageLibrary.DDS
             static unsafe ushort FloatToHalf(float value)
             {
                 uint val = *((uint*)&value);
-                uint sign = (val & 0x80000_000) >> 16;
+                uint sign = (val & 0x80000_000U) >> 16;
                 val = val & 0x7FFFF_FFF;  // Remove sign
                 uint result = 0;
 
-                if (val > 0x477FE000)
+                if (val > 0x477FE000U)
                 {
                     // Too large for HALF, set to infinity.
                     if (((val & 0x7F800000) == 0x7F800000) && ((val & 0x7FFFFF) != 0))
@@ -258,16 +258,16 @@ namespace CSharpImageLibrary.DDS
                 }
                 else
                 {
-                    if (val < 0x38800000)
+                    if (val < 0x38800000U)
                     {
                         // Too small for normalised half. Convert to denormalised.
-                        int shift = (int)(113 - (val >> 23));
-                        val = (0x800000 | (val & 0x7FFFFF)) >> shift;
+                        int shift = (int)(113U - (val >> 23));
+                        val = (0x800000U | (val & 0x7FFFFFU)) >> shift;
                     }
                     else
-                        val += 0xC8000000;  // Rebias exponent to represent value as normalised.
+                        val += 0xC8000000U;  // Rebias exponent to represent value as normalised.
 
-                    result = ((val + 0x0FFF + ((val >> 13) & 1)) >> 13) & 0x7FFF;
+                    result = ((val + 0x0FFFU + ((val >> 13) & 1U)) >> 13) & 0x7FFFU;
                 }
 
 
@@ -278,9 +278,9 @@ namespace CSharpImageLibrary.DDS
             {
                 return new INTColour()
                 {
-                    R = Math.Min(max, Math.Max(min, this.R)),
-                    G = Math.Min(max, Math.Max(min, this.G)),
-                    B = Math.Min(max, Math.Max(min, this.B))
+                    R = Math.Min(max, Math.Max(min, R)),
+                    G = Math.Min(max, Math.Max(min, G)),
+                    B = Math.Min(max, Math.Max(min, B))
                 };
             }
         }
@@ -694,7 +694,7 @@ namespace CSharpImageLibrary.DDS
 
 
         const int F16MIN = -31743;
-        const int F16MAX = 31743;
+        const ushort F16MAX = 31743;
         #region Compression
         internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart)
         {
@@ -827,6 +827,7 @@ namespace CSharpImageLibrary.DDS
             int headerBits = mode.Partitions > 0 ? 82 : 65;
             List<ModeDescriptor> desc = ms_aDesc[mode.modeIndex];
             int startBit = 0;
+
 
             while (startBit < headerBits)
             {
@@ -1195,8 +1196,8 @@ namespace CSharpImageLibrary.DDS
                 aBits[3].B = NBits(endPts[1].B.B, mode.Transformed || isSigned);
 
                 if (aBits[2].R > prec2.R || aBits[3].R > prec3.R ||
-                aBits[2].G > prec2.G || aBits[3].G > prec3.G ||
-                aBits[2].B > prec2.B || aBits[3].B > prec3.B)
+                    aBits[2].G > prec2.G || aBits[3].G > prec3.G ||
+                    aBits[2].B > prec2.B || aBits[3].B > prec3.B)
                     return false;
             }
 
@@ -1368,7 +1369,7 @@ namespace CSharpImageLibrary.DDS
             int[] pixelIndicies = new int[NUM_PIXELS_PER_BLOCK];
 
             float err = 0f;
-            for (int p = 0; p < mode.Partitions; p++)
+            for (int p = 0; p <= mode.Partitions; p++)
             {
                 int np = 0;
                 for (int i = 0; i < NUM_PIXELS_PER_BLOCK; i++)
@@ -1389,7 +1390,7 @@ namespace CSharpImageLibrary.DDS
                     continue;
                 }
 
-                RGBColour[] minMax = DDS_BlockHelpers.OptimiseRGB_BC67(pixels, 4, np, pixelIndicies);
+                RGBColour[] minMax = OptimiseRGB_BC67(pixels, 4, np, pixelIndicies);
                 endPoints[p].A = new INTColour(minMax[0], endPoints[p].A.Pad, isSigned);
                 endPoints[p].B = new INTColour(minMax[1], endPoints[p].B.Pad, isSigned);
 

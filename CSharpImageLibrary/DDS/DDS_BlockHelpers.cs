@@ -345,7 +345,7 @@ namespace CSharpImageLibrary.DDS
 
             // Find min max
             RGBColour X = new RGBColour(1f, 1f, 1f, 0f);
-            RGBColour Y = new RGBColour();
+            RGBColour Y = new RGBColour(0f, 0f, 0f, 0f);
 
             for (int i = 0; i < np; i++)
             {
