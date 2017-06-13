@@ -11,7 +11,7 @@ using static CSharpImageLibrary.DDS.DX10_Helpers;
 
 namespace CSharpImageLibrary.DDS
 {
-    static class BC6
+    public static class BC6
     {
 
         static int[] ModeToInfo = { 0, 1, 2, 10, -1, -1, 3, 11, -1, -1, 4, 12, -1, -1, 5, 13, -1, -1, 6, -1, -1, -1, 7, -1, -1, -1, 8, -1, -1, -1, 9, -1 };
@@ -88,7 +88,7 @@ namespace CSharpImageLibrary.DDS
             return ((colour & (1 << (precision - 1))) != 0 ? (~0 << precision) : 0) | colour;
         }
 
-        struct INTColour
+        internal struct INTColour
         {
             public int R, G, B, Pad;
 
@@ -287,7 +287,7 @@ namespace CSharpImageLibrary.DDS
 
         
 
-        struct INTColourPair
+        internal struct INTColourPair
         {
             public INTColour A;
             public INTColour B;
@@ -515,7 +515,7 @@ namespace CSharpImageLibrary.DDS
         #endregion Tables
 
         #region Decompression
-        public static LDRColour[] DecompressBC6(byte[] source, int sourceStart, bool isSigned)
+        internal static LDRColour[] DecompressBC6(byte[] source, int sourceStart, bool isSigned)
         {
             LDRColour[] block = new LDRColour[NUM_PIXELS_PER_BLOCK];
 
@@ -696,7 +696,66 @@ namespace CSharpImageLibrary.DDS
         const int F16MIN = -31743;
         const ushort F16MAX = 31743;
         #region Compression
-        internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart)
+        public static void test()
+        {
+            // Read in sample data
+            List<INTColour[]> intBlocks = new List<INTColour[]>();
+            List<RGBColour[]> floatBlocks = new List<RGBColour[]>();
+
+            List<List<INTColourPair[]>> diffs = new List<List<INTColourPair[]>>();
+
+
+            var intLines = File.ReadAllLines("R:\\IntPixels.txt");
+            var hdrs = File.ReadAllLines("R:\\hdrs.txt");
+
+            INTColour[] tempInt = new INTColour[16];
+            int count = 0;
+            foreach (var line in intLines)
+            {
+                if (line == "")
+                {
+                    intBlocks.Add(tempInt);
+                    tempInt = new INTColour[16];
+                    count = 0;
+                }
+
+                var bits = line.Split(' ').Select(t => int.Parse(t)).ToList();
+                tempInt[count++] = new INTColour(bits[0], bits[1], bits[2]);
+            }
+
+            count = 0;
+            RGBColour[] tempfloat = new RGBColour[16];
+            foreach (var line in hdrs)
+            {
+                if (line == "")
+                {
+                    floatBlocks.Add(tempfloat);
+                    tempfloat = new RGBColour[16];
+                    count = 0;
+                }
+
+                var bits = line.Split(' ').Select(t => float.Parse(t)).ToList();
+                tempfloat[count++] = new RGBColour(bits[0], bits[1], bits[2], 1.0f);
+            }
+
+
+
+            // Test
+            for (int i = 0; i < intBlocks.Count; i++)
+            {
+                INTColour[] ints = intBlocks[i];
+                RGBColour[] floats = floatBlocks[i];
+                byte[] destination = new byte[16];
+
+                CSharpImageLibrary.DDS.BC6.CompressBC6Block(null, 0, 0, destination, 0, ints, floats);
+            }
+
+
+            Console.WriteLine();
+        }
+
+
+        internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart, INTColour[] overrides = null, RGBColour[] overrides2 = null)
         {
             int modeVal = 0;
             float bestErr = float.MaxValue;
@@ -766,6 +825,7 @@ namespace CSharpImageLibrary.DDS
                     Refine(mode, ref bestErr, AllEndPoints[shape], block, shape, destination, destStart);
                 }
             }
+
         }
 
         static void Refine(ModeInfo mode, ref float bestErr, INTColourPair[] unqantisedEndPts, INTColour[] block, int shape, byte[] destination, int destStart)
@@ -820,6 +880,7 @@ namespace CSharpImageLibrary.DDS
                     EmitBlock(mode, destination, destStart, shape, orgEndPoints, orgIdx);
                 }
             }
+
         }
 
         static void EmitBlock(ModeInfo mode, byte[] destination, int destStart, int shape, INTColourPair[] endPts, int[] pixelIndicies)
@@ -827,6 +888,9 @@ namespace CSharpImageLibrary.DDS
             int headerBits = mode.Partitions > 0 ? 82 : 65;
             List<ModeDescriptor> desc = ms_aDesc[mode.modeIndex];
             int startBit = 0;
+
+            Debug.Write($"{endPts[0].A.R} {endPts[0].A.G} {endPts[0].A.B} - {endPts[0].B.R} {endPts[0].B.G} {endPts[0].B.B} == ");
+            Debug.WriteLine($"{endPts[1].A.R} {endPts[1].A.G} {endPts[1].A.B} - {endPts[1].B.R} {endPts[1].B.G} {endPts[1].B.B}");
 
 
             while (startBit < headerBits)

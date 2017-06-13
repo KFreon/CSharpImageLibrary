@@ -246,8 +246,8 @@ namespace CSharpImageLibrary.DDS
             int headerLength = destFormatDetails.HeaderSize;
 
             int fullSize = GetCompressedSizeOfImage(mipMaps.Count, destFormatDetails, width, height);
-            if (destFormatDetails.ComponentSize != 1)
-                fullSize += (fullSize - headerLength) * destFormatDetails.ComponentSize;   // Size adjustment for destination to allow for different component sizes.
+            /*if (destFormatDetails.ComponentSize != 1)
+                fullSize += (fullSize - headerLength) * destFormatDetails.ComponentSize;*/   // Size adjustment for destination to allow for different component sizes.
 
             byte[] destination = new byte[fullSize];
             header.WriteToArray(destination, 0);
@@ -421,7 +421,8 @@ namespace CSharpImageLibrary.DDS
             mipOffset = requiredOffset;
 
             // Should only occur when an image has 0 or 1 mipmap.
-            if (streamLength <= (requiredOffset - destFormatDetails.HeaderSize))
+            //if (streamLength <= (requiredOffset - destFormatDetails.HeaderSize))
+            if (streamLength <= requiredOffset)
                 return false;
 
             return true;

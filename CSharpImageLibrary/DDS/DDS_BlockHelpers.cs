@@ -27,10 +27,10 @@ namespace CSharpImageLibrary.DDS
 
             public RGBColour(float red, float green, float blue, float alpha)
             {
-                r = red > 1f ? 1f : red;
-                g = green > 1f ? 1f : green;
-                b = blue > 1f ? 1f : blue;
-                a = alpha > 1f ? 1f : alpha;
+                r = red;
+                g = green;
+                b = blue;
+                a = alpha;
             }
         }
 
@@ -1228,6 +1228,10 @@ namespace CSharpImageLibrary.DDS
             catch (EndOfStreamException e)
             {
                 // It's due to weird shaped mips at really low resolution. Like 2x4
+                Debug.WriteLine(e.ToString());
+            }
+            catch(ArgumentOutOfRangeException e)
+            {
                 Debug.WriteLine(e.ToString());
             }
 
