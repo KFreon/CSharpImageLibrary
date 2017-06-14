@@ -211,6 +211,10 @@ namespace UI_Project
         string prev_LoadDialogFolder = null;
         private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
+            /*CSharpImageLibrary.DDS.BC6.test();
+            this.Close();
+            return;*/
+
             OpenFileDialog ofd = new OpenFileDialog()
             {
                 Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),

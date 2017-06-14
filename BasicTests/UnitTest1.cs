@@ -11,7 +11,7 @@ namespace BasicTests
         [TestMethod]
         public void BC6_Test()
         {
-            
+            CSharpImageLibrary.DDS.BC6.test();
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
 using static CSharpImageLibrary.DDS.DX10_Helpers;
 
@@ -140,17 +141,23 @@ namespace CSharpImageLibrary.DDS
 
             internal LDRColour ToLDRColour(bool isSigned)
             {
+                var r = IntToFloatIsh(R, isSigned);
+                var g = IntToFloatIsh(G, isSigned);
+                var b = IntToFloatIsh(B, isSigned);
+
+                var c = Color.FromScRgb(1f, r, g, b);
+
                 LDRColour colour = new LDRColour()
                 {
-                    R = IntToFloatIsh(R, isSigned),
-                    G = IntToFloatIsh(G, isSigned),
-                    B = IntToFloatIsh(B, isSigned)
+                    R = c.R,
+                    G = c.G,
+                    B = c.B
                 };
 
                 return colour;
             }
 
-            static int IntToFloatIsh(int input, bool isSigned)
+            static float IntToFloatIsh(int input, bool isSigned)
             {
                 ushort outVal;
                 if (isSigned)
@@ -171,7 +178,7 @@ namespace CSharpImageLibrary.DDS
 
                 // outVal is a 'half float' now apparently
 
-                return HalfFloatToint(outVal);
+                return HalfFloatToFloat(outVal);
             }
 
             const uint FloatMantissasMask = 0x03FF;
@@ -203,7 +210,7 @@ namespace CSharpImageLibrary.DDS
                 return result;
             }
 
-            static unsafe int HalfFloatToint(ushort halfFloat)
+            static unsafe float HalfFloatToFloat(ushort halfFloat)
             {
                 uint mantissa = halfFloat & FloatMantissasMask;
                 uint exponent = halfFloat & FloatExponentMask;
@@ -237,8 +244,7 @@ namespace CSharpImageLibrary.DDS
                 
 
                 // Reinterpret cast
-                float floatResult = *(float*)&longResult;
-                return (int)(floatResult * 255);
+                return *(float*)&longResult;
             }
 
             static unsafe ushort FloatToHalf(float value)
@@ -717,6 +723,7 @@ namespace CSharpImageLibrary.DDS
                     intBlocks.Add(tempInt);
                     tempInt = new INTColour[16];
                     count = 0;
+                    continue;
                 }
 
                 var bits = line.Split(' ').Select(t => int.Parse(t)).ToList();
@@ -732,6 +739,7 @@ namespace CSharpImageLibrary.DDS
                     floatBlocks.Add(tempfloat);
                     tempfloat = new RGBColour[16];
                     count = 0;
+                    continue;
                 }
 
                 var bits = line.Split(' ').Select(t => float.Parse(t)).ToList();
@@ -752,9 +760,14 @@ namespace CSharpImageLibrary.DDS
 
 
             Console.WriteLine();
+            /*sw.Dispose();
+            sw2.Dispose();*/
+            //DDS_BlockHelpers.sw.Dispose();
+            //emit.Dispose();
         }
 
-
+        /*public static StreamWriter sw = new StreamWriter("R:\\csOutput.txt", true);
+        public static StreamWriter sw2 = new StreamWriter("R:\\roughNEW.txt", true);*/
         internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart, INTColour[] overrides = null, RGBColour[] overrides2 = null)
         {
             int modeVal = 0;
@@ -768,22 +781,34 @@ namespace CSharpImageLibrary.DDS
             // Populate pixel structures
             INTColour[] block = new INTColour[NUM_PIXELS_PER_BLOCK];
             RGBColour[] pixels = new RGBColour[NUM_PIXELS_PER_BLOCK];
-            for (int i = 0; i < 4; i++)
+
+            if (overrides != null)
             {
-                for (int j = 0; j < 4; j++)
+                block = overrides;
+                pixels = overrides2;
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
                 {
-                    var offset = sourceStart + (i * sourceLineLength) + j * 4;  // TODO Component sizes
+                    for (int j = 0; j < 4; j++)
+                    {
+                        var offset = sourceStart + (i * sourceLineLength) + j * 4;  // TODO Component sizes
 
-                    var r = source[offset + 2];  // Red
-                    var g = source[offset + 1];  // Green
-                    var b = source[offset];      // Blue
-                    var a = source[offset + 3]; // Alpha
+                        var r = source[offset + 2];  // Red
+                        var g = source[offset + 1];  // Green
+                        var b = source[offset];      // Blue
+                        var a = source[offset + 3]; // Alpha
 
-                    var pixel = new RGBColour(r / 255f, g / 255f, b / 255f, a / 255f);
-                    pixels[i * 4 + j] = pixel;
-                    block[i * 4 + j] = new INTColour(pixel, 0, false); // TODO Signed 
+                        //var pixel = new RGBColour(r / 255f, g / 255f, b / 255f, a / 255f);
+                        var c = Color.FromArgb(a, r, g, b);
+                        var pixel = new RGBColour(c.ScR, c.ScG, c.ScB, c.ScA);
+                        pixels[i * 4 + j] = pixel;
+                        block[i * 4 + j] = new INTColour(pixel, 0, false); // TODO Signed 
+                    }
                 }
             }
+
 
             for (modeVal = 0; modeVal < ms_aInfo.Length && bestErr > 0; modeVal++)
             {
@@ -794,11 +819,16 @@ namespace CSharpImageLibrary.DDS
                 float[] roughMSEs = new float[BC6H_MAX_SHAPES];
                 int[] auShape = new int[BC6H_MAX_SHAPES];
 
+                //sw.WriteLine($"mode {modeVal}");
+
                 // Pick best items shapes and refine them
                 for (shape = 0; shape < maxShapes; shape++)
                 {
-                    roughMSEs[shape] = RoughMSE(AllEndPoints[shape], mode, shape, block, pixels, false);   // TODO signed
+                    roughMSEs[shape] = RoughMSE(ref AllEndPoints[shape], mode, shape, block, pixels, false);   // TODO signed
                     auShape[shape] = shape;
+
+                    //sw.WriteLine($"shape: {shape}   auShape[shape]: {auShape[shape]}");
+                   // sw.WriteLine($"mse[uShape]: " + roughMSEs[shape].ToString("F6"));
                 }
 
                 // Bubble up the first items item.
@@ -822,10 +852,13 @@ namespace CSharpImageLibrary.DDS
                 for (int i = 0; i < items && bestErr > 0; i++)
                 {
                     shape = auShape[i];
+                    //sw.WriteLine($"epShape: {shape}");
                     Refine(mode, ref bestErr, AllEndPoints[shape], block, shape, destination, destStart);
+
+                    //sw.WriteLine($"{items} {bestErr.ToString("F6")}");
                 }
             }
-
+            //sw.WriteLine("");              ////////// Number of calls to RoughMSE is the same, but somehow inside is different.
         }
 
         static void Refine(ModeInfo mode, ref float bestErr, INTColourPair[] unqantisedEndPts, INTColour[] block, int shape, byte[] destination, int destStart)
@@ -883,14 +916,23 @@ namespace CSharpImageLibrary.DDS
 
         }
 
+
+        // SO, using their numbers works fine. The internals are correct, it's my inputs that aren't right. Seems reeally finicky though.
+
+
+
+        //static StreamWriter emit = new StreamWriter("R:\\emitNEW.txt", true);
         static void EmitBlock(ModeInfo mode, byte[] destination, int destStart, int shape, INTColourPair[] endPts, int[] pixelIndicies)
         {
             int headerBits = mode.Partitions > 0 ? 82 : 65;
             List<ModeDescriptor> desc = ms_aDesc[mode.modeIndex];
             int startBit = 0;
 
-            Debug.Write($"{endPts[0].A.R} {endPts[0].A.G} {endPts[0].A.B} - {endPts[0].B.R} {endPts[0].B.G} {endPts[0].B.B} == ");
-            Debug.WriteLine($"{endPts[1].A.R} {endPts[1].A.G} {endPts[1].A.B} - {endPts[1].B.R} {endPts[1].B.G} {endPts[1].B.B}");
+            /*Debug.Write($"{endPts[0].A.R} {endPts[0].A.G} {endPts[0].A.B} - {endPts[0].B.R} {endPts[0].B.G} {endPts[0].B.B} == ");
+            Debug.WriteLine($"{endPts[1].A.R} {endPts[1].A.G} {endPts[1].A.B} - {endPts[1].B.R} {endPts[1].B.G} {endPts[1].B.B}");*/
+
+            //emit.Write($"{mode.uMode}, {mode.modeIndex}:  {endPts[0].A.R} {endPts[0].A.G} {endPts[0].A.B} - {endPts[0].B.R} {endPts[0].B.G} {endPts[0].B.B} == ");
+            //emit.WriteLine($"{endPts[1].A.R} {endPts[1].A.G} {endPts[1].A.B} - {endPts[1].B.R} {endPts[1].B.G} {endPts[1].B.B}");
 
 
             while (startBit < headerBits)
@@ -1428,9 +1470,11 @@ namespace CSharpImageLibrary.DDS
             return q;
         }
 
-        static float RoughMSE(INTColourPair[] endPoints, ModeInfo mode, int shape, INTColour[] block, RGBColour[] pixels, bool isSigned)
+        static float RoughMSE(ref INTColourPair[] endPoints, ModeInfo mode, int shape, INTColour[] block, RGBColour[] pixels, bool isSigned)
         {
             int[] pixelIndicies = new int[NUM_PIXELS_PER_BLOCK];
+
+            //sw2.WriteLine(mode.Partitions);
 
             float err = 0f;
             for (int p = 0; p <= mode.Partitions; p++)
@@ -1454,9 +1498,21 @@ namespace CSharpImageLibrary.DDS
                     continue;
                 }
 
+                /*sw2.Write("Pre Optimise");
+                foreach (var pixel in pixels)
+                    sw2.Write(pixel + " - ");
+
+                sw2.WriteLine("");
+                sw2.WriteLine($"np: {np}");
+                foreach (var ind in pixelIndicies)
+                    sw2.Write(ind + " ");
+
+                sw2.WriteLine("");*/
                 RGBColour[] minMax = OptimiseRGB_BC67(pixels, 4, np, pixelIndicies);
                 endPoints[p].A = new INTColour(minMax[0], endPoints[p].A.Pad, isSigned);
                 endPoints[p].B = new INTColour(minMax[1], endPoints[p].B.Pad, isSigned);
+
+                //sw2.WriteLine(minMax[0].r.ToString("F6") + " " + minMax[0].g.ToString("F6") + " " + minMax[0].b.ToString("F6"));
 
                 if (isSigned)
                 {
@@ -1469,8 +1525,10 @@ namespace CSharpImageLibrary.DDS
                     endPoints[p].B = endPoints[p].B.Clamp(0, F16MAX);
                 }
 
+
                 err += MapColours(mode, np, p, endPoints[p], block, pixelIndicies);
             }
+
 
             return err;
         }
