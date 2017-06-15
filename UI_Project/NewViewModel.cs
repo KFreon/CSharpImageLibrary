@@ -1028,6 +1028,8 @@ namespace UI_Project
                     _DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
                 else
                     DX10Format = value.Contains("BC6") ? DXGI_FORMAT.DXGI_FORMAT_BC6H_UF16 : DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM_SRGB;
+
+                OnPropertyChanged(nameof(DX10ComboSelection));
             }
         }
 

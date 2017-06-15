@@ -291,7 +291,29 @@
 
             <ControlTemplate x:Key="MainFormatSelector">
                 <DockPanel>
+                    <Label Content="WARNING: DX10 formats can take a VERY long time to generate." DockPanel.Dock="Bottom" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Center">
+                        <Label.Style>
+                            <Style TargetType="Label">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Library:ImageEngineFormat.DDS_DX10}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Label.Style>
+                    </Label>
                     <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,3">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Library:ImageEngineFormat.DDS_DX10}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
                         <Label Content="DX10 Format: " FontWeight="Bold"/>
                         <ComboBox x:Name="DX10FormatCombo" DockPanel.Dock="Bottom" HorizontalAlignment="Left" SelectedValue="{Binding DX10ComboSelection, Mode=TwoWay}">
                             <ComboBoxItem Content="BC6"/>
