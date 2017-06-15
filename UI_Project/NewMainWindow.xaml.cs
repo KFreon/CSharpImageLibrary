@@ -698,5 +698,10 @@ namespace UI_Project
             else
                 InfoRow.Height = new GridLength(1.2, GridUnitType.Star);
         }
+
+        private void LoadingLayerCancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            vm.Cancel();
+        }
     }
 }

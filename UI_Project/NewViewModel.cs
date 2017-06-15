@@ -33,6 +33,16 @@ namespace UI_Project
 
     public class NewViewModel : ViewModelBase
     {
+        CancellationTokenSource cts = new CancellationTokenSource();
+
+        public bool IsCancellationRequested
+        {
+            get
+            {
+                return cts.IsCancellationRequested;
+            }
+        }
+
         bool useHighQualityScaling = true;
         public bool UseHighQualityScaling
         {
@@ -56,6 +66,19 @@ namespace UI_Project
             set
             {
                 SetProperty(ref useSourceFormatForSaving, value);
+            }
+        }
+
+        string status = null;
+        public string Status
+        {
+            get
+            {
+                return status;
+            }
+            set
+            {
+                SetProperty(ref status, value);
             }
         }
 
@@ -319,6 +342,7 @@ namespace UI_Project
                     {
                         Task.Run(async () =>
                         {
+                            Status = "Saving...";
                             Busy = true;
                             try
                             {
@@ -1277,6 +1301,7 @@ namespace UI_Project
         {
             LoadFailed = false;
 
+            Status = "Loading...";
             Busy = true;
 
             if (!timer.IsRunning)
@@ -1635,6 +1660,7 @@ namespace UI_Project
             if (!IsImageLoaded)
                 return;
 
+            Status = "Updating Preview...";
             Busy = true;
 
             // Don't bother regenerating things. Just show what it looks like.
@@ -1670,6 +1696,13 @@ namespace UI_Project
             Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
 
             Busy = false;
+        }
+
+        public void Cancel()
+        {
+            cts.Cancel();
+            Status = "Cancelling...";
+            OnPropertyChanged(nameof(IsCancellationRequested));
         }
     }
 }

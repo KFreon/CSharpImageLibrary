@@ -21,14 +21,14 @@
         <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
         <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
         <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
-        
+
         <sys:Boolean x:Key="TrueValue">
             True
         </sys:Boolean>
     </Window.Resources>
 
 
-    <Grid x:Name="MainGrid" Margin="0,0,3,5" IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}">
+    <Grid x:Name="MainGrid" Margin="0,0,3,5" >
         <Grid.Resources>
             <ObjectDataProvider MethodName="GetValues"
                         ObjectType="{x:Type sys:Enum}"
@@ -89,7 +89,7 @@
                 <Setter Property="StrokeThickness" Value="2"/>
                 <Setter Property="Stretch" Value="UniformToFill"/>
             </Style>
-            
+
             <Style TargetType="Label">
                 <Setter Property="Foreground" Value="White"/>
             </Style>
@@ -103,7 +103,7 @@
                 <Setter Property="Inline.Foreground" Value="Wheat"/>
                 <Setter Property="TextBlock.Padding" Value="5,2"/>
             </Style>
-            
+
             <Style x:Key="TitleStyle" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
                 <Setter Property="HorizontalAlignment" Value="Center"/>
                 <Setter Property="FontSize" Value="20"/>
@@ -116,7 +116,7 @@
                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                 </Border>
             </ControlTemplate>
-            
+
             <Style TargetType="Button">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderBrush" Value="LightGray"/>
@@ -251,7 +251,7 @@
                     </DockPanel>
                 </Border>
             </ControlTemplate>
-            
+
             <ControlTemplate x:Key="DXT1AlphaSettingTemplate">
                 <Border BorderBrush="Gray" BorderThickness="0.5">
                     <DockPanel>
@@ -464,8 +464,8 @@
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        
-        
+
+
         <StackPanel x:Name="ChannelSelectorBox" Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top" Style="{StaticResource UnloadedOpacityStyle}">
             <StackPanel.Resources>
                 <Style TargetType="ToggleButton">
@@ -512,7 +512,7 @@
                     </Style.Triggers>
                 </Style>
             </StackPanel.Resources>
-            
+
             <Label Content="Channel Selectors: "/>
             <ToggleButton x:Name="RedChannelSelector" Background="Red" IsChecked="{Binding IsRedChannelOn}"/>
             <ToggleButton x:Name="GreeNChannelSelector" Background="LightGreen" IsChecked="{Binding IsGreenChannelOn}"/>
@@ -631,7 +631,7 @@
                 </Image.RenderTransform>
             </Image>
         </UsefulWPF:PanAndZoomBorder>
-        
+
         <Grid x:Name="WidthIndicatorContainer" VerticalAlignment="Bottom" Grid.Row="1" Margin="2,5,25,5" Height="15" Style="{StaticResource UnloadedOpacityStyle}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="211*"/>
@@ -706,7 +706,7 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            
+
             <TextBlock x:Name="MipHeightIndicator" Text="{Binding MipHeight, StringFormat=({0})}" VerticalAlignment="Bottom" Grid.Row="1" Padding="0" FontWeight="Bold">
                 <TextBlock.LayoutTransform>
                     <TransformGroup>
@@ -932,7 +932,7 @@
                                         <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
                                         <Run Text="{Binding LoadedFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
-                                
+
                                 <TextBlock x:Name="DX10FormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center" FontSize="8" TextAlignment="Center" Visibility="{Binding IsDX10Loaded, Converter={StaticResource BoolToVisConverter}}">
                                         <Run Text="DX10 Format: " Style="{StaticResource TitleElementStyle}"/>
                                         <LineBreak/>
@@ -1240,7 +1240,7 @@
 
         </Border>
 
-        
+
         <Border x:Name="SettingsBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding SettingsPanelOpen}">
             <Border Style="{StaticResource FadedInnerBorder}">
                 <DockPanel LastChildFill="False">
@@ -1468,9 +1468,9 @@
             </Border>
         </Border>
 
-        <DockPanel Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}">
+        <DockPanel x:Name="LoadingIndicationPanel" Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}">
             <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                <Border x:Name="LoadingBorder" BorderBrush="Red" BorderThickness="10" Padding="20,5">
+                <Border x:Name="LoadingBorder" BorderBrush="Red" BorderThickness="10" Padding="20,5" DockPanel.Dock="Top">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Style.Triggers>
@@ -1490,8 +1490,11 @@
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
-                    <Label Content="LOADING..." FontSize="50" Foreground="Red" FontWeight="Bold"/>
+                    <Label Content="{Binding Status}" FontSize="50" Foreground="Red" FontWeight="Bold"/>
                 </Border>
+
+                <Button x:Name="LoadingLayerCancelButton" Content="Cancel" IsEnabled="{Binding IsCancellationRequested, Converter={StaticResource InverseBoolConverter}}" 
+                        DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="10" Click="LoadingLayerCancelButton_Click"/>
             </DockPanel>
         </DockPanel>
     </Grid>
