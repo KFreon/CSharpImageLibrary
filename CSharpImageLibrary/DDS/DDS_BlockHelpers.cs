@@ -343,7 +343,6 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        //public static StreamWriter sw = new StreamWriter("R:\\optimiseNEW.txt", true);
         internal static RGBColour[] OptimiseRGB_BC67(RGBColour[] Colour, int uSteps, int np, int[] pixelIndicies)
         {
             float[] pC = uSteps == 3 ? pC3 : pC4;
@@ -378,8 +377,6 @@ namespace CSharpImageLibrary.DDS
                     Y.b = current.b;
             }
 
-            /*sw.WriteLine("");
-            sw.WriteLine($"Starting: {X} - {Y}");*/
 
             // Diagonal axis - starts with difference between min and max
             RGBColour diag = new RGBColour()
@@ -390,10 +387,7 @@ namespace CSharpImageLibrary.DDS
             };
             float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b;
             if (fDiag < 1.175494351e-38F)
-            {
-                //sw.WriteLine("1 colour");
                 return new RGBColour[] { X, Y };
-            }
 
             float FdiagInv = 1f / fDiag;
 
@@ -462,22 +456,12 @@ namespace CSharpImageLibrary.DDS
             }
 
             if (fDiag < 1f / 4096f)
-            {
-                //sw.WriteLine("2 colour");
                 return new RGBColour[] { X, Y };
-            }
-
-            //sw.WriteLine($"Before Newton: {X} - {Y}");
-            /*sw.WriteLine($"fsteps: {uSteps - 1}");
-            sw.WriteLine($"cSteps: {uSteps}");*/
-
 
             // newtons method for local min of sum of squares error.
             float fsteps = uSteps - 1;
             for (int iteration = 0; iteration < 8; iteration++)
             {
-                //sw.WriteLine($"Iteration: {iteration}");
-
                 RGBColour[] pSteps = new RGBColour[4];
 
                 for (int iStep = 0; iStep < uSteps; iStep++)
@@ -494,13 +478,9 @@ namespace CSharpImageLibrary.DDS
                 Dir.b = Y.b - X.b;
 
                 float fLen = Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b;
-                //sw.WriteLine($"fLen: {fLen.ToString("F6")}");
 
                 if (fLen < (1f / 4096f))
-                {
-                    //sw.WriteLine($"fLen DIFF: {fLen.ToString("F6")}");
                     break;
-                }
 
                 float fScale = fsteps / fLen;
                 Dir.r *= fScale;
@@ -515,9 +495,6 @@ namespace CSharpImageLibrary.DDS
 
                 for (int i = 0; i < np; i++)
                 {
-                    //sw.WriteLine($"i in loop: {i}");
-
-
                     RGBColour current = Colour[pixelIndicies[i]];
 
                     float fDot = 
@@ -525,24 +502,16 @@ namespace CSharpImageLibrary.DDS
                         (current.g - X.g) * Dir.g + 
                         (current.b - X.b) * Dir.b;
 
-                   // sw.WriteLine($"fDot: {fDot.ToString("F6")}");
 
                     int iStep = 0;
                     if (fDot <= 0f)
                         iStep = 0;
 
                     if (fDot >= fsteps)
-                    {
-                        //sw.WriteLine("fDot >= fsteps");
                         iStep = uSteps - 1;
-                    }
                     else
-                    {
-                        //sw.WriteLine("other");
                         iStep = (int)(fDot + .5f);
-                    }
 
-                    //sw.WriteLine($"iStep: {iStep}");
 
                     RGBColour diff = new RGBColour()
                     {
@@ -551,7 +520,6 @@ namespace CSharpImageLibrary.DDS
                         b = pSteps[iStep].b - current.b
                     };
 
-                    //sw.WriteLine($"diff: {diff}");
 
                     float fC = pC[iStep] * (1f / 8f);
                     float fD = pD[iStep] * (1f / 8f);
@@ -588,8 +556,6 @@ namespace CSharpImageLibrary.DDS
                 if ((dX.r * dX.r < fEpsilon) && (dX.g * dX.g < fEpsilon) && (dX.b * dX.b < fEpsilon) &&
                     (dY.r * dY.r < fEpsilon) && (dY.g * dY.g < fEpsilon) && (dY.b * dY.b < fEpsilon))
                 {
-                    //sw.WriteLine($"epsilon. {dX} = {dY}");
-                    //sw.WriteLine("epsilon");
                     break;
                 }
             }

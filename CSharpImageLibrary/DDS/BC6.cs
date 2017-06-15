@@ -702,72 +702,7 @@ namespace CSharpImageLibrary.DDS
         const int F16MIN = -31743;
         const ushort F16MAX = 31743;
         #region Compression
-        public static void test()
-        {
-            // Read in sample data
-            List<INTColour[]> intBlocks = new List<INTColour[]>();
-            List<RGBColour[]> floatBlocks = new List<RGBColour[]>();
 
-            List<List<INTColourPair[]>> diffs = new List<List<INTColourPair[]>>();
-
-
-            var intLines = File.ReadAllLines("R:\\IntPixels.txt");
-            var hdrs = File.ReadAllLines("R:\\hdrs.txt");
-
-            INTColour[] tempInt = new INTColour[16];
-            int count = 0;
-            foreach (var line in intLines)
-            {
-                if (line == "")
-                {
-                    intBlocks.Add(tempInt);
-                    tempInt = new INTColour[16];
-                    count = 0;
-                    continue;
-                }
-
-                var bits = line.Split(' ').Select(t => int.Parse(t)).ToList();
-                tempInt[count++] = new INTColour(bits[0], bits[1], bits[2]);
-            }
-
-            count = 0;
-            RGBColour[] tempfloat = new RGBColour[16];
-            foreach (var line in hdrs)
-            {
-                if (line == "")
-                {
-                    floatBlocks.Add(tempfloat);
-                    tempfloat = new RGBColour[16];
-                    count = 0;
-                    continue;
-                }
-
-                var bits = line.Split(' ').Select(t => float.Parse(t)).ToList();
-                tempfloat[count++] = new RGBColour(bits[0], bits[1], bits[2], 1.0f);
-            }
-
-
-
-            // Test
-            for (int i = 0; i < intBlocks.Count; i++)
-            {
-                INTColour[] ints = intBlocks[i];
-                RGBColour[] floats = floatBlocks[i];
-                byte[] destination = new byte[16];
-
-                CSharpImageLibrary.DDS.BC6.CompressBC6Block(null, 0, 0, destination, 0, ints, floats);
-            }
-
-
-            Console.WriteLine();
-            /*sw.Dispose();
-            sw2.Dispose();*/
-            //DDS_BlockHelpers.sw.Dispose();
-            //emit.Dispose();
-        }
-
-        /*public static StreamWriter sw = new StreamWriter("R:\\csOutput.txt", true);
-        public static StreamWriter sw2 = new StreamWriter("R:\\roughNEW.txt", true);*/
         internal static void CompressBC6Block(byte[] source, int sourceStart, int sourceLineLength, byte[] destination, int destStart, INTColour[] overrides = null, RGBColour[] overrides2 = null)
         {
             int modeVal = 0;
@@ -800,7 +735,6 @@ namespace CSharpImageLibrary.DDS
                         var b = source[offset];      // Blue
                         var a = source[offset + 3]; // Alpha
 
-                        //var pixel = new RGBColour(r / 255f, g / 255f, b / 255f, a / 255f);
                         var c = Color.FromArgb(a, r, g, b);
                         var pixel = new RGBColour(c.ScR, c.ScG, c.ScB, c.ScA);
                         pixels[i * 4 + j] = pixel;
@@ -819,16 +753,12 @@ namespace CSharpImageLibrary.DDS
                 float[] roughMSEs = new float[BC6H_MAX_SHAPES];
                 int[] auShape = new int[BC6H_MAX_SHAPES];
 
-                //sw.WriteLine($"mode {modeVal}");
 
                 // Pick best items shapes and refine them
                 for (shape = 0; shape < maxShapes; shape++)
                 {
                     roughMSEs[shape] = RoughMSE(ref AllEndPoints[shape], mode, shape, block, pixels, false);   // TODO signed
                     auShape[shape] = shape;
-
-                    //sw.WriteLine($"shape: {shape}   auShape[shape]: {auShape[shape]}");
-                   // sw.WriteLine($"mse[uShape]: " + roughMSEs[shape].ToString("F6"));
                 }
 
                 // Bubble up the first items item.
@@ -852,13 +782,9 @@ namespace CSharpImageLibrary.DDS
                 for (int i = 0; i < items && bestErr > 0; i++)
                 {
                     shape = auShape[i];
-                    //sw.WriteLine($"epShape: {shape}");
                     Refine(mode, ref bestErr, AllEndPoints[shape], block, shape, destination, destStart);
-
-                    //sw.WriteLine($"{items} {bestErr.ToString("F6")}");
                 }
             }
-            //sw.WriteLine("");              ////////// Number of calls to RoughMSE is the same, but somehow inside is different.
         }
 
         static void Refine(ModeInfo mode, ref float bestErr, INTColourPair[] unqantisedEndPts, INTColour[] block, int shape, byte[] destination, int destStart)
@@ -917,23 +843,12 @@ namespace CSharpImageLibrary.DDS
         }
 
 
-        // SO, using their numbers works fine. The internals are correct, it's my inputs that aren't right. Seems reeally finicky though.
 
-
-
-        //static StreamWriter emit = new StreamWriter("R:\\emitNEW.txt", true);
         static void EmitBlock(ModeInfo mode, byte[] destination, int destStart, int shape, INTColourPair[] endPts, int[] pixelIndicies)
         {
             int headerBits = mode.Partitions > 0 ? 82 : 65;
             List<ModeDescriptor> desc = ms_aDesc[mode.modeIndex];
             int startBit = 0;
-
-            /*Debug.Write($"{endPts[0].A.R} {endPts[0].A.G} {endPts[0].A.B} - {endPts[0].B.R} {endPts[0].B.G} {endPts[0].B.B} == ");
-            Debug.WriteLine($"{endPts[1].A.R} {endPts[1].A.G} {endPts[1].A.B} - {endPts[1].B.R} {endPts[1].B.G} {endPts[1].B.B}");*/
-
-            //emit.Write($"{mode.uMode}, {mode.modeIndex}:  {endPts[0].A.R} {endPts[0].A.G} {endPts[0].A.B} - {endPts[0].B.R} {endPts[0].B.G} {endPts[0].B.B} == ");
-            //emit.WriteLine($"{endPts[1].A.R} {endPts[1].A.G} {endPts[1].A.B} - {endPts[1].B.R} {endPts[1].B.G} {endPts[1].B.B}");
-
 
             while (startBit < headerBits)
             {
@@ -1243,18 +1158,20 @@ namespace CSharpImageLibrary.DDS
             float totErr = 0;
             for (int i = 0; i < np; i++)
             {
-                var colours = new Vector3(block[i].R, block[i].G, block[i].B);
-                var pal = new Vector3(palette[0].R, palette[0].G, palette[0].B);
-                pal = colours - pal;
+                var rDiff = block[i].R - palette[0].R;
+                var gDiff = block[i].G - palette[0].G;
+                var bDiff = block[i].B - palette[0].B;
 
-                float bestErr = Vector3.Dot(pal, pal);
+                float bestErr = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
 
                 for (int j = 1; j < numIndicies && bestErr > 0; j++)
                 {
-                    pal = new Vector3(palette[j].R, palette[j].G, palette[j].B);
-                    pal = colours - pal;
+                    rDiff = block[i].R - palette[0].R;
+                    gDiff = block[i].G - palette[0].G;
+                    bDiff = block[i].B - palette[0].B;
 
-                    float err = Vector3.Dot(pal, pal);
+                    float err = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
+
                     if (err > bestErr)
                         break;
 
@@ -1474,8 +1391,6 @@ namespace CSharpImageLibrary.DDS
         {
             int[] pixelIndicies = new int[NUM_PIXELS_PER_BLOCK];
 
-            //sw2.WriteLine(mode.Partitions);
-
             float err = 0f;
             for (int p = 0; p <= mode.Partitions; p++)
             {
@@ -1498,21 +1413,10 @@ namespace CSharpImageLibrary.DDS
                     continue;
                 }
 
-                /*sw2.Write("Pre Optimise");
-                foreach (var pixel in pixels)
-                    sw2.Write(pixel + " - ");
-
-                sw2.WriteLine("");
-                sw2.WriteLine($"np: {np}");
-                foreach (var ind in pixelIndicies)
-                    sw2.Write(ind + " ");
-
-                sw2.WriteLine("");*/
                 RGBColour[] minMax = OptimiseRGB_BC67(pixels, 4, np, pixelIndicies);
                 endPoints[p].A = new INTColour(minMax[0], endPoints[p].A.Pad, isSigned);
                 endPoints[p].B = new INTColour(minMax[1], endPoints[p].B.Pad, isSigned);
 
-                //sw2.WriteLine(minMax[0].r.ToString("F6") + " " + minMax[0].g.ToString("F6") + " " + minMax[0].b.ToString("F6"));
 
                 if (isSigned)
                 {
