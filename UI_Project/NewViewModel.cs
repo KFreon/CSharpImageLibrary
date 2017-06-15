@@ -665,6 +665,10 @@ namespace UI_Project
             }
             set
             {
+                // If loading fails, it's not busy anymore.
+                if (value)
+                    Busy = false;
+
                 SetProperty(ref loadFailed, value);
             }
         }

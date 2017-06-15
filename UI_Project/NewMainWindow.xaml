@@ -907,7 +907,7 @@
                         </Style>
                     </Grid.Resources>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="34*"/>
+                        <ColumnDefinition Width="180"/>
                         <ColumnDefinition Width="71*"/>
                     </Grid.ColumnDefinitions>
                     <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" Margin="4,10,0,0">
