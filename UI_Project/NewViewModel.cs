@@ -558,6 +558,21 @@ namespace UI_Project
         #region Bulk Convert Properties
         public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<string> BulkConvertFailed { get; set; } = new MTRangedObservableCollection<string>();
+        Stopwatch bulkConvertTimer = new Stopwatch();
+
+
+        string bulkConvertElaspsed = null;
+        public string BulkConvertElapsed
+        {
+            get
+            {
+                return bulkConvertElaspsed;
+            }
+            set
+            {
+                SetProperty(ref bulkConvertElaspsed, value);
+            }
+        }
 
         bool bulkConvertOpen = false;
         public bool BulkConvertOpen
@@ -1388,6 +1403,7 @@ namespace UI_Project
             BulkConvertRunning = false;
             BulkConvertFiles.Clear();
             BulkConvertFailed.Clear();
+            bulkConvertTimer = new Stopwatch();
             MergeChannelsImages.Clear();
             LoadFailed = false;
             LoadFailError = null;
@@ -1500,6 +1516,7 @@ namespace UI_Project
             BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             BulkConvertFinished = false;
             BulkConvertRunning = true;
+            bulkConvertTimer.Start();
 
             Progress<int> progressReporter = new Progress<int>(index =>
             {
@@ -1507,8 +1524,14 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
+            DispatcherTimer timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromSeconds(0.5);
+            timer.Tick += (soruce, args) => BulkConvertElapsed = bulkConvertTimer.Elapsed.ToString(@"hh\.mm\.ss\.f");
+            timer.Start();
+
             BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormatDetails, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
+            timer.Stop();
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)
                 BulkStatus += $"{BulkConvertFailed.Count} failed to convert.";
@@ -1516,6 +1539,8 @@ namespace UI_Project
             BulkProgressValue = BulkProgressMax;
             BulkConvertFinished = true;
             BulkConvertRunning = false;
+            bulkConvertTimer.Stop();
+            BulkConvertElapsed = bulkConvertTimer.Elapsed.ToString(@"hh\.mm\.ss\.f");
         }
 
         /// <summary>

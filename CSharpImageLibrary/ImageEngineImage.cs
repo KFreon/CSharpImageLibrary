@@ -438,7 +438,7 @@ namespace CSharpImageLibrary
                                 return null;
 
                             // Get top mip size and create destination array 
-                            length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                            length = ImageFormats.GetCompressedSize(0, destFormatDetails, newWidth, newHeight); // Should be the length of the top mipmap.
                             data = new byte[formattedMips.Length + length];
 
                             // Copy smaller mips to destination

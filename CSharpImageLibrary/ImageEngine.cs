@@ -546,8 +546,12 @@ namespace CSharpImageLibrary
 
             // Test if can parallelise uncompressed saving
             // Below says: Only formats that don't support mips or do but aren't block compressed - can be parallised. Also don't parallelise if using source formats.
-            bool supportsParallel = !useSourceFormat && !destFormatDetails.IsMippable;
-            supportsParallel |= !supportsParallel && !destFormatDetails.IsBlockCompressed;
+            bool supportsParallel = false;
+            if (!useSourceFormat)
+            {
+                supportsParallel = !useSourceFormat && !destFormatDetails.IsMippable;
+                supportsParallel |= !supportsParallel && !destFormatDetails.IsBlockCompressed;
+            }
 
 
             if (EnableThreading && supportsParallel)
@@ -558,16 +562,16 @@ namespace CSharpImageLibrary
                     using (ImageEngineImage img = new ImageEngineImage(file))
                     {
                         // Using source format can only come into this leg of the operation.
+                        var saveFormatDetails = useSourceFormat ? img.FormatDetails : destFormatDetails;
 
-
-                        string filename = useSourceFormat ? file : Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;
+                        string filename = useSourceFormat ? Path.GetFileName(file) : Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;  // This can stay destFormatDetails instead of saveFormatDetails as it shouldn't be able to get here if destFormatDetails not set.
                         string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
 
                         path = UsefulThings.General.FindValidNewFileName(path);
 
                         try
                         {
-                            await img.Save(path, useSourceFormat ? img.FormatDetails : destFormatDetails, saveMipType, removeAlpha: removeAlpha);
+                            await img.Save(path, saveFormatDetails, saveMipType, removeAlpha: removeAlpha);
                         }
                         catch (Exception e)
                         {
