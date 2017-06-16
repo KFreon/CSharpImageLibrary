@@ -1110,8 +1110,8 @@ namespace UI_Project
         {
             bool changed = value != saveFormat || (value == ImageEngineFormat.DDS_DX10 ? dx10Format != DX10Format : false);
 
-            // Do nothing until the specific DX10 format is specified.
-            if (value == ImageEngineFormat.DDS_DX10 && dx10Format == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+            // Do nothing.   DX10 takes WAAAY too long to save, so no previews.
+            if (value == ImageEngineFormat.DDS_DX10)
             {
                 // Clear display so it's clear something else needs to be done
                 savePreviewIMG.Dispose();
@@ -1688,12 +1688,12 @@ namespace UI_Project
             Busy = true;
 
             // Don't bother regenerating things. Just show what it looks like.
-            if (SaveFormatDetails.Format == LoadedFormat)
+            if (SaveFormatDetails.Format == LoadedFormat)   
             {
                 SaveCompressedSize = LoadedCompressedSize;
                 savePreviewIMG = LoadedImage;
             }
-            else
+            else if (SaveFormat != ImageEngineFormat.DDS_DX10)  // DX10 takes FOREVER to save - caught earlier than this, but just in case.
             {
                 timer.Restart();
                 if (needRegenerate)
@@ -1704,7 +1704,7 @@ namespace UI_Project
                         if (data == null)
                         {
                             SaveCompressedSize = -1;
-                            savePreviewIMG = null;
+                            savePreviewIMG?.Dispose();
                             return;
                         }
 

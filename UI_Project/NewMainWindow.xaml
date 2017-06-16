@@ -310,7 +310,7 @@
 
             <ControlTemplate x:Key="MainFormatSelector">
                 <DockPanel>
-                    <Label Content="WARNING: DX10 formats can take a VERY long time to generate." DockPanel.Dock="Bottom" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Center">
+                    <Label Content="WARNING: DX10 formats can take a VERY long time to generate, hence no preview." DockPanel.Dock="Bottom" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Center">
                         <Label.Style>
                             <Style TargetType="Label">
                                 <Setter Property="Visibility" Value="Collapsed"/>
