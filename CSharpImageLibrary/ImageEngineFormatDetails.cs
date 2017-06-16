@@ -53,7 +53,18 @@ namespace CSharpImageLibrary
             /// <summary>
             /// Number of bytes in colour.
             /// </summary>
-            public int ComponentSize => (BitCount / 8) / MaxNumberOfChannels;
+            public int ComponentSize
+            {
+                get
+                {
+                    var aveChannelWidth = BitCount / 8;
+                    var remainder = aveChannelWidth % MaxNumberOfChannels;
+                    if (remainder != 0)
+                        return 1;  // TODO: More component sizes?
+
+                    return aveChannelWidth / MaxNumberOfChannels;
+                }
+            }
 
             /// <summary>
             /// Number of bits in colour.
@@ -181,8 +192,10 @@ namespace CSharpImageLibrary
                         case ImageEngineFormat.DDS_ARGB_32F:
                             BitCount = 128;
                             break;
-                        case ImageEngineFormat.DDS_ARGB_4:
                         case ImageEngineFormat.DDS_R5G6B5:
+                            BitCount = 16;
+                            break;
+                        case ImageEngineFormat.DDS_ARGB_4:
                         case ImageEngineFormat.DDS_CUSTOM:
                         case ImageEngineFormat.DDS_DX10:
                             BitCount = GetDX10BitCount(DX10Format);

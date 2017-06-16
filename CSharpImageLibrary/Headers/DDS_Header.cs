@@ -800,8 +800,8 @@ namespace CSharpImageLibrary.Headers
                 if (format == ImageEngineFormat.Unknown)
                     if (ddspf.dwFourCC == FourCC.DX10)
                         format = ImageEngineFormat.DDS_DX10;
-                    format = DetermineDDSSurfaceFormat(ddspf);
 
+                format = DetermineDDSSurfaceFormat(ddspf);
                 return format;
             }
         }
@@ -980,7 +980,13 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwBBitMask != 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_RGB_8;
+                {
+                    // TODO more formats?
+                    if (ddspf.dwBBitMask == 31)
+                        format = ImageEngineFormat.DDS_R5G6B5;
+                    else
+                        format = ImageEngineFormat.DDS_RGB_8;
+                }
 
                 // KFreon: RGB and A channels are present.
                 else if (((ddspf.dwFlags & (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) == (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
@@ -988,7 +994,10 @@ namespace CSharpImageLibrary.Headers
                         ddspf.dwBBitMask != 0 &&
                         ddspf.dwGBitMask != 0 &&
                         ddspf.dwRBitMask != 0)
+                {
+                    // TODO: Some more formats here?
                     format = ImageEngineFormat.DDS_ARGB_8;
+                }
 
                 // KFreon: If nothing else fits, but there's data in one of the bitmasks, assume it can be read.
                 else if (ddspf.dwABitMask != 0 || ddspf.dwRBitMask != 0 || ddspf.dwGBitMask != 0 || ddspf.dwBBitMask != 0)
