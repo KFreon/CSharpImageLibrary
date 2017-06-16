@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -433,6 +434,8 @@ namespace CSharpImageLibrary
 
                             // Compress mipmaps excl top
                             byte[] formattedMips = DDSGeneral.Save(MipMaps.GetRange(1, MipMaps.Count - 1), destFormatDetails, alphaSetting);
+                            if (formattedMips == null)
+                                return null;
 
                             // Get top mip size and create destination array 
                             length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);

@@ -16,6 +16,7 @@ using CSharpImageLibrary.DDS;
 using System.Collections.Concurrent;
 using System.Threading.Tasks.Dataflow;
 using System.Runtime;
+using System.Threading;
 
 namespace CSharpImageLibrary
 {
@@ -75,6 +76,44 @@ namespace CSharpImageLibrary
     /// </summary>
     public static class ImageEngine
     {
+        internal static CancellationTokenSource cts { get; set; } = new CancellationTokenSource();
+
+        /// <summary>
+        /// Initiates a cancellation of currently running tasks.
+        /// Not guaranteed to cancel immediately.
+        /// </summary>
+        public static void Cancel()
+        {
+            if (!cts.IsCancellationRequested)
+                cts.Cancel();
+        }
+
+
+        /// <summary>
+        /// Resets cancellation token source given an external source.
+        /// </summary>
+        /// <param name="yourCTS">External CTS to use.</param>
+        public static void ResetCancellation(CancellationTokenSource yourCTS)
+        {
+            cts = yourCTS;
+        }
+
+
+        /// <summary>
+        /// Resets cancellation token source.
+        /// </summary>
+        public static void ResetCancellation()
+        {
+            cts = new CancellationTokenSource();
+        }
+
+
+        /// <summary>
+        /// Indicates whether cancellation has been requested for 
+        /// </summary>
+        public static bool IsCancellationRequested => cts.IsCancellationRequested;
+
+
          /// <summary>
         /// True = Windows WIC Codecs are present (8+)
         /// </summary>

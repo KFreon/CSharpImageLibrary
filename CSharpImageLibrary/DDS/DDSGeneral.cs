@@ -53,7 +53,7 @@ namespace CSharpImageLibrary.DDS
 
             if (texelCount != 0)
             {
-                Action<int, ParallelLoopState> action = new Action<int, ParallelLoopState>((texelIndex, loopstate) =>
+                var action = new Action<int>(texelIndex =>
                 {
                     int compressedPosition = mipOffset + texelIndex * formatDetails.BlockSize;
                     int decompressedStart = (int)(texelIndex / numTexelsInRow) * texelRowSkip + (texelIndex % numTexelsInRow) * 16;
@@ -73,15 +73,27 @@ namespace CSharpImageLibrary.DDS
                 });
 
                 // Actually perform decompression using threading, no threading, or GPU.
-                /*if (ImageEngine.EnableGPUAcceleration)
-                    Debugger.Break(); 
-                else */if (ImageEngine.EnableThreading)
-                    Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (texelIndex, loopstate) => action(texelIndex, loopstate));
+                if (ImageEngine.EnableThreading)
+                    Parallel.For(0, texelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (texelIndex, loopstate) =>
+                    {
+                        if (ImageEngine.IsCancellationRequested)
+                            loopstate.Stop();
+
+                        action(texelIndex);
+                    });
                 else
                     for (int texelIndex = 0; texelIndex < texelCount; texelIndex++)
-                        action(texelIndex, null);
+                    {
+                        if (ImageEngine.IsCancellationRequested)
+                            break;
+
+                        action(texelIndex);
+                    }
             }
             // No else here cos the lack of texels means it's below texel dimensions (4x4). So the resulting block is set to 0. Not ideal, but who sees 2x2 mipmaps?
+
+            if (ImageEngine.IsCancellationRequested)
+                return null;
 
             return new MipMap(decompressedData, mipWidth, mipHeight, formatDetails);
         }
@@ -159,12 +171,15 @@ namespace CSharpImageLibrary.DDS
             {
                 for (int m = 0; m < estimatedMips; m++)
                 {
+                    if (ImageEngine.IsCancellationRequested)
+                        break;
+
+
                     // KFreon: If mip is too small, skip out. This happens most often with non-square textures. I think it's because the last mipmap is square instead of the same aspect.
                     // Don't do the mip size check here (<4) since we still need to have a MipMap object for those lower than this for an accurate count.
                     if (mipWidth <= 0 || mipHeight <= 0)  // Needed cos it doesn't throw when reading past the end for some reason.
-                    {
                         break;
-                    }
+                    
                     MipMap mipmap = ReadCompressedMipMap(compressed, mipWidth, mipHeight, mipOffset, formatDetails, DecompressBCBlock);
                     MipMaps[m] = mipmap;
                     mipOffset += (int)(mipWidth * mipHeight * (blockSize / 16d)); // Also put the division in brackets cos if the mip dimensions are high enough, the multiplications can exceed int.MaxValue)
@@ -201,10 +216,21 @@ namespace CSharpImageLibrary.DDS
                 });
 
                 if (ImageEngine.EnableThreading)
-                    Parallel.For(startMip, orig_estimatedMips, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action);
+                    Parallel.For(startMip, orig_estimatedMips,  new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (mip, loopState) =>
+                    {
+                        if (ImageEngine.IsCancellationRequested)
+                            loopState.Stop();
+
+                        action(mip);
+                    });
                 else
                     for (int i = startMip; i < orig_estimatedMips; i++)
+                    {
+                        if (ImageEngine.IsCancellationRequested)
+                            break;
+
                         action(i);
+                    }
             }
 
             List<MipMap> mips = new List<MipMap>(MipMaps.Where(t => t != null));
@@ -258,6 +284,9 @@ namespace CSharpImageLibrary.DDS
                 int mipOffset = headerLength;
                 foreach (MipMap mipmap in mipMaps)
                 {
+                    if (ImageEngine.IsCancellationRequested)
+                        break;
+
                     var temp = WriteCompressedMipMap(destination, mipOffset, mipmap, blockSize, compressor, alphaSetting);
                     if (temp != -1)  // When dimensions too low.
                         mipOffset = temp;
@@ -283,13 +312,24 @@ namespace CSharpImageLibrary.DDS
                 });
 
                 if (ImageEngine.EnableThreading)
-                    Parallel.For(0, mipMaps.Count, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action);
+                    Parallel.For(0, mipMaps.Count, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (mip, loopState) =>
+                    {
+                        if (ImageEngine.IsCancellationRequested)
+                            loopState.Stop();
+
+                        action(mip);
+                    });
                 else
                     for (int i = 0; i < mipMaps.Count; i++)
+                    {
+                        if (ImageEngine.IsCancellationRequested)
+                            break;
+
                         action(i);
+                    }
             }
 
-            return destination;
+            return ImageEngine.IsCancellationRequested ? null : destination;
         }
 
 
@@ -313,13 +353,22 @@ namespace CSharpImageLibrary.DDS
             });
 
             // Choose an acceleration method.
-            /*if (ImageEngine.EnableGPUAcceleration)
-                Debugger.Break(); 
-            else*/ if (ImageEngine.EnableThreading)
-                Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, mipWriter);
+            if (ImageEngine.EnableThreading)
+                Parallel.For(0, destinationTexelCount, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (mip, loopState) =>
+                {
+                    if (ImageEngine.IsCancellationRequested)
+                        loopState.Stop();
+
+                    mipWriter(mip);
+                });
             else
                 for (int i = 0; i < destinationTexelCount; i++)
+                {
+                    if (ImageEngine.IsCancellationRequested)
+                        break;
+
                     mipWriter(i);
+                }
 
             return mipOffset + destinationTexelCount * blockSize;
         }

@@ -137,11 +137,21 @@ namespace CSharpImageLibrary.DDS
             int sourceIncrement = 4 * sourceFormatDetails.ComponentSize;
 
             if (ImageEngine.EnableThreading)
-                Parallel.For(0, source.Length / sourceIncrement, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, 
-                    ind => WriteUncompressedPixel(source, ind * sourceIncrement, sourceInds, sourceFormatDetails, masks, destination, destStart + ind * byteCount, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust));
+                Parallel.For(0, source.Length / sourceIncrement, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, (ind, loopState) =>
+                {
+                    if (ImageEngine.IsCancellationRequested)
+                        loopState.Stop();
+
+                    WriteUncompressedPixel(source, ind * sourceIncrement, sourceInds, sourceFormatDetails, masks, destination, destStart + ind * byteCount, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust);
+                });
             else
                 for (int i = 0; i < source.Length; i += 4 * sourceFormatDetails.ComponentSize, destStart += byteCount)
+                {
+                    if (ImageEngine.IsCancellationRequested)
+                        break;
+
                     WriteUncompressedPixel(source, i, sourceInds, sourceFormatDetails, masks, destination, destStart, destInds, destFormatDetails, oneChannel, twoChannel, requiresSignedAdjust);
+                }
         }
 
         static void WriteUncompressedPixel(byte[] source, int sourceStart, int[] sourceInds, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, uint[] masks,

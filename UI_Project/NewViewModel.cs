@@ -33,13 +33,11 @@ namespace UI_Project
 
     public class NewViewModel : ViewModelBase
     {
-        CancellationTokenSource cts = new CancellationTokenSource();
-
         public bool IsCancellationRequested
         {
             get
             {
-                return cts.IsCancellationRequested;
+                return ImageEngine.IsCancellationRequested;
             }
         }
 
@@ -1304,6 +1302,7 @@ namespace UI_Project
             Status = "Loading...";
             Busy = true;
 
+
             if (!timer.IsRunning)
                 timer.Restart();
 
@@ -1677,6 +1676,13 @@ namespace UI_Project
                     {
                         // Save and reload to give accurate depiction of what it'll look like when saved.
                         byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                        if (data == null)
+                        {
+                            SaveCompressedSize = -1;
+                            savePreviewIMG = null;
+                            return;
+                        }
+
                         SaveCompressedSize = data.Length;
                         savePreviewIMG = new ImageEngineImage(data);
                     });
@@ -1686,8 +1692,8 @@ namespace UI_Project
             }
 
             
-
-            UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
+            if (savePreviewIMG != null)
+                UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
@@ -1700,7 +1706,7 @@ namespace UI_Project
 
         public void Cancel()
         {
-            cts.Cancel();
+            ImageEngine.Cancel();
             Status = "Cancelling...";
             OnPropertyChanged(nameof(IsCancellationRequested));
         }
