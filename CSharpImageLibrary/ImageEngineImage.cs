@@ -423,7 +423,7 @@ namespace CSharpImageLibrary
                             break;
                         case MipHandling.GenerateNew:
                             ImageEngine.DestroyMipMaps(MipMaps);
-                            ImageEngine.TestDDSMipSize(MipMaps, destFormatDetails, Width, Height, out double fixXScale, out double fixYScale);
+                            ImageEngine.TestDDSMipSize(MipMaps, destFormatDetails, Width, Height, out double fixXScale, out double fixYScale, GenerateMips);
 
                             // Wrong sizing, so can't use original data anyway.
                             if (fixXScale != 0 || fixYScale != 0)

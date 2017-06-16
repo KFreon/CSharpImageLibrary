@@ -59,7 +59,7 @@ namespace CSharpImageLibrary.DDS
                     int decompressedStart = (int)(texelIndex / numTexelsInRow) * texelRowSkip + (texelIndex % numTexelsInRow) * 16;
 
                     // Problem with how I handle dimensions (no virtual padding or anything yet)
-                    if (!UsefulThings.General.IsPowerOfTwo(mipWidth) || !UsefulThings.General.IsPowerOfTwo(mipHeight) || mipHeight < 4 || mipWidth < 4)  
+                    if (!CheckSize_DXT(mipWidth, mipHeight))  
                         return;
 
                     try
@@ -243,14 +243,13 @@ namespace CSharpImageLibrary.DDS
         #region Saving
         /// <summary>
         /// Determines whether an image size is suitable for DXT compression.
-        /// Must be a power of 2 (technically just divisible by 4, but I'm lazy)
         /// </summary>
         /// <param name="width">Width of image.</param>
         /// <param name="height">Height of image.</param>
         /// <returns>True if size is suitable for DXT compression.</returns>
         public static bool CheckSize_DXT(int width, int height)
         {
-            return UsefulThings.General.IsPowerOfTwo(width) && UsefulThings.General.IsPowerOfTwo(height);
+            return width % 4 == 0 && height % 4 == 0;
         }
 
         internal static byte[] Save(List<MipMap> mipMaps, ImageFormats.ImageEngineFormatDetails destFormatDetails, AlphaSettings alphaSetting)

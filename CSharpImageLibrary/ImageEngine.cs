@@ -335,7 +335,7 @@ namespace CSharpImageLibrary
             }
 
             // KFreon: Ensure we have a power of two for dimensions FOR DDS ONLY
-            TestDDSMipSize(newMips, destFormatDetails, width, height, out double fixXScale, out double fixYScale);
+            TestDDSMipSize(newMips, destFormatDetails, width, height, out double fixXScale, out double fixYScale, mipChoice);
 
             if (fixXScale != 0 || fixYScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
@@ -364,12 +364,18 @@ namespace CSharpImageLibrary
             return destination;
         }      
 
-        internal static void TestDDSMipSize(List<MipMap> newMips, ImageFormats.ImageEngineFormatDetails destFormatDetails, int width, int height, out double fixXScale, out double fixYScale)
+        internal static void TestDDSMipSize(List<MipMap> newMips, ImageFormats.ImageEngineFormatDetails destFormatDetails, int width, int height, out double fixXScale, out double fixYScale, MipHandling mipChoice)
         {
             fixXScale = 0;
             fixYScale = 0;
             if (destFormatDetails.IsBlockCompressed && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
             {
+                // If only keeping top mip, and that mip is divisible by 4, it's ok.
+                if ((mipChoice == MipHandling.KeepTopOnly || mipChoice == MipHandling.KeepExisting) 
+                    && DDSGeneral.CheckSize_DXT(width, height))
+                    return;
+
+
                 double newWidth = 0;
                 double newHeight = 0;
 
