@@ -214,7 +214,20 @@ namespace CSharpImageLibrary.DDS
             switch (formatDetails.ComponentSize)
             {
                 case 1:
-                    ReadBytes(source, sourceStart, sourceIncrement, new int[] { BIndex, GIndex, RIndex, AIndex }, destination, new int[] { destBInd, destGInd, destRInd, destAInd });
+                    // Check masks fit properly
+                    if (maskOrder.Count != sourceIncrement)
+                    {
+                        // Determine mask size
+                        var lengths = new int[4];
+                        lengths[0] = CountSetBits(BMask);
+                        lengths[1] = CountSetBits(GMask);
+                        lengths[2] = CountSetBits(RMask);
+                        lengths[3] = CountSetBits(AMask);
+
+                        ReadBytesLegacy(source, sourceStart, sourceIncrement, lengths, destination, new int[] { destBInd, destGInd, destRInd, destAInd });
+                    }
+                    else
+                        ReadBytes(source, sourceStart, sourceIncrement, new int[] { BIndex, GIndex, RIndex, AIndex }, destination, new int[] { destBInd, destGInd, destRInd, destAInd });
                     break;
                 case 2:
                     ReadUShorts(source, sourceStart, sourceIncrement, new int[] { BIndex, GIndex, RIndex, AIndex }, destination, new int[] { destBInd, destGInd, destRInd, destAInd });
@@ -237,6 +250,13 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
+        static int CountSetBits(uint i)
+        {
+            i = i - ((i >> 1) & 0x5555_5555);
+            i = (i & 0x3333_3333) + ((i >> 2) & 0x3333_3333);
+            return (int)((((i + (i >> 4)) & 0x0F0F_0F0F) * 0x0101_0101) >> 24);
+        }
+
         static void ReadBytes(byte[] source, int sourceStart, int sourceIncrement, int[] sourceInds, byte[] destination, int[] destInds)
         {
             for (int i = 0, j = sourceStart; i < destination.Length; i += 4, j += sourceIncrement)
@@ -245,6 +265,28 @@ namespace CSharpImageLibrary.DDS
                 {
                     int sourceInd = sourceInds[k];
                     destination[i + destInds[k]] = sourceInd == -1 ? byte.MaxValue : source[j + sourceInd];
+                }
+            }
+        }
+
+        static void ReadBytesLegacy(byte[] source, int sourceStart, int sourceIncrement, int[] lengths, byte[] destination, int[] destInds)
+        {
+            int count = 0;
+            for (int i = 0, j = sourceStart; i < destination.Length; i += 4, j += sourceIncrement)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    int channelLength = lengths[k];
+                    byte temp = byte.MaxValue;
+                    if (channelLength != 0)
+                    {
+                        temp = (byte)DX10_Helpers.GetBits(source, sourceStart, ref count, lengths[k]);
+
+                        // Put on 0-255 range.
+                        temp = (byte)(temp << (8 - channelLength));
+                    }
+
+                    destination[i + destInds[k]] = temp;
                 }
             }
         }
