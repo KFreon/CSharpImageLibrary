@@ -253,7 +253,7 @@ namespace CSharpImageLibrary
             else if (format == ImageEngineFormat.BMP || format == ImageEngineFormat.PNG)
             {
                 // Check if there's any alpha.
-                bool anyAlpha = true;
+                bool anyAlpha = false;
                 for (int i = 3; i < imageData.Length; i += 4)
                     if (imageData[i] != 255)
                     {
