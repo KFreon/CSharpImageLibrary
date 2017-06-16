@@ -601,6 +601,7 @@ namespace CSharpImageLibrary
                 string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
                 path = UsefulThings.General.FindValidNewFileName(path);
 
+
                 using (ImageEngineImage img = new ImageEngineImage(file))
                 {
                     try
@@ -620,7 +621,16 @@ namespace CSharpImageLibrary
             // Define block to write converted data to disk
             var diskWriter = new ActionBlock<Tuple<byte[], string>>(tuple =>
             {
-                File.WriteAllBytes(tuple.Item2, tuple.Item1);
+                string path = UsefulThings.General.FindValidNewFileName(tuple.Item2);
+
+                try
+                {
+                    File.WriteAllBytes(path, tuple.Item1);
+                }
+                catch (Exception e)
+                {
+                    failures.Add(path + "  Reason: " + e.ToString());
+                }
             }, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 2, BoundedCapacity = maxParallelism });  // Limit to 2 disk write operations at a time, but allow many to be stored in it's buffer.
 
 
