@@ -350,6 +350,12 @@ namespace CSharpImageLibrary
             JPG,
 
             /// <summary>
+            /// JPEG format. Good for small images, but is lossy, hence can have poor colours and artifacts at high compressions.
+            /// </summary>
+            [Description("Joint Photographic Images")]
+            JPEG,
+
+            /// <summary>
             /// BMP bitmap. Lossless but exceedingly poor bytes for pixel ratio i.e. huge filesize for little image.
             /// </summary>
             [Description("Bitmap Images")]

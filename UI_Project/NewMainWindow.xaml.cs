@@ -293,6 +293,11 @@ namespace UI_Project
         string prev_bulkBrowseSingleFolder = null;
         private void BulkBrowseButton_Click(object sender, RoutedEventArgs e)
         {
+            PerformBulkBrowse();
+        }
+
+        internal bool PerformBulkBrowse()
+        {
             OpenFileDialog ofd = new OpenFileDialog()
             {
                 Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
@@ -307,7 +312,10 @@ namespace UI_Project
             {
                 BulkAdd(ofd.FileNames);
                 prev_bulkBrowseSingleFolder = Path.GetDirectoryName(ofd.FileNames[0]);
+                return true;
             }
+
+            return false;
         }
 
         private async void BulkConvertButton_Click(object sender, RoutedEventArgs e)
@@ -355,40 +363,6 @@ namespace UI_Project
 
             if (e.Key == Key.Delete)
                 vm.BulkConvertFiles.RemoveRange(box.SelectedItems.Cast<string>());
-        }
-
-        private void SaveFormatCombo_DropDownOpened(object sender, EventArgs e)
-        {
-            var box = (ComboBox)sender;
-            if (box.ItemContainerGenerator.Status == System.Windows.Controls.Primitives.GeneratorStatus.NotStarted)
-            {
-                box.ItemContainerGenerator.StatusChanged += (s, args) =>
-                 {
-                     var generator = (ItemContainerGenerator)s;
-                     if (generator.Status == System.Windows.Controls.Primitives.GeneratorStatus.ContainersGenerated)
-                        DisableUnsupportedFormats(box);
-                 };
-            }
-        }
-
-        void DisableUnsupportedFormats(ComboBox box)
-        {
-            foreach (var item in box.Items)
-            {
-                var value = UsefulThings.WPF.EnumToItemsSource.GetValueBack(item);
-                ImageEngineFormat selectedFormat = (ImageEngineFormat)value;
-                bool disableContainer = false;
-
-                // Check supported save formats.
-                if (ImageFormats.SaveUnsupported.Contains(selectedFormat))
-                    disableContainer = true;
-
-                if (disableContainer)
-                {
-                    var container = (ComboBoxItem)(box.ItemContainerGenerator.ContainerFromItem(item));
-                    container.IsEnabled = false;
-                }
-            }
         }
 
         private void TOPWINDOW_KeyDown(object sender, KeyEventArgs e)
@@ -702,6 +676,12 @@ namespace UI_Project
         private void LoadingLayerCancelButton_Click(object sender, RoutedEventArgs e)
         {
             vm.Cancel();
+        }
+
+        private void TopLevelBulkConvertLoadButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (PerformBulkBrowse())
+                vm.BulkConvertOpen = true;
         }
     }
 }

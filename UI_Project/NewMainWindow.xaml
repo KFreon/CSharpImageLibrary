@@ -4,434 +4,25 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
-        xmlns:ei="clr-namespace:Microsoft.Expression.Interactivity.Core;assembly=Microsoft.Expression.Interactions"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UI_Project"
-        xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        xmlns:UsefulThingsConverters="clr-namespace:UsefulThings.WPF.TypeConverters;assembly=UsefulThings"
-        xmlns:Library="clr-namespace:CSharpImageLibrary;assembly=CSharpImageLibrary"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
+        
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:UsefulValidation="clr-namespace:UsefulThings.WPF.ValidationRules;assembly=UsefulThings"
         mc:Ignorable="d"
         Title="NewMainWindow" Height="900" MinHeight="400" Width="1100" MinWidth="1010" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
         Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}"
         AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" Closing="TOPWINDOW_Closing">
     <Window.Resources>
-        <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
-        <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
-        <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
-        <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
-        <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
-
-        <sys:Boolean x:Key="TrueValue">
-            True
-        </sys:Boolean>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="PrimaryResourceDictionary.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Window.Resources>
 
-
     <Grid x:Name="MainGrid" Margin="0,0,3,5" >
-        <Grid.Resources>
-            <ObjectDataProvider MethodName="GetValues"
-                        ObjectType="{x:Type sys:Enum}"
-                        x:Key="Formats">
-                <ObjectDataProvider.MethodParameters>
-                    <x:Type TypeName="Library:ImageEngineFormat"/>
-                </ObjectDataProvider.MethodParameters>
-            </ObjectDataProvider>
-
-            <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
-            <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
-
-            <Duration x:Key="StandardDuration">0:0:0.5</Duration>
-            <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
-            <sys:TimeSpan x:Key="DelayedStartTimeSpan">0:0:0.5</sys:TimeSpan>
-
-            <Style x:Key="UnloadedOpacityStyle" TargetType="FrameworkElement">
-                <Setter Property="Visibility" Value="Visible"/>
-                <Setter Property="Opacity" Value="1"/>
-
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding IsImageLoaded}" Value="False">
-                        <DataTrigger.EnterActions>
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <DoubleAnimation To="0" Duration="{StaticResource StandardDuration}" Storyboard.TargetProperty="Opacity">
-                                        <DoubleAnimation.EasingFunction>
-                                            <QuadraticEase EasingMode="EaseOut"/>
-                                        </DoubleAnimation.EasingFunction>
-                                    </DoubleAnimation>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                        <DiscreteObjectKeyFrame KeyTime="{StaticResource DelayedStart}" Value="{x:Static Visibility.Collapsed}"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </DataTrigger.EnterActions>
-
-                        <DataTrigger.ExitActions>
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <DoubleAnimation To="1" Duration="{StaticResource StandardDuration}" Storyboard.TargetProperty="Opacity">
-                                        <DoubleAnimation.EasingFunction>
-                                            <QuadraticEase EasingMode="EaseOut"/>
-                                        </DoubleAnimation.EasingFunction>
-                                    </DoubleAnimation>
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
-                                        <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </DataTrigger.ExitActions>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <Style x:Key="DimensionIndicatorStyle" TargetType="Line">
-                <Setter Property="Stroke" Value="#99FFFFFF"/>
-                <Setter Property="StrokeThickness" Value="2"/>
-                <Setter Property="Stretch" Value="UniformToFill"/>
-            </Style>
-
-            <Style TargetType="Label">
-                <Setter Property="Foreground" Value="White"/>
-            </Style>
-
-            <Style x:Key="VisibleTextDisplayStyle" TargetType="TextBlock">
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Padding" Value="5,2"/>
-            </Style>
-
-            <Style x:Key="ValueStyle">
-                <Setter Property="Inline.Foreground" Value="Wheat"/>
-                <Setter Property="TextBlock.Padding" Value="5,2"/>
-            </Style>
-
-            <Style x:Key="TitleStyle" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
-                <Setter Property="HorizontalAlignment" Value="Center"/>
-                <Setter Property="FontSize" Value="20"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-            </Style>
-
-            <!--Required to override defaults-->
-            <ControlTemplate x:Key="ButtonHoverTemplate" TargetType="Button">
-                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-                </Border>
-            </ControlTemplate>
-
-            <Style TargetType="Button">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="BorderBrush" Value="LightGray"/>
-                <Setter Property="BorderThickness" Value="1"/>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Padding" Value="10,3"/>
-                <Setter Property="Template" Value="{StaticResource ButtonHoverTemplate}"/>
-
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Effect">
-                            <Setter.Value>
-                                <DropShadowEffect ShadowDepth="0" Color="LightGreen" BlurRadius="5" RenderingBias="Quality"/>
-                            </Setter.Value>
-                        </Setter>
-                        <Setter Property="Background" Value="#B2008000"/>
-                    </Trigger>
-
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Foreground" Value="#B2808080"/>
-                        <Setter Property="BorderBrush" Value="#B2808080"/>
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-
-            <Style TargetType="TextBox">
-                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                <Setter Property="SelectionBrush" Value="LightGreen"/>
-
-                <Setter Property="Validation.ErrorTemplate">
-                    <Setter.Value>
-                        <ControlTemplate x:Name="TextBoxInvalidPathTemplate">
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="*" Foreground="Red" FontSize="20"/>
-                                <AdornedElementPlaceholder>
-                                    <Border BorderBrush="Red" BorderThickness="2"/>
-                                </AdornedElementPlaceholder>
-                            </DockPanel>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-
-            <Style x:Key="ReadOnlyStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                <Setter Property="IsReadOnly" Value="True"/>
-                <Setter Property="Background" Value="Gray"/>
-                <Setter Property="Foreground" Value="WhiteSmoke"/>
-            </Style>
-
-            <Style x:Key="TitleElementStyle" TargetType="Run">
-                <Setter Property="FontWeight" Value="Bold"/>
-            </Style>
-
-            <Style TargetType="ContentControl" x:Key="GeneralAlphaSettingsPanelVisibility">
-                <Setter Property="Visibility" Value="Visible"/>
-
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.JPG}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_DXT1}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_V8U8}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_RGB_8}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_ATI1}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_G8_L8}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_A8L8}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_ATI2_3Dc}">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <ControlTemplate x:Key="GeneralAlphaSettingsTemplate">
-                <Border BorderBrush="Gray" BorderThickness="0.5">
-                    <DockPanel>
-                        <Label Content="Alpha Settings" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                        <CheckBox Content="Remove Alpha Channel" Foreground="White" IsChecked="{Binding RemoveGeneralAlpha}" DockPanel.Dock="Top" Margin="5,0,0,0"/>
-                    </DockPanel>
-                </Border>
-            </ControlTemplate>
-
-            <Style TargetType="ContentControl" x:Key="DXT1AlphaSettingVisibility">
-                <Setter Property="Visibility" Value="Collapsed"/>
-
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_DXT1}">
-                        <Setter Property="Visibility" Value="Visible"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <Style TargetType="ContentControl" x:Key="CustomDDSSettingsVisibility">
-                <Setter Property="Visibility" Value="Collapsed"/>
-
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_CUSTOM}">
-                        <Setter Property="Visibility" Value="Visible"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <ControlTemplate x:Key="CustomDDSSettings">
-                <Border BorderBrush="Gray" BorderThickness="0.5">
-                    <DockPanel DockPanel.Dock="Bottom">
-                        <Label Content="Custom DDS Colour Masks" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
-                        <Label Content="Note: These are untested and experimental. Good luck." DockPanel.Dock="Top" HorizontalAlignment="Center"/>
-                        <DockPanel LastChildFill="False">
-                            <DockPanel.Resources>
-                                <Style TargetType="TextBox">
-                                    <Setter Property="Width" Value="80"/>
-                                    <Setter Property="Margin" Value="0,0,10,0"/>
-                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                </Style>
-
-                                <Style TargetType="Label">
-                                    <Setter Property="Foreground" Value="White"/>
-                                </Style>
-                            </DockPanel.Resources>
-                            <Label Content="Alpha:"/>
-                            <TextBox Text="{Binding AMask, StringFormat=0x{0:X8}}"/>
-
-                            <Label Content="Red:"/>
-                            <TextBox Text="{Binding RMask, StringFormat=0x{0:X8}}"/>
-
-                            <Label Content="Green:"/>
-                            <TextBox Text="{Binding GMask, StringFormat=0x{0:X8}}"/>
-
-                            <Label Content="Blue:"/>
-                            <TextBox Text="{Binding BMask, StringFormat=0x{0:X8}}"/>
-                        </DockPanel>
-                    </DockPanel>
-                </Border>
-            </ControlTemplate>
-
-            <ControlTemplate x:Key="DXT1AlphaSettingTemplate">
-                <Border BorderBrush="Gray" BorderThickness="0.5">
-                    <DockPanel>
-                        <DockPanel.Resources>
-                            <Style TargetType="RadioButton">
-                                <Setter Property="Margin" Value="8,0"/>
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Style>
-                        </DockPanel.Resources>
-
-
-                        <Label Content="DXT1 Alpha Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" FontSize="14"/>
-                        <RadioButton GroupName="{TemplateBinding Name}" Content="Remove Alpha" DockPanel.Dock="Bottom" IsChecked="{Binding DXT1AlphaRemove}"/>
-                        <RadioButton GroupName="{TemplateBinding Name}" Content="Flatten Alpha" DockPanel.Dock="Left" IsChecked="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                        <Label Content="Threshold:" HorizontalAlignment="Center" DockPanel.Dock="Left" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                        <TextBlock Text="{Binding DXT1AlphaThreshold, Converter={StaticResource PercentageConverter}, StringFormat={}{0:#.#}%}" DockPanel.Dock="Right" 
-                               Style="{StaticResource ValueStyle}" VerticalAlignment="Center" IsEnabled="{Binding DXT1AlphaRemove, Converter={StaticResource InverseBoolConverter}}"/>
-                        <Slider Minimum="0" Maximum="1" Value="{Binding DXT1AlphaThreshold}" DockPanel.Dock="Left" VerticalAlignment="Center" LargeChange="0.1" SmallChange="0.1" TickFrequency="0.1">
-                            <Slider.Style>
-                                <Style TargetType="Slider">
-                                    <Setter Property="IsEnabled" Value="True"/>
-                                    <Setter Property="Opacity" Value="1"/>
-
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding DXT1AlphaRemove}" Value="True">
-                                            <Setter Property="IsEnabled" Value="False"/>
-                                            <Setter Property="Opacity" Value="0.6"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Slider.Style>
-                        </Slider>
-                    </DockPanel>
-                </Border>
-            </ControlTemplate>
-
-            <ControlTemplate x:Key="MainFormatSelector">
-                <DockPanel>
-                    <Label Content="WARNING: DX10 formats can take a VERY long time to generate, hence no preview." DockPanel.Dock="Bottom" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Center">
-                        <Label.Style>
-                            <Style TargetType="Label">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Library:ImageEngineFormat.DDS_DX10}">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Label.Style>
-                    </Label>
-                    <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,3">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Library:ImageEngineFormat.DDS_DX10}">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <Label Content="DX10 Format: " FontWeight="Bold"/>
-                        <ComboBox x:Name="DX10FormatCombo" DockPanel.Dock="Bottom" HorizontalAlignment="Left" SelectedValue="{Binding DX10ComboSelection, Mode=TwoWay}">
-                            <ComboBoxItem Content="BC6"/>
-                            <ComboBoxItem Content="BC7"/>
-                        </ComboBox>
-                    </StackPanel>
-                    <Label Content="Format: " FontWeight="Bold"/>
-                    <ComboBox x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                              DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center" DropDownOpened="SaveFormatCombo_DropDownOpened"/>
-                    <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
-                               TextWrapping="Wrap" FontSize="10"/>
-                </DockPanel>
-            </ControlTemplate>
-
-            <Style TargetType="ContentControl" x:Key="JPGSettingsVisibility">
-                <Setter Property="Visibility" Value="Collapsed"/>
-
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.JPG}">
-                        <Setter Property="Visibility" Value="Visible"/>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <ControlTemplate x:Key="JPGSettingsTemplate">
-                <Border BorderBrush="Gray" BorderThickness="0.5">
-                    <DockPanel >
-                        <Label Content="JPG Quality Setting" Style="{StaticResource TitleStyle}" FontSize="14" DockPanel.Dock="Top"/>
-                        <TextBlock Text="{Binding JPG_CompressionSetting, StringFormat={}{0}%}" DockPanel.Dock="Right" Style="{StaticResource ValueStyle}" VerticalAlignment="Center"/>
-                        <Slider Minimum="1" Maximum="100" Value="{Binding JPG_CompressionSetting, Mode=TwoWay}" DockPanel.Dock="Bottom"/>
-                    </DockPanel>
-                </Border>
-            </ControlTemplate>
-
-            <ControlTemplate x:Key="MipSettingsTemplate">
-                <DockPanel>
-                    <Label Content="Mipmap Settings:"/>
-                    <ComboBox x:Name="MipmapSettings" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:MipHandling}}" DisplayMemberPath="DisplayName" SelectedValue="{Binding SaveMipType, Mode=TwoWay}" 
-                              SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center"/>
-                    <TextBlock Text="{Binding ElementName=MipmapSettings, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" 
-                               Style="{StaticResource VisibleTextDisplayStyle}" FontSize="10"/>
-                </DockPanel>
-            </ControlTemplate>
-
-            <Style TargetType="Border" x:Key="FadedBackgroundBorder">
-                <Setter Property="Grid.Row" Value="1"/>
-                <Setter Property="Grid.ColumnSpan" Value="5"/>
-                <Setter Property="Grid.RowSpan" Value="5"/>
-                <Setter Property="Background" Value="#B2000000"/>
-
-                <Setter Property="Visibility" Value="Collapsed"/>
-                <Setter Property="Opacity" Value="0"/>
-
-                <Style.Triggers>
-                    <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="true">
-                        <DataTrigger.EnterActions>
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.5">
-                                        <DoubleAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
-                                        </DoubleAnimation.EasingFunction>
-                                    </DoubleAnimation>
-
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" >
-                                        <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </DataTrigger.EnterActions>
-
-                        <DataTrigger.ExitActions>
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.5">
-                                        <DoubleAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
-                                        </DoubleAnimation.EasingFunction>
-                                    </DoubleAnimation>
-
-                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" >
-                                        <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Collapsed}"/>
-                                    </ObjectAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </DataTrigger.ExitActions>
-                    </DataTrigger>
-                </Style.Triggers>
-            </Style>
-
-            <Style TargetType="Border" x:Key="FadedInnerBorder">
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="HorizontalAlignment" Value="Center"/>
-                <Setter Property="Background" Value="Black"/>
-                <Setter Property="BorderBrush" Value="White"/>
-                <Setter Property="BorderThickness" Value="2"/>
-                <Setter Property="CornerRadius" Value="20"/>
-            </Style>
-        </Grid.Resources>
 
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="127*"/>
@@ -454,34 +45,6 @@
             <RowDefinition Height="3"/>
             <RowDefinition x:Name="InfoRow" Height="1.2*"/>
         </Grid.RowDefinitions>
-        <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="LoadButtonGroup">
-                <VisualStateGroup.Transitions>
-                    <VisualTransition From="Big" GeneratedDuration="{StaticResource StandardDuration}" To="Normal">
-                        <VisualTransition.GeneratedEasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </VisualTransition.GeneratedEasingFunction>
-                    </VisualTransition>
-                    <VisualTransition From="Normal" GeneratedDuration="{StaticResource StandardDuration}" To="Big">
-                        <VisualTransition.GeneratedEasingFunction>
-                            <CubicEase EasingMode="EaseOut"/>
-                        </VisualTransition.GeneratedEasingFunction>
-                    </VisualTransition>
-                </VisualStateGroup.Transitions>
-                <VisualState x:Name="Normal"/>
-                <VisualState x:Name="Big">
-                    <Storyboard>
-                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleX)" Storyboard.TargetName="LoadButton">
-                            <EasingDoubleKeyFrame KeyTime="0" Value="13"/>
-                        </DoubleAnimationUsingKeyFrames>
-
-                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(ScaleTransform.ScaleY)" Storyboard.TargetName="LoadButton">
-                            <EasingDoubleKeyFrame KeyTime="0" Value="13"/>
-                        </DoubleAnimationUsingKeyFrames>
-                    </Storyboard>
-                </VisualState>
-            </VisualStateGroup>
-        </VisualStateManager.VisualStateGroups>
 
 
 
@@ -750,7 +313,7 @@
         <!--END Loaded Image Box-->
 
         <!--Central Column-->
-        <DockPanel Grid.Column="1" Grid.Row="1">
+        <DockPanel x:Name="MipsSelectorColumn" Grid.Column="1" Grid.Row="1">
             <DockPanel.Style>
                 <Style TargetType="DockPanel">
                     <Style.Triggers>
@@ -871,11 +434,12 @@
         <Rectangle x:Name="PropertiesDivider" Grid.Row="2" Grid.ColumnSpan="4" Fill="Black" Stroke="Black" Style="{StaticResource UnloadedOpacityStyle}"/>
 
         <DockPanel x:Name="LoadedImagePropertyPanel" Grid.Row="3" Margin="3,0,3,0" Style="{StaticResource UnloadedOpacityStyle}">
-            <DockPanel LastChildFill="False" DockPanel.Dock="Bottom">
+
+            <DockPanel x:Name="LoadedButtonsPanel" DockPanel.Dock="Bottom">
                 <Button x:Name="ImageCloseButton" Content="Close" DockPanel.Dock="Left" Command="{Binding CloseCommand}" IsEnabled="{Binding IsImageLoaded}" Click="ImageCloseButton_Click"/>
-                <Button x:Name="ConvertButton" Content="Convert >>" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}">
+                <Button x:Name="ConvertButton" Content="Convert &gt;&gt;" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}">
                     <Button.Triggers>
-                        <EventTrigger RoutedEvent="Button.Click">
+                        <EventTrigger RoutedEvent="ButtonBase.Click">
                             <BeginStoryboard>
                                 <Storyboard>
                                     <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
@@ -890,7 +454,7 @@
                 </Button>
                 <Button x:Name="ClosePanelButton" Content="Close Panel &lt;&lt;" DockPanel.Dock="Right" Click="ClosePanelButton_Click">
                     <Button.Triggers>
-                        <EventTrigger RoutedEvent="Button.Click">
+                        <EventTrigger RoutedEvent="ButtonBase.Click">
                             <BeginStoryboard>
                                 <Storyboard>
                                     <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
@@ -903,6 +467,7 @@
                         </EventTrigger>
                     </Button.Triggers>
                 </Button>
+                <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontWeight="Bold" Click="LoadButton_Click"/>
             </DockPanel>
 
             <Button x:Name="PropertiesButton" Content="Properties" HorizontalAlignment="Center" DockPanel.Dock="Top" Margin="0,10,0,3" FontSize="20" FontWeight="Bold" BorderThickness="0.5" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="PropertiesButton_Click"/>
@@ -916,7 +481,7 @@
 
                 <Grid Margin="3,10">
                     <Grid.Resources>
-                        <Style TargetType="Border">
+                        <Style TargetType="{x:Type Border}">
                             <Setter Property="HorizontalAlignment" Value="Left"/>
                             <Setter Property="Height" Value="150"/>
                             <Setter Property="Width" Value="150"/>
@@ -929,9 +494,9 @@
                         <ColumnDefinition Width="180"/>
                         <ColumnDefinition Width="71*"/>
                     </Grid.ColumnDefinitions>
-                    <Canvas VerticalAlignment="Top" HorizontalAlignment="Left" Margin="4,10,0,0">
+                    <Canvas ClipToBounds="True" Margin="4,10,0,0">
                         <Canvas.Resources>
-                            <Style TargetType="Border" x:Key="AncilliaryMipIndicators" BasedOn="{StaticResource {x:Type Border}}">
+                            <Style TargetType="{x:Type Border}" x:Key="AncilliaryMipIndicators" BasedOn="{StaticResource {x:Type Border}}">
                                 <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding MipCount}" Value="1">
@@ -948,26 +513,28 @@
                         <Border Margin="0,10,0,0">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                 <TextBlock x:Name="LoadedFormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
-                                        <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
-                                        <Run Text="{Binding LoadedFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
+                                    <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
+                                    <Run Text=" "/>
+                                    <Run Text="{Binding LoadedFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
                                 <TextBlock x:Name="DX10FormatLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center" FontSize="8" TextAlignment="Center" Visibility="{Binding IsDX10Loaded, Converter={StaticResource BoolToVisConverter}}">
-                                        <Run Text="DX10 Format: " Style="{StaticResource TitleElementStyle}"/>
-                                        <LineBreak/>
-                                        <Run Text="{Binding LoadedDX10Format, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
+                                    <Run Text="DX10 Format: " Style="{StaticResource TitleElementStyle}"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding LoadedDX10Format, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
                                 <TextBlock x:Name="MipCountLabel" Style="{StaticResource VisibleTextDisplayStyle}" HorizontalAlignment="Center">
-                                        <Run Text="Mipmaps: " Style="{StaticResource TitleElementStyle}"/>
-                                        <Run Text="{Binding MipCount, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
+                                    <Run Text="Mipmaps: " Style="{StaticResource TitleElementStyle}"/>
+                                    <Run Text=" "/>
+                                    <Run Text="{Binding MipCount, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
                                 <TextBlock x:Name="CompressedSizeLabel" Style="{StaticResource VisibleTextDisplayStyle}" Grid.Column="1"  TextAlignment="Center"
                                                IsHitTestVisible="False" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                        <Run Text="Compressed/File Size: " Style="{StaticResource TitleElementStyle}"/>
-                                        <LineBreak/>
-                                        <Run Text="{Binding LoadedCompressedSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}}" Style="{StaticResource ValueStyle}"/>
+                                    <Run Text="Compressed/File Size: " Style="{StaticResource TitleElementStyle}"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding LoadedCompressedSize, Converter={StaticResource FileSizeConverter}, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
@@ -1104,32 +671,6 @@
         </DockPanel>
 
 
-        <Button x:Name="LoadButton" HorizontalAlignment="Center" VerticalAlignment="Bottom" Grid.RowSpan="4" FontWeight="Bold" RenderTransformOrigin="0.5,1" Click="LoadButton_Click">
-            <i:Interaction.Behaviors>
-                <ei:DataStateBehavior Binding="{Binding IsImageLoaded}" Value="False" TrueState="Big" FalseState="Normal"/>
-            </i:Interaction.Behaviors>
-            <Button.RenderTransform>
-                <TransformGroup>
-                    <ScaleTransform/>
-                    <SkewTransform/>
-                    <RotateTransform/>
-                    <TranslateTransform/>
-                </TransformGroup>
-            </Button.RenderTransform>
-            <Button.Style>
-                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                    <Setter Property="Content" Value="Load"/>
-
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding LoadFailed}" Value="True">
-                            <Setter Property="Content" Value="{Binding LoadFailError}"/>
-                            <Setter Property="FontSize" Value="10"/>
-                            <Setter Property="BorderBrush" Value="Red"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
 
         <Border x:Name="BulkConvertBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding BulkConvertOpen}">
             <Border x:Name="BulkConvertInnerBorder" Style="{StaticResource FadedInnerBorder}">
@@ -1536,6 +1077,68 @@
                 <Button x:Name="LoadingLayerCancelButton" Content="Cancel" IsEnabled="{Binding IsCancellationRequested, Converter={StaticResource InverseBoolConverter}}" 
                         DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="10" Click="LoadingLayerCancelButton_Click"/>
             </DockPanel>
+        </DockPanel>
+
+        <DockPanel x:Name="MainStartPage" Background="Transparent" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" Grid.Row="1" AllowDrop="True" Grid.RowSpan="5" Grid.ColumnSpan="5" LastChildFill="False" d:IsHidden="True">
+            <DockPanel.Resources>
+                <Style TargetType="Run" x:Key="MainText">
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="FontSize" Value="70"/>
+                </Style>
+
+                <Style TargetType="Run" x:Key="SupportingText">
+                    <Setter Property="FontSize" Value="30"/>
+                </Style>
+
+                <Style TargetType="TextBlock">
+                    <Setter Property="TextAlignment" Value="Center"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+            </DockPanel.Resources>
+            <DockPanel.Style>
+                <Style TargetType="DockPanel">
+                    <Setter Property="Visibility" Value="Visible"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsImageLoaded}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding BulkConvertOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DockPanel.Style>
+
+            <local:MyButtonTest x:Name="TopLevelBulkConvertLoadButton" DockPanel.Dock="Top" AllowDrop="True" Click="TopLevelBulkConvertLoadButton_Click" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop">
+                <TextBlock>
+                    <Run Text="Bulk Convert" Style="{StaticResource MainText}"/>
+                    <LineBreak/>
+                    <Run Text="Drop images here!" Style="{StaticResource SupportingText}"/>
+                </TextBlock>
+            </local:MyButtonTest>
+            <local:MyButtonTest AllowDrop="True" x:Name="TopLevelLoadButton" DockPanel.Dock="Bottom" Click="LoadButton_Click">
+                <TextBlock>
+                    <Run Text="Load" Style="{StaticResource MainText}"/>
+                    <LineBreak/>
+                    <Run Text="Drop an image here!" Style="{StaticResource SupportingText}"/>
+                    <LineBreak/>
+                    <Run Text="Most image types and formats supported." Style="{StaticResource SupportingText}"/>
+                </TextBlock>
+            </local:MyButtonTest>
         </DockPanel>
     </Grid>
 </Window>
