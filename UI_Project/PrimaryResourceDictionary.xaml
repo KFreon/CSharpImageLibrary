@@ -7,12 +7,15 @@
                     x:Class="UI_Project.PrimaryResourceDictionary"
                     x:ClassModifier="public"
                     xmlns:local="clr-namespace:UI_Project">
-    <DropShadowEffect x:Key="GreenEffect" ShadowDepth="0" Color="LightGreen" BlurRadius="20" RenderingBias="Quality"/>
+    <DropShadowEffect x:Key="GreenEffect" ShadowDepth="0" Color="LightGreen" BlurRadius="20" RenderingBias="Performance"/>
     <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
     <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
     <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
     <UsefulThingsConverters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
     <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
+    <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
+    <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
+    
     <sys:Boolean x:Key="TrueValue">
         True
     </sys:Boolean>
@@ -25,8 +28,6 @@
         </ObjectDataProvider.MethodParameters>
     </ObjectDataProvider>
 
-    <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
-    <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
 
     <Duration x:Key="StandardDuration">0:0:0.5</Duration>
     <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
@@ -72,15 +73,17 @@
         </Style.Triggers>
     </Style>
 
+    <Style TargetType="Label">
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    
     <Style x:Key="DimensionIndicatorStyle" TargetType="Line">
         <Setter Property="Stroke" Value="#99FFFFFF"/>
         <Setter Property="StrokeThickness" Value="2"/>
         <Setter Property="Stretch" Value="UniformToFill"/>
     </Style>
 
-    <Style TargetType="Label">
-        <Setter Property="Foreground" Value="White"/>
-    </Style>
+    
 
     <Style x:Key="VisibleTextDisplayStyle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="White"/>

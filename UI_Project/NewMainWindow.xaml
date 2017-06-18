@@ -556,7 +556,7 @@
                     <ColumnDefinition Width="64*"/>
                     <ColumnDefinition Width="237*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Saved Successfully!!" Foreground="LightGreen" FontSize="15" FontWeight="Bold" Grid.Column="2">
+                <TextBlock Text="{Binding SaveDuration, StringFormat=Saved! {0}}" Foreground="LightGreen" FontSize="15" FontWeight="Bold" Grid.Column="2">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource VisibleTextDisplayStyle}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -1049,7 +1049,7 @@
             </Border>
         </Border>
 
-        <DockPanel x:Name="LoadingIndicationPanel" Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding Busy, Converter={StaticResource BoolToVisConverter}}">
+        <DockPanel x:Name="LoadingIndicationPanel" Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding DelayedBusy, Converter={StaticResource BoolToVisConverter}}">
             <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Border x:Name="LoadingBorder" BorderBrush="Red" BorderThickness="10" Padding="20,5" DockPanel.Dock="Top">
                     <Border.Style>
@@ -1071,7 +1071,10 @@
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
-                    <Label Content="{Binding Status}" FontSize="50" Foreground="Red" FontWeight="Bold"/>
+                    <StackPanel>
+                        <Label Content="{Binding Status}" FontSize="50" Foreground="Red" FontWeight="Bold"/>
+                        <TextBlock x:Name="OperationElapsedIndicator" Text="{Binding OperationElapsed, StringFormat=Elapsed Time: {0}}" Foreground="White" FontSize="20" TextAlignment="Center"/>
+                    </StackPanel>
                 </Border>
 
                 <Button x:Name="LoadingLayerCancelButton" Content="Cancel" IsEnabled="{Binding IsCancellationRequested, Converter={StaticResource InverseBoolConverter}}" 

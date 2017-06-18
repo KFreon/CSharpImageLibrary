@@ -33,6 +33,25 @@ namespace UI_Project
 
     public class NewViewModel : ViewModelBase
     {
+        Stopwatch operationElapsedTimer = new Stopwatch();
+        DispatcherTimer operationElapsedUpdateTimer = new DispatcherTimer();
+
+        DispatcherTimer busyTimer = new DispatcherTimer();
+        bool delayedBusy = false;
+        public bool DelayedBusy
+        {
+            get
+            {
+                return delayedBusy;
+            }
+            set
+            {
+                SetProperty(ref delayedBusy, value);
+            }
+        }
+
+
+
         public bool IsCancellationRequested
         {
             get
@@ -80,7 +99,6 @@ namespace UI_Project
             }
         }
 
-        Stopwatch timer = new Stopwatch();
 
         bool showHelpAbout = false;
         public bool ShowHelpAbout
@@ -317,6 +335,19 @@ namespace UI_Project
         }
         #endregion Info Panel Properties
 
+        string saveDuration = null;
+        public string SaveDuration
+        {
+            get
+            {
+                return saveDuration;
+            }
+            set
+            {
+                SetProperty(ref saveDuration, value);
+            }
+        }
+
         #region Commands
         CommandHandler closeCommand = null;
         public CommandHandler CloseCommand
@@ -353,8 +384,11 @@ namespace UI_Project
                             {
                                 SaveError = e.ToString();
                             }
+
+
                             SaveAttempted = true;
                             Busy = false;
+                            SaveDuration = $"{operationElapsedTimer.ElapsedMilliseconds}ms";
                             SavePath = UsefulThings.General.FindValidNewFileName(SavePath);  // Ensure save path is pointing to a new valid filepath
                         });
                     });
@@ -489,6 +523,22 @@ namespace UI_Project
             }
             set
             {
+                if (!operationElapsedTimer.IsRunning)
+                    operationElapsedTimer.Restart();
+
+                if (!operationElapsedUpdateTimer.IsEnabled)
+                    operationElapsedUpdateTimer.Start();
+
+                if (value && !busy)
+                    busyTimer.Start();
+                else if (!value)
+                {
+                    busyTimer.Stop();
+                    DelayedBusy = false;
+                    operationElapsedUpdateTimer.Stop();
+                    operationElapsedTimer.Stop();
+                }
+
                 SetProperty(ref busy, value);
             }
         }
@@ -558,19 +608,18 @@ namespace UI_Project
         #region Bulk Convert Properties
         public MTRangedObservableCollection<string> BulkConvertFiles { get; set; } = new MTRangedObservableCollection<string>();
         public MTRangedObservableCollection<string> BulkConvertFailed { get; set; } = new MTRangedObservableCollection<string>();
-        Stopwatch bulkConvertTimer = new Stopwatch();
 
 
-        string bulkConvertElaspsed = null;
-        public string BulkConvertElapsed
+        string operationElapsed = null;
+        public string OperationElapsed
         {
             get
             {
-                return bulkConvertElaspsed;
+                return operationElapsed;
             }
             set
             {
-                SetProperty(ref bulkConvertElaspsed, value);
+                SetProperty(ref operationElapsed, value);
             }
         }
 
@@ -821,7 +870,7 @@ namespace UI_Project
             }
         }
 
-        string loadDuration = "";
+        string loadDuration = null;
         public string LoadDuration
         {
             get
@@ -1083,8 +1132,11 @@ namespace UI_Project
             }
             set
             {
-                UpdateSaveFormat(SaveFormat, value);
+                bool requiresUpdate = UpdateSaveFormat(SaveFormat, value);
                 SetProperty(ref _DX10Format, value);
+
+                if (requiresUpdate)
+                    UpdateSavePreview();
             }
         }
 
@@ -1101,12 +1153,15 @@ namespace UI_Project
                 if (ImageFormats.SaveUnsupported.Contains(value))
                     return;
 
-                UpdateSaveFormat(value, DX10Format);
+                bool requiresUpdate = UpdateSaveFormat(value, DX10Format);
                 SetProperty(ref saveFormat, value);
+
+                if (requiresUpdate)
+                    UpdateSavePreview();
             }
         }
 
-        private void UpdateSaveFormat(ImageEngineFormat value, DXGI_FORMAT dx10Format)
+        private bool UpdateSaveFormat(ImageEngineFormat value, DXGI_FORMAT dx10Format)
         {
             bool changed = value != saveFormat || (value == ImageEngineFormat.DDS_DX10 ? dx10Format != DX10Format : false);
 
@@ -1116,7 +1171,7 @@ namespace UI_Project
                 // Clear display so it's clear something else needs to be done
                 savePreviewIMG.Dispose();
                 SavePreview = null;
-                return;
+                return false;
             }
 
 
@@ -1128,7 +1183,7 @@ namespace UI_Project
             OnPropertyChanged(nameof(IsSaveSmaller));
 
             if (SavePath == null)
-                return;
+                return false;
 
             // Test paths without extensions
             if (SavePath.Substring(0, SavePath.LastIndexOf('.')) == DefaultSavePath.Substring(0, DefaultSavePath.LastIndexOf('.')))
@@ -1141,8 +1196,7 @@ namespace UI_Project
             SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
 
             // Regenerate save preview
-            if (changed && SavePanelOpen)
-                UpdateSavePreview();
+            return changed && SavePanelOpen;
         }
 
         MipHandling saveMipType = MipHandling.Default;
@@ -1263,6 +1317,16 @@ namespace UI_Project
 
         public NewViewModel() : base()
         {
+            operationElapsedUpdateTimer.Interval = TimeSpan.FromSeconds(0.5);
+            operationElapsedUpdateTimer.Tick += (soruce, args) => OperationElapsed = operationElapsedTimer.Elapsed.ToString(@"mm\.ss\.f");
+
+            busyTimer.Interval = TimeSpan.FromSeconds(0.5);
+            busyTimer.Tick += (arg, arg2) =>
+            {
+                DelayedBusy = true;
+                busyTimer.Stop();
+            };
+
             // Space out the Output Window a bit
             Trace.WriteLine("");
             Trace.WriteLine("");
@@ -1285,7 +1349,6 @@ namespace UI_Project
 
         internal async Task LoadImage(string path)
         {
-            timer.Restart();
             byte[] bytes = null;
             try
             {
@@ -1299,7 +1362,7 @@ namespace UI_Project
                 return;
             }
 
-            Trace.WriteLine($"File read took: {timer.ElapsedMilliseconds}");
+            Trace.WriteLine($"File read took: {operationElapsedTimer.ElapsedMilliseconds}");
 
             bool success = await LoadImage(bytes);
             if (!success)
@@ -1317,9 +1380,7 @@ namespace UI_Project
             Status = "Loading...";
             Busy = true;
 
-
-            if (!timer.IsRunning)
-                timer.Restart();
+            // TODO: Fix issue with saving dxt1 removing alpha, mips don't work.
 
             CloseImage(false); // Don't need to update the UI here, it'll get updated after loading the image. But do need to reset some things
 
@@ -1336,16 +1397,14 @@ namespace UI_Project
                 return false;
             }
 
-            Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
+            Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
             WindowTitle = "Image Engine - View:";
-            LoadDuration = $"{timer.ElapsedMilliseconds}ms";
-            timer.Restart();
+            LoadDuration = $"{operationElapsedTimer.ElapsedMilliseconds}ms";
             UpdateLoadedPreview(true);
 
             SaveFormat = LoadedFormat;
 
-            timer.Stop();
-            Trace.WriteLine($"Preview of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {timer.ElapsedMilliseconds}ms.");
+            Trace.WriteLine($"Preview of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
 
             IsImageLoaded = true;
             Busy = false;
@@ -1394,7 +1453,8 @@ namespace UI_Project
             SaveAttempted = false;
             MipIndex = 0;
             WindowTitle = "Image Engine";
-            LoadDuration = "";
+            LoadDuration = null;
+            SaveDuration = null;
             RemoveGeneralAlpha = false; // Other alpha settings not reset because they're specific, but this one spans formats.
             BulkProgressValue = 0;
             BulkProgressMax = 0;
@@ -1403,7 +1463,6 @@ namespace UI_Project
             BulkConvertRunning = false;
             BulkConvertFiles.Clear();
             BulkConvertFailed.Clear();
-            bulkConvertTimer = new Stopwatch();
             MergeChannelsImages.Clear();
             LoadFailed = false;
             LoadFailError = null;
@@ -1511,12 +1570,14 @@ namespace UI_Project
 
         internal async Task DoBulkConvert()
         {
+            Busy = true;
+            busyTimer.Stop();  // Don't want the Busy window here.
+
             BulkProgressMax = BulkConvertFiles.Count;
             BulkProgressValue = 0;
             BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             BulkConvertFinished = false;
             BulkConvertRunning = true;
-            bulkConvertTimer.Start();
 
             Progress<int> progressReporter = new Progress<int>(index =>
             {
@@ -1524,23 +1585,17 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
-            DispatcherTimer timer = new DispatcherTimer();
-            timer.Interval = TimeSpan.FromSeconds(0.5);
-            timer.Tick += (soruce, args) => BulkConvertElapsed = bulkConvertTimer.Elapsed.ToString(@"hh\.mm\.ss\.f");
-            timer.Start();
-
             BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormatDetails, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
-            timer.Stop();
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)
                 BulkStatus += $"{BulkConvertFailed.Count} failed to convert.";
 
+            Busy = false;
             BulkProgressValue = BulkProgressMax;
             BulkConvertFinished = true;
             BulkConvertRunning = false;
-            bulkConvertTimer.Stop();
-            BulkConvertElapsed = bulkConvertTimer.Elapsed.ToString(@"hh\.mm\.ss\.f");
+            OperationElapsed = operationElapsedTimer.Elapsed.ToString(@"mm\.ss\.f");
         }
 
         /// <summary>
@@ -1695,7 +1750,6 @@ namespace UI_Project
             }
             else if (SaveFormat != ImageEngineFormat.DDS_DX10)  // DX10 takes FOREVER to save - caught earlier than this, but just in case.
             {
-                timer.Restart();
                 if (needRegenerate)
                     await Task.Run(() =>
                     {
@@ -1712,8 +1766,7 @@ namespace UI_Project
                         savePreviewIMG = new ImageEngineImage(data);
                     });
 
-                Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
-                timer.Restart();
+                Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
             }
 
             
@@ -1723,10 +1776,9 @@ namespace UI_Project
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
 
-            timer.Stop();
-            Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {timer.ElapsedMilliseconds}ms.");
 
             Busy = false;
+            Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
         }
 
         public void Cancel()
