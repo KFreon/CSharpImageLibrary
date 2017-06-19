@@ -20,11 +20,11 @@ namespace UI_Project
     /// <summary>
     /// Interaction logic for MyButtonTest.xaml
     /// </summary>
-    public partial class MyButtonTest : Button
+    public partial class DropFriendlyButton : Button
     {
         Brush origBorderBrush = null;
 
-        public MyButtonTest()
+        public DropFriendlyButton()
         {
             InitializeComponent();
 

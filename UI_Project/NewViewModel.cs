@@ -1380,7 +1380,8 @@ namespace UI_Project
             Status = "Loading...";
             Busy = true;
 
-            // TODO: Fix issue with saving dxt1 removing alpha, mips don't work.
+            // Delay testing
+            //await Task.Delay(5000);
 
             CloseImage(false); // Don't need to update the UI here, it'll get updated after loading the image. But do need to reset some things
 

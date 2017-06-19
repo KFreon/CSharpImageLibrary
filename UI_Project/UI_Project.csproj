@@ -93,8 +93,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Design_ViewModel.cs" />
-    <Compile Include="MyButtonTest.xaml.cs">
-      <DependentUpon>MyButtonTest.xaml</DependentUpon>
+    <Compile Include="DropFriendlyButton.xaml.cs">
+      <DependentUpon>DropFriendlyButton.xaml</DependentUpon>
     </Compile>
     <Compile Include="NewMainWindow.xaml.cs">
       <DependentUpon>NewMainWindow.xaml</DependentUpon>
@@ -133,7 +133,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="MyButtonTest.xaml">
+    <Page Include="DropFriendlyButton.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

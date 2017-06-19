@@ -7,7 +7,10 @@
                     x:Class="UI_Project.PrimaryResourceDictionary"
                     x:ClassModifier="public"
                     xmlns:local="clr-namespace:UI_Project">
+    
     <DropShadowEffect x:Key="GreenEffect" ShadowDepth="0" Color="LightGreen" BlurRadius="20" RenderingBias="Performance"/>
+    
+    <!-- Type Converters -->
     <UsefulThingsConverters:EnumDescriptionConverter x:Key="EnumDescriptionConverter"/>
     <UsefulThingsConverters:BoolToVisibilityConverter x:Key="BoolToVisConverter"/>
     <UsefulThingsConverters:PercentageConverter x:Key="PercentageConverter"/>
@@ -15,6 +18,7 @@
     <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
     <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
     <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
+    <!-- End Type Converters -->
     
     <sys:Boolean x:Key="TrueValue">
         True
@@ -29,10 +33,13 @@
     </ObjectDataProvider>
 
 
+    <!-- Animation Durations -->
     <Duration x:Key="StandardDuration">0:0:0.5</Duration>
     <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
     <sys:TimeSpan x:Key="DelayedStartTimeSpan">0:0:0.5</sys:TimeSpan>
-
+    <!-- End Animation Durations -->
+    
+    <!-- Animations -->
     <Storyboard x:Key="FadeOutPanel">
         <DoubleAnimation To="0" Duration="{StaticResource StandardDuration}" Storyboard.TargetProperty="Opacity">
             <DoubleAnimation.EasingFunction>
@@ -54,59 +61,12 @@
             <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{x:Static Visibility.Visible}"/>
         </ObjectAnimationUsingKeyFrames>
     </Storyboard>
+    <!-- End Animations -->
 
-
-    <Style x:Key="UnloadedOpacityStyle" TargetType="FrameworkElement">
-        <Setter Property="Visibility" Value="Visible"/>
-        <Setter Property="Opacity" Value="1"/>
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding IsImageLoaded}" Value="False">
-                <DataTrigger.EnterActions>
-                    <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                </DataTrigger.EnterActions>
-
-                <DataTrigger.ExitActions>
-                    <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                </DataTrigger.ExitActions>
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
+    <!-- Global/Theme Styles -->
     <Style TargetType="Label">
         <Setter Property="Foreground" Value="White"/>
     </Style>
-    
-    <Style x:Key="DimensionIndicatorStyle" TargetType="Line">
-        <Setter Property="Stroke" Value="#99FFFFFF"/>
-        <Setter Property="StrokeThickness" Value="2"/>
-        <Setter Property="Stretch" Value="UniformToFill"/>
-    </Style>
-
-    
-
-    <Style x:Key="VisibleTextDisplayStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="Padding" Value="5,2"/>
-    </Style>
-
-    <Style x:Key="ValueStyle">
-        <Setter Property="Inline.Foreground" Value="Wheat"/>
-        <Setter Property="TextBlock.Padding" Value="5,2"/>
-    </Style>
-
-    <Style x:Key="TitleStyle" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
-        <Setter Property="HorizontalAlignment" Value="Center"/>
-        <Setter Property="FontSize" Value="20"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-    </Style>
-
-    <!--Required to override defaults-->
-    <ControlTemplate x:Key="ButtonHoverTemplate" TargetType="Button">
-        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
-        </Border>
-    </ControlTemplate>
 
     <Style TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
@@ -114,7 +74,15 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="Padding" Value="10,3"/>
-        <Setter Property="Template" Value="{StaticResource ButtonHoverTemplate}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
 
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -145,6 +113,61 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+    
+    <!-- End Global/Theme Styles -->
+
+
+
+    <Style x:Key="UnloadedOpacityStyle" TargetType="FrameworkElement">
+        <Setter Property="Visibility" Value="Visible"/>
+        <Setter Property="Opacity" Value="1"/>
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsImageLoaded}" Value="False">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                </DataTrigger.EnterActions>
+
+                <DataTrigger.ExitActions>
+                    <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DimensionIndicatorStyle" TargetType="Line">
+        <Setter Property="Stroke" Value="#99FFFFFF"/>
+        <Setter Property="StrokeThickness" Value="2"/>
+        <Setter Property="Stretch" Value="UniformToFill"/>
+    </Style>
+
+    <Style x:Key="VisibleTextDisplayStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Padding" Value="5,2"/>
+    </Style>
+
+    <Style x:Key="ValueStyle">
+        <Setter Property="Inline.Foreground" Value="Wheat"/>
+        <Setter Property="TextBlock.Padding" Value="5,2"/>
+    </Style>
+
+    <Style x:Key="DimensionIndicatorTextStyle" TargetType="TextBlock">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding MipIndex}" Value="0">
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Padding" Value="4,2"/>
+                <Setter Property="Foreground" Value="Wheat"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="TitleStyle" TargetType="Label" BasedOn="{StaticResource {x:Type Label}}">
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="Bold"/>
     </Style>
 
     <Style x:Key="ReadOnlyStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
@@ -417,7 +440,4 @@
         <Setter Property="BorderThickness" Value="2"/>
         <Setter Property="CornerRadius" Value="20"/>
     </Style>
-
-
-
 </ResourceDictionary>

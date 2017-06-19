@@ -505,6 +505,12 @@ namespace CSharpImageLibrary
             var bmp = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight);
             bmp.Freeze();
 
+            // TESTING - CreateWPFBitmap appears to be breaking that DXT1 in some fashion.
+            /*PngBitmapEncoder enc = new PngBitmapEncoder();
+            enc.Frames.Add(BitmapFrame.Create(bmp));
+            using (FileStream fs = new FileStream(@"C:\users\kfreo\desktop\test.png", FileMode.Create, FileAccess.Write))
+                enc.Save(fs);*/
+
             return new MipMap(bmp.GetPixelsAsBGRA32(), newWidth, newHeight, formatDetails);
         }
 
