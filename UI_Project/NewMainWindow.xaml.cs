@@ -38,14 +38,6 @@ namespace UI_Project
             ProfileOptimization.SetProfileRoot(path);
             ProfileOptimization.StartProfile("Startup.Profile_ImageEngine_UI");
 
-            // Get Properties
-            if (Properties.Settings.Default.UpgradeRequired)
-            {
-                Properties.Settings.Default.Upgrade();
-                Properties.Settings.Default.UpgradeRequired = false;
-                Properties.Settings.Default.Save();
-            }
-
             vm = new NewViewModel();
 
             DragDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
@@ -141,18 +133,6 @@ namespace UI_Project
                     this.Close();  // Might not work I guess, but either way, it's going down.
                 };
 
-
-            UseWindowTransparencyChecker.IsChecked = Properties.Settings.Default.IsWindowBlurred;
-            if (Properties.Settings.Default.NumThreads == 1)
-            {
-                vm.NumThreads = -1;
-                vm.EnableThreading = false;
-            }
-            else
-                vm.NumThreads = Properties.Settings.Default.NumThreads;
-
-            vm.UseWindowsCodecs = Properties.Settings.Default.UseWindowsCodecs;
-
             // Make sure Minimise/Maximise functionality from dragging the title bar is connected to any margin adjustments required.
             this.StateChanged += (sender, args) => WindowMinMaxButton_Click(sender, null);
 
@@ -176,8 +156,25 @@ namespace UI_Project
 
             vm.SavePanelOpen = false;
 
-            Storyboard closer = (Storyboard)SecondColumn.FindResource("SecondColumnCloser");
+            Storyboard closer = FindStoryBoard(SecondColumn, "SecondColumnCloser");
             closer.Begin(SecondColumn);
+        }
+
+        void OpenSavePanel()
+        {
+            // Only animate if not already closed.
+            if (SecondColumn.Width != new GridLength(0, GridUnitType.Star))
+                return;
+
+            vm.SavePanelOpen = false;
+
+            Storyboard opener = FindStoryBoard(SecondColumn, "SecondColumnOpener");
+            opener.Begin(SecondColumn);
+        }
+
+        Storyboard FindStoryBoard<T>(T element, string storyboardName) where T : FrameworkContentElement
+        {
+            return (Storyboard)element.FindResource(storyboardName);
         }
 
         private void WindowMinMaxButton_Click(object sender, RoutedEventArgs e)
@@ -204,7 +201,7 @@ namespace UI_Project
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (Properties.Settings.Default.IsWindowBlurred)
+            if (vm.IsWindowBlurred)
                 UsefulThings.WPF.WindowBlur.EnableBlur(this);
         }
 
@@ -241,6 +238,7 @@ namespace UI_Project
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
+            OpenSavePanel();
             vm.SavePanelOpen = true;
             ConvertButton.Visibility = Visibility.Collapsed;
             ClosePanelButton.Visibility = Visibility.Visible;
@@ -276,6 +274,8 @@ namespace UI_Project
         {
             ConvertButton.Visibility = Visibility.Visible;
             ClosePanelButton.Visibility = Visibility.Collapsed;
+
+            CloseSavePanel();
 
             vm.WindowTitle = "ImageEngine - View"; 
         }
@@ -620,13 +620,13 @@ namespace UI_Project
         private void UseWindowTransparencyChecker_Checked(object sender, RoutedEventArgs e)
         {
             UsefulThings.WPF.WindowBlur.EnableBlur(this);
-            Properties.Settings.Default.IsWindowBlurred = true;
+            vm.IsWindowBlurred = true;
         }
 
         private void UseWindowTransparencyChecker_Unchecked(object sender, RoutedEventArgs e)
         {
             UsefulThings.WPF.WindowBlur.DisableBlur(this);
-            Properties.Settings.Default.IsWindowBlurred = false;
+            vm.IsWindowBlurred = false;
         }
 
         private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -637,6 +637,7 @@ namespace UI_Project
             Properties.Settings.Default.BackgroundGreen = vm.WindowBackground_Green;
             Properties.Settings.Default.BackgroundBlue = vm.WindowBackground_Blue;
             Properties.Settings.Default.UseWindowsCodecs = vm.UseWindowsCodecs;
+            Properties.Settings.Default.IsWindowBlurred = vm.IsWindowBlurred;
             Properties.Settings.Default.Save();
         }
 
@@ -667,6 +668,7 @@ namespace UI_Project
 
         private void PropertiesButton_Click(object sender, RoutedEventArgs e)
         {
+            // Want to animate this but it starts at the bottom all the time. Unknown reason, perhaps in gridlengthanimation?
             if (InfoRow.Height.Value == 1.2)
                 InfoRow.Height = new GridLength(80, GridUnitType.Pixel);
             else

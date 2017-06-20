@@ -8,8 +8,8 @@
         xmlns:UsefulValidation="clr-namespace:UsefulThings.WPF.ValidationRules;assembly=UsefulThings"
         xmlns:UsefulWPF="clr-namespace:UsefulThings.WPF;assembly=UsefulThings"
         mc:Ignorable="d"
-        Title="NewMainWindow" Height="900" MinHeight="400" Width="1100" MinWidth="1010" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None" ResizeMode="CanResizeWithGrip" 
-        Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}"
+        Title="NewMainWindow" Height="900" MinHeight="400" Width="1100" MinWidth="1010" AllowsTransparency="True" Background="{Binding WindowBackgroundColour}" WindowStyle="None"  
+        Loaded="Window_Loaded" d:DataContext="{d:DesignInstance Type=local:Design_ViewModel, IsDesignTimeCreatable=True}" ResizeMode="CanResizeWithGrip"
         AllowDrop="True" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" KeyDown="TOPWINDOW_KeyDown" MouseLeftButtonDown="TOPWINDOW_MouseLeftButtonDown" Closing="TOPWINDOW_Closing">
     <Window.Resources>
         <ResourceDictionary>
@@ -27,6 +27,14 @@
                 <ColumnDefinition.Resources>
                     <Storyboard x:Key="SecondColumnCloser">
                         <UsefulWPF:GridLengthAnimation Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
+                            <UsefulWPF:GridLengthAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </UsefulWPF:GridLengthAnimation.EasingFunction>
+                        </UsefulWPF:GridLengthAnimation>
+                    </Storyboard>
+
+                    <Storyboard x:Key="SecondColumnOpener">
+                        <UsefulWPF:GridLengthAnimation Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
                             <UsefulWPF:GridLengthAnimation.EasingFunction>
                                 <CubicEase EasingMode="EaseOut"/>
                             </UsefulWPF:GridLengthAnimation.EasingFunction>
@@ -101,7 +109,6 @@
                   ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:AlphaDisplaySettings}}" SelectedValue="{Binding AlphaDisplaySetting, Mode=TwoWay}" 
                               DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
         </DockPanel>
-
 
         <DockPanel x:Name="TitleBarDockPanel" Background="#4C000000" Grid.ColumnSpan="4" Margin="0,0,-3,0">
             <DockPanel.Resources>
@@ -428,36 +435,8 @@
         <DockPanel x:Name="LoadedImagePropertyPanel" Grid.Row="3" Margin="3,0,3,0" Style="{StaticResource UnloadedOpacityStyle}">
             <DockPanel x:Name="LoadedButtonsPanel" DockPanel.Dock="Bottom">
                 <Button x:Name="ImageCloseButton" Content="Close" DockPanel.Dock="Left" Command="{Binding CloseCommand}" IsEnabled="{Binding IsImageLoaded}" Click="ImageCloseButton_Click"/>
-                <Button x:Name="ConvertButton" Content="Convert &gt;&gt;" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}">
-                    <Button.Triggers>
-                        <EventTrigger RoutedEvent="ButtonBase.Click">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="0" To="127*" Duration="{StaticResource StandardDuration}"  BeginTime="0:0:0">
-                                        <UsefulWPF:GridLengthAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
-                                        </UsefulWPF:GridLengthAnimation.EasingFunction>
-                                    </UsefulWPF:GridLengthAnimation>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Button.Triggers>
-                </Button>
-                <Button x:Name="ClosePanelButton" Content="Close Panel &lt;&lt;" DockPanel.Dock="Right" Click="ClosePanelButton_Click">
-                    <Button.Triggers>
-                        <EventTrigger RoutedEvent="ButtonBase.Click">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <UsefulWPF:GridLengthAnimation Storyboard.TargetName="SecondColumn" Storyboard.TargetProperty="Width" From="127*" To="0" Duration="{StaticResource StandardDuration}" BeginTime="0:0:0">
-                                        <UsefulWPF:GridLengthAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
-                                        </UsefulWPF:GridLengthAnimation.EasingFunction>
-                                    </UsefulWPF:GridLengthAnimation>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Button.Triggers>
-                </Button>
+                <Button x:Name="ConvertButton" Content="Convert &gt;&gt;" DockPanel.Dock="Right" Click="ConvertButton_Click" IsEnabled="{Binding IsImageLoaded}"/>
+                <Button x:Name="ClosePanelButton" Content="Close Panel &lt;&lt;" DockPanel.Dock="Right" Click="ClosePanelButton_Click"/>
                 <Button x:Name="LoadButton" Content="Load" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontWeight="Bold" Click="LoadButton_Click"/>
             </DockPanel>
 
@@ -669,7 +648,7 @@
                 </DockPanel>
             </ScrollViewer>
         </DockPanel>
-
+        
         <DockPanel x:Name="MainStartPage" Background="Transparent" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" Grid.Row="1" AllowDrop="True" Grid.RowSpan="5" Grid.ColumnSpan="5" LastChildFill="False" d:IsHidden="True">
             <DockPanel.Resources>
                 <Style TargetType="Run" x:Key="MainText">
@@ -740,9 +719,59 @@
             </local:DropFriendlyButton>
         </DockPanel>
 
-        <Border x:Name="BulkConvertBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding BulkConvertOpen}">
-            <Border x:Name="BulkConvertInnerBorder" Style="{StaticResource FadedInnerBorder}">
-                <DockPanel x:Name="BulkConvertMainPanel" LastChildFill="True">
+        <ContentControl x:Name="OptionalPanelsDisplayBox" Grid.Row="1" Grid.RowSpan="5" Grid.ColumnSpan="5">
+            <ContentControl.Resources>
+                <DockPanel x:Key="SettingsPanel" LastChildFill="False">
+                    <Label Content="Settings" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+
+                    <CheckBox Content="Use Windows Codecs where available" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center" Margin="0,20,0,5" IsChecked="{Binding UseWindowsCodecs}"/>
+
+                    <DockPanel LastChildFill="False" DockPanel.Dock="Top">
+                        <CheckBox Content="Enable Threading" IsChecked="{Binding EnableThreading}" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center"/>
+                        <TextBlock DockPanel.Dock="Right" FontSize="8" VerticalAlignment="Center" Foreground="White" IsEnabled="{Binding EnableThreading}">
+                            <Run Text="-1 signifies system managed threading."/>
+                            <LineBreak/>
+                            <Run Text="0 is not allowed and I don't know what'll happen."/>
+                        </TextBlock>
+                        <Label Content="Thread Count:" DockPanel.Dock="Left" IsEnabled="{Binding EnableThreading}"/>
+                        <TextBox Text="{Binding NumThreads}" IsEnabled="{Binding EnableThreading}" Width="30" Margin="5,3,10,3" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                    </DockPanel>
+
+
+                    <Label Content="Window Colour/Display Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" Margin="0,20,0,0"/>
+                    <CheckBox x:Name="UseWindowTransparencyChecker" Foreground="White" Content="Blur Window Background?" Checked="UseWindowTransparencyChecker_Checked"  IsChecked="{Binding IsWindowBlurred}"
+                              Unchecked="UseWindowTransparencyChecker_Unchecked" DockPanel.Dock="Top"/>
+                    <CheckBox x:Name="BitmapQualityChecker" Foreground="White" Content="Use High Quality Bitmap Scaling (Preview Zoom Quality)" IsChecked="{Binding UseHighQualityScaling}" DockPanel.Dock="Top"/>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Red: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Red}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Red}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Green: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Green}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Green}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Blue: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Blue}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Blue}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Alpha: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Alpha}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Alpha}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <Button x:Name="Settings_ColoursDefaultButton" DockPanel.Dock="Top" Content="Default Colours" Click="Settings_ColoursDefaultButton_Click" HorizontalAlignment="Center"/>
+
+                    <Button x:Name="SettingsPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,10,0,5" 
+                            Click="SettingsPanelCloseButton_Click"/>
+                </DockPanel>
+                <DockPanel x:Key="BulkConvertPanel" LastChildFill="True">
                     <DockPanel.Resources>
                         <Style TargetType="FrameworkElement" x:Key="InitialStyle">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -763,7 +792,7 @@
                     <Label x:Name="BulkConvertBoxDescription" Content="Enables many images to be converted at once. Use the settings below to set the target format and alpha settings for each format." DockPanel.Dock="Top"/>
                     <DockPanel x:Name="BottomStatus" DockPanel.Dock="Bottom" Margin="20,5">
                         <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="White"/>
-                        <TextBlock Text="{Binding BulkConvertElapsed}" DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="White"/>
+                        <TextBlock Text="{Binding OperationElapsed}" DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="White"/>
                         <ProgressBar MinWidth="300" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}" Margin="20,5"/>
                     </DockPanel>
 
@@ -885,122 +914,34 @@
                         </DockPanel>
                     </Grid>
                 </DockPanel>
-            </Border>
+                <StackPanel x:Key="HelpAboutPanel">
+                    <Label Style="{StaticResource TitleStyle}" FontSize="30" Content="About-Credits" HorizontalContentAlignment="Center"/>
 
-        </Border>
-
-
-        <Border x:Name="SettingsBox" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding SettingsPanelOpen}">
-            <Border Style="{StaticResource FadedInnerBorder}">
-                <DockPanel LastChildFill="False">
-                    <Label Content="Settings" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
-
-                    <CheckBox Content="Use Windows Codecs where available" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center" Margin="0,20,0,5" IsChecked="{Binding UseWindowsCodecs}"/>
-
-                    <DockPanel LastChildFill="False" DockPanel.Dock="Top">
-                        <CheckBox Content="Enable Threading" IsChecked="{Binding EnableThreading}" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center"/>
-                        <TextBlock DockPanel.Dock="Right" FontSize="8" VerticalAlignment="Center" Foreground="White" IsEnabled="{Binding EnableThreading}">
-                            <Run Text="-1 signifies system managed threading."/>
-                            <LineBreak/>
-                            <Run Text="0 is not allowed and I don't know what'll happen."/>
-                        </TextBlock>
-                        <Label Content="Thread Count:" DockPanel.Dock="Left" IsEnabled="{Binding EnableThreading}"/>
-                        <TextBox Text="{Binding NumThreads}" IsEnabled="{Binding EnableThreading}" Width="30" Margin="5,3,10,3" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    </DockPanel>
-
-
-                    <Label Content="Window Colour/Display Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" Margin="0,20,0,0"/>
-                    <CheckBox x:Name="UseWindowTransparencyChecker" Foreground="White" Content="Blur Window Background?" Checked="UseWindowTransparencyChecker_Checked" 
-                              Unchecked="UseWindowTransparencyChecker_Unchecked" DockPanel.Dock="Top"/>
-                    <CheckBox x:Name="BitmapQualityChecker" Foreground="White" Content="Use High Quality Bitmap Scaling (Preview Zoom Quality)" IsChecked="{Binding UseHighQualityScaling}" DockPanel.Dock="Top"/>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Red: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Red}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Red}" VerticalAlignment="Center"/>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Green: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Green}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Green}" VerticalAlignment="Center"/>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Blue: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Blue}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Blue}" VerticalAlignment="Center"/>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Alpha: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Alpha}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Alpha}" VerticalAlignment="Center"/>
-                    </DockPanel>
-                    <Button x:Name="Settings_ColoursDefaultButton" DockPanel.Dock="Top" Content="Default Colours" Click="Settings_ColoursDefaultButton_Click" HorizontalAlignment="Center"/>
-
-                    <Button x:Name="SettingsPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,10,0,5" 
-                            Click="SettingsPanelCloseButton_Click"/>
-                </DockPanel>
-            </Border>
-        </Border>
-
-
-        <Border x:Name="InfoPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding InfoPanelOpen}">
-            <Border Style="{StaticResource FadedInnerBorder}">
-                <DockPanel LastChildFill="True" Margin="5,0,5,5">
-                    <DockPanel.Resources>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="DockPanel.Dock" Value="Top"/>
-                        </Style>
-                    </DockPanel.Resources>
-                    <Label Content="System Information" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
-
-                    <TextBlock>
-                        <Run Text="CPU Type:  " FontWeight="Bold"/>
-                        <Run Text="{Binding CPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    <Label Style="{StaticResource TitleStyle}" Content="About" HorizontalContentAlignment="Center"/>
+                    <TextBlock Foreground="White" HorizontalAlignment="Center" TextAlignment="Center">
+                        <Run Text="This tool was written when working on ME3Explorer, and I wanted to centralise the image operations."/>
+                        <LineBreak/>
+                        <Run Text="Started with ResIL, and progressed through a couple of other libraries briefly, but all proved inadequate for loading the required DDS formats."/>
+                        <LineBreak/>
+                        <Run Text="This tool should load most DDS formats including weird ones like V8U8, ATI2, ARGB32F, etc. It also loads all common formats like PNG, JPG, TIFF, TGA, etc."/>
+                        <LineBreak/>
+                        <Run Text="It can also save to most of the supported formats. Options are there for handling alpha and mipmaps."/>
+                        <LineBreak/>
+                        <Run Text="Could have used DirectXTex from Microsoft, but I wanted something written in C#, since I was having lots of trouble with unmanaged memory management."/>
                     </TextBlock>
 
-                    <TextBlock>
-                        <Run Text="Number of CPU Cores:  " FontWeight="Bold"/>
-                        <Run Text="{Binding NumCores, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    <Label Style="{StaticResource TitleStyle}" Margin="0,10,0,0" Content="Credits" HorizontalContentAlignment="Center"/>
+                    <TextBlock Foreground="White" TextAlignment="Center" HorizontalAlignment="Center">
+                        <Run Text="Microsoft - "/>
+                        <Hyperlink NavigateUri="https://github.com/Microsoft/DirectXTex" RequestNavigate="Hyperlink_RequestNavigate">
+                            DirectXTex
+                        </Hyperlink>
                     </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="OS 64 bit?:  " FontWeight="Bold"/>
-                        <Run Text="{Binding Is64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Running as 64 bit?:  " FontWeight="Bold"/>
-                        <Run Text="{Binding IsRunning64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="OS Version:  " FontWeight="Bold"/>
-                        <Run Text="{Binding OSVersion, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Memory Size:  " FontWeight="Bold"/>
-                        <Run Text="{Binding RAMSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Graphics Card:  " FontWeight="Bold"/>
-                        <Run Text="{Binding GPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <Button x:Name="InfoPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
-                            Click="InfoPanelCloseButton_Click" Margin="0,5,0,0"/>
-                </DockPanel>
-            </Border>
-        </Border>
-
-        <Border x:Name="MergeChannelPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding MergeChannelsPanelOpen}" Drop="MergeChannelPanel_Drop" DragOver="MergeChannelPanel_DragOver">
-            <Border Style="{StaticResource FadedInnerBorder}">
-                <DockPanel Margin="5,0,5,5">
+                    <TextBlock Foreground="White" Text="Over 9000 people on StackOverflow, I apologise for not knowing specifically." TextAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="White" Text="Dawnless Sky - DAI Modding Superhero" TextAlignment="Center" HorizontalAlignment="Center"/>
+                    <Button Content="Close" HorizontalAlignment="Center" Click="Button_Click" Margin="0,20,0,0"/>
+                </StackPanel>
+                <DockPanel x:Key="MergeChannelsPanel">
                     <Label Content="Merge Channels" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
                     <Image MaxWidth="1024" MaxHeight="1024" DockPanel.Dock="Bottom"/>
                     <DockPanel DockPanel.Dock="Bottom" Margin="5,10,5,10">
@@ -1082,40 +1023,147 @@
                         </ListBox.ItemsPanel>
                     </ListBox>
                 </DockPanel>
-            </Border>
-        </Border>
+                <DockPanel x:Key="InfoPanel" LastChildFill="True">
+                    <DockPanel.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="DockPanel.Dock" Value="Top"/>
+                        </Style>
+                    </DockPanel.Resources>
+                    <Label Content="System Information" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
 
-        <Border x:Name="HelpAboutPanel" Style="{StaticResource FadedBackgroundBorder}" Tag="{Binding ShowHelpAbout}">
-            <Border Style="{StaticResource FadedInnerBorder}">
-                <StackPanel HorizontalAlignment="Center" Margin="5,0">
-                    <Label Style="{StaticResource TitleStyle}" FontSize="30" Content="About-Credits" HorizontalContentAlignment="Center"/>
-
-                    <Label Style="{StaticResource TitleStyle}" Content="About" HorizontalContentAlignment="Center"/>
-                    <TextBlock Foreground="White" HorizontalAlignment="Center" TextAlignment="Center">
-                        <Run Text="This tool was written when working on ME3Explorer, and I wanted to centralise the image operations."/>
-                        <LineBreak/>
-                        <Run Text="Started with ResIL, and progressed through a couple of other libraries briefly, but all proved inadequate for loading the required DDS formats."/>
-                        <LineBreak/>
-                        <Run Text="This tool should load most DDS formats including weird ones like V8U8, ATI2, ARGB32F, etc. It also loads all common formats like PNG, JPG, TIFF, TGA, etc."/>
-                        <LineBreak/>
-                        <Run Text="It can also save to most of the supported formats. Options are there for handling alpha and mipmaps."/>
-                        <LineBreak/>
-                        <Run Text="Could have used DirectXTex from Microsoft, but I wanted something written in C#, since I was having lots of trouble with unmanaged memory management."/>
+                    <TextBlock>
+                        <Run Text="CPU Type:  " FontWeight="Bold"/>
+                        <Run Text="{Binding CPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
 
-                    <Label Style="{StaticResource TitleStyle}" Margin="0,10,0,0" Content="Credits" HorizontalContentAlignment="Center"/>
-                    <TextBlock Foreground="White" TextAlignment="Center" HorizontalAlignment="Center">
-                        <Run Text="Microsoft - "/>
-                        <Hyperlink NavigateUri="https://github.com/Microsoft/DirectXTex" RequestNavigate="Hyperlink_RequestNavigate">
-                            DirectXTex
-                        </Hyperlink>
+                    <TextBlock>
+                        <Run Text="Number of CPU Cores:  " FontWeight="Bold"/>
+                        <Run Text="{Binding NumCores, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
                     </TextBlock>
-                    <TextBlock Foreground="White" Text="Over 9000 people on StackOverflow, I apologise for not knowing specifically." TextAlignment="Center" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="White" Text="Dawnless Sky - DAI Modding Superhero" TextAlignment="Center" HorizontalAlignment="Center"/>
-                    <Button Content="Close" HorizontalAlignment="Center" Click="Button_Click" Margin="0,20,0,0"/>
-                </StackPanel>
-            </Border>
-        </Border>
+
+                    <TextBlock>
+                        <Run Text="OS 64 bit?:  " FontWeight="Bold"/>
+                        <Run Text="{Binding Is64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="Running as 64 bit?:  " FontWeight="Bold"/>
+                        <Run Text="{Binding IsRunning64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="OS Version:  " FontWeight="Bold"/>
+                        <Run Text="{Binding OSVersion, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="Memory Size:  " FontWeight="Bold"/>
+                        <Run Text="{Binding RAMSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    </TextBlock>
+
+                    <TextBlock>
+                        <Run Text="Graphics Card:  " FontWeight="Bold"/>
+                        <Run Text="{Binding GPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
+                    </TextBlock>
+
+                    <Button x:Name="InfoPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                            Click="InfoPanelCloseButton_Click" Margin="0,5,0,0"/>
+                </DockPanel>
+            </ContentControl.Resources>
+
+            <ContentControl.Style>
+                <Style TargetType="ContentControl">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Setter Property="Opacity" Value="0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ContentControl">
+                                <Border Background="#B2000000">
+                                    <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="Black" BorderBrush="White" BorderThickness="2" CornerRadius="20">
+                                        <ContentPresenter Margin="5,0,5,5"/>
+                                    </Border>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SettingsPanelOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Content">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource SettingsPanel}"/>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Content">
+                                            <DiscreteObjectKeyFrame KeyTime="{StaticResource DelayedStart}" Value="{x:Null}"/>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding BulkConvertOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <Setter Property="Content" Value="{StaticResource BulkConvertPanel}"/>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding ShowHelpAbout}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <Setter Property="Content" Value="{StaticResource HelpAboutPanel}"/>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding MergeChannelsPanelOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <Setter Property="Content" Value="{StaticResource MergeChannelsPanel}"/>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding InfoPanelOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <Setter Property="Content" Value="{StaticResource InfoPanel}"/>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+        </ContentControl>
 
         <DockPanel x:Name="LoadingIndicationPanel" Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding DelayedBusy, Converter={StaticResource BoolToVisConverter}}">
             <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">

@@ -399,33 +399,13 @@
             <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="true">
                 <DataTrigger.EnterActions>
                     <BeginStoryboard>
-                        <Storyboard>
-                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.5">
-                                <DoubleAnimation.EasingFunction>
-                                    <CubicEase EasingMode="EaseOut"/>
-                                </DoubleAnimation.EasingFunction>
-                            </DoubleAnimation>
-
-                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" >
-                                <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}"/>
-                            </ObjectAnimationUsingKeyFrames>
-                        </Storyboard>
+                        
                     </BeginStoryboard>
                 </DataTrigger.EnterActions>
 
                 <DataTrigger.ExitActions>
                     <BeginStoryboard>
-                        <Storyboard>
-                            <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.5">
-                                <DoubleAnimation.EasingFunction>
-                                    <CubicEase EasingMode="EaseOut"/>
-                                </DoubleAnimation.EasingFunction>
-                            </DoubleAnimation>
-
-                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility" >
-                                <DiscreteObjectKeyFrame KeyTime="0:0:0.5" Value="{x:Static Visibility.Collapsed}"/>
-                            </ObjectAnimationUsingKeyFrames>
-                        </Storyboard>
+                        
                     </BeginStoryboard>
                 </DataTrigger.ExitActions>
             </DataTrigger>

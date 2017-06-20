@@ -51,6 +51,18 @@ namespace UI_Project
         }
 
 
+        bool isWindowBlurred = true;
+        public bool IsWindowBlurred
+        {
+            get
+            {
+                return isWindowBlurred;
+            }
+            set
+            {
+                SetProperty(ref isWindowBlurred, value);
+            }
+        }
 
         public bool IsCancellationRequested
         {
@@ -1317,6 +1329,33 @@ namespace UI_Project
 
         public NewViewModel() : base()
         {
+            // Get Properties
+            if (Properties.Settings.Default.UpgradeRequired)
+            {
+                Properties.Settings.Default.Upgrade();
+                Properties.Settings.Default.UpgradeRequired = false;
+                Properties.Settings.Default.Save();
+            }
+
+            // Get saved settings
+            if (Properties.Settings.Default.NumThreads == 1)
+            {
+                NumThreads = -1;
+                EnableThreading = false;
+            }
+            else
+                NumThreads = Properties.Settings.Default.NumThreads;
+
+            // Set background colour
+            WindowBackground_Alpha = Properties.Settings.Default.BackgroundAlpha;
+            WindowBackground_Red = Properties.Settings.Default.BackgroundRed;
+            WindowBackground_Green = Properties.Settings.Default.BackgroundGreen;
+            WindowBackground_Blue = Properties.Settings.Default.BackgroundBlue;
+            IsWindowBlurred = Properties.Settings.Default.IsWindowBlurred;
+
+            UseWindowsCodecs = Properties.Settings.Default.UseWindowsCodecs;
+            /////////////////////////////////////////////////////////////////
+
             operationElapsedUpdateTimer.Interval = TimeSpan.FromSeconds(0.5);
             operationElapsedUpdateTimer.Tick += (soruce, args) => OperationElapsed = operationElapsedTimer.Elapsed.ToString(@"mm\.ss\.f");
 
@@ -1339,12 +1378,6 @@ namespace UI_Project
             };
 
             MergeChannelsImages.CollectionChanged += (sender, args) => OnPropertyChanged(nameof(MergeChannelsReady));
-
-            // Set background colour
-            WindowBackground_Alpha = Properties.Settings.Default.BackgroundAlpha;
-            WindowBackground_Red = Properties.Settings.Default.BackgroundRed;
-            WindowBackground_Green = Properties.Settings.Default.BackgroundGreen;
-            WindowBackground_Blue = Properties.Settings.Default.BackgroundBlue;
         }
 
         internal async Task LoadImage(string path)
