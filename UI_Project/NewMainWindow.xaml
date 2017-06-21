@@ -1076,68 +1076,6 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding SettingsPanelOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
-                            
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding BulkConvertOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-                            
-                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding ShowHelpAbout}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding MergeChannelsPanelOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding InfoPanelOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-                    </Style.Triggers>
                 </Style>
             </ContentControl.Style>
         </ContentControl>

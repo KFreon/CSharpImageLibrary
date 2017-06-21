@@ -34,6 +34,8 @@ namespace UI_Project
         UsefulThings.WPF.DragDropHandler<NewViewModel> MergeDropHandler = null;
 
         DispatcherTimer optionalPanelWaitTimer = new DispatcherTimer();
+        Storyboard FadeIn = null;
+        Storyboard FadeOut = null;
 
 
         public NewMainWindow()
@@ -133,8 +135,10 @@ namespace UI_Project
                 // Close panel with faded content properly.
                 OptionalPanelsDisplayBox.Content = null;
                 optionalPanelWaitTimer.Stop();
-                Debug.WriteLine("CLOSE");
             };
+
+            FadeIn = (Storyboard)TOPWINDOW.FindResource("FadeInPanel");
+            FadeOut = (Storyboard)TOPWINDOW.FindResource("FadeOutPanel");
 
             CloseSavePanel();
             ClosePanelButton.Visibility = Visibility.Collapsed;
@@ -182,11 +186,14 @@ namespace UI_Project
         {
             if (contentTrigger)
             {
+                FadeIn.Begin(OptionalPanelsDisplayBox);
                 OptionalPanelsDisplayBox.Content = OptionalPanelsDisplayBox.FindResource(panelName);
-                Debug.WriteLine("Opening");
             }
             else if(!optionalPanelWaitTimer.IsEnabled)
+            {
+                FadeOut.Begin(OptionalPanelsDisplayBox, true);
                 optionalPanelWaitTimer.Start();
+            }
         }
 
         void CloseSavePanel()
