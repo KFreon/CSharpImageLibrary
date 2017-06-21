@@ -24,9 +24,11 @@ namespace UI_Project
     {
         Brush origBorderBrush = null;
 
+
         public DropFriendlyButton()
         {
             InitializeComponent();
+
 
             //Save initial border colour for later.
             origBorderBrush = BorderBrush;
@@ -37,13 +39,23 @@ namespace UI_Project
             base.OnDragOver(e);
 
             // Change Border Colour when dragging over
-            BorderBrush = Brushes.LightGreen;
+            BorderBrush = Brushes.Red;
         }
 
         protected override void OnDragLeave(DragEventArgs e)
         {
             base.OnDragLeave(e);
+            ResetDragEffects();
+        }
 
+        protected override void OnDrop(DragEventArgs e)
+        {
+            base.OnDrop(e);
+            ResetDragEffects();
+        }
+
+        void ResetDragEffects()
+        {
             // Reset drag effects
             BorderBrush = origBorderBrush;
         }

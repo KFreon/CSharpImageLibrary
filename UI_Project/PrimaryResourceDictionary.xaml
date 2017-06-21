@@ -34,8 +34,8 @@
 
 
     <!-- Animation Durations -->
-    <Duration x:Key="StandardDuration">0:0:0.5</Duration>
-    <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
+    <Duration x:Key="StandardDuration">0:0:0.3</Duration>
+    <KeyTime x:Key="DelayedStart">0:0:0.3</KeyTime>
     <!-- End Animation Durations -->
     
     <!-- Animations -->

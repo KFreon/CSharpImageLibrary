@@ -117,7 +117,7 @@ namespace UI_Project
                     return true;
                 },
 
-                DropAction = (model, files) => BulkAdd(files)
+                DropAction = (model, files) => vm.BulkAdd(files)
             };
 
             MergeDropHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
@@ -358,7 +358,7 @@ namespace UI_Project
 
             if (ofd.ShowDialog() == true)
             {
-                BulkAdd(ofd.FileNames);
+                vm.BulkAdd(ofd.FileNames);
                 prev_bulkBrowseSingleFolder = Path.GetDirectoryName(ofd.FileNames[0]);
                 return true;
             }
@@ -477,32 +477,9 @@ namespace UI_Project
 
             if (fbd.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                BulkAdd(Directory.EnumerateFiles(fbd.FileName, "*", vm.BulkFolderBrowseRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly));
+                vm.BulkAdd(Directory.EnumerateFiles(fbd.FileName, "*", vm.BulkFolderBrowseRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly));
                 prev_bulkBrowseManyFolder = fbd.FileName;
             }
-        }
-
-        void BulkAdd(IEnumerable<string> files)
-        {
-            List<string> newFiles = new List<string>();
-
-            int count = 0;
-            foreach (var file in files.Where(t => ImageFormats.IsExtensionSupported(t)))
-            {
-                // Prevent duplicates
-                if (!vm.BulkConvertFiles.Contains(file, StringComparison.OrdinalIgnoreCase))
-                {
-                    newFiles.Add(file);
-                    count++;
-                }
-            }
-
-            vm.BulkConvertFiles.AddRange(newFiles);
-
-            if (count == 0)
-                vm.BulkStatus = "No suitable files found.";
-            else
-                vm.BulkStatus = $"Added {count} files.";
         }
 
         private void SettingsPanelOpenButton_Click(object sender, RoutedEventArgs e)

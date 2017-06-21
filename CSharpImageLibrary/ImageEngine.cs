@@ -496,21 +496,6 @@ namespace CSharpImageLibrary
             #endregion Old code
         }
 
-        internal static MipMap Resize(BitmapSource baseBMP, double xScale, double yScale, int width, int height, ImageFormats.ImageEngineFormatDetails formatDetails)
-        {
-            int origWidth = width;
-            int origHeight = height;
-            int origStride = origWidth * 4;
-            int newWidth = (int)(origWidth * xScale);
-            int newHeight = (int)(origHeight * yScale);
-            int newStride = newWidth * 4;
-
-            var bmp = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight);
-            bmp.Freeze();
-
-            return new MipMap(bmp.GetPixelsAsBGRA32(), newWidth, newHeight, formatDetails);
-        }
-
         /// <summary>
         /// Destroys mipmaps. Expects at least one mipmap in given list.
         /// </summary>

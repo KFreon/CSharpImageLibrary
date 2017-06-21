@@ -45,14 +45,16 @@ namespace CSharpImageLibrary
         /// </summary>
         public int Height { get; set; }
 
-
+        /// <summary>
+        /// Indicates if there is any alpha in image.
+        /// </summary>
         public bool IsAlphaPresent
         {
             get
             {
                 if (Pixels?.Length != 0)
                 {
-                    for (int i = 3; i < Pixels.Length; i+=4)   // TODO: ComponentSize
+                    for (int i = 3; i < Pixels.Length; i += 4)   // TODO: ComponentSize
                     {
                         if (Pixels[i] != 0)
                             return true;

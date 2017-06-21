@@ -104,7 +104,7 @@
         </StackPanel>
 
         <DockPanel x:Name="AlphaDisplaySettingsBox" HorizontalAlignment="Right" VerticalAlignment="Top" Grid.Row="3" Style="{StaticResource UnloadedOpacityStyle}">
-            <TextBlock Text="{Binding AlphaDisplaySetting,Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="10" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding AlphaDisplaySetting, Converter={StaticResource EnumDescriptionConverter}}" Grid.Row="3" Style="{StaticResource VisibleTextDisplayStyle}" FontSize="10" VerticalAlignment="Center"/>
             <ComboBox x:Name="AlphaDisplaySelector" FontSize="10" 
                   ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type local:AlphaDisplaySettings}}" SelectedValue="{Binding AlphaDisplaySetting, Mode=TwoWay}" 
                               DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True"/>
@@ -123,6 +123,15 @@
                 <Style x:Key="TitleBarButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                     <Setter Property="DockPanel.Dock" Value="Right"/>
                     <Setter Property="MaxHeight" Value="27"/>
+                    <Setter Property="Foreground" Value="#7FFFFFFF"/>
+                    <Setter Property="IsHitTestVisible" Value="False"/>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=OptionalPanelsDisplayBox, Path=Opacity}" Value="0">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="IsHitTestVisible" Value="True"/>
+                        </DataTrigger> 
+                    </Style.Triggers>
                 </Style>
             </DockPanel.Resources>
 
@@ -670,33 +679,16 @@
                     <Setter Property="Visibility" Value="Visible"/>
 
                     <Style.Triggers>
-                        <DataTrigger Binding="{Binding Busy}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <Setter Property="IsHitTestVisible" Value="False"/>
-                        </DataTrigger>
-
                         <DataTrigger Binding="{Binding IsImageLoaded}" Value="true">
                             <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                                <BeginStoryboard x:Name="IsLoadedFadeOut" Storyboard="{StaticResource FadeOutPanel}"/>
                             </DataTrigger.EnterActions>
 
                             <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                                <BeginStoryboard x:Name="IsLoadedFadeIn" Storyboard="{StaticResource FadeInPanel}"/>
                             </DataTrigger.ExitActions>
                         </DataTrigger>
 
-                        <DataTrigger Binding="{Binding BulkConvertOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </DockPanel.Style>

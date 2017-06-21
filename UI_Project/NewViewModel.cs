@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using UsefulThings;
 using UsefulThings.WPF;
 using static CSharpImageLibrary.Headers.DDS_Header;
 
@@ -645,6 +646,7 @@ namespace UI_Project
             set
             {
                 SetProperty(ref bulkConvertOpen, value);
+                Debug.WriteLine("BulkConvertOpen: " + value);
             }
         }
 
@@ -795,6 +797,7 @@ namespace UI_Project
             set
             {
                 SetProperty(ref isImageLoaded, value);
+                Debug.WriteLine("IsImageLoaded: " + value);
             }
         }
 
@@ -1820,6 +1823,31 @@ namespace UI_Project
             ImageEngine.Cancel();
             Status = "Cancelling...";
             OnPropertyChanged(nameof(IsCancellationRequested));
+        }
+
+        public void BulkAdd(IEnumerable<string> files)
+        {
+            BulkConvertOpen = true;
+
+            List<string> newFiles = new List<string>();
+
+            int count = 0;
+            foreach (var file in files.Where(t => ImageFormats.IsExtensionSupported(t)))
+            {
+                // Prevent duplicates
+                if (!BulkConvertFiles.Contains(file, StringComparison.OrdinalIgnoreCase))
+                {
+                    newFiles.Add(file);
+                    count++;
+                }
+            }
+
+            BulkConvertFiles.AddRange(newFiles);
+
+            if (count == 0)
+                BulkStatus = "No suitable files found.";
+            else
+                BulkStatus = $"Added {count} files.";
         }
     }
 }
