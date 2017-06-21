@@ -399,15 +399,17 @@ namespace CSharpImageLibrary.DDS
             // KFreon: Half dimensions until one == 1.
             MipMap[] newmips = new MipMap[estimatedMips];
 
-            var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(currentMip.Pixels, currentMip.Width, currentMip.Height);
-            baseBMP.Freeze();
+            // TODO: Component size - pixels
+            //var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(currentMip.Pixels, currentMip.Width, currentMip.Height);
+            //baseBMP.Freeze();
 
             Action<int> action = new Action<int>(item =>
             {
                 int index = item;
                 MipMap newmip;
                 var scale = 1d / (2 << (index - 1));  // Shifting is 2^index - Math.Pow seems extraordinarly slow.
-                newmip = ImageEngine.Resize(baseBMP, scale, scale, currentMip.Width, currentMip.Height, currentMip.LoadedFormatDetails);
+                //newmip = ImageEngine.Resize(baseBMP, scale, scale, currentMip.Width, currentMip.Height, currentMip.LoadedFormatDetails);
+                newmip = ImageEngine.Resize(currentMip, scale, scale);
                 newmips[index - 1] = newmip;
             });
 

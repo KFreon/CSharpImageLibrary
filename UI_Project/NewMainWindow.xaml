@@ -125,7 +125,7 @@
                     <Setter Property="MaxHeight" Value="27"/>
                 </Style>
             </DockPanel.Resources>
-            
+
             <Button x:Name="WindowCloseButton" Background="Transparent" DockPanel.Dock="Right" Click="WindowCloseButton_Click">
                 <Button.Content>
                     <TextBlock Text="&#x2573;" Margin="0,-4,0,0" FontSize="15" IsHitTestVisible="False"/>
@@ -299,7 +299,7 @@
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource ValueStyle}">
                         <Setter Property="Margin" Value="0,5"/>
-                            <Style.Triggers>
+                        <Style.Triggers>
                             <DataTrigger Binding="{Binding MipIndex}" Value="0">
                                 <Setter Property="Visibility" Value="Collapsed"/>
                             </DataTrigger>
@@ -648,7 +648,7 @@
                 </DockPanel>
             </ScrollViewer>
         </DockPanel>
-        
+
         <DockPanel x:Name="MainStartPage" Background="Transparent" DragOver="TOPWINDOW_DragOver" Drop="TOPWINDOW_Drop" Grid.Row="1" AllowDrop="True" Grid.RowSpan="5" Grid.ColumnSpan="5" LastChildFill="False" d:IsHidden="True">
             <DockPanel.Resources>
                 <Style TargetType="Run" x:Key="MainText">
@@ -719,452 +719,6 @@
             </local:DropFriendlyButton>
         </DockPanel>
 
-        <ContentControl x:Name="OptionalPanelsDisplayBox" Grid.Row="1" Grid.RowSpan="5" Grid.ColumnSpan="5">
-            <ContentControl.Resources>
-                <DockPanel x:Key="SettingsPanel" LastChildFill="False">
-                    <Label Content="Settings" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
-
-                    <CheckBox Content="Use Windows Codecs where available" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center" Margin="0,20,0,5" IsChecked="{Binding UseWindowsCodecs}"/>
-
-                    <DockPanel LastChildFill="False" DockPanel.Dock="Top">
-                        <CheckBox Content="Enable Threading" IsChecked="{Binding EnableThreading}" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center"/>
-                        <TextBlock DockPanel.Dock="Right" FontSize="8" VerticalAlignment="Center" Foreground="White" IsEnabled="{Binding EnableThreading}">
-                            <Run Text="-1 signifies system managed threading."/>
-                            <LineBreak/>
-                            <Run Text="0 is not allowed and I don't know what'll happen."/>
-                        </TextBlock>
-                        <Label Content="Thread Count:" DockPanel.Dock="Left" IsEnabled="{Binding EnableThreading}"/>
-                        <TextBox Text="{Binding NumThreads}" IsEnabled="{Binding EnableThreading}" Width="30" Margin="5,3,10,3" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
-                    </DockPanel>
-
-
-                    <Label Content="Window Colour/Display Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" Margin="0,20,0,0"/>
-                    <CheckBox x:Name="UseWindowTransparencyChecker" Foreground="White" Content="Blur Window Background?" Checked="UseWindowTransparencyChecker_Checked"  IsChecked="{Binding IsWindowBlurred}"
-                              Unchecked="UseWindowTransparencyChecker_Unchecked" DockPanel.Dock="Top"/>
-                    <CheckBox x:Name="BitmapQualityChecker" Foreground="White" Content="Use High Quality Bitmap Scaling (Preview Zoom Quality)" IsChecked="{Binding UseHighQualityScaling}" DockPanel.Dock="Top"/>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Red: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Red}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Red}" VerticalAlignment="Center"/>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Green: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Green}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Green}" VerticalAlignment="Center"/>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Blue: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Blue}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Blue}" VerticalAlignment="Center"/>
-                    </DockPanel>
-
-                    <DockPanel DockPanel.Dock="Top" Margin="3">
-                        <Label Content="Alpha: " Foreground="White"/>
-                        <TextBox Text="{Binding WindowBackground_Alpha}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
-                        <Slider Maximum="255" Value="{Binding WindowBackground_Alpha}" VerticalAlignment="Center"/>
-                    </DockPanel>
-                    <Button x:Name="Settings_ColoursDefaultButton" DockPanel.Dock="Top" Content="Default Colours" Click="Settings_ColoursDefaultButton_Click" HorizontalAlignment="Center"/>
-
-                    <Button x:Name="SettingsPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,10,0,5" 
-                            Click="SettingsPanelCloseButton_Click"/>
-                </DockPanel>
-                <DockPanel x:Key="BulkConvertPanel" LastChildFill="True">
-                    <DockPanel.Resources>
-                        <Style TargetType="FrameworkElement" x:Key="InitialStyle">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding BulkConvertRunning}" Value="true">
-                                    <Setter Property="Opacity" Value="0.5"/>
-                                    <Setter Property="IsHitTestVisible" Value="False"/>
-                                </DataTrigger>
-
-                                <DataTrigger Binding="{Binding BulkConvertFailed.Count}" Value="0">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DockPanel.Resources>
-                    <Label x:Name="BulkConvertBoxTitle" Content="Bulk Conversion" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
-                    <Label x:Name="BulkConvertBoxDescription" Content="Enables many images to be converted at once. Use the settings below to set the target format and alpha settings for each format." DockPanel.Dock="Top"/>
-                    <DockPanel x:Name="BottomStatus" DockPanel.Dock="Bottom" Margin="20,5">
-                        <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="White"/>
-                        <TextBlock Text="{Binding OperationElapsed}" DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="White"/>
-                        <ProgressBar MinWidth="300" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}" Margin="20,5"/>
-                    </DockPanel>
-
-                    <DockPanel x:Name="BottomButtons" DockPanel.Dock="Bottom" MinHeight="35" Style="{StaticResource InitialStyle}">
-                        <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
-                        <Button x:Name="BulkFolderBrowseButton" Content="Add Folder" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="10,0,0,0" Click="BulkFolderBrowseButton_Click"/>
-                        <CheckBox x:Name="BulkFolderBrowseRecurseChecker" Content="Recursive?" IsChecked="{Binding BulkFolderBrowseRecurse}" VerticalAlignment="Center" Foreground="White" Margin="5,0,0,0"/>
-                        <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click" Margin="0,0,10,0"/>
-                        <Button x:Name="BulkConvertButton" Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Background="Transparent" FontSize="20" Padding="15,5" FontWeight="Bold" Click="BulkConvertButton_Click">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                    <Setter Property="IsEnabled" Value="True"/>
-                                    <Style.Triggers>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding BulkUseSourceDestination}" Value="False"/>
-                                                <Condition Binding="{Binding BulkSaveFolder.Length}" Value="0"/>
-                                            </MultiDataTrigger.Conditions>
-                                            <MultiDataTrigger.Setters>
-                                                <Setter Property="IsEnabled" Value="False"/>
-                                            </MultiDataTrigger.Setters>
-                                        </MultiDataTrigger>
-
-                                        <DataTrigger Binding="{Binding BulkConvertFiles.Count}" Value="0">
-                                            <Setter Property="IsEnabled" Value="False"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </DockPanel>
-
-
-                    <Grid x:Name="BulkConvertInputsBox" DockPanel.Dock="Top" Margin="5,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="300"/>
-                            <ColumnDefinition Width="600"/>
-                        </Grid.ColumnDefinitions>
-
-                        <Grid.Resources>
-                            <Style TargetType="FrameworkElement" x:Key="ResultsStyle">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding BulkConvertFinished}" Value="true">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Resources>
-
-                        <ListBox x:Name="BulkConvertListBox" Background="Transparent" Foreground="White" ItemsSource="{Binding BulkConvertFiles}" AllowDrop="True" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop" 
-                                Style="{StaticResource InitialStyle}" KeyDown="BulkConvertListBox_KeyDown" SelectionMode="Extended"/>
-                        <DockPanel x:Name="BulkConvertSettingsBox" Grid.Column="1" LastChildFill="False" Style="{StaticResource InitialStyle}">
-                            <DockPanel.Resources>
-                                <Style TargetType="ContentControl">
-                                    <Setter Property="DockPanel.Dock" Value="Top"/>
-                                    <Setter Property="Margin" Value="0,6"/>
-                                </Style>
-                            </DockPanel.Resources>
-                            <Label Content="Format Settings" DockPanel.Dock="Top" Style="{StaticResource TitleStyle}"/>
-                            <Label Content="Note: Not all settings below will be valid for you." DockPanel.Dock="Top" HorizontalAlignment="Center" FontWeight="Bold"/>
-                            <ContentControl Template="{StaticResource MainFormatSelector}" IsEnabled="{Binding UseSourceFormatForSaving, Converter={StaticResource InverseBoolConverter}}">
-                                <ContentControl.Style>
-                                    <Style TargetType="ContentControl" BasedOn="{StaticResource {x:Type ContentControl}}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding UseSourceFormatForSaving}" Value="true">
-                                                <Setter Property="Opacity" Value="0.5"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ContentControl.Style>
-                            </ContentControl>
-                            <CheckBox x:Name="BulkConvert_SameSaveFormatChecker" Foreground="White" DockPanel.Dock="Top" IsChecked="{Binding UseSourceFormatForSaving}">
-                                <TextBlock>
-                                    <Run Text="Use Source format for saving?   "/>
-                                    <Run Text="This means no images will change formats, only apply the other options, such as alpha removal and mip generation." FontSize="8"/>
-                                </TextBlock>
-                            </CheckBox>
-                            <ContentControl Template="{StaticResource MipSettingsTemplate}"/>
-                            <ContentControl Template="{StaticResource GeneralAlphaSettingsTemplate}"/>
-                            <ContentControl Template="{StaticResource DXT1AlphaSettingTemplate}"/>
-                            <ContentControl Template="{StaticResource JPGSettingsTemplate}"/>
-
-                            <Label Content="Destination Folder" Style="{StaticResource TitleStyle}" FontSize="20" DockPanel.Dock="Top"/>
-                            <CheckBox DockPanel.Dock="Top" Content="Same as Original (no overwriting)" Foreground="White" IsChecked="{Binding BulkUseSourceDestination}" Margin="5,0,0,15"/>
-                            <DockPanel x:Name="BulkConvertSaveBox" DockPanel.Dock="Top" IsEnabled="{Binding BulkUseSourceDestination, Converter={StaticResource InverseBoolConverter}}">
-                                <Button x:Name="BulkSaveBrowse" Content="Browse" DockPanel.Dock="Right" Click="BulkSaveBrowse_Click"/>
-                                <TextBox Margin="5,0">
-                                    <TextBox.Text>
-                                        <Binding Path="BulkSaveFolder"
-                                                 UpdateSourceTrigger="PropertyChanged"
-                                                 ValidatesOnDataErrors="True"
-                                                 ValidatesOnNotifyDataErrors="True"
-                                                 NotifyOnValidationError="True">
-                                            <Binding.ValidationRules>
-                                                <UsefulValidation:TextBoxValidation RequireExistence="True" ValidatesOnTargetUpdated="True"/>
-                                            </Binding.ValidationRules>
-                                        </Binding>
-                                    </TextBox.Text>
-                                </TextBox>
-                            </DockPanel>
-                        </DockPanel>
-
-                        <DockPanel x:Name="BulkConvertResultsBox" Grid.ColumnSpan="2" Style="{StaticResource ResultsStyle}">
-                            <Label x:Name="BulkConvertFailureLabel" Content="{Binding ElementName=BulkFailedListBox, Path=Items.Count, StringFormat=Finished with {0} failures.}" DockPanel.Dock="Top">
-                                <Label.Style>
-                                    <Style TargetType="Label" BasedOn="{StaticResource TitleStyle}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding BulkConvertFailed.Count}" Value="0">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Label.Style>
-                            </Label>
-
-                            <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" DockPanel.Dock="Top"/>
-                        </DockPanel>
-                    </Grid>
-                </DockPanel>
-                <StackPanel x:Key="HelpAboutPanel">
-                    <Label Style="{StaticResource TitleStyle}" FontSize="30" Content="About-Credits" HorizontalContentAlignment="Center"/>
-
-                    <Label Style="{StaticResource TitleStyle}" Content="About" HorizontalContentAlignment="Center"/>
-                    <TextBlock Foreground="White" HorizontalAlignment="Center" TextAlignment="Center">
-                        <Run Text="This tool was written when working on ME3Explorer, and I wanted to centralise the image operations."/>
-                        <LineBreak/>
-                        <Run Text="Started with ResIL, and progressed through a couple of other libraries briefly, but all proved inadequate for loading the required DDS formats."/>
-                        <LineBreak/>
-                        <Run Text="This tool should load most DDS formats including weird ones like V8U8, ATI2, ARGB32F, etc. It also loads all common formats like PNG, JPG, TIFF, TGA, etc."/>
-                        <LineBreak/>
-                        <Run Text="It can also save to most of the supported formats. Options are there for handling alpha and mipmaps."/>
-                        <LineBreak/>
-                        <Run Text="Could have used DirectXTex from Microsoft, but I wanted something written in C#, since I was having lots of trouble with unmanaged memory management."/>
-                    </TextBlock>
-
-                    <Label Style="{StaticResource TitleStyle}" Margin="0,10,0,0" Content="Credits" HorizontalContentAlignment="Center"/>
-                    <TextBlock Foreground="White" TextAlignment="Center" HorizontalAlignment="Center">
-                        <Run Text="Microsoft - "/>
-                        <Hyperlink NavigateUri="https://github.com/Microsoft/DirectXTex" RequestNavigate="Hyperlink_RequestNavigate">
-                            DirectXTex
-                        </Hyperlink>
-                    </TextBlock>
-                    <TextBlock Foreground="White" Text="Over 9000 people on StackOverflow, I apologise for not knowing specifically." TextAlignment="Center" HorizontalAlignment="Center"/>
-                    <TextBlock Foreground="White" Text="Dawnless Sky - DAI Modding Superhero" TextAlignment="Center" HorizontalAlignment="Center"/>
-                    <Button Content="Close" HorizontalAlignment="Center" Click="Button_Click" Margin="0,20,0,0"/>
-                </StackPanel>
-                <DockPanel x:Key="MergeChannelsPanel">
-                    <Label Content="Merge Channels" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
-                    <Image MaxWidth="1024" MaxHeight="1024" DockPanel.Dock="Bottom"/>
-                    <DockPanel DockPanel.Dock="Bottom" Margin="5,10,5,10">
-                        <Button x:Name="MergeLoadButton" Content="Load" DockPanel.Dock="Left" Click="MergeLoadButton_Click" />
-                        <Button x:Name="MergeCloseButton" Content="Close" DockPanel.Dock="Right" Click="MergeCloseButton_Click"/>
-                        <Button x:Name="MergeMergeButton" Content="Merge!" Click="MergeMergeButton_Click" FontWeight="Bold" Margin="10,0" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <Button.Style>
-                                <Style BasedOn="{StaticResource {x:Type Button}}" TargetType="Button">
-                                    <Setter Property="Visibility" Value="Visible"/>
-
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding MergeChannelsImages.Count}" Value="0">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-
-                                        <DataTrigger Binding="{Binding MergeChannelsReady}" Value="False">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </DockPanel>
-                    <ListBox x:Name="MergeChannelSourceBox" DockPanel.Dock="Top" ItemsSource="{Binding MergeChannelsImages}" Background="Transparent">
-                        <ListBox.ItemTemplate>
-                            <ItemContainerTemplate>
-                                <DockPanel MaxWidth="300" MaxHeight="300">
-                                    <DockPanel.Style>
-                                        <Style TargetType="DockPanel">
-                                            <Setter Property="Background" Value="Transparent"/>
-
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsAlpha}" Value="true">
-                                                    <Setter Property="Background" Value="#7F808080"/>
-                                                </DataTrigger>
-
-                                                <DataTrigger Binding="{Binding IsRed}" Value="true">
-                                                    <Setter Property="Background" Value="#7FFF0000"/>
-                                                </DataTrigger>
-
-                                                <DataTrigger Binding="{Binding IsGreen}" Value="true">
-                                                    <Setter Property="Background" Value="#7F008000"/>
-                                                </DataTrigger>
-
-                                                <DataTrigger Binding="{Binding IsBlue}" Value="true">
-                                                    <Setter Property="Background" Value="#7F0000FF"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </DockPanel.Style>
-                                    <Image MaxWidth="128" MaxHeight="128" DockPanel.Dock="Top" Source="{Binding Thumbnail}"/>
-                                    <DockPanel Background="Transparent" LastChildFill="False">
-                                        <DockPanel.Resources>
-                                            <Style TargetType="Button">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                                <Setter Property="Width" Value="20"/>
-                                                <Setter Property="Height" Value="20"/>
-                                                <Setter Property="Margin" Value="2"/>
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </Style>
-                                        </DockPanel.Resources>
-
-                                        <TextBlock Text="{Binding DisplayName}" DockPanel.Dock="Top" Foreground="White" TextWrapping="Wrap" TextAlignment="Center"/>
-
-                                        <Label Content="Set as Channel:" Foreground="White" DockPanel.Dock="Left"/>
-                                        <Button x:Name="MergeRedSelector" Content="R" Click="MergeRedSelector_Click" DockPanel.Dock="Left"/>
-                                        <Button x:Name="MergeGreenSelector" Content="G" Click="MergeGreenSelector_Click" DockPanel.Dock="Left"/>
-                                        <Button x:Name="MergeBlueSelector" Content="B" Click="MergeBlueSelector_Click" DockPanel.Dock="Left"/>
-                                        <Button x:Name="MergeAlphaSelector" Content="A" Click="MergeAlphaSelector_Click" DockPanel.Dock="Left"/>
-                                        <Button x:Name="MergeDeselector" Content="X" Foreground="Red" BorderBrush="Red" BorderThickness="0.5" DockPanel.Dock="Left" Click="MergeDeselector_Click"/>
-                                    </DockPanel>
-                                </DockPanel>
-                            </ItemContainerTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel MaxWidth="{Binding ElementName=MergeChannelPanel, Path=ActualWidth}"/>
-                            </ItemsPanelTemplate>
-                        </ListBox.ItemsPanel>
-                    </ListBox>
-                </DockPanel>
-                <DockPanel x:Key="InfoPanel" LastChildFill="True">
-                    <DockPanel.Resources>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="DockPanel.Dock" Value="Top"/>
-                        </Style>
-                    </DockPanel.Resources>
-                    <Label Content="System Information" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
-
-                    <TextBlock>
-                        <Run Text="CPU Type:  " FontWeight="Bold"/>
-                        <Run Text="{Binding CPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Number of CPU Cores:  " FontWeight="Bold"/>
-                        <Run Text="{Binding NumCores, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="OS 64 bit?:  " FontWeight="Bold"/>
-                        <Run Text="{Binding Is64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Running as 64 bit?:  " FontWeight="Bold"/>
-                        <Run Text="{Binding IsRunning64Bit, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="OS Version:  " FontWeight="Bold"/>
-                        <Run Text="{Binding OSVersion, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Memory Size:  " FontWeight="Bold"/>
-                        <Run Text="{Binding RAMSize, Mode=OneWay, Converter={StaticResource FileSizeConverter}, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <TextBlock>
-                        <Run Text="Graphics Card:  " FontWeight="Bold"/>
-                        <Run Text="{Binding GPUName, Mode=OneWay, IsAsync=True}" Style="{StaticResource ValueStyle}"/>
-                    </TextBlock>
-
-                    <Button x:Name="InfoPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
-                            Click="InfoPanelCloseButton_Click" Margin="0,5,0,0"/>
-                </DockPanel>
-            </ContentControl.Resources>
-
-            <ContentControl.Style>
-                <Style TargetType="ContentControl">
-                    <Setter Property="Visibility" Value="Collapsed"/>
-                    <Setter Property="Opacity" Value="0"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ContentControl">
-                                <Border Background="#B2000000">
-                                    <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="Black" BorderBrush="White" BorderThickness="2" CornerRadius="20">
-                                        <ContentPresenter Margin="5,0,5,5"/>
-                                    </Border>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding SettingsPanelOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Content">
-                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource SettingsPanel}"/>
-                                        </ObjectAnimationUsingKeyFrames>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </DataTrigger.EnterActions>
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Content">
-                                            <DiscreteObjectKeyFrame KeyTime="{StaticResource DelayedStart}" Value="{x:Null}"/>
-                                        </ObjectAnimationUsingKeyFrames>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding BulkConvertOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <Setter Property="Content" Value="{StaticResource BulkConvertPanel}"/>
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding ShowHelpAbout}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <Setter Property="Content" Value="{StaticResource HelpAboutPanel}"/>
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding MergeChannelsPanelOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <Setter Property="Content" Value="{StaticResource MergeChannelsPanel}"/>
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-
-                        <DataTrigger Binding="{Binding InfoPanelOpen}" Value="true">
-                            <DataTrigger.EnterActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
-                            </DataTrigger.EnterActions>
-
-                            <Setter Property="Content" Value="{StaticResource InfoPanel}"/>
-
-                            <DataTrigger.ExitActions>
-                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
-                            </DataTrigger.ExitActions>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ContentControl.Style>
-        </ContentControl>
-
         <DockPanel x:Name="LoadingIndicationPanel" Grid.RowSpan="5" Grid.ColumnSpan="5" Background="#7F000000" Visibility="{Binding DelayedBusy, Converter={StaticResource BoolToVisConverter}}">
             <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Border x:Name="LoadingBorder" BorderBrush="Red" BorderThickness="10" Padding="20,5" DockPanel.Dock="Top">
@@ -1197,5 +751,399 @@
                         DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="10" Click="LoadingLayerCancelButton_Click"/>
             </DockPanel>
         </DockPanel>
+        
+        <ContentControl x:Name="OptionalPanelsDisplayBox" Grid.Row="1" Grid.RowSpan="5" Grid.ColumnSpan="5">
+            <ContentControl.Resources>
+                <DockPanel x:Key="SettingsPanel" LastChildFill="False">
+                    <Label Content="Settings" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+
+                    <CheckBox Content="Use Windows Codecs where available" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center" Margin="0,20,0,5" IsChecked="{Binding UseWindowsCodecs}"/>
+
+                    <DockPanel LastChildFill="False" DockPanel.Dock="Top">
+                        <CheckBox Content="Enable Threading" IsChecked="{Binding EnableThreading}" DockPanel.Dock="Top" Foreground="White" VerticalContentAlignment="Center"/>
+                        <TextBlock DockPanel.Dock="Right" FontSize="8" VerticalAlignment="Center" Foreground="White" IsEnabled="{Binding EnableThreading}"><Run Text="-1 signifies system managed threading."/><LineBreak/><Run Text="0 is not allowed and I don't know what'll happen."/></TextBlock>
+                        <Label Content="Thread Count:" DockPanel.Dock="Left" IsEnabled="{Binding EnableThreading}"/>
+                        <TextBox Text="{Binding NumThreads}" IsEnabled="{Binding EnableThreading}" Width="30" Margin="5,3,10,3" VerticalContentAlignment="Center" HorizontalContentAlignment="Center"/>
+                    </DockPanel>
+
+
+                    <Label Content="Window Colour/Display Settings" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top" Margin="0,20,0,0"/>
+                    <CheckBox x:Name="UseWindowTransparencyChecker" Foreground="White" Content="Blur Window Background?" IsChecked="{Binding IsWindowBlurred}" DockPanel.Dock="Top"/>
+                    <CheckBox x:Name="BitmapQualityChecker" Foreground="White" Content="Use High Quality Bitmap Scaling (Preview Zoom Quality)" IsChecked="{Binding UseHighQualityScaling}" DockPanel.Dock="Top"/>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Red: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Red}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Red}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Green: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Green}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Green}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Blue: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Blue}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Blue}" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <DockPanel DockPanel.Dock="Top" Margin="3">
+                        <Label Content="Alpha: " Foreground="White"/>
+                        <TextBox Text="{Binding WindowBackground_Alpha}" DockPanel.Dock="Right" Width="30" HorizontalContentAlignment="Center"/>
+                        <Slider Maximum="255" Value="{Binding WindowBackground_Alpha}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <Button x:Name="Settings_ColoursDefaultButton" DockPanel.Dock="Top" Content="Default Colours" Click="Settings_ColoursDefaultButton_Click" HorizontalAlignment="Center"/>
+
+                    <Button x:Name="SettingsPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,10,0,5" 
+                            Click="SettingsPanelCloseButton_Click"/>
+                </DockPanel>
+                <DockPanel x:Key="BulkConvertPanel" LastChildFill="True">
+                    <DockPanel.Resources>
+                        <Style TargetType="{x:Type FrameworkElement}" x:Key="InitialStyle">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding BulkConvertRunning}" Value="true">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                    <Setter Property="IsHitTestVisible" Value="False"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding BulkConvertFailed.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DockPanel.Resources>
+                    <Label x:Name="BulkConvertBoxTitle" Content="Bulk Conversion" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+                    <Label x:Name="BulkConvertBoxDescription" Content="Enables many images to be converted at once. Use the settings below to set the target format and alpha settings for each format." DockPanel.Dock="Top"/>
+                    <DockPanel x:Name="BottomStatus" DockPanel.Dock="Bottom" Margin="20,5">
+                        <TextBlock Text="{Binding BulkStatus}" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="White"/>
+                        <TextBlock Text="{Binding OperationElapsed}" DockPanel.Dock="Left" VerticalAlignment="Center" Foreground="White"/>
+                        <ProgressBar MinWidth="300" Height="30" Maximum="{Binding BulkProgressMax}" Value="{Binding BulkProgressValue}" Margin="20,5"/>
+                    </DockPanel>
+
+                    <DockPanel x:Name="BottomButtons" DockPanel.Dock="Bottom" MinHeight="35" Style="{StaticResource InitialStyle}">
+                        <Button x:Name="BulkBrowseButton" Content="Browse" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="30,0,0,0" Click="BulkBrowseButton_Click"/>
+                        <Button x:Name="BulkFolderBrowseButton" Content="Add Folder" DockPanel.Dock="Left" HorizontalAlignment="Left" Margin="10,0,0,0" Click="BulkFolderBrowseButton_Click"/>
+                        <CheckBox x:Name="BulkFolderBrowseRecurseChecker" Content="Recursive?" IsChecked="{Binding BulkFolderBrowseRecurse}" VerticalAlignment="Center" Foreground="White" Margin="5,0,0,0"/>
+                        <Button x:Name="BulkCloseButton" Content="Close" DockPanel.Dock="Right" HorizontalAlignment="Left" Click="BulkCloseButton_Click" Margin="0,0,10,0"/>
+                        <Button x:Name="BulkConvertButton" Content="Convert!" DockPanel.Dock="Bottom" HorizontalAlignment="Center" Background="Transparent" FontSize="20" Padding="15,5" FontWeight="Bold" Click="BulkConvertButton_Click">
+                            <Button.Style>
+                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="IsEnabled" Value="True"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding BulkUseSourceDestination}" Value="False"/>
+                                                <Condition Binding="{Binding BulkSaveFolder.Length}" Value="0"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </MultiDataTrigger>
+
+                                        <DataTrigger Binding="{Binding BulkConvertFiles.Count}" Value="0">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </DockPanel>
+
+
+                    <Grid x:Name="BulkConvertInputsBox" DockPanel.Dock="Top" Margin="5,10">
+
+                        <Grid.Resources>
+                            <Style TargetType="{x:Type FrameworkElement}" x:Key="ResultsStyle">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding BulkConvertFinished}" Value="true">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Resources>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300"/>
+                            <ColumnDefinition Width="600"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ListBox x:Name="BulkConvertListBox" Background="Transparent" Foreground="White" ItemsSource="{Binding BulkConvertFiles}" AllowDrop="True" DragOver="BulkConvertListBox_DragOver" Drop="BulkConvertListBox_Drop" 
+                                Style="{StaticResource InitialStyle}" KeyDown="BulkConvertListBox_KeyDown" SelectionMode="Extended"/>
+                        <DockPanel x:Name="BulkConvertSettingsBox" Grid.Column="1" LastChildFill="False">
+                            <DockPanel.Resources>
+                                <Style TargetType="{x:Type ContentControl}">
+                                    <Setter Property="DockPanel.Dock" Value="Top"/>
+                                    <Setter Property="Margin" Value="0,6"/>
+                                </Style>
+                            </DockPanel.Resources>
+                            <DockPanel.Style>
+                                <StaticResource ResourceKey="InitialStyle"/>
+                            </DockPanel.Style>
+                            <Label Content="Format Settings" DockPanel.Dock="Top" Style="{StaticResource TitleStyle}"/>
+                            <Label Content="Note: Not all settings below will be valid for you." DockPanel.Dock="Top" HorizontalAlignment="Center" FontWeight="Bold"/>
+                            <ContentControl Template="{StaticResource MainFormatSelector}" IsEnabled="{Binding UseSourceFormatForSaving, Converter={StaticResource InverseBoolConverter}}">
+                                <ContentControl.Style>
+                                    <Style TargetType="{x:Type ContentControl}" BasedOn="{StaticResource {x:Type ContentControl}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UseSourceFormatForSaving}" Value="true">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ContentControl.Style>
+                            </ContentControl>
+                            <CheckBox x:Name="BulkConvert_SameSaveFormatChecker" Foreground="White" DockPanel.Dock="Top" IsChecked="{Binding UseSourceFormatForSaving}">
+                                <TextBlock><Run Text="Use Source format for saving?   "/><Run Text=" "/><Run Text="This means no images will change formats, only apply the other options, such as alpha removal and mip generation." FontSize="8"/></TextBlock>
+                            </CheckBox>
+                            <ContentControl Template="{StaticResource MipSettingsTemplate}"/>
+                            <ContentControl Template="{StaticResource GeneralAlphaSettingsTemplate}"/>
+                            <ContentControl Template="{StaticResource DXT1AlphaSettingTemplate}"/>
+                            <ContentControl Template="{StaticResource JPGSettingsTemplate}"/>
+
+                            <Label Content="Destination Folder" Style="{StaticResource TitleStyle}" FontSize="20" DockPanel.Dock="Top"/>
+                            <CheckBox DockPanel.Dock="Top" Content="Same as Original (no overwriting)" Foreground="White" IsChecked="{Binding BulkUseSourceDestination}" Margin="5,0,0,15"/>
+                            <DockPanel x:Name="BulkConvertSaveBox" DockPanel.Dock="Top" IsEnabled="{Binding BulkUseSourceDestination, Converter={StaticResource InverseBoolConverter}}">
+                                <Button x:Name="BulkSaveBrowse" Content="Browse" DockPanel.Dock="Right" Click="BulkSaveBrowse_Click"/>
+                                <TextBox Margin="5,0">
+                                    <Binding Path="BulkSaveFolder"
+                                                 UpdateSourceTrigger="PropertyChanged"
+                                                 ValidatesOnDataErrors="True"
+                                                 ValidatesOnNotifyDataErrors="True"
+                                                 NotifyOnValidationError="True">
+                                        <Binding.ValidationRules>
+                                            <UsefulValidation:TextBoxValidation RequireExistence="True" ValidatesOnTargetUpdated="True"/>
+                                        </Binding.ValidationRules>
+                                    </Binding>
+                                </TextBox>
+                            </DockPanel>
+                        </DockPanel>
+
+                        <DockPanel x:Name="BulkConvertResultsBox" Grid.ColumnSpan="2" Style="{StaticResource ResultsStyle}">
+                            <Label x:Name="BulkConvertFailureLabel" Content="{Binding Items.Count, ElementName=BulkFailedListBox, StringFormat=Finished with \{0\} failures.}" DockPanel.Dock="Top">
+                                <Label.Style>
+                                    <Style TargetType="{x:Type Label}" BasedOn="{StaticResource TitleStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding BulkConvertFailed.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Label.Style>
+                            </Label>
+
+                            <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" DockPanel.Dock="Top"/>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+                <StackPanel x:Key="HelpAboutPanel">
+                    <Label Style="{StaticResource TitleStyle}" FontSize="30" Content="About-Credits" HorizontalContentAlignment="Center"/>
+
+                    <Label Style="{StaticResource TitleStyle}" Content="About" HorizontalContentAlignment="Center"/>
+                    <TextBlock Foreground="White" HorizontalAlignment="Center" TextAlignment="Center"><Run Text="This tool was written when working on ME3Explorer, and I wanted to centralise the image operations."/><LineBreak/><Run Text="Started with ResIL, and progressed through a couple of other libraries briefly, but all proved inadequate for loading the required DDS formats."/><LineBreak/><Run Text="This tool should load most DDS formats including weird ones like V8U8, ATI2, ARGB32F, etc. It also loads all common formats like PNG, JPG, TIFF, TGA, etc."/><LineBreak/><Run Text="It can also save to most of the supported formats. Options are there for handling alpha and mipmaps."/><LineBreak/><Run Text="Could have used DirectXTex from Microsoft, but I wanted something written in C#, since I was having lots of trouble with unmanaged memory management."/></TextBlock>
+
+                    <Label Style="{StaticResource TitleStyle}" Margin="0,10,0,0" Content="Credits" HorizontalContentAlignment="Center"/>
+                    <TextBlock Foreground="White" TextAlignment="Center" HorizontalAlignment="Center"><Run Text="Microsoft - "/><Run Text=" "/><Hyperlink NavigateUri="https://github.com/Microsoft/DirectXTex" RequestNavigate="Hyperlink_RequestNavigate"><Run Text="DirectXTex"/></Hyperlink></TextBlock>
+                    <TextBlock Foreground="White" Text="Over 9000 people on StackOverflow, I apologise for not knowing specifically." TextAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Foreground="White" Text="Dawnless Sky - DAI Modding Superhero" TextAlignment="Center" HorizontalAlignment="Center"/>
+                    <Button Content="Close" HorizontalAlignment="Center" Click="Button_Click" Margin="0,20,0,0"/>
+                </StackPanel>
+                <DockPanel x:Key="MergeChannelsPanel">
+                    <Label Content="Merge Channels" Style="{StaticResource TitleStyle}" DockPanel.Dock="Top"/>
+                    <Image MaxWidth="1024" MaxHeight="1024" DockPanel.Dock="Bottom"/>
+                    <DockPanel DockPanel.Dock="Bottom" Margin="5,10,5,10">
+                        <Button x:Name="MergeLoadButton" Content="Load" DockPanel.Dock="Left" Click="MergeLoadButton_Click" />
+                        <Button x:Name="MergeCloseButton" Content="Close" DockPanel.Dock="Right" Click="MergeCloseButton_Click"/>
+                        <Button x:Name="MergeMergeButton" Content="Merge!" Click="MergeMergeButton_Click" FontWeight="Bold" Margin="10,0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource {x:Type Button}}" TargetType="{x:Type Button}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding MergeChannelsImages.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+
+                                        <DataTrigger Binding="{Binding MergeChannelsReady}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </DockPanel>
+                    <ListBox x:Name="MergeChannelSourceBox" DockPanel.Dock="Top" ItemsSource="{Binding MergeChannelsImages}" Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <ItemContainerTemplate>
+                                <DockPanel MaxWidth="300" MaxHeight="300">
+                                    <DockPanel.Style>
+                                        <Style TargetType="{x:Type DockPanel}">
+                                            <Setter Property="Background" Value="Transparent"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsAlpha}" Value="true">
+                                                    <Setter Property="Background" Value="#7F808080"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding IsRed}" Value="true">
+                                                    <Setter Property="Background" Value="#7FFF0000"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding IsGreen}" Value="true">
+                                                    <Setter Property="Background" Value="#7F008000"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding IsBlue}" Value="true">
+                                                    <Setter Property="Background" Value="#7F0000FF"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DockPanel.Style>
+                                    <Image MaxWidth="128" MaxHeight="128" DockPanel.Dock="Top" Source="{Binding Thumbnail}"/>
+                                    <DockPanel Background="Transparent" LastChildFill="False">
+                                        <DockPanel.Resources>
+                                            <Style TargetType="{x:Type Button}">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Width" Value="20"/>
+                                                <Setter Property="Height" Value="20"/>
+                                                <Setter Property="Margin" Value="2"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Style>
+                                        </DockPanel.Resources>
+
+                                        <TextBlock Text="{Binding DisplayName}" DockPanel.Dock="Top" Foreground="White" TextWrapping="Wrap" TextAlignment="Center"/>
+
+                                        <Label Content="Set as Channel:" Foreground="White" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeRedSelector" Content="R" Click="MergeRedSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeGreenSelector" Content="G" Click="MergeGreenSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeBlueSelector" Content="B" Click="MergeBlueSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeAlphaSelector" Content="A" Click="MergeAlphaSelector_Click" DockPanel.Dock="Left"/>
+                                        <Button x:Name="MergeDeselector" Content="X" Foreground="Red" BorderBrush="Red" BorderThickness="0.5" DockPanel.Dock="Left" Click="MergeDeselector_Click"/>
+                                    </DockPanel>
+                                </DockPanel>
+                            </ItemContainerTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel MaxWidth="{Binding ActualWidth, ElementName=MergeChannelPanel}"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
+                </DockPanel>
+                <DockPanel x:Key="InfoPanel" LastChildFill="True">
+                    <DockPanel.Resources>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="DockPanel.Dock" Value="Top"/>
+                        </Style>
+                    </DockPanel.Resources>
+                    <Label Content="System Information" Style="{StaticResource TitleStyle}" FontSize="30" DockPanel.Dock="Top"/>
+
+                    <TextBlock><Run Text="CPU Type:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding CPUName, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <TextBlock><Run Text="Number of CPU Cores:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding NumCores, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <TextBlock><Run Text="OS 64 bit?:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding Is64Bit, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <TextBlock><Run Text="Running as 64 bit?:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding IsRunning64Bit, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <TextBlock><Run Text="OS Version:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding OSVersion, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <TextBlock><Run Text="Memory Size:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding RAMSize, Converter={StaticResource FileSizeConverter}, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <TextBlock><Run Text="Graphics Card:  " FontWeight="Bold"/><Run Text=" "/><Run Text="{Binding GPUName, IsAsync=True, Mode=OneWay}" Style="{StaticResource ValueStyle}"/></TextBlock>
+
+                    <Button x:Name="InfoPanelCloseButton" Content="Close" Foreground="White" DockPanel.Dock="Bottom" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                            Click="InfoPanelCloseButton_Click" Margin="0,5,0,0"/>
+                </DockPanel>
+            </ContentControl.Resources>
+
+            <ContentControl.Style>
+                <Style TargetType="{x:Type ContentControl}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Setter Property="Opacity" Value="0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ContentControl">
+                                <Border Background="#B2000000">
+                                    <Border VerticalAlignment="Center" HorizontalAlignment="Center" Background="Black" BorderBrush="White" BorderThickness="2" CornerRadius="20">
+                                        <ContentPresenter Margin="5,0,5,5"/>
+                                    </Border>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SettingsPanelOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <Setter Property="Content" Value="{StaticResource SettingsPanel}"/>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding BulkConvertOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+
+                            <Setter Property="Content" Value="{StaticResource BulkConvertPanel}"/>
+
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding ShowHelpAbout}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+
+                            <Setter Property="Content" Value="{StaticResource HelpAboutPanel}"/>
+
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding MergeChannelsPanelOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+
+                            <Setter Property="Content" Value="{StaticResource MergeChannelsPanel}"/>
+
+                        </DataTrigger>
+
+                        <DataTrigger Binding="{Binding InfoPanelOpen}" Value="true">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
+                            </DataTrigger.EnterActions>
+
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
+                            </DataTrigger.ExitActions>
+
+                            <Setter Property="Content" Value="{StaticResource InfoPanel}"/>
+
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ContentControl.Style>
+        </ContentControl>
     </Grid>
 </Window>

@@ -74,6 +74,13 @@ namespace UI_Project
                     RenderOptions.SetBitmapScalingMode(LoadedImageImage, mode);
                     RenderOptions.SetBitmapScalingMode(SaveImageImage, mode);
                 }
+                else if(args.PropertyName == nameof(vm.IsWindowBlurred))
+                {
+                    if (vm.IsWindowBlurred)
+                        UsefulThings.WPF.WindowBlur.EnableBlur(this);
+                    else
+                        UsefulThings.WPF.WindowBlur.DisableBlur(this);
+                }
             };
 
             BulkDropDragHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
@@ -617,18 +624,6 @@ namespace UI_Project
             MergeDropHandler.DragOver(e);
         }
 
-        private void UseWindowTransparencyChecker_Checked(object sender, RoutedEventArgs e)
-        {
-            UsefulThings.WPF.WindowBlur.EnableBlur(this);
-            vm.IsWindowBlurred = true;
-        }
-
-        private void UseWindowTransparencyChecker_Unchecked(object sender, RoutedEventArgs e)
-        {
-            UsefulThings.WPF.WindowBlur.DisableBlur(this);
-            vm.IsWindowBlurred = false;
-        }
-
         private void TOPWINDOW_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Properties.Settings.Default.NumThreads = vm.EnableThreading ? vm.NumThreads : 1;
@@ -647,7 +642,7 @@ namespace UI_Project
             vm.WindowBackground_Red = 0;
             vm.WindowBackground_Green = 0;
             vm.WindowBackground_Blue = 0;
-            UseWindowTransparencyChecker_Checked(null, null); // Blur background
+            vm.IsWindowBlurred = true;
         }
 
         private void HelpAboutButton_Click(object sender, RoutedEventArgs e)

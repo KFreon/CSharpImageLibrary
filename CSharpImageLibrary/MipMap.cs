@@ -46,6 +46,24 @@ namespace CSharpImageLibrary
         public int Height { get; set; }
 
 
+        public bool IsAlphaPresent
+        {
+            get
+            {
+                if (Pixels?.Length != 0)
+                {
+                    for (int i = 3; i < Pixels.Length; i+=4)   // TODO: ComponentSize
+                    {
+                        if (Pixels[i] != 0)
+                            return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+
         /// <summary>
         /// Creates a Mipmap object from a WPF image.
         /// </summary>

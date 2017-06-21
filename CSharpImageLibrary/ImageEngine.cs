@@ -411,14 +411,14 @@ namespace CSharpImageLibrary
         {
             var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
             baseBMP.Freeze();
-            return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.LoadedFormatDetails);
+            //return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.LoadedFormatDetails);
 
             #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
             // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
-            /*bool alphaPresent = mipMap.AlphaPresent;
+            bool alphaPresent = mipMap.IsAlphaPresent;
 
-            WriteableBitmap alpha = new WriteableBitmap(origWidth, origHeight, 96, 96, PixelFormats.Bgr32, null);
-            if (alphaPresent && !mergeAlpha)
+            WriteableBitmap alpha = new WriteableBitmap(mipMap.Width, mipMap.Height, 96, 96, PixelFormats.Bgr32, null);
+            if (alphaPresent)// && !mergeAlpha)
             {
                 // Pull out alpha since scaling with alpha doesn't work properly for some reason
                 try
@@ -428,7 +428,7 @@ namespace CSharpImageLibrary
                         alpha.Lock();
                         int index = 3;
                         byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
-                        for (int i = 0; i < origWidth * origHeight * 4; i += 4)
+                        for (int i = 0; i < mipMap.Width * mipMap.Height * 4; i += 4)
                         {
                             // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
                             alphaPtr[i] = mipMap.Pixels[index];
@@ -454,15 +454,18 @@ namespace CSharpImageLibrary
             
 
             // Scale RGB
-            ScaleTransform scaletransform = new ScaleTransform(scale, scale);
+            ScaleTransform scaletransform = new ScaleTransform(xScale, yScale);
             TransformedBitmap scaledMain = new TransformedBitmap(main, scaletransform);
 
+            int newWidth = (int)(mipMap.Width * xScale);
+            int newHeight = (int)(mipMap.Height * yScale);
+            int newStride = (int)(newWidth * 4);
 
             // Put alpha back in
             FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
             WriteableBitmap resized = new WriteableBitmap(newConv);
 
-            if (alphaPresent && !mergeAlpha)
+            if (alphaPresent)// && !mergeAlpha)
             {
                 TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
                 WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
@@ -489,7 +492,7 @@ namespace CSharpImageLibrary
                 }
             }
             
-            return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, alphaPresent);*/
+            return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, mipMap.LoadedFormatDetails);
             #endregion Old code
         }
 
@@ -504,12 +507,6 @@ namespace CSharpImageLibrary
 
             var bmp = UsefulThings.WPF.Images.CreateWPFBitmap(baseBMP, newWidth, newHeight);
             bmp.Freeze();
-
-            // TESTING - CreateWPFBitmap appears to be breaking that DXT1 in some fashion.
-            /*PngBitmapEncoder enc = new PngBitmapEncoder();
-            enc.Frames.Add(BitmapFrame.Create(bmp));
-            using (FileStream fs = new FileStream(@"C:\users\kfreo\desktop\test.png", FileMode.Create, FileAccess.Write))
-                enc.Save(fs);*/
 
             return new MipMap(bmp.GetPixelsAsBGRA32(), newWidth, newHeight, formatDetails);
         }
