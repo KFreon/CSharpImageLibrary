@@ -17,6 +17,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using UsefulThings;
 
 namespace UI_Project
@@ -31,6 +32,9 @@ namespace UI_Project
         UsefulThings.WPF.DragDropHandler<NewViewModel> DragDropHandler = null;
         UsefulThings.WPF.DragDropHandler<NewViewModel> BulkDropDragHandler = null;
         UsefulThings.WPF.DragDropHandler<NewViewModel> MergeDropHandler = null;
+
+        DispatcherTimer optionalPanelWaitTimer = new DispatcherTimer();
+
 
         public NewMainWindow()
         {
@@ -74,13 +78,23 @@ namespace UI_Project
                     RenderOptions.SetBitmapScalingMode(LoadedImageImage, mode);
                     RenderOptions.SetBitmapScalingMode(SaveImageImage, mode);
                 }
-                else if(args.PropertyName == nameof(vm.IsWindowBlurred))
+                else if (args.PropertyName == nameof(vm.IsWindowBlurred))
                 {
                     if (vm.IsWindowBlurred)
                         UsefulThings.WPF.WindowBlur.EnableBlur(this);
                     else
                         UsefulThings.WPF.WindowBlur.DisableBlur(this);
                 }
+                else if (args.PropertyName == nameof(vm.SettingsPanelOpen))
+                    SetOptionalContent(vm.SettingsPanelOpen, "SettingsPanel");
+                else if (args.PropertyName == nameof(vm.MergeChannelsPanelOpen))
+                    SetOptionalContent(vm.MergeChannelsPanelOpen, "MergeChannelsPanel");
+                else if (args.PropertyName == nameof(vm.InfoPanelOpen))
+                    SetOptionalContent(vm.InfoPanelOpen, "InfoPanel");
+                else if (args.PropertyName == nameof(vm.BulkConvertOpen))
+                    SetOptionalContent(vm.BulkConvertOpen, "BulkConvertPanel");
+                else if (args.PropertyName == nameof(vm.ShowHelpAbout))
+                    SetOptionalContent(vm.ShowHelpAbout, "HelpAboutPanel");
             };
 
             BulkDropDragHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
@@ -112,6 +126,15 @@ namespace UI_Project
 
             InitializeComponent();
             DataContext = vm;
+
+            optionalPanelWaitTimer.Interval = ((Duration)TOPWINDOW.FindResource("StandardDuration")).TimeSpan;
+            optionalPanelWaitTimer.Tick += (source, args) =>
+            {
+                // Close panel with faded content properly.
+                OptionalPanelsDisplayBox.Content = null;
+                optionalPanelWaitTimer.Stop();
+                Debug.WriteLine("CLOSE");
+            };
 
             CloseSavePanel();
             ClosePanelButton.Visibility = Visibility.Collapsed;
@@ -153,6 +176,17 @@ namespace UI_Project
                 // Since only loading, just use the first one.
                 Load(cmdLineParams[2]);
             }
+        }
+
+        private void SetOptionalContent(bool contentTrigger, string panelName)
+        {
+            if (contentTrigger)
+            {
+                OptionalPanelsDisplayBox.Content = OptionalPanelsDisplayBox.FindResource(panelName);
+                Debug.WriteLine("Opening");
+            }
+            else if(!optionalPanelWaitTimer.IsEnabled)
+                optionalPanelWaitTimer.Start();
         }
 
         void CloseSavePanel()

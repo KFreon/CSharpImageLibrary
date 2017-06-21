@@ -36,7 +36,6 @@
     <!-- Animation Durations -->
     <Duration x:Key="StandardDuration">0:0:0.5</Duration>
     <KeyTime x:Key="DelayedStart">0:0:0.5</KeyTime>
-    <sys:TimeSpan x:Key="DelayedStartTimeSpan">0:0:0.5</sys:TimeSpan>
     <!-- End Animation Durations -->
     
     <!-- Animations -->

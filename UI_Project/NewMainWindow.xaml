@@ -1028,7 +1028,7 @@
                         </ListBox.ItemTemplate>
                         <ListBox.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel MaxWidth="{Binding ActualWidth, ElementName=MergeChannelPanel}"/>
+                                <WrapPanel MaxWidth="{TemplateBinding ActualWidth}"/>
                             </ItemsPanelTemplate>
                         </ListBox.ItemsPanel>
                     </ListBox>
@@ -1083,8 +1083,8 @@
                                 <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
                             </DataTrigger.EnterActions>
 
-                            <Setter Property="Content" Value="{StaticResource SettingsPanel}"/>
-
+                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
+                            
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
                             </DataTrigger.ExitActions>
@@ -1094,13 +1094,12 @@
                             <DataTrigger.EnterActions>
                                 <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
                             </DataTrigger.EnterActions>
+                            
+                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
 
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
                             </DataTrigger.ExitActions>
-
-                            <Setter Property="Content" Value="{StaticResource BulkConvertPanel}"/>
-
                         </DataTrigger>
 
                         <DataTrigger Binding="{Binding ShowHelpAbout}" Value="true">
@@ -1108,12 +1107,11 @@
                                 <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
                             </DataTrigger.EnterActions>
 
+                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
+
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
                             </DataTrigger.ExitActions>
-
-                            <Setter Property="Content" Value="{StaticResource HelpAboutPanel}"/>
-
                         </DataTrigger>
 
                         <DataTrigger Binding="{Binding MergeChannelsPanelOpen}" Value="true">
@@ -1121,12 +1119,11 @@
                                 <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
                             </DataTrigger.EnterActions>
 
+                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
+
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
                             </DataTrigger.ExitActions>
-
-                            <Setter Property="Content" Value="{StaticResource MergeChannelsPanel}"/>
-
                         </DataTrigger>
 
                         <DataTrigger Binding="{Binding InfoPanelOpen}" Value="true">
@@ -1134,12 +1131,11 @@
                                 <BeginStoryboard Storyboard="{StaticResource FadeInPanel}"/>
                             </DataTrigger.EnterActions>
 
+                            <!-- Content setting done in code behind as panels aren't freezable, and thus can't be targets in Storyboards.-->
+
                             <DataTrigger.ExitActions>
                                 <BeginStoryboard Storyboard="{StaticResource FadeOutPanel}"/>
                             </DataTrigger.ExitActions>
-
-                            <Setter Property="Content" Value="{StaticResource InfoPanel}"/>
-
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
