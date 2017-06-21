@@ -752,6 +752,7 @@
             </DockPanel>
         </DockPanel>
         
+        <!-- Note that animation and content settings are done in code behind. -->
         <ContentControl x:Name="OptionalPanelsDisplayBox" Grid.Row="1" Grid.RowSpan="5" Grid.ColumnSpan="5">
             <ContentControl.Resources>
                 <DockPanel x:Key="SettingsPanel" LastChildFill="False">
@@ -1076,6 +1077,8 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
+                    
+                    <!-- Note that animation and content settings are done in code behind. -->
                 </Style>
             </ContentControl.Style>
         </ContentControl>
