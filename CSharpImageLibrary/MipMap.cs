@@ -18,12 +18,22 @@ namespace CSharpImageLibrary
     public class MipMap
     {
         /// <summary>
-        /// Pixels in bitmap image.
+        /// Pixels in bitmap image in which the components were byte sized.
         /// </summary>
-        public byte[] Pixels
+        byte[] BytePixels
         {
             get; set;
         }
+
+        /// <summary>
+        /// Pixels in bitmap image in which the components were floats.
+        /// </summary>
+        float[] FloatPixels { get; set; }
+
+        /// <summary>
+        /// Pixels in bitmap image in which the components were int64 sized.
+        /// </summary>
+        long[] LongPixels { get; set; }
 
         /// <summary>
         /// Size of mipmap in memory.
@@ -90,6 +100,28 @@ namespace CSharpImageLibrary
             var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(tempPixels, Width, Height);
             bmp.Freeze();
             return bmp;
+        }
+
+        /// <summary>
+        /// Gets suitable pixel array for the data loaded.
+        /// Might be bytes, might be longs, etc.
+        /// </summary>
+        /// <returns>Array of the requested type.</returns>
+        public T[] GetPixels<T>()
+        {
+            if (BytePixels != null)
+                return (T[])(Array)BytePixels;
+            else if (FloatPixels != null)
+                return (T[])(Array)FloatPixels;
+            else if (LongPixels != null)
+                return (T[])(Array)LongPixels;
+            else
+                throw new InvalidDataException("No pixel data set. Ensure mipmap has been correctly loaded.");
+        }
+
+        public float[] GetPixelsAsFloat()
+        {
+            return GetPixels()
         }
     }
 }
