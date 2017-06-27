@@ -130,12 +130,12 @@ namespace CSharpImageLibrary.Headers
                     // Compressed formats don't need anything written here since pitch/linear size is unreliable. Why bother?
                     #region Uncompressed
                     case ImageEngineFormat.DDS_G8_L8:
-                        dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE;
+                        dwFlags |= DDS_PFdwFlags.DDPF_LUMINANCE;
                         dwRGBBitCount = 8;
                         dwRBitMask = 0xFF;
                         break;
                     case ImageEngineFormat.DDS_ARGB_8:
-                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 32;
                         dwABitMask = 0xFF000000;
                         dwRBitMask = 0x00FF0000;
@@ -143,7 +143,7 @@ namespace CSharpImageLibrary.Headers
                         dwBBitMask = 0x000000FF;
                         break;
                     case ImageEngineFormat.DDS_ARGB_4:
-                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 24;
                         dwABitMask = 0xF000;
                         dwRBitMask = 0x0F00;
@@ -151,32 +151,32 @@ namespace CSharpImageLibrary.Headers
                         dwBBitMask = 0x000F;
                         break;
                     case ImageEngineFormat.DDS_V8U8:
-                        dwFlags = DDS_PFdwFlags.DDPF_SIGNED;
+                        dwFlags |= DDS_PFdwFlags.DDPF_SIGNED;
                         dwRGBBitCount = 16;
                         dwRBitMask = 0x00FF;
                         dwGBitMask = 0xFF00;
                         break;
                     case ImageEngineFormat.DDS_A8L8:
-                        dwFlags = DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
+                        dwFlags |= DDS_PFdwFlags.DDPF_LUMINANCE | DDS_PFdwFlags.DDPF_ALPHAPIXELS;
                         dwRGBBitCount = 16;
                         dwABitMask = 0xFF00;
                         dwRBitMask = 0x00FF;
                         break;
                     case ImageEngineFormat.DDS_RGB_8:
-                        dwFlags = DDS_PFdwFlags.DDPF_RGB;
+                        dwFlags |= DDS_PFdwFlags.DDPF_RGB;
                         dwRBitMask = 0xFF0000;
                         dwGBitMask = 0x00FF00;
                         dwBBitMask = 0x0000FF;
                         dwRGBBitCount = 24;
                         break;
                     case ImageEngineFormat.DDS_G16_R16:
-                        dwFlags = DDS_PFdwFlags.DDPF_RGB;
+                        dwFlags |= DDS_PFdwFlags.DDPF_RGB;
                         dwGBitMask = 0xFFFF0000;
                         dwRBitMask = 0x0000FFFF;
                         dwRGBBitCount = 32;
                         break;
                     case ImageEngineFormat.DDS_ABGR_8:
-                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 32;
                         dwABitMask = 0xFF000000;
                         dwBBitMask = 0x00FF0000;
@@ -184,7 +184,7 @@ namespace CSharpImageLibrary.Headers
                         dwRBitMask = 0x000000FF;
                         break;
                     case ImageEngineFormat.DDS_ARGB_32F:
-                        dwFlags = DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
                         dwRGBBitCount = 128;
                         dwABitMask = 0;
                         dwRBitMask = 0;
