@@ -185,6 +185,7 @@ namespace CSharpImageLibrary.Headers
                         break;
                     case ImageEngineFormat.DDS_ARGB_32F:
                         dwFlags |= DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_RGB;
+                        dwFourCC = FourCC.DX10;
                         dwRGBBitCount = 128;
                         dwABitMask = 0;
                         dwRBitMask = 0;
@@ -887,7 +888,11 @@ namespace CSharpImageLibrary.Headers
             dwMipMapCount = Mips == 1 ? 1 : Mips;
             ddspf = new DDS_PIXELFORMAT(surfaceformat);
 
-            if (surfaceformat == ImageEngineFormat.DDS_DX10)
+            if (surfaceformat == ImageEngineFormat.DDS_DX10 || surfaceformat == ImageEngineFormat.DDS_ARGB_32F)
+            {
+                if (surfaceformat == ImageEngineFormat.DDS_ARGB_32F)
+                    dx10Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
+
                 DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional
                 {
                     dxgiFormat = dx10Format,
@@ -896,6 +901,8 @@ namespace CSharpImageLibrary.Headers
                     miscFlags2 = DXGI_MiscFlags.DDS_ALPHA_MODE_UNKNOWN,
                     arraySize = 1
                 };
+            }
+                
         }
         
 

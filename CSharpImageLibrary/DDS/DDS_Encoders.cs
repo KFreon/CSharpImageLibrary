@@ -106,7 +106,7 @@ namespace CSharpImageLibrary.DDS
             // NOTE: Ordering array is in ARGB order, and the stored indices change depending on detected channel order.
             // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
 
-            if (dest_ddspf.dwFourCC == DDS_Header.FourCC.A32B32G32R32F)
+            if (destFormatDetails.Format == ImageEngineFormat.DDS_ARGB_32F)
             {
                 AMask = 4;
                 BMask = 3;

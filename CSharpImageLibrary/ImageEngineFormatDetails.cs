@@ -31,7 +31,7 @@ namespace CSharpImageLibrary
             /// <summary>
             /// Length of header (DDS only)
             /// </summary>
-            public int HeaderSize => Format == ImageEngineFormat.DDS_DX10 ? DDS_DX10_HEADER_LENGTH : DDS_NO_DX10_HEADER_LENGTH;
+            public int HeaderSize => (Format == ImageEngineFormat.DDS_DX10 || (Format == ImageEngineFormat.DDS_ARGB_32F && DX10Format == Headers.DDS_Header.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT)) ? DDS_DX10_HEADER_LENGTH : DDS_NO_DX10_HEADER_LENGTH;
 
 
             /// <summary>
@@ -190,6 +190,7 @@ namespace CSharpImageLibrary
                             BitCount = 24;
                             break;
                         case ImageEngineFormat.DDS_ARGB_32F:
+                            DX10Format = Headers.DDS_Header.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
                             BitCount = 128;
                             break;
                         case ImageEngineFormat.DDS_R5G6B5:

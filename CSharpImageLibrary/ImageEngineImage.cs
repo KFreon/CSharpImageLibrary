@@ -205,7 +205,20 @@ namespace CSharpImageLibrary
             if (Header is Headers.DDS_Header)
                 DX10Format = ((Headers.DDS_Header)Header).DX10_DXGI_AdditionalHeader.dxgiFormat;
 
-            FormatDetails = new ImageFormats.ImageEngineFormatDetails(Header.Format, DX10Format);
+
+            ImageEngineFormat tempFormat = Header.Format;
+            if (DX10Format == DDS_Header.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT)   // Trickses to get around the DX10 float header deal - Apparently float formats should be specified with the DX10 header...
+            {
+                tempFormat = ImageEngineFormat.DDS_ARGB_32F;
+                var tempPF = ((DDS_Header)Header).ddspf;
+                tempPF.dwRBitMask = 1;
+                tempPF.dwGBitMask = 2;
+                tempPF.dwBBitMask = 3;
+                tempPF.dwABitMask = 4;
+                ((DDS_Header)Header).ddspf = tempPF;
+            }
+
+            FormatDetails = new ImageFormats.ImageEngineFormatDetails(tempFormat, DX10Format);
             MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0, FormatDetails);
 
             // Read original data
@@ -452,7 +465,7 @@ namespace CSharpImageLibrary
                 }
 
                 // Header
-                tempHeader = new DDS_Header(mipCount, newWidth, newHeight, destFormatDetails.Format, destFormatDetails.DX10Format);
+                tempHeader = new DDS_Header(mipCount, newHeight, newWidth, destFormatDetails.Format, destFormatDetails.DX10Format);
             }
             
             // Use existing array, otherwise create one.
