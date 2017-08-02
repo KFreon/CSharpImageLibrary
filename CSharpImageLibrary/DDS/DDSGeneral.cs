@@ -62,14 +62,9 @@ namespace CSharpImageLibrary.DDS
                     if (!CheckSize_DXT(mipWidth, mipHeight))  
                         return;
 
-                    try
-                    {
-                        DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength, formatDetails.IsPremultipliedFormat);
-                    }
-                    catch (IndexOutOfRangeException e)
-                    {
-                        throw;
-                    }
+
+                    DecompressBlock(CompressedData, compressedPosition, decompressedData, decompressedStart, decompressedRowLength, formatDetails.IsPremultipliedFormat);
+
                 });
 
                 // Actually perform decompression using threading, no threading, or GPU.
@@ -106,7 +101,6 @@ namespace CSharpImageLibrary.DDS
 
             int mipWidth = header.Width;
             int mipHeight = header.Height;
-            ImageEngineFormat format = header.Format;
 
             int estimatedMips = header.dwMipMapCount;
             int mipOffset = formatDetails.HeaderSize;
