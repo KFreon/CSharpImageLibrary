@@ -13,6 +13,8 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class JPG_Header : AbstractHeader
     {
+        public override HeaderType Type => HeaderType.JPG;
+
         /// No printable characters mark a jpg. See <see cref="CheckIdentifier(byte[])"/>.
 
         const int HeaderSize = 20;

@@ -13,6 +13,8 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class PNG_Header : AbstractHeader
     {
+        public override HeaderType Type => HeaderType.PNG;
+
         /// <summary>
         /// Header Chunk containing specific PNG header information.
         /// </summary>

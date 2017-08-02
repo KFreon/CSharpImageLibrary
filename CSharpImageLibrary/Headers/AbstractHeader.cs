@@ -15,6 +15,27 @@ namespace CSharpImageLibrary.Headers
     public abstract class AbstractHeader
     {
         /// <summary>
+        /// Indicates the header type.
+        /// </summary>
+        public enum HeaderType
+        {
+            DDS,
+            BMP,
+            JPG,
+            PNG,
+            GIF,
+            TGA,
+            TIFF,
+            UNKNOWN,
+        }
+
+        /// <summary>
+        /// Indicates the type of image this header is representing.
+        /// </summary>
+        public abstract HeaderType Type { get; }
+
+
+        /// <summary>
         /// Format of image as seen by header.
         /// </summary>
         public abstract ImageEngineFormat Format { get; }

@@ -14,6 +14,8 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class TIFF_Header : AbstractHeader
     {
+        public override HeaderType Type => HeaderType.TIFF;
+
         /// <summary>
         /// Format of image.
         /// </summary>

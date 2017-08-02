@@ -14,6 +14,8 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class GIF_Header : AbstractHeader
     {
+        public override HeaderType Type => HeaderType.GIF;
+
         const int GlobalHeaderSize = 6 + 7 + 768 + 19 + 8; // Header block, Logical Screen Descriptor, Max size Global Colour Table, Application Extension (animation), Graphics Control Extension (Transparency)
 
         /// <summary>

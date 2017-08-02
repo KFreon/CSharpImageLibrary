@@ -12,6 +12,8 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class TGA_Header : AbstractHeader
     {
+        public override HeaderType Type => HeaderType.TGA;
+
         #region Properties
         /// <summary>
         /// Base TGA header.

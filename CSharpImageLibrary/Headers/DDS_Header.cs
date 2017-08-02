@@ -15,6 +15,8 @@ namespace CSharpImageLibrary.Headers
     /// </summary>
     public class DDS_Header : AbstractHeader
     {
+        public override HeaderType Type => HeaderType.DDS;
+
         const int MaxHeaderSize = ImageFormats.DDS_DX10_HEADER_LENGTH;
 
         /// <summary>
@@ -903,117 +905,6 @@ namespace CSharpImageLibrary.Headers
                 };
             }
                 
-        }
-        
-
-        /// <summary>
-        /// Determines friendly format from FourCC, with additional DXGI/DX10 format.
-        /// </summary>
-        /// <param name="fourCC">FourCC of DDS (DXT1-5)</param>
-        /// <param name="additionalDX10"></param>
-        /// <returns>Friendly format.</returns>
-        static ImageEngineFormat ParseFourCC(FourCC fourCC, DXGI_FORMAT additionalDX10 = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
-        {
-            if (fourCC == FourCC.DX10)
-                return ImageEngineFormat.DDS_DX10; // TODO: Need to add these at some point.
-
-            if (Enum.IsDefined(typeof(ImageEngineFormat), (int)fourCC))
-                return (ImageEngineFormat)fourCC;
-            else
-                return ImageEngineFormat.Unknown;
-        }
-
-        static FourCC ParseFormatToFourCC(ImageEngineFormat format)
-        {
-            if (Enum.IsDefined(typeof(FourCC), (int)format))
-                return (FourCC)format;
-            else
-                return FourCC.Unknown;
-        }
-
-        /// <summary>
-        /// Determines DDS Surface Format given the header.
-        /// </summary>
-        /// <param name="ddspf">DDS PixelFormat structure.</param>
-        /// <returns>Friendly format.</returns>
-        public static ImageEngineFormat DetermineDDSSurfaceFormat(DDS_Header.DDS_PIXELFORMAT ddspf)
-        {
-            ImageEngineFormat format = ParseFourCC(ddspf.dwFourCC);
-
-            if (format == ImageEngineFormat.Unknown)
-            {
-                // Due to some previous settings, need to check these first.
-                if (ddspf.dwABitMask <= 4 && ddspf.dwABitMask != 0 &&
-                    ddspf.dwBBitMask <= 4 && ddspf.dwBBitMask != 0 &&
-                    ddspf.dwGBitMask <= 4 && ddspf.dwGBitMask != 0 &&
-                    ddspf.dwRBitMask <= 4 && ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_CUSTOM;
-
-
-                // KFreon: Apparently all these flags mean it's a V8U8 image...
-                else if (ddspf.dwRGBBitCount == 16 &&
-                           ddspf.dwRBitMask == 0x00FF &&
-                           ddspf.dwGBitMask == 0xFF00 &&
-                           ddspf.dwBBitMask == 0x00 &&
-                           ddspf.dwABitMask == 0x00 &&
-                           (ddspf.dwFlags & DDS_PFdwFlags.DDPF_SIGNED) == DDS_PFdwFlags.DDPF_SIGNED)
-                    format = ImageEngineFormat.DDS_V8U8;
-
-                // KFreon: Test for L8/G8
-                else if (ddspf.dwABitMask == 0 &&
-                        ddspf.dwBBitMask == 0 &&
-                        ddspf.dwGBitMask == 0 &&
-                        ddspf.dwRBitMask == 0xFF &&
-                        ddspf.dwFlags == DDS_PFdwFlags.DDPF_LUMINANCE &&
-                        ddspf.dwRGBBitCount == 8)
-                    format = ImageEngineFormat.DDS_G8_L8;
-
-                // KFreon: A8L8. This can probably be something else as well, but it seems to work for now
-                else if (ddspf.dwRGBBitCount == 16 &&
-                        ddspf.dwFlags == (DDS_PFdwFlags.DDPF_ALPHAPIXELS | DDS_PFdwFlags.DDPF_LUMINANCE))
-                    format = ImageEngineFormat.DDS_A8L8;
-
-                // KFreon: G_R only.
-                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
-                        ddspf.dwABitMask == 0 &&
-                        ddspf.dwBBitMask == 0 &&
-                        ddspf.dwGBitMask != 0 &&
-                        ddspf.dwRBitMask != 0)
-                    format = ImageEngineFormat.DDS_G16_R16;
-
-                // KFreon: RGB. RGB channels have something in them, but alpha doesn't.
-                else if (((ddspf.dwFlags & DDS_PFdwFlags.DDPF_RGB) == DDS_PFdwFlags.DDPF_RGB && !((ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS)) &&
-                        ddspf.dwABitMask == 0 &&
-                        ddspf.dwBBitMask != 0 &&
-                        ddspf.dwGBitMask != 0 &&
-                        ddspf.dwRBitMask != 0)
-                {
-                    // TODO more formats?
-                    if (ddspf.dwBBitMask == 31)
-                        format = ImageEngineFormat.DDS_R5G6B5;
-                    else
-                        format = ImageEngineFormat.DDS_RGB_8;
-                }
-
-                // KFreon: RGB and A channels are present.
-                else if (((ddspf.dwFlags & (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) == (DDS_PFdwFlags.DDPF_RGB | DDS_PFdwFlags.DDPF_ALPHAPIXELS)) ||
-                        ddspf.dwABitMask != 0 &&
-                        ddspf.dwBBitMask != 0 &&
-                        ddspf.dwGBitMask != 0 &&
-                        ddspf.dwRBitMask != 0)
-                {
-                    // TODO: Some more formats here?
-                    format = ImageEngineFormat.DDS_ARGB_8;
-                }
-
-                // KFreon: If nothing else fits, but there's data in one of the bitmasks, assume it can be read.
-                else if (ddspf.dwABitMask != 0 || ddspf.dwRBitMask != 0 || ddspf.dwGBitMask != 0 || ddspf.dwBBitMask != 0)
-                    format = ImageEngineFormat.DDS_CUSTOM;
-                else
-                    throw new FormatException("DDS Format is unknown.");
-            }
-
-            return format;
         }
 
         internal static bool CheckIdentifier(byte[] IDBlock)
