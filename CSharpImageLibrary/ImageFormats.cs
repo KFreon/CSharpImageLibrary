@@ -1,19 +1,13 @@
-﻿using CSharpImageLibrary.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
+using CSharpImageLibrary.Headers;
 using UsefulThings;
 
 namespace CSharpImageLibrary
 {
-    
-
-
     /// <summary>
     /// Provides format functionality
     /// </summary>
@@ -22,7 +16,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Contains formats not yet capable of saving.
         /// </summary>
-        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.TGA, ImageEngineFormat.Unknown, ImageEngineFormat.DDS_CUSTOM };
+        public static List<ImageEngineFormat> SaveUnsupported = new List<ImageEngineFormat>() { ImageEngineFormat.TGA, ImageEngineFormat.Unknown, ImageEngineFormat.DX10_Placeholder };
 
 
         /// <summary>
@@ -157,6 +151,12 @@ namespace CSharpImageLibrary
             /// </summary>
             [Description("TIFF Images")]
             TIF,
+
+            /// <summary>
+            /// TIFF images. Compressed, and supports mipmaps.
+            /// </summary>
+            [Description("TIFF Images")]
+            TIFF,
         }
 
         /// <summary>

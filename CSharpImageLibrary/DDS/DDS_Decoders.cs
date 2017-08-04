@@ -52,7 +52,7 @@ namespace CSharpImageLibrary.DDS
         }
 
         // BC4
-        internal static void DecompressATI1Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        internal static void DecompressBC4Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart, decompressedLineLength, false);
 
@@ -69,7 +69,7 @@ namespace CSharpImageLibrary.DDS
         }
 
         // BC5
-        internal static void DecompressATI2Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
+        internal static void DecompressBC5Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
             // Green = +1
             DDS_BlockHelpers.Decompress8BitBlock(source, sourceStart, destination, decompressedStart + 1, decompressedLineLength, false);

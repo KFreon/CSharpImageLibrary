@@ -108,8 +108,10 @@
     <Compile Include="Headers\GIF_Header.cs" />
     <Compile Include="Headers\JPG_Header.cs" />
     <Compile Include="Headers\PNG_Header.cs" />
+    <Compile Include="Headers\RawDDSHeaderStuff.cs" />
     <Compile Include="Headers\TGA_Header.cs" />
     <Compile Include="Headers\TIFF_Header.cs" />
+    <Compile Include="ImageEngineFormat.cs" />
     <Compile Include="ImageEngineFormatDetails.cs" />
     <Compile Include="ImageEngineImage.cs" />
     <Compile Include="MergeChannelsImage.cs" />

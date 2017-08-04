@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
+using static CSharpImageLibrary.ImageFormats;
 
 namespace CSharpImageLibrary
 {
@@ -136,11 +137,6 @@ namespace CSharpImageLibrary
         public int BlockSize => FormatDetails.BlockSize;
 
         /// <summary>
-        /// True = Format is able to contain mipmaps.
-        /// </summary>
-        public bool IsMippable => FormatDetails.IsMippable;
-
-        /// <summary>
         /// File Extension of selected format.
         /// </summary>
         public string FileExtension => FormatDetails.Extension;
@@ -200,25 +196,7 @@ namespace CSharpImageLibrary
             CompressedSize = (int)stream.Length;
             Header = ImageEngine.LoadHeader(stream);
 
-            // DX10
-            var DX10Format = DDS_Header.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
-            if (Header is Headers.DDS_Header)
-                DX10Format = ((Headers.DDS_Header)Header).DX10_DXGI_AdditionalHeader.dxgiFormat;
-
-
-            ImageEngineFormat tempFormat = Header.Format;
-            if (DX10Format == DDS_Header.DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT)   // Trickses to get around the DX10 float header deal - Apparently float formats should be specified with the DX10 header...
-            {
-                tempFormat = ImageEngineFormat.DDS_ARGB_32F;
-                var tempPF = ((DDS_Header)Header).ddspf;
-                tempPF.dwRBitMask = 1;
-                tempPF.dwGBitMask = 2;
-                tempPF.dwBBitMask = 3;
-                tempPF.dwABitMask = 4;
-                ((DDS_Header)Header).ddspf = tempPF;
-            }
-
-            FormatDetails = new ImageFormats.ImageEngineFormatDetails(tempFormat, DX10Format);
+            FormatDetails = new ImageEngineFormatDetails(Header);
             MipMaps = ImageEngine.LoadImage(stream, Header, maxDimension, 0, FormatDetails);
 
             // Read original data
