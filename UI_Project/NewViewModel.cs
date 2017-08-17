@@ -17,6 +17,7 @@ using System.Windows.Threading;
 using UsefulThings;
 using UsefulThings.WPF;
 using static CSharpImageLibrary.Headers.DDS_Header;
+using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 
 namespace UI_Project
 {
@@ -41,98 +42,53 @@ namespace UI_Project
         bool delayedBusy = false;
         public bool DelayedBusy
         {
-            get
-            {
-                return delayedBusy;
-            }
-            set
-            {
-                SetProperty(ref delayedBusy, value);
-            }
+            get => delayedBusy;
+            set => SetProperty(ref delayedBusy, value);
         }
 
 
         bool isWindowBlurred = true;
         public bool IsWindowBlurred
         {
-            get
-            {
-                return isWindowBlurred;
-            }
-            set
-            {
-                SetProperty(ref isWindowBlurred, value);
-            }
+            get => isWindowBlurred;
+            set => SetProperty(ref isWindowBlurred, value);
         }
 
-        public bool IsCancellationRequested
-        {
-            get
-            {
-                return ImageEngine.IsCancellationRequested;
-            }
-        }
+        public bool IsCancellationRequested => ImageEngine.IsCancellationRequested;
 
         bool useHighQualityScaling = true;
         public bool UseHighQualityScaling
         {
-            get
-            {
-                return useHighQualityScaling;
-            }
-            set
-            {
-                SetProperty(ref useHighQualityScaling, value);
-            }
+            get => useHighQualityScaling;
+            set => SetProperty(ref useHighQualityScaling, value);
         }
 
         bool useSourceFormatForSaving = false;
         public bool UseSourceFormatForSaving
         {
-            get
-            {
-                return useSourceFormatForSaving;
-            }
-            set
-            {
-                SetProperty(ref useSourceFormatForSaving, value);
-            }
+            get => useSourceFormatForSaving;
+            set => SetProperty(ref useSourceFormatForSaving, value);
         }
 
         string status = null;
         public string Status
         {
-            get
-            {
-                return status;
-            }
-            set
-            {
-                SetProperty(ref status, value);
-            }
+            get => status;
+            set => SetProperty(ref status, value);
         }
 
 
         bool showHelpAbout = false;
         public bool ShowHelpAbout
         {
-            get
-            {
-                return showHelpAbout;
-            }
-            set
-            {
-                SetProperty(ref showHelpAbout, value);
-            }
+            get => showHelpAbout;
+            set => SetProperty(ref showHelpAbout, value);
         }
 
         bool isRedChannelOn = true;
         public bool IsRedChannelOn
         {
-            get
-            {
-                return isRedChannelOn;
-            }
+            get => isRedChannelOn;
             set
             {
                 SetProperty(ref isRedChannelOn, value);
@@ -145,10 +101,7 @@ namespace UI_Project
         bool isGreenChannelOn = true;
         public bool IsGreenChannelOn
         {
-            get
-            {
-                return isGreenChannelOn;
-            }
+            get => isGreenChannelOn;
             set
             {
                 SetProperty(ref isGreenChannelOn, value);
@@ -161,10 +114,7 @@ namespace UI_Project
         bool isBlueChannelOn = true;
         public bool IsBlueChannelOn
         {
-            get
-            {
-                return isBlueChannelOn;
-            }
+            get => isBlueChannelOn;
             set
             {
                 SetProperty(ref isBlueChannelOn, value);
@@ -180,22 +130,13 @@ namespace UI_Project
         bool settingsPanelOpen = false;
         public bool SettingsPanelOpen
         {
-            get
-            {
-                return settingsPanelOpen;
-            }
-            set
-            {
-                SetProperty(ref settingsPanelOpen, value);
-            }
+            get => settingsPanelOpen;
+            set => SetProperty(ref settingsPanelOpen, value);
         }
 
         public bool EnableThreading
         {
-            get
-            {
-                return ImageEngine.EnableThreading;
-            }
+            get => ImageEngine.EnableThreading;
             set
             {
                 ImageEngine.EnableThreading = value;
@@ -205,10 +146,7 @@ namespace UI_Project
 
         public bool UseWindowsCodecs
         {
-            get
-            {
-                return ImageEngine.WindowsWICCodecsAvailable;
-            }
+            get => ImageEngine.WindowsWICCodecsAvailable;
             set
             {
                 ImageEngine.WindowsWICCodecsAvailable = value;
@@ -218,10 +156,7 @@ namespace UI_Project
 
         public int NumThreads
         {
-            get
-            {
-                return ImageEngine.NumThreads;
-            }
+            get => ImageEngine.NumThreads;
             set
             {
                 if (value < 1 && value != -1) // Allowed to be -1 for being infinite
@@ -240,14 +175,8 @@ namespace UI_Project
         bool infoPanelOpen = false;
         public bool InfoPanelOpen
         {
-            get
-            {
-                return infoPanelOpen;
-            }
-            set
-            {
-                SetProperty(ref infoPanelOpen, value);
-            }
+            get => infoPanelOpen;
+            set => SetProperty(ref infoPanelOpen, value);
         }
 
 
@@ -271,29 +200,11 @@ namespace UI_Project
             }
         }
 
-        public int NumCores
-        {
-            get
-            {
-                return System.Environment.ProcessorCount;
-            }
-        }
+        public int NumCores => System.Environment.ProcessorCount;
 
-        public bool Is64Bit
-        {
-            get
-            {
-                return System.Environment.Is64BitOperatingSystem;
-            }
-        }
+        public bool Is64Bit => System.Environment.Is64BitOperatingSystem;
 
-        public bool IsRunning64Bit
-        {
-            get
-            {
-                return System.Environment.Is64BitProcess;
-            }
-        }
+        public bool IsRunning64Bit => System.Environment.Is64BitProcess;
 
         string osVersion = "Unknown";
         public string OSVersion
@@ -351,14 +262,8 @@ namespace UI_Project
         string saveDuration = null;
         public string SaveDuration
         {
-            get
-            {
-                return saveDuration;
-            }
-            set
-            {
-                SetProperty(ref saveDuration, value);
-            }
+            get => saveDuration;
+            set => SetProperty(ref saveDuration, value);
         }
 
         #region Commands
@@ -416,14 +321,8 @@ namespace UI_Project
         bool mergePanelOpen = false;
         public bool MergeChannelsPanelOpen
         {
-            get
-            {
-                return mergePanelOpen;
-            }
-            set
-            {
-                SetProperty(ref mergePanelOpen, value);
-            }
+            get => mergePanelOpen;
+            set => SetProperty(ref mergePanelOpen, value);
         }
 
         public MTRangedObservableCollection<MergeChannelsImage> MergeChannelsImages { get; set; } = new MTRangedObservableCollection<MergeChannelsImage>();
@@ -451,10 +350,7 @@ namespace UI_Project
         byte windowBackground_Red = 0;
         public byte WindowBackground_Red
         {
-            get
-            {
-                return windowBackground_Red;
-            }
+            get => windowBackground_Red;
             set
             {
                 SetProperty(ref windowBackground_Red, value);
@@ -465,10 +361,7 @@ namespace UI_Project
         byte windowBackground_Green = 0;
         public byte WindowBackground_Green
         {
-            get
-            {
-                return windowBackground_Green;
-            }
+            get => windowBackground_Green;
             set
             {
                 SetProperty(ref windowBackground_Green, value);
@@ -479,10 +372,7 @@ namespace UI_Project
         byte windowBackground_Blue = 0;
         public byte WindowBackground_Blue
         {
-            get
-            {
-                return windowBackground_Blue;
-            }
+            get => windowBackground_Blue;
             set
             {
                 SetProperty(ref windowBackground_Blue, value);
@@ -493,10 +383,7 @@ namespace UI_Project
         byte windowBackground_Alpha = 158;
         public byte WindowBackground_Alpha
         {
-            get
-            {
-                return windowBackground_Alpha;
-            }
+            get => windowBackground_Alpha;
             set
             {
                 SetProperty(ref windowBackground_Alpha, value);
@@ -504,21 +391,12 @@ namespace UI_Project
             }
         }
 
-        public Brush WindowBackgroundColour
-        {
-            get
-            {
-                return new SolidColorBrush(Color.FromArgb(WindowBackground_Alpha, WindowBackground_Red, WindowBackground_Green, WindowBackground_Blue));
-            }
-        }
+        public Brush WindowBackgroundColour => new SolidColorBrush(Color.FromArgb(WindowBackground_Alpha, WindowBackground_Red, WindowBackground_Green, WindowBackground_Blue));
 
         bool splitChannels = false;
         public bool SplitChannels
         {
-            get
-            {
-                return splitChannels;
-            }
+            get => splitChannels;
             set
             {
                 SetProperty(ref splitChannels, value);
@@ -530,10 +408,7 @@ namespace UI_Project
         bool busy = false;
         public bool Busy
         {
-            get
-            {
-                return busy;
-            }
+            get => busy;
             set
             {
                 if (!operationElapsedTimer.IsRunning)
@@ -557,64 +432,34 @@ namespace UI_Project
         }
 
         #region Alpha and Colour related Properties
-        bool GeneralRemovingAlpha
-        {
-            get
-            {
-                return SaveFormat == ImageEngineFormat.DDS_DXT1 ? DXT1AlphaRemove : RemoveGeneralAlpha;
-            }
-        }
+        bool GeneralRemovingAlpha => SaveFormat == ImageEngineFormat.DDS_DXT1 ? DXT1AlphaRemove : RemoveGeneralAlpha;
 
         uint aMask = 0xFF000000;
         public uint AMask
         {
-            get
-            {
-                return aMask;
-            }
-            set
-            {
-                SetProperty(ref aMask, value);
-            }
+            get => aMask;
+            set => SetProperty(ref aMask, value);
         }
 
         uint rMask = 0x00FF0000;
         public uint RMask
         {
-            get
-            {
-                return rMask;
-            }
-            set
-            {
-                SetProperty(ref rMask, value);
-            }
+            get => rMask;
+            set => SetProperty(ref rMask, value);
         }
 
         uint gMask = 0x0000FF00;
         public uint GMask
         {
-            get
-            {
-                return gMask;
-            }
-            set
-            {
-                SetProperty(ref gMask, value);
-            }
+            get => gMask;
+            set => SetProperty(ref gMask, value);
         }
 
         uint bMask = 0x000000FF;
         public uint BMask
         {
-            get
-            {
-                return bMask;
-            }
-            set
-            {
-                SetProperty(ref bMask, value);
-            }
+            get => bMask;
+            set => SetProperty(ref bMask, value);
         }
         #endregion Alpha and Colour related Properties
 
@@ -626,23 +471,14 @@ namespace UI_Project
         string operationElapsed = null;
         public string OperationElapsed
         {
-            get
-            {
-                return operationElapsed;
-            }
-            set
-            {
-                SetProperty(ref operationElapsed, value);
-            }
+            get => operationElapsed;
+            set => SetProperty(ref operationElapsed, value);
         }
 
         bool bulkConvertOpen = false;
         public bool BulkConvertOpen
         {
-            get
-            {
-                return bulkConvertOpen;
-            }
+            get => bulkConvertOpen;
             set
             {
                 SetProperty(ref bulkConvertOpen, value);
@@ -653,105 +489,57 @@ namespace UI_Project
         bool bulkFolderBrowseRecurse = true;
         public bool BulkFolderBrowseRecurse
         {
-            get
-            {
-                return bulkFolderBrowseRecurse;
-            }
-            set
-            {
-                SetProperty(ref bulkFolderBrowseRecurse, value);
-            }
+            get => bulkFolderBrowseRecurse;
+            set => SetProperty(ref bulkFolderBrowseRecurse, value);
         }
 
         bool bulkConvertRunning = false;
         public bool BulkConvertRunning
         {
-            get
-            {
-                return bulkConvertRunning;
-            }
-            set
-            {
-                SetProperty(ref bulkConvertRunning, value);
-            }
+            get => bulkConvertRunning;
+            set => SetProperty(ref bulkConvertRunning, value);
         }
 
         bool bulkConvertFinished = false;
         public bool BulkConvertFinished
         {
-            get
-            {
-                return bulkConvertFinished;
-            }
-            set
-            {
-                SetProperty(ref bulkConvertFinished, value);
-            }
+            get => bulkConvertFinished;
+            set => SetProperty(ref bulkConvertFinished, value);
         }
 
         string bulkSaveFolder = "";  // Can't be null
         public string BulkSaveFolder
         {
-            get
-            {
-                return bulkSaveFolder;
-            }
-            set
-            {
-                SetProperty(ref bulkSaveFolder, value);
-            }
+            get => bulkSaveFolder;
+            set => SetProperty(ref bulkSaveFolder, value);
         }
 
         bool bulkUseSourceDestination = false;
         public bool BulkUseSourceDestination
         {
-            get
-            {
-                return bulkUseSourceDestination;
-            }
-            set
-            {
-                SetProperty(ref bulkUseSourceDestination, value);
-            }
+            get => bulkUseSourceDestination;
+            set => SetProperty(ref bulkUseSourceDestination, value);
         }
 
         string bulkStatus = "Ready";
         public string BulkStatus
         {
-            get
-            {
-                return bulkStatus;
-            }
-            set
-            {
-                SetProperty(ref bulkStatus, value);
-            }
+            get => bulkStatus;
+            set => SetProperty(ref bulkStatus, value);
         }
 
         int bulkProgressMax = 0;
         public int BulkProgressMax
         {
-            get
-            {
-                return bulkProgressMax;
-            }
-            set
-            {
-                SetProperty(ref bulkProgressMax, value);
-            }
+            get => bulkProgressMax;
+            set => SetProperty(ref bulkProgressMax, value);
         }
 
         int bulkProgressValue = 1;
         public int BulkProgressValue
         {
-            get
-            {
-                return bulkProgressValue;
-            }
-            set
-            {
-                SetProperty(ref bulkProgressValue, value);
-            }
+            get => bulkProgressValue;
+            set => SetProperty(ref bulkProgressValue, value);
         }
         #endregion Bulk Convert Properties
 
@@ -759,10 +547,7 @@ namespace UI_Project
         bool loadFailed = false;
         public bool LoadFailed
         {
-            get
-            {
-                return loadFailed;
-            }
+            get => loadFailed;
             set
             {
                 // If loading fails, it's not busy anymore.
@@ -776,24 +561,15 @@ namespace UI_Project
         string loadFailError = null;
         public string LoadFailError
         {
-            get
-            {
-                return loadFailError;
-            }
-            set
-            {
-                SetProperty(ref loadFailError, value);
-            }
+            get => loadFailError;
+            set => SetProperty(ref loadFailError, value);
         }
 
 
         bool isImageLoaded = false;
         public bool IsImageLoaded
         {
-            get
-            {
-                return isImageLoaded;
-            }
+            get => isImageLoaded;
             set
             {
                 SetProperty(ref isImageLoaded, value);
@@ -827,10 +603,7 @@ namespace UI_Project
         int mipIndex = 0;
         public int MipIndex
         {
-            get
-            {
-                return mipIndex;
-            }
+            get => mipIndex;
             set
             {
                 if (mipIndex == value)
@@ -847,10 +620,7 @@ namespace UI_Project
         ImageEngineImage loadedImage = null;
         public ImageEngineImage LoadedImage
         {
-            get
-            {
-                return loadedImage;
-            }
+            get => loadedImage;
             set
             {
                 SetProperty(ref loadedImage, value);
@@ -861,91 +631,39 @@ namespace UI_Project
         WriteableBitmap preview = null;
         public WriteableBitmap Preview
         {
-            get
-            {
-                return preview;
-            }
-            set
-            {
-                SetProperty(ref preview, value);
-            }
+            get => preview;
+            set => SetProperty(ref preview, value);
         } 
 
 
         string windowTitle = "Image Engine";
+
         public string WindowTitle
         {
-            get
-            {
-                return windowTitle;
-            }
-            set
-            {
-                SetProperty(ref windowTitle, value);
-            }
+            get => windowTitle;
+            set => SetProperty(ref windowTitle, value);
         }
 
         string loadDuration = null;
         public string LoadDuration
         {
-            get
-            {
-                return loadDuration;
-            }
-            set
-            {
-                SetProperty(ref loadDuration, value);
-            }
+            get => loadDuration;
+            set => SetProperty(ref loadDuration, value);
         }
 
 
-        public string LoadedPath
-        {
-            get
-            {
-                return LoadedImage?.FilePath;
-            }
-        }
+        public string LoadedPath => LoadedImage?.FilePath;
 
-        public ImageEngineFormat LoadedFormat
-        {
-            get
-            {
-                return LoadedImage?.Format ?? ImageEngineFormat.Unknown;
-            }
-        }
+        public ImageEngineFormat LoadedFormat => LoadedImage?.Format ?? ImageEngineFormat.Unknown;
 
-        public bool IsDX10Loaded
-        {
-            get
-            {
-                return LoadedImage?.Format == ImageEngineFormat.DDS_DX10;
-            }
-        }
+        public bool IsDX10Loaded => LoadedImage?.FormatDetails.IsDX10 ?? false;
 
-        public DDS_Header.DXGI_FORMAT LoadedDX10Format
-        {
-            get
-            {
-                return IsDX10Loaded ? ((DDS_Header)LoadedImage.Header).DX10_DXGI_AdditionalHeader.dxgiFormat : DDS_Header.DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
-            }
-        }
 
-        public int Width
-        {
-            get
-            {
-                return LoadedImage?.Width ?? -1;
-            }
-        }
+        public DXGI_FORMAT LoadedDX10Format => LoadedImage?.FormatDetails.DX10Format ?? DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
 
-        public int Height
-        {
-            get
-            {
-                return LoadedImage?.Height ?? -1;
-            }
-        }
+        public int Width => LoadedImage?.Width ?? -1;
+
+        public int Height => LoadedImage?.Height ?? -1;
 
         public int UncompressedSize
         {
@@ -954,41 +672,20 @@ namespace UI_Project
                 if (!IsImageLoaded)
                     return -1;
 
-                return ImageFormats.GetUncompressedSize(LoadedImage.Width, LoadedImage.Height, LoadedImage.NumberOfChannels, LoadedImage.NumMipMaps > 1);
+                return LoadedImage.FormatDetails.GetUncompressedSize(LoadedImage.Width, LoadedImage.Height, LoadedImage.NumMipMaps > 1);
             }
         }
 
-        public int LoadedCompressedSize
-        {
-            get
-            {
-                return LoadedImage?.CompressedSize ?? -1;
-            }
-        }
+        public int LoadedCompressedSize => LoadedImage?.CompressedSize ?? -1;
 
-        public int MipCount
-        {
-            get
-            {
-                return LoadedImage?.NumMipMaps ?? -1;
-            }
-        }
+        public int MipCount => LoadedImage?.NumMipMaps ?? -1;
 
-        public string HeaderDetails
-        {
-            get
-            {
-                return LoadedImage?.Header?.ToString();
-            }
-        }
+        public string HeaderDetails => LoadedImage?.Header?.ToString();
 
         AlphaDisplaySettings alphaDisplaySetting = 0;
         public AlphaDisplaySettings AlphaDisplaySetting
         {
-            get
-            {
-                return alphaDisplaySetting;
-            }
+            get => alphaDisplaySetting;
             set
             {
                 SetProperty(ref alphaDisplaySetting, value);
@@ -1008,27 +705,15 @@ namespace UI_Project
         bool saveAttempted = false;
         public bool SaveAttempted
         {
-            get
-            {
-                return saveAttempted;
-            }
-            set
-            {
-                SetProperty(ref saveAttempted, value);
-            }
+            get => saveAttempted;
+            set => SetProperty(ref saveAttempted, value);
         }
 
         string saveError = null;
         public string SaveError
         {
-            get
-            {
-                return saveError;
-            }
-            set
-            {
-                SetProperty(ref saveError, value);
-            }
+            get => saveError;
+            set => SetProperty(ref saveError, value);
         }
 
 
@@ -1036,23 +721,11 @@ namespace UI_Project
         WriteableBitmap savePreview = null;
         public WriteableBitmap SavePreview
         {
-            get
-            {
-                return savePreview;
-            }
-            set
-            {
-                SetProperty(ref savePreview, value);
-            }
+            get => savePreview;
+            set => SetProperty(ref savePreview, value);
         }
 
-        public bool IsSaveSmaller
-        {
-            get
-            {
-                return SaveCompressedSize < UncompressedSize;
-            }
-        }
+        public bool IsSaveSmaller => SaveCompressedSize < UncompressedSize;
 
         public double SaveCompressionRatio
         {
@@ -1076,8 +749,9 @@ namespace UI_Project
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
                     var header = LoadedImage.Header as CSharpImageLibrary.Headers.DDS_Header;
 
-                    return ImageFormats.GetCompressedSize(SaveMipType == MipHandling.KeepTopOnly || (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 1 : estimatedMips, 
-                        SaveFormatDetails, Width, Height);
+                    return SaveFormatDetails.GetCompressedSize(Width, Height,
+                        SaveMipType == MipHandling.KeepTopOnly ||
+                        (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 1 : estimatedMips);
                 }
 
                 return saveCompressedSize;
@@ -1110,10 +784,7 @@ namespace UI_Project
         string savePath = null;
         public string SavePath
         {
-            get
-            {
-                return savePath ?? DefaultSavePath;
-            }
+            get => savePath ?? DefaultSavePath;
             set
             {
                 SetProperty(ref savePath, value);
@@ -1123,10 +794,7 @@ namespace UI_Project
 
         public string DX10ComboSelection
         {
-            get
-            {
-                return DX10Format.ToString().Contains("BC6") ? "BC6" : "BC7";
-            }
+            get => DX10Format.ToString().Contains("BC6") ? "BC6" : "BC7";
             set
             {
                 if (value == null)
@@ -1141,10 +809,7 @@ namespace UI_Project
         DXGI_FORMAT _DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
         public DXGI_FORMAT DX10Format
         {
-            get
-            {
-                return _DX10Format;
-            }
+            get => _DX10Format;
             set
             {
                 bool requiresUpdate = UpdateSaveFormat(SaveFormat, value);
@@ -1159,15 +824,9 @@ namespace UI_Project
         ImageEngineFormat saveFormat = ImageEngineFormat.Unknown;
         public ImageEngineFormat SaveFormat
         {
-            get
-            {
-                return saveFormat;
-            }
+            get => saveFormat;
             set
             {
-                if (ImageFormats.SaveUnsupported.Contains(value))
-                    return;
-
                 bool requiresUpdate = UpdateSaveFormat(value, DX10Format);
                 SetProperty(ref saveFormat, value);
 
@@ -1178,10 +837,10 @@ namespace UI_Project
 
         private bool UpdateSaveFormat(ImageEngineFormat value, DXGI_FORMAT dx10Format)
         {
-            bool changed = value != saveFormat || (value == ImageEngineFormat.DDS_DX10 ? dx10Format != DX10Format : false);
+            bool changed = value != saveFormat || dx10Format != DX10Format);
 
             // Do nothing.   DX10 takes WAAAY too long to save, so no previews.
-            if (value == ImageEngineFormat.DDS_DX10)
+            if (dx10Format != DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
             {
                 // Clear display so it's clear something else needs to be done
                 savePreviewIMG.Dispose();
@@ -1217,10 +876,7 @@ namespace UI_Project
         MipHandling saveMipType = MipHandling.Default;
         public MipHandling SaveMipType
         {
-            get
-            {
-                return saveMipType;
-            }
+            get => saveMipType;
             set
             {
                 SetProperty(ref saveMipType, value);
@@ -1233,10 +889,7 @@ namespace UI_Project
         bool removeGeneralAlpha = false;
         public bool RemoveGeneralAlpha
         {
-            get
-            {
-                return removeGeneralAlpha;
-            }
+            get => removeGeneralAlpha;
             set
             {
                 SetProperty(ref removeGeneralAlpha, value);
@@ -1250,23 +903,14 @@ namespace UI_Project
             }
         }
 
-        public bool IsSaveFormatMippable
-        {
-            get
-            {
-                return SaveFormatDetails?.IsMippable ?? false;
-            }
-        }
+        public bool IsSaveFormatMippable => SaveFormatDetails?.IsMippable ?? false;
 
 
         DispatcherTimer SliderTimer = new DispatcherTimer();
 
         public double DXT1AlphaThreshold
         {
-            get
-            {
-                return CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold;
-            }
+            get => CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold;
             set
             {
                 SetProperty(ref CSharpImageLibrary.DDS.DDSGeneral.DXT1AlphaThreshold, value);
@@ -1280,10 +924,7 @@ namespace UI_Project
         bool dxt1AlphaRemove = true;
         public bool DXT1AlphaRemove
         {
-            get
-            {
-                return dxt1AlphaRemove;
-            }
+            get => dxt1AlphaRemove;
             set
             {
                 SetProperty(ref dxt1AlphaRemove, value);
@@ -1295,10 +936,7 @@ namespace UI_Project
 
         public int JPG_CompressionSetting
         {
-            get
-            {
-                return WIC_Codecs.JPGCompressionSetting;
-            }
+            get => WIC_Codecs.JPGCompressionSetting;
             set
             {
                 SetProperty(ref CSharpImageLibrary.WIC_Codecs.JPGCompressionSetting, value);
@@ -1312,10 +950,7 @@ namespace UI_Project
         bool savePanelOpen = false;
         public bool SavePanelOpen
         {
-            get
-            {
-                return savePanelOpen;
-            }
+            get => savePanelOpen;
             set
             {
                 SetProperty(ref savePanelOpen, value);

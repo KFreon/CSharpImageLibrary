@@ -166,7 +166,7 @@ namespace CSharpImageLibrary
             int decodeWidth = header.Width > header.Height ? maxDimension : 0;
             int decodeHeight = header.Width < header.Height ? maxDimension : 0;
 
-            switch (header.Format)
+            switch (header.FormatDetails.SurfaceFormat)
             {
                 case ImageEngineFormat.DDS_DXT1:
                 case ImageEngineFormat.DDS_DXT2:
@@ -177,7 +177,7 @@ namespace CSharpImageLibrary
                     if (MipMaps == null)
                     {
                         // Windows codecs unavailable/failed. Load with mine.
-                        MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
+                        MipMaps = DDSLoading.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
                     }
                     break;
                 case ImageEngineFormat.DDS_G8_L8:
@@ -192,9 +192,7 @@ namespace CSharpImageLibrary
                 case ImageEngineFormat.DDS_R5G6B5:
                 case ImageEngineFormat.DDS_ATI1:
                 case ImageEngineFormat.DDS_ATI2_3Dc:
-                case ImageEngineFormat.DDS_CUSTOM:
-                case ImageEngineFormat.DDS_DX10:
-                    MipMaps = DDSGeneral.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
+                    MipMaps = DDSLoading.LoadDDS((MemoryStream)imageStream, (DDS_Header)header, maxDimension, formatDetails);
                     break;
                 case ImageEngineFormat.GIF:
                 case ImageEngineFormat.JPG:
@@ -208,7 +206,7 @@ namespace CSharpImageLibrary
                         MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, formatDetails) }; 
                     break;
                 default:
-                    throw new FormatException($"Format unknown: {header.Format}.");
+                    throw new FormatException($"Format unknown: {header.FormatDetails.SurfaceFormat}.");
             }
 
             return MipMaps;
@@ -219,31 +217,31 @@ namespace CSharpImageLibrary
             stream.Seek(0, SeekOrigin.Begin);
 
             // Determine type of image
-            ImageFormats.SupportedExtensions ext = ImageFormats.DetermineImageType(stream);
+            SupportedExtensions ext = SupportedFileExtensions.DetermineFileExtension(stream);
 
             // Parse header
             AbstractHeader header = null;
             switch (ext)
             {
-                case ImageFormats.SupportedExtensions.BMP:
+                case SupportedExtensions.BMP:
                     header = new BMP_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.DDS:
+                case SupportedExtensions.DDS:
                     header = new DDS_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.JPG:
+                case SupportedExtensions.JPG:
                     header = new JPG_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.PNG:
+                case SupportedExtensions.PNG:
                     header = new PNG_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.TGA:
+                case SupportedExtensions.TGA:
                     header = new TGA_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.GIF:
+                case SupportedExtensions.GIF:
                     header = new GIF_Header(stream);
                     break;
-                case ImageFormats.SupportedExtensions.TIF:
+                case SupportedExtensions.TIF:
                     header = new TIFF_Header(stream);
                     break;
                 default:
@@ -308,7 +306,7 @@ namespace CSharpImageLibrary
             int width = newMips[0].Width;
             int height = newMips[0].Height;
 
-            if ((destFormatDetails.IsMippable && mipChoice == MipHandling.GenerateNew) || (destFormatDetails.IsMippable && newMips.Count == 1 && mipChoice == MipHandling.Default))
+            if (destFormatDetails.IsDDS && (mipChoice == MipHandling.GenerateNew || (newMips.Count == 1 && mipChoice == MipHandling.Default)))
                 DDSGeneral.BuildMipMaps(newMips);
 
             // KFreon: Resize if asked
@@ -318,10 +316,10 @@ namespace CSharpImageLibrary
                     throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
 
                 // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
-                var validMipmap = newMips.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension));  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
-                if (validMipmap?.Count() != 0)
+                var validMipmap = newMips.Where(img => (img.Width == maxDimension && img.Height <= maxDimension) || (img.Height == maxDimension && img.Width <=maxDimension)).ToList();  // Check if a mip dimension is maxDimension and that the other dimension is equal or smaller
+                if (validMipmap?.Count != 0)
                 {
-                    int index = newMips.IndexOf(validMipmap.First());
+                    int index = newMips.IndexOf(validMipmap[0]);
                     newMips.RemoveRange(0, index);
                 }
                 else
@@ -340,13 +338,13 @@ namespace CSharpImageLibrary
             if (fixXScale != 0 || fixYScale != 0 || mipChoice == MipHandling.KeepTopOnly)
                 DestroyMipMaps(newMips, mipToSave);
 
-            if ((fixXScale != 0 || fixXScale != 0) && destFormatDetails.IsMippable && mipChoice != MipHandling.KeepTopOnly)
+            if ((fixXScale != 0 || fixXScale != 0) && destFormatDetails.IsDDS && mipChoice != MipHandling.KeepTopOnly)
                 DDSGeneral.BuildMipMaps(newMips);
 
 
             byte[] destination = null;
             if (destFormatDetails.IsDDS)
-                destination = DDSGeneral.Save(newMips, destFormatDetails, alphaSetting);
+                destination = DDSSaving.Save(newMips, destFormatDetails, alphaSetting);
             else
             {
                 // KFreon: Try saving with built in codecs
@@ -358,7 +356,7 @@ namespace CSharpImageLibrary
                 for (int i = 0, j = 0; i < newPixels.Length; i++, j += mip.LoadedFormatDetails.ComponentSize)
                     newPixels[i] = mip.LoadedFormatDetails.ReadByte(mip.Pixels, j);
 
-                destination = WIC_Codecs.SaveWithCodecs(newPixels, destFormatDetails.Format, mip.Width, mip.Height, alphaSetting);
+                destination = WIC_Codecs.SaveWithCodecs(newPixels, destFormatDetails.SurfaceFormat, mip.Width, mip.Height, alphaSetting);
             }
 
             return destination;
@@ -537,7 +535,7 @@ namespace CSharpImageLibrary
             bool supportsParallel = false;
             if (!useSourceFormat)
             {
-                supportsParallel = !useSourceFormat && !destFormatDetails.IsMippable;
+                supportsParallel = !useSourceFormat && !destFormatDetails.IsDDS;
                 supportsParallel |= !supportsParallel && !destFormatDetails.IsBlockCompressed;
             }
 

@@ -20,16 +20,6 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         internal TargaHeader header { get; } = new TargaHeader();
 
-        /// <summary>
-        /// Image format.
-        /// </summary>
-        public override ImageEngineFormat Format
-        {
-            get
-            {
-                return ImageEngineFormat.TGA;
-            }
-        }
         #endregion Properties
 
         /// <summary>

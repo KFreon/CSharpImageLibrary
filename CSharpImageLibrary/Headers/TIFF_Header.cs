@@ -16,17 +16,6 @@ namespace CSharpImageLibrary.Headers
     {
         public override HeaderType Type => HeaderType.TIFF;
 
-        /// <summary>
-        /// Format of image.
-        /// </summary>
-        public override ImageEngineFormat Format
-        {
-            get
-            {
-                return ImageEngineFormat.TIF;
-            }
-        }
-
         // Header size isn't really knowable. Changes depending on what tags/data is included. 
         // Also since mipmaps are present, each has a header throughout the file.
 

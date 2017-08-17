@@ -67,13 +67,13 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Format of image.
         /// </summary>
-        public ImageEngineFormat Format { get { return FormatDetails.Format; } }
+        public ImageEngineFormat Format => FormatDetails.SurfaceFormat; 
 
 
         /// <summary>
         /// Contains details of the image format.
         /// </summary>
-        public ImageFormats.ImageEngineFormatDetails FormatDetails { get; private set; }
+        public ImageEngineFormatDetails FormatDetails { get; private set; }
 
         
         /// <summary>
@@ -95,13 +95,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Uncompressed size of main image (no mipmaps)
         /// </summary>
-        public int UncompressedSize
-        {
-            get
-            {
-                return ImageFormats.GetUncompressedSize(Width, Height, NumberOfChannels, false);
-            }
-        }
+        public int UncompressedSize => FormatDetails.GetUncompressedSize(Width, Height, false);
 
 
         /// <summary>
@@ -139,7 +133,7 @@ namespace CSharpImageLibrary
         /// <summary>
         /// File Extension of selected format.
         /// </summary>
-        public string FileExtension => FormatDetails.Extension;
+        public SupportedExtensions FileExtension => FormatDetails.Extension;
         #endregion Properties
 
         /// <summary>
@@ -215,7 +209,7 @@ namespace CSharpImageLibrary
         /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
         /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
         /// <param name="mipToSave">Index of mipmap to save as single image.</param>
-        public async Task Save(string destination, ImageFormats.ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
+        public async Task Save(string destination, ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
         {
             var data = Save(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha);
 
@@ -243,7 +237,7 @@ namespace CSharpImageLibrary
         /// <param name="desiredMaxDimension">Maximum dimension of saved image. Keeps aspect.</param>
         /// <param name="mipToSave">Specifies a mipmap to save within the whole.</param>
         /// <param name="removeAlpha">True = removes alpha. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
-        public void Save(Stream destination, ImageFormats.ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
+        public void Save(Stream destination, ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
         {
             var data = Save(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha);
             destination.Write(data, 0, data.Length);
@@ -259,26 +253,37 @@ namespace CSharpImageLibrary
         /// <param name="mipToSave">Index of mipmap to save directly.</param>
         /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1, otherwise completely removed.</param>
         /// <returns></returns>
-        public byte[] Save(ImageFormats.ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
+        public byte[] Save(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
         {
-            if (destFormatDetails.Format == ImageEngineFormat.Unknown)
-                throw new InvalidOperationException("Save format cannot be 'Unknown'");
+            if (destFormatDetails.ValidSaveFormat)
+                throw new InvalidOperationException($"Save format is not supported: {destFormatDetails.SurfaceFormat}");
 
             AlphaSettings alphaSetting = AlphaSettings.KeepAlpha;
             if (removeAlpha)
                 alphaSetting = AlphaSettings.RemoveAlphaChannel;
-            else if (destFormatDetails.Format == ImageEngineFormat.DDS_DXT2 || destFormatDetails.Format == ImageEngineFormat.DDS_DXT4)
+            else if (destFormatDetails.IsPremultipliedFormat)
                 alphaSetting = AlphaSettings.Premultiply;
 
+            byte[] imageData = null;
+
             // If same format and stuff, can just return original data, or chunks of it.
-            if (destFormatDetails.Format == Format)
-                return AttemptSaveUsingOriginalData(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, alphaSetting);
-            else
-                return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+            if (destFormatDetails.SurfaceFormat == Format)
+                imageData = AttemptSaveUsingOriginalData(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, alphaSetting);
+            
+            if (imageData == null)
+                imageData = ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+
+            return imageData;   
         }
 
-        byte[] AttemptSaveUsingOriginalData(ImageFormats.ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension, int mipToSave, AlphaSettings alphaSetting)
+        byte[] AttemptSaveUsingOriginalData(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension, int mipToSave, AlphaSettings alphaSetting)
         {
+
+            // TODO This shouldb't be this complicated.
+            // Should tidy this up too. Separate out some functions and reuse?
+
+
+
             int start = 0;
             int destStart = 0;
             int length = OriginalData.Length;
@@ -301,8 +306,9 @@ namespace CSharpImageLibrary
                     newWidth = MipMaps[mipToSave].Width;
                     newHeight = MipMaps[mipToSave].Height;
 
-                    start = ImageFormats.GetCompressedSize(mipToSave, destFormatDetails, Width, Height);
-                    length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                    
+                    start = destFormatDetails.GetCompressedSize(Width, Height, mipToSave);
+                    length = destFormatDetails.GetCompressedSize(newWidth, newHeight, 1);
                 }
                 else if (desiredMaxDimension != 0 && desiredMaxDimension < Width && desiredMaxDimension < Height)
                 {
@@ -316,8 +322,8 @@ namespace CSharpImageLibrary
                     newWidth = MipMaps[index].Width;
                     newHeight = MipMaps[index].Height;
 
-                    start = ImageFormats.GetCompressedSize(index, destFormatDetails, Width, Height);
-                    length = ImageFormats.GetCompressedSize(mipCount, destFormatDetails, newWidth, newHeight);
+                    start = destFormatDetails.GetCompressedSize(Width, Height, index);
+                    length = destFormatDetails.GetCompressedSize(newWidth, newHeight, mipCount);
                 }
                 else
                 {
@@ -325,78 +331,47 @@ namespace CSharpImageLibrary
                     {
                         // Can't edit alpha directly in premultiplied formats. Not easily anyway.
                         if (destFormatDetails.IsPremultipliedFormat)
-                            return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+                            return null;  // Don't resave here.
 
 
                         // DDS Formats only
-                        switch (destFormatDetails.Format)
+                        if (destFormatDetails.SupportsAlphaEditing)
                         {
-                            // Excluded cos they have no true alpha
-                            case ImageEngineFormat.DDS_A8:
-                            case ImageEngineFormat.DDS_A8L8:
-                            case ImageEngineFormat.DDS_ATI1:
-                            case ImageEngineFormat.DDS_ATI2_3Dc:
-                            case ImageEngineFormat.DDS_V8U8:
-                            case ImageEngineFormat.DDS_G16_R16:
-                            case ImageEngineFormat.DDS_G8_L8:
-                            case ImageEngineFormat.DDS_R5G6B5:
-                            case ImageEngineFormat.DDS_RGB_8:
-                            case ImageEngineFormat.DDS_DXT1:
-                                break;
+                            tempOriginalData = new byte[OriginalData.Length];
+                            Array.Copy(OriginalData, tempOriginalData, OriginalData.Length);
 
-                            // Exluded cos they're alpha isn't easily edited
-                            case ImageEngineFormat.DDS_DXT2:
-                            case ImageEngineFormat.DDS_DXT4:
-                                break;
+                            // Edit alpha values
+                            int alphaStart = 128;
+                            int alphaJump = 0;
+                            byte[] alphaBlock = null;
+                            if (destFormatDetails.IsBlockCompressed)
+                            {
+                                alphaJump = 16;
+                                alphaBlock = new byte[8];
+                                for (int i = 0; i < 8; i++)
+                                    alphaBlock[i] = 255;
+                            }
+                            else
+                            {
+                                alphaJump = destFormatDetails.ComponentSize * 4;
+                                alphaBlock = new byte[destFormatDetails.ComponentSize];
 
-                            // Excluded cos they're currently unsupported
-                            case ImageEngineFormat.DDS_CUSTOM:
-                            case ImageEngineFormat.DDS_DX10:
-                            case ImageEngineFormat.DDS_ARGB_4:
-                                break;
-
-                            case ImageEngineFormat.DDS_ABGR_8:
-                            case ImageEngineFormat.DDS_ARGB_32F:
-                            case ImageEngineFormat.DDS_ARGB_8:
-                            case ImageEngineFormat.DDS_DXT3:
-                            case ImageEngineFormat.DDS_DXT5:
-                                tempOriginalData = new byte[OriginalData.Length];
-                                Array.Copy(OriginalData, tempOriginalData, OriginalData.Length);
-
-                                // Edit alpha values
-                                int alphaStart = 128;
-                                int alphaJump = 0;
-                                byte[] alphaBlock = null;
-                                if (destFormatDetails.IsBlockCompressed)
+                                switch (destFormatDetails.ComponentSize)
                                 {
-                                    alphaJump = 16;
-                                    alphaBlock = new byte[8];
-                                    for (int i = 0; i < 8; i++)
-                                        alphaBlock[i] = 255;
+                                    case 1:
+                                        alphaBlock[0] = 255;
+                                        break;
+                                    case 2:
+                                        alphaBlock = BitConverter.GetBytes(ushort.MaxValue);
+                                        break;
+                                    case 4:
+                                        alphaBlock = BitConverter.GetBytes(1f);
+                                        break;
                                 }
-                                else
-                                {
-                                    alphaJump = destFormatDetails.ComponentSize * 4;
-                                    alphaBlock = new byte[destFormatDetails.ComponentSize];
+                            }
 
-                                    switch (destFormatDetails.ComponentSize)
-                                    {
-                                        case 1:
-                                            alphaBlock[0] = 255;
-                                            break;
-                                        case 2:
-                                            alphaBlock = BitConverter.GetBytes(ushort.MaxValue);
-                                            break;
-                                        case 4:
-                                            alphaBlock = BitConverter.GetBytes(1f);
-                                            break;
-                                    }
-                                }
-
-                                for (int i = alphaStart; i < OriginalData.Length; i += alphaJump)
-                                    Array.Copy(alphaBlock, 0, tempOriginalData, i, alphaBlock.Length);
-
-                                break;
+                            for (int i = alphaStart; i < OriginalData.Length; i += alphaJump)
+                                Array.Copy(alphaBlock, 0, tempOriginalData, i, alphaBlock.Length);
                         }
                     }
 
@@ -418,18 +393,18 @@ namespace CSharpImageLibrary
 
                             // Wrong sizing, so can't use original data anyway.
                             if (fixXScale != 0 || fixYScale != 0)
-                                return ImageEngine.Save(MipMaps, destFormatDetails, GenerateMips, alphaSetting, desiredMaxDimension, mipToSave);
+                                return null;
 
 
                             mipCount = DDSGeneral.BuildMipMaps(MipMaps);
 
-                            // Compress mipmaps excl top
-                            byte[] formattedMips = DDSGeneral.Save(MipMaps.GetRange(1, MipMaps.Count - 1), destFormatDetails, alphaSetting);
+                            // Compress mipmaps excl top - LEAVE THIS SAVE here, as it's just saving lower mips. Keeps the top one.
+                            byte[] formattedMips = DDSSaving.Save(MipMaps.GetRange(1, MipMaps.Count - 1), destFormatDetails, alphaSetting);
                             if (formattedMips == null)
                                 return null;
 
                             // Get top mip size and create destination array 
-                            length = ImageFormats.GetCompressedSize(0, destFormatDetails, newWidth, newHeight); // Should be the length of the top mipmap.
+                            length = destFormatDetails.GetCompressedSize(newWidth, newHeight, 0);
                             data = new byte[formattedMips.Length + length];
 
                             // Copy smaller mips to destination
@@ -437,13 +412,13 @@ namespace CSharpImageLibrary
                             break;
                         case MipHandling.KeepTopOnly:
                             mipCount = 1;
-                            length = ImageFormats.GetCompressedSize(1, destFormatDetails, newWidth, newHeight);
+                            length = destFormatDetails.GetCompressedSize(newWidth, newHeight, 1);
                             break;
                     }
                 }
 
                 // Header
-                tempHeader = new DDS_Header(mipCount, newHeight, newWidth, destFormatDetails.Format, destFormatDetails.DX10Format);
+                tempHeader = new DDS_Header(mipCount, newHeight, newWidth, destFormatDetails);
             }
             
             // Use existing array, otherwise create one.

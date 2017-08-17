@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UsefulThings;
-using static CSharpImageLibrary.Headers.RawDDSHeaderStuff;
+using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 using static CSharpImageLibrary.ImageFormats;
 
 namespace CSharpImageLibrary.Headers
@@ -15,7 +15,7 @@ namespace CSharpImageLibrary.Headers
     /// <summary>
     /// Contains header information about a DDS File.
     /// </summary>
-    public class DDS_Header : AbstractHeader
+    public partial class DDS_Header : AbstractHeader
     {
         public override HeaderType Type => HeaderType.DDS;
 
@@ -165,9 +165,12 @@ namespace CSharpImageLibrary.Headers
         /// <param name="Mips">Number of mipmaps.</param>
         /// <param name="Height">Height of top mipmap.</param>
         /// <param name="Width">Width of top mipmap.</param>
-        /// <param name="surfaceformat">Format header represents.</param>
-        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormat surfaceformat, DXGI_FORMAT dx10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+        /// <param name="formatDetails">Format details that header represents.</param>
+        public DDS_Header(int Mips, int Height, int Width, ImageEngineFormatDetails formatDetails)
         {
+            ImageEngineFormat surfaceformat = formatDetails.SurfaceFormat;
+            var dx10Format = formatDetails.DX10Format;
+
             dwSize = 124;
             dwFlags = DDSdwFlags.DDSD_CAPS | DDSdwFlags.DDSD_HEIGHT | DDSdwFlags.DDSD_WIDTH | DDSdwFlags.DDSD_PIXELFORMAT | (Mips != 1 ? DDSdwFlags.DDSD_MIPMAPCOUNT : 0);
             this.Width = Width;
@@ -176,11 +179,8 @@ namespace CSharpImageLibrary.Headers
             dwMipMapCount = Mips == 1 ? 1 : Mips;
             ddspf = new DDS_PIXELFORMAT(surfaceformat);
 
-            if (surfaceformat == ImageEngineFormat.DDS_DX10 || surfaceformat == ImageEngineFormat.DDS_ARGB_32F)
+            if (formatDetails.IsDX10)
             {
-                if (surfaceformat == ImageEngineFormat.DDS_ARGB_32F)
-                    dx10Format = DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
-
                 DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional
                 {
                     dxgiFormat = dx10Format,

@@ -147,17 +147,6 @@ namespace CSharpImageLibrary.Headers
         #endregion Properties
 
         /// <summary>
-        /// Image format.
-        /// </summary>
-        public override ImageEngineFormat Format
-        {
-            get
-            {
-                return ImageEngineFormat.GIF;
-            }
-        }
-
-        /// <summary>
         /// Reads header from GIF image.
         /// </summary>
         /// <param name="stream">Fully formatted GIF image.</param>

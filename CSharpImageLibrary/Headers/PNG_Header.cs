@@ -118,16 +118,6 @@ namespace CSharpImageLibrary.Headers
         public InterlaceMethdods InterlaceMethod { get; private set; }
         #endregion Properties
 
-        /// <summary>
-        /// Image format.
-        /// </summary>
-        public override ImageEngineFormat Format
-        {
-            get
-            {
-                return ImageEngineFormat.PNG;
-            }
-        }
 
         internal static bool CheckIdentifier(byte[] IDBlock)
         {

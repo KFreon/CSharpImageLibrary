@@ -69,16 +69,6 @@ namespace CSharpImageLibrary.Headers
         public int YThumbnailPixelCount { get; private set; }
         #endregion Properties
 
-        /// <summary>
-        /// Image format.
-        /// </summary>
-        public override ImageEngineFormat Format
-        {
-            get
-            {
-                return ImageEngineFormat.JPG;
-            }
-        }
 
         internal static bool CheckIdentifier(byte[] IDBlock)
         {

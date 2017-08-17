@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using static CSharpImageLibrary.DDS.DDSGeneral;
 using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
 using CSharpImageLibrary.Headers;
+using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 
 namespace CSharpImageLibrary.DDS
 {
@@ -88,12 +89,12 @@ namespace CSharpImageLibrary.DDS
         }
         #endregion Compressed
 
-        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_Header.DDS_PIXELFORMAT dest_ddspf, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, ImageFormats.ImageEngineFormatDetails destFormatDetails)
+        internal static void WriteUncompressed(byte[] source, byte[] destination, int destStart, DDS_PIXELFORMAT dest_ddspf, ImageFormats.ImageEngineFormatDetails sourceFormatDetails, ImageFormats.ImageEngineFormatDetails destFormatDetails)
         {
             int byteCount = dest_ddspf.dwRGBBitCount / 8;
-            bool requiresSignedAdjust = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED;
-            bool oneChannel = (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
-            bool twoChannel = oneChannel && (dest_ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS;
+            bool requiresSignedAdjust = (dest_ddspf.dwFlags & DDS_PFdwFlags.DDPF_SIGNED) == DDS_PFdwFlags.DDPF_SIGNED;
+            bool oneChannel = (dest_ddspf.dwFlags & DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_PFdwFlags.DDPF_LUMINANCE;
+            bool twoChannel = oneChannel && (dest_ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS;
 
             uint AMask = dest_ddspf.dwABitMask;
             uint RMask = dest_ddspf.dwRBitMask;
@@ -106,7 +107,7 @@ namespace CSharpImageLibrary.DDS
             // NOTE: Ordering array is in ARGB order, and the stored indices change depending on detected channel order.
             // A negative index indicates channel doesn't exist in data and sets channel to 0xFF.
 
-            if (destFormatDetails.Format == ImageEngineFormat.DDS_ARGB_32F)
+            if (destFormatDetails.SurfaceFormat == ImageEngineFormat.DDS_ARGB_32F)
             {
                 AMask = 4;
                 BMask = 3;

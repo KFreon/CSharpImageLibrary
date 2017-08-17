@@ -3,19 +3,19 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using CSharpImageLibrary.DDS;
 using CSharpImageLibrary.Headers;
-using static CSharpImageLibrary.Headers.RawDDSHeaderStuff;
+using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 
 namespace CSharpImageLibrary
 {
-    public partial class ImageFormats
+    public class ImageFormats
     {
         /// <summary>
         /// Length of header in bytes when Additional DX10 Header is present.
         /// </summary>
         public const int DDS_DX10_HEADER_LENGTH = 148;
-
 
         /// <summary>
         /// Length of header when pre-DX10 format.
@@ -42,50 +42,64 @@ namespace CSharpImageLibrary
                 public int ComponentSize;
                 public int MaxNumChannels;
                 public AbstractHeader.HeaderType Type;
+                public bool SupportsAlpha;
             }
 
             static Dictionary<ImageEngineFormat, FormatInfo> FormatInfos = new Dictionary<ImageEngineFormat, FormatInfo>
             {
-                { ImageEngineFormat.Unknown, new FormatInfo { Name = ImageEngineFormat.Unknown, Type = AbstractHeader.HeaderType.UNKNOWN, BlockSize = -1, Extensions = { SupportedExtensions.UNKNOWN }                      , BitCount = -1, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = -1, MaxNumChannels = -1 } },
-                { ImageEngineFormat.PNG    , new FormatInfo { Name = ImageEngineFormat.PNG    , Type = AbstractHeader.HeaderType.PNG    , BlockSize = 1 , Extensions = { SupportedExtensions.PNG }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4  } },
-                { ImageEngineFormat.JPG    , new FormatInfo { Name = ImageEngineFormat.JPG    , Type = AbstractHeader.HeaderType.JPG    , BlockSize = 1 , Extensions = { SupportedExtensions.JPG, SupportedExtensions.JPEG }, BitCount = 24, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 3  } },
-                { ImageEngineFormat.BMP    , new FormatInfo { Name = ImageEngineFormat.BMP    , Type = AbstractHeader.HeaderType.BMP    , BlockSize = 1 , Extensions = { SupportedExtensions.BMP }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4  } },
-                { ImageEngineFormat.TGA    , new FormatInfo { Name = ImageEngineFormat.TGA    , Type = AbstractHeader.HeaderType.TGA    , BlockSize = 1 , Extensions = { SupportedExtensions.TGA }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4  } },
-                { ImageEngineFormat.GIF    , new FormatInfo { Name = ImageEngineFormat.GIF    , Type = AbstractHeader.HeaderType.GIF    , BlockSize = 1 , Extensions = { SupportedExtensions.GIF }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4  } },
-                { ImageEngineFormat.TIF    , new FormatInfo { Name = ImageEngineFormat.TIF    , Type = AbstractHeader.HeaderType.TIFF   , BlockSize = 1 , Extensions = { SupportedExtensions.TIF }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4  } },
-               
-                { ImageEngineFormat.DDS_DXT1    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT1    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_DXT2    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT2    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = true  , ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_DXT3    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT3    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_DXT4    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT4    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = true  , ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_DXT5    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT5    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_ATI1    , new FormatInfo { Name = ImageEngineFormat.DDS_ATI1    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 8, Extensions = { SupportedExtensions.DDS }, BitCount = 8 , IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 1  } },
-                { ImageEngineFormat.DDS_ATI2_3Dc, new FormatInfo { Name = ImageEngineFormat.DDS_ATI2_3Dc, Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 16, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 2  } },
-                { ImageEngineFormat.DDS_BC6     , new FormatInfo { Name = ImageEngineFormat.DDS_BC6     , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_BC7     , new FormatInfo { Name = ImageEngineFormat.DDS_BC7     , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4  } },
-                                                                      
-                { ImageEngineFormat.DDS_RGB_8   , new FormatInfo { Name = ImageEngineFormat.DDS_RGB_8   , Type = AbstractHeader.HeaderType.DDS, BlockSize = 3 , Extensions = { SupportedExtensions.DDS }, BitCount = 24 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 3  } },
-                { ImageEngineFormat.DDS_ARGB_8  , new FormatInfo { Name = ImageEngineFormat.DDS_ARGB_8  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 4 , Extensions = { SupportedExtensions.DDS }, BitCount = 32 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_ARGB_4  , new FormatInfo { Name = ImageEngineFormat.DDS_ARGB_4  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_ABGR_8  , new FormatInfo { Name = ImageEngineFormat.DDS_ABGR_8  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 4 , Extensions = { SupportedExtensions.DDS }, BitCount = 32 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4  } },
-                { ImageEngineFormat.DDS_V8U8    , new FormatInfo { Name = ImageEngineFormat.DDS_V8U8    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 2  } },
-                { ImageEngineFormat.DDS_G8_L8   , new FormatInfo { Name = ImageEngineFormat.DDS_G8_L8   , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1 , Extensions = { SupportedExtensions.DDS }, BitCount = 8  , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 1  } },
-                { ImageEngineFormat.DDS_A8L8    , new FormatInfo { Name = ImageEngineFormat.DDS_A8L8    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 2  } },
-                { ImageEngineFormat.DDS_R5G6B5  , new FormatInfo { Name = ImageEngineFormat.DDS_R5G6B5  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 3  } },
-                { ImageEngineFormat.DDS_A8      , new FormatInfo { Name = ImageEngineFormat.DDS_A8      , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1 , Extensions = { SupportedExtensions.DDS }, BitCount = 8  , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 1  } },
-                { ImageEngineFormat.DDS_G16_R16 , new FormatInfo { Name = ImageEngineFormat.DDS_G16_R16 , Type = AbstractHeader.HeaderType.DDS, BlockSize = 4 , Extensions = { SupportedExtensions.DDS }, BitCount = 32 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 2  } },
-                { ImageEngineFormat.DDS_ARGB_32F, new FormatInfo { Name = ImageEngineFormat.DDS_ARGB_32F, Type = AbstractHeader.HeaderType.DDS, BlockSize = 16, Extensions = { SupportedExtensions.DDS }, BitCount = 128, IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4  } },
-                
-                { ImageEngineFormat.DX10_Placeholder, new FormatInfo { Name = ImageEngineFormat.DX10_Placeholder, Type = AbstractHeader.HeaderType.DDS, BlockSize = -1, Extensions = { SupportedExtensions.DDS }, BitCount = -1, IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4  } },
+                { ImageEngineFormat.Unknown, new FormatInfo { Name = ImageEngineFormat.Unknown, Type = AbstractHeader.HeaderType.UNKNOWN, BlockSize = -1, Extensions = { SupportedExtensions.UNKNOWN }                      , BitCount = -1, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = -1, MaxNumChannels = -1, SupportsAlpha = false } },
+                { ImageEngineFormat.PNG    , new FormatInfo { Name = ImageEngineFormat.PNG    , Type = AbstractHeader.HeaderType.PNG    , BlockSize = 1 , Extensions = { SupportedExtensions.PNG }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4 , SupportsAlpha = true  } },
+                { ImageEngineFormat.JPG    , new FormatInfo { Name = ImageEngineFormat.JPG    , Type = AbstractHeader.HeaderType.JPG    , BlockSize = 1 , Extensions = { SupportedExtensions.JPG, SupportedExtensions.JPEG }, BitCount = 24, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 3 , SupportsAlpha = false } },
+                { ImageEngineFormat.BMP    , new FormatInfo { Name = ImageEngineFormat.BMP    , Type = AbstractHeader.HeaderType.BMP    , BlockSize = 1 , Extensions = { SupportedExtensions.BMP }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4 , SupportsAlpha = false } },
+                { ImageEngineFormat.TGA    , new FormatInfo { Name = ImageEngineFormat.TGA    , Type = AbstractHeader.HeaderType.TGA    , BlockSize = 1 , Extensions = { SupportedExtensions.TGA }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4 , SupportsAlpha = true  } },
+                { ImageEngineFormat.GIF    , new FormatInfo { Name = ImageEngineFormat.GIF    , Type = AbstractHeader.HeaderType.GIF    , BlockSize = 1 , Extensions = { SupportedExtensions.GIF }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4 , SupportsAlpha = true  } },
+                { ImageEngineFormat.TIF    , new FormatInfo { Name = ImageEngineFormat.TIF    , Type = AbstractHeader.HeaderType.TIFF   , BlockSize = 1 , Extensions = { SupportedExtensions.TIF }                          , BitCount = 32, IsBlockCompressed = false, IsDDS = false, IsPremultiplied = false, ComponentSize = 1 , MaxNumChannels = 4 , SupportsAlpha = true  } },
+
+                { ImageEngineFormat.DDS_DXT1    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT1    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_DXT2    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT2    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = true  , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_DXT3    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT3    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_DXT4    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT4    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = true  , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_DXT5    , new FormatInfo { Name = ImageEngineFormat.DDS_DXT5    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_ATI1    , new FormatInfo { Name = ImageEngineFormat.DDS_ATI1    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 8, Extensions = { SupportedExtensions.DDS }, BitCount = 8 , IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 1, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_ATI2_3Dc, new FormatInfo { Name = ImageEngineFormat.DDS_ATI2_3Dc, Type = AbstractHeader.HeaderType.DDS, BlockSize = 2, Extensions = { SupportedExtensions.DDS }, BitCount = 16, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 2, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_BC6     , new FormatInfo { Name = ImageEngineFormat.DDS_BC6     , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_BC7     , new FormatInfo { Name = ImageEngineFormat.DDS_BC7     , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1, Extensions = { SupportedExtensions.DDS }, BitCount = 32, IsBlockCompressed = true, IsDDS = true, IsPremultiplied = false , ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+
+                { ImageEngineFormat.DDS_RGB_8   , new FormatInfo { Name = ImageEngineFormat.DDS_RGB_8   , Type = AbstractHeader.HeaderType.DDS, BlockSize = 3 , Extensions = { SupportedExtensions.DDS }, BitCount = 24 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 3, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_ARGB_8  , new FormatInfo { Name = ImageEngineFormat.DDS_ARGB_8  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 4 , Extensions = { SupportedExtensions.DDS }, BitCount = 32 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_ARGB_4  , new FormatInfo { Name = ImageEngineFormat.DDS_ARGB_4  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_ABGR_8  , new FormatInfo { Name = ImageEngineFormat.DDS_ABGR_8  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 4 , Extensions = { SupportedExtensions.DDS }, BitCount = 32 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_V8U8    , new FormatInfo { Name = ImageEngineFormat.DDS_V8U8    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 2, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_G8_L8   , new FormatInfo { Name = ImageEngineFormat.DDS_G8_L8   , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1 , Extensions = { SupportedExtensions.DDS }, BitCount = 8  , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 1, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_A8L8    , new FormatInfo { Name = ImageEngineFormat.DDS_A8L8    , Type = AbstractHeader.HeaderType.DDS, BlockSize = 2 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 2, SupportsAlpha = true   } },
+                { ImageEngineFormat.DDS_R5G6B5  , new FormatInfo { Name = ImageEngineFormat.DDS_R5G6B5  , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1 , Extensions = { SupportedExtensions.DDS }, BitCount = 16 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 3, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_A8      , new FormatInfo { Name = ImageEngineFormat.DDS_A8      , Type = AbstractHeader.HeaderType.DDS, BlockSize = 1 , Extensions = { SupportedExtensions.DDS }, BitCount = 8  , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 1, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_G16_R16 , new FormatInfo { Name = ImageEngineFormat.DDS_G16_R16 , Type = AbstractHeader.HeaderType.DDS, BlockSize = 4 , Extensions = { SupportedExtensions.DDS }, BitCount = 32 , IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 2, SupportsAlpha = false  } },
+                { ImageEngineFormat.DDS_ARGB_32F, new FormatInfo { Name = ImageEngineFormat.DDS_ARGB_32F, Type = AbstractHeader.HeaderType.DDS, BlockSize = 16, Extensions = { SupportedExtensions.DDS }, BitCount = 128, IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true  } },
+
+                { ImageEngineFormat.DX10_Placeholder, new FormatInfo { Name = ImageEngineFormat.DX10_Placeholder, Type = AbstractHeader.HeaderType.DDS, BlockSize = -1, Extensions = { SupportedExtensions.DDS }, BitCount = -1, IsBlockCompressed = false, IsDDS = true, IsPremultiplied = false, ComponentSize = 1, MaxNumChannels = 4, SupportsAlpha = true  } },
                 // TODO: Handle any format that gives masks. Use the bit functions that are in BC6 and 7.
             };
 
             FormatInfo Format;
 
             /// <summary>
+            /// Human readable format of image.
+            /// </summary>
+            public ImageEngineFormat SurfaceFormat => Format.Name;
+
+            /// <summary>
             /// Indicates whether the image is a DX10 image.
             /// </summary>
             public bool IsDX10 => DX10Format != DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+
+            /// <summary>
+            /// Contains formats not yet capable of saving.
+            /// </summary>
+            public bool ValidSaveFormat => 
+                SurfaceFormat != ImageEngineFormat.TGA 
+                && SurfaceFormat != ImageEngineFormat.Unknown 
+                && SurfaceFormat != ImageEngineFormat.DX10_Placeholder;
 
 
             /// <summary>
@@ -145,6 +159,17 @@ namespace CSharpImageLibrary
             public int MaxNumberOfChannels => Format.MaxNumChannels;
 
             /// <summary>
+            /// Indicates whether format supports alpha.
+            /// </summary>
+            public bool SupportsAlpha => Format.SupportsAlpha;
+
+
+            /// <summary>
+            /// Indicates whether format supports editing alpha (premultiplied is not editable for eg)
+            /// </summary>
+            public bool SupportsAlphaEditing => Format.SupportsAlpha && !IsPremultipliedFormat && !ValidSaveFormat;
+
+            /// <summary>
             /// Writes the max value to array using the correct bit styles.
             /// e.g. Will write int.Max when component size is int.Length (4 bytes).
             /// </summary>
@@ -183,6 +208,9 @@ namespace CSharpImageLibrary
             /// </summary>
             public Action<byte[], int, ImageEngineFormatDetails, byte[], int> WriteColour = null;
 
+            
+            
+
             /// <summary>
             /// Details the given format.
             /// </summary>
@@ -199,7 +227,7 @@ namespace CSharpImageLibrary
                     Format = DetermineDDSSurfaceFormat(ddsHeader);
 
                     // Set read/write functions
-                    
+                    SetupFunctions();
 
                 }
             }
@@ -389,6 +417,35 @@ namespace CSharpImageLibrary
                 }
                 return info;
             }
+
+
+            /// <summary>
+            /// Gets uncompressed size of image with mipmaps given dimensions and number of channels. 
+            /// Assume 8 bits per channel.
+            /// </summary>
+            /// <param name="topWidth">Width of top mipmap.</param>
+            /// <param name="topHeight">Height of top mipmap.</param>
+            /// <param name="inclMips">Include size of mipmaps.</param>
+            /// <returns>Uncompressed size in bytes including mipmaps.</returns>
+            public int GetUncompressedSize(int topWidth, int topHeight, bool inclMips)
+            {
+                return (int)(MaxNumberOfChannels * (topWidth * topHeight) * (inclMips ? 4d / 3d : 1d));
+            }
+
+
+            /// <summary>
+            /// DDS ONLY.
+            /// Gets the compressed size of a DDS image.
+            /// </summary>
+            /// <param name="width">Width of top mipmap.</param>
+            /// <param name="height">Height of top mipmap.</param>
+            /// <param name="mipCount">Number of mipmaps present in image.</param>
+            /// <returns>Length of compressed image in bytes.</returns>
+            public int GetCompressedSize(int width, int height, int mipCount)
+            {
+                return DDS.DDSGeneral.GetCompressedSizeOfImage(mipCount, this, width, height);
+            }
+
 
 
             #region Bit Conversions

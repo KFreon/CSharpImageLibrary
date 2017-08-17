@@ -1,13 +1,7 @@
-﻿using CSharpImageLibrary.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
-using UsefulThings;
+using CSharpImageLibrary.Headers;
+using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 
 namespace CSharpImageLibrary.DDS
 {
@@ -151,12 +145,12 @@ namespace CSharpImageLibrary.DDS
         #endregion Compressed Readers
 
         #region Uncompressed Readers
-        internal static void ReadUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_Header.DDS_PIXELFORMAT ddspf, ImageFormats.ImageEngineFormatDetails formatDetails)
+        internal static void ReadUncompressed(byte[] source, int sourceStart, byte[] destination, int pixelCount, DDS_PIXELFORMAT ddspf, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
-            bool requiresSignedAdjustment = ((ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_SIGNED) == DDS_Header.DDS_PFdwFlags.DDPF_SIGNED);
+            bool requiresSignedAdjustment = ((ddspf.dwFlags & DDS_PFdwFlags.DDPF_SIGNED) == DDS_PFdwFlags.DDPF_SIGNED);
             int sourceIncrement = ddspf.dwRGBBitCount / 8;  // /8 for bits to bytes conversion
-            bool oneChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_Header.DDS_PFdwFlags.DDPF_LUMINANCE;
-            bool twoChannel = (ddspf.dwFlags & DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_Header.DDS_PFdwFlags.DDPF_ALPHAPIXELS && oneChannel;
+            bool oneChannel = (ddspf.dwFlags & DDS_PFdwFlags.DDPF_LUMINANCE) == DDS_PFdwFlags.DDPF_LUMINANCE;
+            bool twoChannel = (ddspf.dwFlags & DDS_PFdwFlags.DDPF_ALPHAPIXELS) == DDS_PFdwFlags.DDPF_ALPHAPIXELS && oneChannel;
 
             uint AMask = ddspf.dwABitMask;
             uint RMask = ddspf.dwRBitMask;

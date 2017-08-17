@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel;
-using static CSharpImageLibrary.Headers.RawDDSHeaderStuff;
+using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 
 namespace CSharpImageLibrary
 {

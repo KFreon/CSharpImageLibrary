@@ -76,7 +76,7 @@ namespace CSharpImageLibrary
             Height = height;
             LoadedFormatDetails = details;
 
-            UncompressedSize = ImageFormats.GetUncompressedSize(width, height, details.MaxNumberOfChannels, false);
+            UncompressedSize = details.GetUncompressedSize(width, height, false);
         }
 
 

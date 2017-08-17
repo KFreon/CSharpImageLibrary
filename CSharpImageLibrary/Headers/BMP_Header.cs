@@ -189,17 +189,6 @@ namespace CSharpImageLibrary.Headers
             Load(stream);
         }
 
-        /// <summary>
-        /// Image Format.
-        /// </summary>
-        public override ImageEngineFormat Format
-        {
-            get
-            {
-                return ImageEngineFormat.BMP;
-            }
-        }
-
         internal static bool CheckIdentifier(byte[] IDBlock)
         {
             for (int i = 0; i < Identifier.Length; i++)
