@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using static CSharpImageLibrary.ImageFormats;
 
 namespace UI_Project
 {
@@ -34,7 +35,8 @@ namespace UI_Project
                 bool disableContainer = false;
 
                 // Check supported save formats.
-                if (ImageFormats.SaveUnsupported.Contains(selectedFormat))
+                var details = new ImageEngineFormatDetails(selectedFormat);
+                if (!details.ValidSaveFormat)
                     disableContainer = true;
 
                 if (disableContainer)

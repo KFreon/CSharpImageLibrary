@@ -97,6 +97,7 @@
     <Compile Include="DropFriendlyButton.xaml.cs">
       <DependentUpon>DropFriendlyButton.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ImageEngineFormatDetailsToFormatConverter.cs" />
     <Compile Include="NewMainWindow.xaml.cs">
       <DependentUpon>NewMainWindow.xaml</DependentUpon>
     </Compile>
@@ -123,7 +124,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

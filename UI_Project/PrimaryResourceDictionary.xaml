@@ -236,16 +236,6 @@
         </Style.Triggers>
     </Style>
 
-    <Style TargetType="ContentControl" x:Key="CustomDDSSettingsVisibility">
-        <Setter Property="Visibility" Value="Collapsed"/>
-
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Member=Library:ImageEngineFormat.DDS_CUSTOM}">
-                <Setter Property="Visibility" Value="Visible"/>
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
     <ControlTemplate x:Key="CustomDDSSettings">
         <Border BorderBrush="Gray" BorderThickness="0.5">
             <DockPanel DockPanel.Dock="Bottom">

@@ -18,6 +18,7 @@ using UsefulThings;
 using UsefulThings.WPF;
 using static CSharpImageLibrary.Headers.DDS_Header;
 using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
+using static CSharpImageLibrary.ImageFormats;
 
 namespace UI_Project
 {
@@ -391,7 +392,21 @@ namespace UI_Project
             }
         }
 
-        public Brush WindowBackgroundColour => new SolidColorBrush(Color.FromArgb(WindowBackground_Alpha, WindowBackground_Red, WindowBackground_Green, WindowBackground_Blue));
+        SolidColorBrush windowBackgroundColour = null;
+        public SolidColorBrush WindowBackgroundColour
+        {
+            get
+            {
+                if (windowBackgroundColour == null ||
+                    windowBackgroundColour.Color.A != WindowBackground_Alpha ||
+                    windowBackgroundColour.Color.R != WindowBackground_Red ||
+                    windowBackgroundColour.Color.B != WindowBackground_Blue ||
+                    windowBackgroundColour.Color.G != WindowBackground_Green)
+                        windowBackgroundColour = new SolidColorBrush(Color.FromArgb(WindowBackground_Alpha, WindowBackground_Red, WindowBackground_Green, WindowBackground_Blue));
+
+                return windowBackgroundColour;
+            }
+        }
 
         bool splitChannels = false;
         public bool SplitChannels
@@ -401,7 +416,7 @@ namespace UI_Project
             {
                 SetProperty(ref splitChannels, value);
                 if (value)
-                    SaveFormat = ImageEngineFormat.PNG;
+                    SaveFormat = new ImageEngineFormatDetails(ImageEngineFormat.PNG);
             }
         }
 
@@ -432,7 +447,7 @@ namespace UI_Project
         }
 
         #region Alpha and Colour related Properties
-        bool GeneralRemovingAlpha => SaveFormat == ImageEngineFormat.DDS_DXT1 ? DXT1AlphaRemove : RemoveGeneralAlpha;
+        bool GeneralRemovingAlpha => SaveFormat.SurfaceFormat == ImageEngineFormat.DDS_DXT1 ? DXT1AlphaRemove : RemoveGeneralAlpha;
 
         uint aMask = 0xFF000000;
         public uint AMask
@@ -635,7 +650,6 @@ namespace UI_Project
             set => SetProperty(ref preview, value);
         } 
 
-
         string windowTitle = "Image Engine";
 
         public string WindowTitle
@@ -651,15 +665,9 @@ namespace UI_Project
             set => SetProperty(ref loadDuration, value);
         }
 
-
         public string LoadedPath => LoadedImage?.FilePath;
 
-        public ImageEngineFormat LoadedFormat => LoadedImage?.Format ?? ImageEngineFormat.Unknown;
-
-        public bool IsDX10Loaded => LoadedImage?.FormatDetails.IsDX10 ?? false;
-
-
-        public DXGI_FORMAT LoadedDX10Format => LoadedImage?.FormatDetails.DX10Format ?? DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+        public ImageEngineFormatDetails LoadedFormat => LoadedImage?.FormatDetails;
 
         public int Width => LoadedImage?.Width ?? -1;
 
@@ -747,7 +755,6 @@ namespace UI_Project
                 if (SaveFormat.ToString().Contains("_") && IsImageLoaded)
                 {
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
-                    var header = LoadedImage.Header as CSharpImageLibrary.Headers.DDS_Header;
 
                     return SaveFormatDetails.GetCompressedSize(Width, Height,
                         SaveMipType == MipHandling.KeepTopOnly ||
@@ -792,42 +799,13 @@ namespace UI_Project
             }
         }
 
-        public string DX10ComboSelection
-        {
-            get => DX10Format.ToString().Contains("BC6") ? "BC6" : "BC7";
-            set
-            {
-                if (value == null)
-                    _DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
-                else
-                    DX10Format = value.Contains("BC6") ? DXGI_FORMAT.DXGI_FORMAT_BC6H_UF16 : DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM_SRGB;
-
-                OnPropertyChanged(nameof(DX10ComboSelection));
-            }
-        }
-
-        DXGI_FORMAT _DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
-        public DXGI_FORMAT DX10Format
-        {
-            get => _DX10Format;
-            set
-            {
-                bool requiresUpdate = UpdateSaveFormat(SaveFormat, value);
-                SetProperty(ref _DX10Format, value);
-
-                if (requiresUpdate)
-                    UpdateSavePreview();
-            }
-        }
-
-
-        ImageEngineFormat saveFormat = ImageEngineFormat.Unknown;
-        public ImageEngineFormat SaveFormat
+        ImageEngineFormatDetails saveFormat = null;
+        public ImageEngineFormatDetails SaveFormat
         {
             get => saveFormat;
             set
             {
-                bool requiresUpdate = UpdateSaveFormat(value, DX10Format);
+                bool requiresUpdate = UpdateSaveFormat(value);
                 SetProperty(ref saveFormat, value);
 
                 if (requiresUpdate)
@@ -835,12 +813,12 @@ namespace UI_Project
             }
         }
 
-        private bool UpdateSaveFormat(ImageEngineFormat value, DXGI_FORMAT dx10Format)
+        private bool UpdateSaveFormat(ImageEngineFormatDetails value)
         {
-            bool changed = value != saveFormat || dx10Format != DX10Format);
+            bool changed = value != saveFormat;
 
             // Do nothing.   DX10 takes WAAAY too long to save, so no previews.
-            if (dx10Format != DXGI_FORMAT.DXGI_FORMAT_UNKNOWN)
+            if (value.IsDX10)
             {
                 // Clear display so it's clear something else needs to be done
                 savePreviewIMG.Dispose();
@@ -849,11 +827,8 @@ namespace UI_Project
             }
 
 
-            SaveFormatDetails = new ImageFormats.ImageEngineFormatDetails(value, dx10Format);
-
             OnPropertyChanged(nameof(SaveCompressedSize));
             OnPropertyChanged(nameof(SaveCompressionRatio));
-            OnPropertyChanged(nameof(IsSaveFormatMippable));
             OnPropertyChanged(nameof(IsSaveSmaller));
 
             if (SavePath == null)
@@ -902,9 +877,6 @@ namespace UI_Project
                     UpdateSavePreview();
             }
         }
-
-        public bool IsSaveFormatMippable => SaveFormatDetails?.IsMippable ?? false;
-
 
         DispatcherTimer SliderTimer = new DispatcherTimer();
 
@@ -1087,8 +1059,6 @@ namespace UI_Project
         {
             // Update UI
             OnPropertyChanged(nameof(LoadedFormat));
-            OnPropertyChanged(nameof(IsDX10Loaded));
-            OnPropertyChanged(nameof(LoadedDX10Format));
             OnPropertyChanged(nameof(LoadedPath));
             OnPropertyChanged(nameof(LoadedCompressedSize));
             OnPropertyChanged(nameof(UncompressedSize));
@@ -1100,7 +1070,7 @@ namespace UI_Project
 
         public void FixExtension(bool indicateSavePathPropertyChanged = false)
         {
-            if (SavePath == null || ImageFormats.SaveUnsupported.Contains(SaveFormat))
+            if (SavePath == null)
                 return;
 
             string requiredExtension = "." + SaveFormatDetails.Extension;
@@ -1142,8 +1112,6 @@ namespace UI_Project
             SavePanelOpen = false;
             SaveFormatDetails = null;
             savePreviewIMG?.Dispose();
-            DX10Format = DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
-            DX10ComboSelection = null;
 
             // Notify
             if (updateUI)
@@ -1236,7 +1204,7 @@ namespace UI_Project
 
             LoadFailed = false;
             UpdateLoadedPreview(true);
-            SaveFormat = ImageEngineFormat.PNG;
+            SaveFormat = new ImageEngineFormatDetails(ImageEngineFormat.PNG);
             MergeChannelsPanelOpen = false;
         }
 
@@ -1415,12 +1383,12 @@ namespace UI_Project
             Busy = true;
 
             // Don't bother regenerating things. Just show what it looks like.
-            if (SaveFormatDetails.Format == LoadedFormat)   
+            if (SaveFormatDetails.SurfaceFormat == LoadedFormat.SurfaceFormat)
             {
                 SaveCompressedSize = LoadedCompressedSize;
                 savePreviewIMG = LoadedImage;
             }
-            else if (SaveFormat != ImageEngineFormat.DDS_DX10)  // DX10 takes FOREVER to save - caught earlier than this, but just in case.
+            else if (!SaveFormatDetails.IsDX10)  // DX10 takes FOREVER to save - caught earlier than this, but just in case.
             {
                 if (needRegenerate)
                     await Task.Run(() =>
@@ -1467,7 +1435,7 @@ namespace UI_Project
             List<string> newFiles = new List<string>();
 
             int count = 0;
-            foreach (var file in files.Where(t => ImageFormats.IsExtensionSupported(t)))
+            foreach (var file in files)
             {
                 // Prevent duplicates
                 if (!BulkConvertFiles.Contains(file, StringComparison.OrdinalIgnoreCase))

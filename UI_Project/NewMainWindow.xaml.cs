@@ -55,7 +55,7 @@ namespace UI_Project
                             return false;
 
                     // Check file extension
-                    return ImageFormats.IsExtensionSupported(files[0]);
+                    return SupportedFileExtensions.IsExtensionSupported(files[0]);
                 }),
 
                 DropAction = new Action<NewViewModel, string[]>((viewModel, filePath) =>
@@ -101,22 +101,7 @@ namespace UI_Project
 
             BulkDropDragHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)
             {
-                DropValidator = files =>
-                {
-                    if (files == null || files.Length == 0)
-                        return false;
-
-                    // Check all extensions
-                    var supported = ImageFormats.GetSupportedExtensions(true);
-                    foreach (string file in files)
-                    {
-                        if (!ImageFormats.IsExtensionSupported(file, supported))
-                            return false;
-                    }
-
-                    return true;
-                },
-
+                DropValidator = files => files.All(f => SupportedFileExtensions.IsExtensionSupported(f)),
                 DropAction = (model, files) => vm.BulkAdd(files)
             };
 
@@ -258,7 +243,7 @@ namespace UI_Project
         {
             OpenFileDialog ofd = new OpenFileDialog()
             {
-                Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
+                Filter = SupportedFileExtensions.GetSupportedExtensionsForDialogBoxAsString(),
                 Title = "Select image to load",
             };
 
@@ -348,7 +333,7 @@ namespace UI_Project
         {
             OpenFileDialog ofd = new OpenFileDialog()
             {
-                Filter = ImageFormats.GetSupportedExtensionsForDialogBoxAsString(),
+                Filter = SupportedFileExtensions.GetSupportedExtensionsForDialogBoxAsString(),
                 Title = "Select files to be converted. Needn't be the same format.",
                 Multiselect = true
             };
@@ -358,7 +343,7 @@ namespace UI_Project
 
             if (ofd.ShowDialog() == true)
             {
-                vm.BulkAdd(ofd.FileNames);
+                vm.BulkAdd(ofd.FileNames.Where(f => SupportedFileExtensions.IsExtensionSupported(f)));
                 prev_bulkBrowseSingleFolder = Path.GetDirectoryName(ofd.FileNames[0]);
                 return true;
             }
@@ -477,7 +462,9 @@ namespace UI_Project
 
             if (fbd.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                vm.BulkAdd(Directory.EnumerateFiles(fbd.FileName, "*", vm.BulkFolderBrowseRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly));
+                var files = Directory.EnumerateFiles(fbd.FileName, "*", vm.BulkFolderBrowseRecurse ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+                    .Where(f => SupportedFileExtensions.IsExtensionSupported(f));
+                vm.BulkAdd(files);
                 prev_bulkBrowseManyFolder = fbd.FileName;
             }
         }
