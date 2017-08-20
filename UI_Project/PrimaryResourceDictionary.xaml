@@ -18,6 +18,7 @@
     <UsefulThingsConverters:MutuallyExclusiveCheckersConverter x:Key="MutuallyExclusiveCheckersConverter"/>
     <UsefulThingsConverters:ByteSizeToStringConverter x:Key="FileSizeConverter"/>
     <UsefulThingsConverters:DebugConverter x:Key="DebugConverter"/>
+    <local:ImageEngineFormatDetailsToFormatConverter x:Key="FormatDetailsToFormatConverter"/>
     <!-- End Type Converters -->
     
     <sys:Boolean x:Key="TrueValue">
@@ -308,40 +309,29 @@
 
     <ControlTemplate x:Key="MainFormatSelector">
         <DockPanel>
-            <Label Content="WARNING: DX10 formats can take a VERY long time to generate, hence no preview." DockPanel.Dock="Bottom" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Center">
-                <Label.Style>
-                    <Style TargetType="Label">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Library:ImageEngineFormat.DDS_DX10}">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Label.Style>
-            </Label>
-            <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,3">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding SaveFormat}" Value="{x:Static Library:ImageEngineFormat.DDS_DX10}">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>
-                <Label Content="DX10 Format: " FontWeight="Bold"/>
-                <ComboBox x:Name="DX10FormatCombo" DockPanel.Dock="Bottom" HorizontalAlignment="Left" SelectedValue="{Binding DX10ComboSelection, Mode=TwoWay}">
-                    <ComboBoxItem Content="BC6"/>
-                    <ComboBoxItem Content="BC7"/>
-                </ComboBox>
-            </StackPanel>
-            <Label Content="Format: " FontWeight="Bold"/>
-            <ComboBox  x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                <Label Content="Format: " FontWeight="Bold"/>
+                <ComboBox  x:Name="SaveFormatCombo" ItemsSource="{UsefulWPF:EnumToItemsSource {x:Type Library:ImageEngineFormat}}" SelectedValue="{Binding SaveFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FormatDetailsToFormatConverter}}" 
                             DisplayMemberPath="DisplayName" SelectedValuePath="Value" IsSynchronizedWithCurrentItem="True" VerticalContentAlignment="Center" DropDownOpened="SaveFormatCombo_DropDownOpened"/>
-            <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
+                <TextBlock Text="{Binding ElementName=SaveFormatCombo, Path=SelectedValue, Converter={StaticResource EnumDescriptionConverter}}" VerticalAlignment="Center" Style="{StaticResource VisibleTextDisplayStyle}" 
                             TextWrapping="Wrap" FontSize="10"/>
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,5" Visibility="{Binding IsDX10HeaderCheckboxEnabled, Converter={StaticResource BoolToVisConverter}}">
+                <CheckBox x:Name="UseDX10HeaderCheckBox" Content="Use DX10 Header" IsChecked="{Binding UseDX10Header}" Foreground="White"/>
+                <Label Content="WARNING: DX10 formats can take a VERY long time to generate, hence no preview." HorizontalAlignment="Center" FontWeight="Bold" Foreground="Red" >
+                    <Label.Style>
+                        <Style TargetType="Label">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SaveFormat.IsDX10}" Value="true">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Label.Style>
+                </Label>
+
+            </StackPanel>
         </DockPanel>
     </ControlTemplate>
 

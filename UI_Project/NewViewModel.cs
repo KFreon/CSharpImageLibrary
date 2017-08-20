@@ -47,6 +47,15 @@ namespace UI_Project
             set => SetProperty(ref delayedBusy, value);
         }
 
+        bool useDX10Header = false;
+        public bool UseDX10Header
+        {
+            get => useDX10Header;
+            set => SetProperty(ref useDX10Header, value);
+        }
+
+        public bool IsDX10HeaderCheckboxEnabled => (SaveFormat?.SupportsDX10 ?? false) && (!SaveFormat?.RequiresDX10 ?? false);
+
 
         bool isWindowBlurred = true;
         public bool IsWindowBlurred
@@ -297,7 +306,7 @@ namespace UI_Project
                                 if (SplitChannels)
                                     LoadedImage.SplitChannels(SavePath);
                                 else
-                                    await LoadedImage.Save(SavePath, SaveFormatDetails, SaveMipType, removeAlpha: GeneralRemovingAlpha);
+                                    await LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
                             }
                             catch (Exception e)
                             {
@@ -494,11 +503,7 @@ namespace UI_Project
         public bool BulkConvertOpen
         {
             get => bulkConvertOpen;
-            set
-            {
-                SetProperty(ref bulkConvertOpen, value);
-                Debug.WriteLine("BulkConvertOpen: " + value);
-            }
+            set => SetProperty(ref bulkConvertOpen, value);
         }
 
         bool bulkFolderBrowseRecurse = true;
@@ -585,11 +590,7 @@ namespace UI_Project
         public bool IsImageLoaded
         {
             get => isImageLoaded;
-            set
-            {
-                SetProperty(ref isImageLoaded, value);
-                Debug.WriteLine("IsImageLoaded: " + value);
-            }
+            set => SetProperty(ref isImageLoaded, value);
         }
 
         public int MipWidth
@@ -752,11 +753,11 @@ namespace UI_Project
         {
             get
             {
-                if (SaveFormat.ToString().Contains("_") && IsImageLoaded)
+                if (SaveFormat?.ToString().Contains("_") == true && IsImageLoaded)
                 {
                     int estimatedMips = DDSGeneral.EstimateNumMipMaps(Width, Height);
 
-                    return SaveFormatDetails.GetCompressedSize(Width, Height,
+                    return SaveFormat.GetCompressedSize(Width, Height,
                         SaveMipType == MipHandling.KeepTopOnly ||
                         (SaveMipType == MipHandling.KeepExisting && MipCount == 1) ? 1 : estimatedMips);
                 }
@@ -775,14 +776,14 @@ namespace UI_Project
         {
             get
             {
-                if (SaveFormatDetails == null)
+                if (SaveFormat == null)
                     return null;
 
                 string name = null;
                 if (LoadedImage?.FilePath == null)
-                    name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat}.{SaveFormatDetails.Extension}");
+                    name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat.SurfaceFormat}.{SaveFormat.Extension}");
                 else
-                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormatDetails.Extension}";
+                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormat.Extension}";
 
                 return UsefulThings.General.FindValidNewFileName(name);
             }
@@ -805,10 +806,18 @@ namespace UI_Project
             get => saveFormat;
             set
             {
+                if (value == null)
+                    return;
+
                 bool requiresUpdate = UpdateSaveFormat(value);
                 SetProperty(ref saveFormat, value);
 
-                if (requiresUpdate)
+                if (value.IsDX10)
+                {
+                    savePreviewIMG.Dispose();
+                    SavePreview = null;
+                }
+                else if (requiresUpdate)
                     UpdateSavePreview();
             }
         }
@@ -816,16 +825,6 @@ namespace UI_Project
         private bool UpdateSaveFormat(ImageEngineFormatDetails value)
         {
             bool changed = value != saveFormat;
-
-            // Do nothing.   DX10 takes WAAAY too long to save, so no previews.
-            if (value.IsDX10)
-            {
-                // Clear display so it's clear something else needs to be done
-                savePreviewIMG.Dispose();
-                SavePreview = null;
-                return false;
-            }
-
 
             OnPropertyChanged(nameof(SaveCompressedSize));
             OnPropertyChanged(nameof(SaveCompressionRatio));
@@ -933,10 +932,6 @@ namespace UI_Project
         #endregion Save Properties
         #endregion General Properties
 
-
-        ImageFormats.ImageEngineFormatDetails SaveFormatDetails = null;
-
-
         public NewViewModel() : base()
         {
             // Get Properties
@@ -1023,8 +1018,6 @@ namespace UI_Project
             Status = "Loading...";
             Busy = true;
 
-            // Delay testing
-            //await Task.Delay(5000);
 
             CloseImage(false); // Don't need to update the UI here, it'll get updated after loading the image. But do need to reset some things
 
@@ -1041,14 +1034,14 @@ namespace UI_Project
                 return false;
             }
 
-            Trace.WriteLine($"Loading of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
+            Trace.WriteLine($"Loading of {LoadedFormat.SurfaceFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
             WindowTitle = "Image Engine - View:";
             LoadDuration = $"{operationElapsedTimer.ElapsedMilliseconds}ms";
             UpdateLoadedPreview(true);
 
             SaveFormat = LoadedFormat;
 
-            Trace.WriteLine($"Preview of {LoadedFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
+            Trace.WriteLine($"Preview of {LoadedFormat.SurfaceFormat} ({Width}x{Height}, {(MipCount > 1 ? "Mips Present" : "No Mips")}) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
 
             IsImageLoaded = true;
             Busy = false;
@@ -1073,7 +1066,7 @@ namespace UI_Project
             if (SavePath == null)
                 return;
 
-            string requiredExtension = "." + SaveFormatDetails.Extension;
+            string requiredExtension = "." + SaveFormat.Extension;
 
             var currentExt = Path.GetExtension(savePath);
             if (currentExt == "")  // No extension
@@ -1110,7 +1103,7 @@ namespace UI_Project
             LoadFailError = null;
             previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
             SavePanelOpen = false;
-            SaveFormatDetails = null;
+            SaveFormat = null;
             savePreviewIMG?.Dispose();
 
             // Notify
@@ -1225,7 +1218,7 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
-            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormatDetails, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
+            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormat, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)
@@ -1383,18 +1376,18 @@ namespace UI_Project
             Busy = true;
 
             // Don't bother regenerating things. Just show what it looks like.
-            if (SaveFormatDetails.SurfaceFormat == LoadedFormat.SurfaceFormat)
+            if (SaveFormat.SurfaceFormat == LoadedFormat.SurfaceFormat)
             {
                 SaveCompressedSize = LoadedCompressedSize;
                 savePreviewIMG = LoadedImage;
             }
-            else if (!SaveFormatDetails.IsDX10)  // DX10 takes FOREVER to save - caught earlier than this, but just in case.
+            else if (!SaveFormat.IsDX10)  // DX10 takes FOREVER to save - caught earlier than this, but just in case.
             {
                 if (needRegenerate)
                     await Task.Run(() =>
                     {
                         // Save and reload to give accurate depiction of what it'll look like when saved.
-                        byte[] data = LoadedImage.Save(SaveFormatDetails, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                        byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
                         if (data == null)
                         {
                             SaveCompressedSize = -1;
@@ -1406,19 +1399,19 @@ namespace UI_Project
                         savePreviewIMG = new ImageEngineImage(data);
                     });
 
-                Trace.WriteLine($"Saving of {SaveFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
+                Trace.WriteLine($"Saving of {SaveFormat.SurfaceFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
             }
 
             
             if (savePreviewIMG != null)
-                UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormatDetails, true);
+                UpdatePreview(ref savePreview, savePreviewIMG.Width, savePreviewIMG.Height, savePreviewIMG.MipMaps[0].Pixels, SaveFormat, true);
 
             // Update Properties
             OnPropertyChanged(nameof(SavePreview));
 
 
             Busy = false;
-            Trace.WriteLine($"Save preview of {SaveFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
+            Trace.WriteLine($"Save preview of {SaveFormat.SurfaceFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
         }
 
         public void Cancel()

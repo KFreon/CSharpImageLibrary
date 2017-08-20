@@ -435,11 +435,6 @@ namespace CSharpImageLibrary.DDS
             int i = 0;
             int startBit = 0;
 
-            /*foreach (var endpoint in endPoints)
-                Debug.WriteLine(endpoint);
-
-            Debug.WriteLine("");*/
-
             SetBits(ref startBit, mode.modeVal, 0, destination, destStart);
             SetBits(ref startBit, 1, 1, destination, destStart);
             SetBits(ref startBit, mode.RotationBits, rotation, destination, destStart);

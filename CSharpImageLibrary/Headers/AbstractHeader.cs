@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -64,7 +65,28 @@ namespace CSharpImageLibrary.Headers
         public override string ToString()
         {
             // Add some spacing for readability.
-            return UsefulThings.General.StringifyObject(this);
+            return StringifyObject(this);
+        }
+
+        public static string StringifyObject(object obj, int level = 0, string propName = null)
+        {
+            var propertyList = TypeDescriptor.GetProperties(obj);
+            StringBuilder sb = new StringBuilder();
+            var classname = TypeDescriptor.GetClassName(obj);
+            string tags = new string(Enumerable.Repeat('-', level * 3).ToArray());
+            string spacing = new string(Enumerable.Repeat(' ', level * 3).ToArray());
+
+            if (propertyList.Count == 0)
+                return spacing + $"{propName} = {obj}";
+
+            sb.AppendLine($"{tags} {classname} {tags}");
+            foreach (PropertyDescriptor descriptor in propertyList)
+                sb.AppendLine(spacing + StringifyObject(descriptor.GetValue(obj), level + 1, descriptor.Name));
+
+            sb.AppendLine($"{tags} END {classname} {tags}");
+
+
+            return sb.ToString();
         }
     }
 }

@@ -500,13 +500,13 @@
                                 <TextBlock x:Name="LoadedFormatLabel">
                                     <Run Text="Format: " Style="{StaticResource TitleElementStyle}"/>
                                     <Run Text=" "/>
-                                    <Run Text="{Binding LoadedFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
+                                    <Run Text="{Binding LoadedFormat.SurfaceFormat, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
-                                <TextBlock x:Name="DX10FormatLabel" FontSize="8" Visibility="{Binding IsDX10Loaded, Converter={StaticResource BoolToVisConverter}}">
+                                <TextBlock x:Name="DX10FormatLabel" FontSize="8" Visibility="{Binding LoadedFormat.IsDX10, Converter={StaticResource BoolToVisConverter}}">
                                     <Run Text="DX10 Format: " Style="{StaticResource TitleElementStyle}"/>
                                     <LineBreak/>
-                                    <Run Text="{Binding LoadedDX10Format, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
+                                    <Run Text="{Binding LoadedFormat.DX10Format, Mode=OneWay}" Style="{StaticResource ValueStyle}"/>
                                 </TextBlock>
 
                                 <TextBlock x:Name="MipCountLabel">
@@ -588,7 +588,6 @@
 
                     <DockPanel x:Name="SaveFormatSelectionArea" DockPanel.Dock="Top" LastChildFill="False" 
                                Visibility="{Binding SplitChannels, Converter={StaticResource BoolToVisConverter}, ConverterParameter={StaticResource TrueValue}}">
-                        <ContentControl x:Name="CustomDDSSettingsPanel" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource CustomDDSSettings}" Style="{StaticResource CustomDDSSettingsVisibility}"/>
                         <ContentControl x:Name="MainSaveFormatSelector" DockPanel.Dock="Top" Margin="0,5" Template="{StaticResource MainFormatSelector}"/>
 
                         <Separator DockPanel.Dock="Top"/>
@@ -643,7 +642,7 @@
                                 <Setter Property="Visibility" Value="Collapsed"/>
 
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsSaveFormatMippable}" Value="True">
+                                    <DataTrigger Binding="{Binding SaveFormat.IsDDS}" Value="True">
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
 

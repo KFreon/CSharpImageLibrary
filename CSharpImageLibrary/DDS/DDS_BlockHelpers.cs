@@ -1239,11 +1239,11 @@ namespace CSharpImageLibrary.DDS
             catch (EndOfStreamException e)
             {
                 // It's due to weird shaped mips at really low resolution. Like 2x4
-                Debug.WriteLine(e.ToString());
+                Trace.WriteLine(e.ToString());
             }
             catch(ArgumentOutOfRangeException e)
             {
-                Debug.WriteLine(e.ToString());
+                Trace.WriteLine(e.ToString());
             }
 
             // Use palette to decompress pixel colours

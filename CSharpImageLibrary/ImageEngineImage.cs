@@ -255,7 +255,7 @@ namespace CSharpImageLibrary
         /// <returns></returns>
         public byte[] Save(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
         {
-            if (destFormatDetails.ValidSaveFormat)
+            if (!destFormatDetails.ValidSaveFormat)
                 throw new InvalidOperationException($"Save format is not supported: {destFormatDetails.SurfaceFormat}");
 
             AlphaSettings alphaSetting = AlphaSettings.KeepAlpha;

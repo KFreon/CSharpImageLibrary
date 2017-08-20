@@ -190,7 +190,7 @@ namespace CSharpImageLibrary.DDS
                     }
                     catch (Exception e)
                     {
-                        Debug.WriteLine(e.ToString());
+                        Trace.WriteLine(e.ToString());
                     }
 
                     MipMaps[mipIndex] = mipmap;

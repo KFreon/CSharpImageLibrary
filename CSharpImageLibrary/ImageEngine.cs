@@ -1,15 +1,12 @@
-﻿using CSharpImageLibrary.Properties;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
-using System.Runtime.InteropServices;
 using System.ComponentModel;
 using CSharpImageLibrary.Headers;
 using CSharpImageLibrary.DDS;
@@ -441,7 +438,7 @@ namespace CSharpImageLibrary
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine(e.ToString());
+                    Trace.WriteLine(e.ToString());
                     throw;
                 }
             }
@@ -485,7 +482,7 @@ namespace CSharpImageLibrary
                 }
                 catch (Exception e)
                 {
-                    Debug.WriteLine(e.ToString());
+                    Trace.WriteLine(e.ToString());
                     throw;
                 }
             }

@@ -505,15 +505,6 @@ namespace CSharpImageLibrary.Headers
                     arraySize = BitConverter.ToUInt32(fullHeaderBlock, offset + 12);
                     miscFlags2 = (DXGI_MiscFlags)BitConverter.ToUInt32(fullHeaderBlock, offset + 16);
                 }
-
-                /// <summary>
-                /// Shows string description of additional DX10 header.
-                /// </summary>
-                /// <returns>String header.</returns>
-                public override string ToString()
-                {
-                    return UsefulThings.General.StringifyObject(this, true);
-                }
             }
 
             /// <summary>

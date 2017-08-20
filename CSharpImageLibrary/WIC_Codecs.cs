@@ -43,7 +43,7 @@ namespace CSharpImageLibrary
             }
             catch (Exception e)
             {
-                Debug.WriteLine(e.ToString());
+                Trace.WriteLine(e.ToString());
                 ImageEngine.WindowsWICCodecsAvailable = false;
                 return false;  // KFreon: Non decoding related error - Who knows...
             }
@@ -171,11 +171,11 @@ namespace CSharpImageLibrary
             }
             catch (FileFormatException fileformatexception)
             {
-                Debug.WriteLine(fileformatexception);
+                Trace.WriteLine(fileformatexception);
             }
             catch (NotSupportedException notsupportedexception)
             {
-                Debug.WriteLine(notsupportedexception);
+                Trace.WriteLine(notsupportedexception);
             }
 
             img.Freeze();
@@ -200,11 +200,11 @@ namespace CSharpImageLibrary
             }
             catch (FileFormatException fileformatexception)
             {
-                Debug.WriteLine(fileformatexception);
+                Trace.WriteLine(fileformatexception);
             }
             catch (NotSupportedException notsupportedexception)
             {
-                Debug.WriteLine(notsupportedexception);
+                Trace.WriteLine(notsupportedexception);
             }
 
             img.Freeze();
@@ -229,11 +229,11 @@ namespace CSharpImageLibrary
             }
             catch (FileFormatException fileformatexception)
             {
-                Debug.WriteLine(fileformatexception);
+                Trace.WriteLine(fileformatexception);
             }
             catch (NotSupportedException notsupportedexception)
             {
-                Debug.WriteLine(notsupportedexception);
+                Trace.WriteLine(notsupportedexception);
             }
 
             img.Freeze();
