@@ -163,7 +163,7 @@ namespace CSharpImageLibrary
             int decodeWidth = header.Width > header.Height ? maxDimension : 0;
             int decodeHeight = header.Width < header.Height ? maxDimension : 0;
 
-            switch (header.FormatDetails.SurfaceFormat)
+            switch (formatDetails.SurfaceFormat)
             {
                 case ImageEngineFormat.DDS_DXT1:
                 case ImageEngineFormat.DDS_DXT2:
@@ -203,7 +203,7 @@ namespace CSharpImageLibrary
                         MipMaps = new List<MipMap>() { new MipMap(tga.ImageData, tga.Header.Width, tga.Header.Height, formatDetails) }; 
                     break;
                 default:
-                    throw new FormatException($"Format unknown: {header.FormatDetails.SurfaceFormat}.");
+                    throw new FormatException($"Format unknown: {formatDetails.SurfaceFormat}.");
             }
 
             return MipMaps;

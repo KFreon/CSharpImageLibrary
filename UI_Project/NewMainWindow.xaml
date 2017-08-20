@@ -900,7 +900,7 @@
                             <CheckBox DockPanel.Dock="Top" Content="Same as Original (no overwriting)" Foreground="White" IsChecked="{Binding BulkUseSourceDestination}" Margin="5,0,0,15"/>
                             <DockPanel x:Name="BulkConvertSaveBox" DockPanel.Dock="Top" IsEnabled="{Binding BulkUseSourceDestination, Converter={StaticResource InverseBoolConverter}}">
                                 <Button x:Name="BulkSaveBrowse" Content="Browse" DockPanel.Dock="Right" Click="BulkSaveBrowse_Click"/>
-                                <TextBox Margin="5,0">
+                                <TextBox x:Name="BulkSaveFolderTextBox" Margin="5,0">
                                     <Binding Path="BulkSaveFolder"
                                                  UpdateSourceTrigger="PropertyChanged"
                                                  ValidatesOnDataErrors="True"
@@ -915,7 +915,8 @@
                         </DockPanel>
 
                         <DockPanel x:Name="BulkConvertResultsBox" Grid.ColumnSpan="2" Style="{StaticResource ResultsStyle}">
-                            <Label x:Name="BulkConvertFailureLabel" Content="{Binding Items.Count, ElementName=BulkFailedListBox, StringFormat=Finished with \{0\} failures.}" DockPanel.Dock="Top">
+                            <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" DockPanel.Dock="Bottom"/>
+                            <Label x:Name="BulkConvertFailureLabel" Content="{Binding BulkConvertFailed.Count, StringFormat=Finished with \{0\} failures.}" DockPanel.Dock="Top">
                                 <Label.Style>
                                     <Style TargetType="{x:Type Label}" BasedOn="{StaticResource TitleStyle}">
                                         <Style.Triggers>
@@ -927,7 +928,6 @@
                                 </Label.Style>
                             </Label>
 
-                            <ListBox x:Name="BulkFailedListBox" ItemsSource="{Binding BulkConvertFailed}" Margin="0,30,0,0" Background="Transparent" Foreground="White" DockPanel.Dock="Top"/>
                         </DockPanel>
                     </Grid>
                 </DockPanel>

@@ -78,7 +78,7 @@
     </Reference>
     <Reference Include="UsefulThings, Version=1.7.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\Useful-C-Sharp-Collection\UsefulThings\bin\Debug\UsefulThings.dll</HintPath>
+      <HintPath>..\..\UsefulThings\UsefulThings\bin\Debug\UsefulThings.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />

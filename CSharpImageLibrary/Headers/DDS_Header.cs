@@ -145,8 +145,6 @@ namespace CSharpImageLibrary.Headers
             if (ddspf.dwFourCC == FourCC.DX10)
                 DX10_DXGI_AdditionalHeader = new DDS_DXGI_DX10_Additional(temp);
 
-            FormatDetails = new ImageEngineFormatDetails(this);
-
             return MaxHeaderSize;
         }
 

@@ -35,7 +35,6 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public abstract HeaderType Type { get; }
 
-        public ImageEngineFormatDetails FormatDetails { get; set; }
 
         /// <summary>
         /// Width of image.

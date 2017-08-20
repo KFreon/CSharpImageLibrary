@@ -64,15 +64,6 @@ namespace CSharpImageLibrary.Headers
                 for (int i = 11; i < 14; i++)
                     DataOffset |= headerBlock[i];
             }
-
-            /// <summary>
-            /// Show string representation of header.
-            /// </summary>
-            /// <returns></returns>
-            public override string ToString()
-            {
-                return UsefulThings.General.StringifyObject(this, true);
-            }
         }
 
         /// <summary>

@@ -19,6 +19,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using UsefulThings;
+using UsefulThings.WPF.ValidationRules;
 
 namespace UI_Project
 {
@@ -37,6 +38,8 @@ namespace UI_Project
         Storyboard FadeIn = null;
         Storyboard FadeOut = null;
 
+
+        private Binding bulkValidationBinding = null;
 
         public NewMainWindow()
         {
@@ -94,9 +97,28 @@ namespace UI_Project
                 else if (args.PropertyName == nameof(vm.InfoPanelOpen))
                     SetOptionalContent(vm.InfoPanelOpen, "InfoPanel");
                 else if (args.PropertyName == nameof(vm.BulkConvertOpen))
+                {
+                    if (bulkValidationBinding == null)
+                    {
+                        var box = (DockPanel)OptionalPanelsDisplayBox.FindResource("BulkConvertPanel");
+                        var textbox = UsefulThings.WPF.General.FindVisualChild<TextBox>(box, "BulkSaveFolderTextBox");
+                        bulkValidationBinding = BindingOperations.GetBinding(textbox, TextBox.TextProperty);
+                    }
+                    
+                    if (bulkValidationBinding.ValidationRules.Count > 0)
+                        foreach (var rule in bulkValidationBinding.ValidationRules)
+                            if (rule is ValidationRuleBase baseRule)
+                                baseRule.IsActive = vm.BulkConvertOpen;
+                    
+
+                    // Need to cause re-validation, which only happens when source binding changes.
+                    vm.CauseExternalUpdatePropertyEvent(nameof(vm.BulkSaveFolder));
+
                     SetOptionalContent(vm.BulkConvertOpen, "BulkConvertPanel");
+                }
                 else if (args.PropertyName == nameof(vm.ShowHelpAbout))
                     SetOptionalContent(vm.ShowHelpAbout, "HelpAboutPanel");
+
             };
 
             BulkDropDragHandler = new UsefulThings.WPF.DragDropHandler<NewViewModel>(this)

@@ -221,11 +221,8 @@ namespace CSharpImageLibrary
             /// </summary>
             public Action<byte[], int, ImageEngineFormatDetails, byte[], int> WriteColour = null;
 
-            
-            
-
             /// <summary>
-            /// Details the given format.
+            /// Details the format indicated by the header.
             /// </summary>
             /// <param name="header">Header to get format details from.</param>
             public ImageEngineFormatDetails(AbstractHeader header)
@@ -234,18 +231,16 @@ namespace CSharpImageLibrary
 
                 // Handle DDS cases
                 if(Format.Type == AbstractHeader.HeaderType.DDS)
-                {
-                    var ddsHeader = (DDS_Header)header;
+                    Format = DetermineDDSSurfaceFormat((DDS_Header)header);
 
-                    Format = DetermineDDSSurfaceFormat(ddsHeader);
-
-                    // Set read/write functions
-                    SetupFunctions();
-
-                }
+                // Set read/write functions
+                SetupFunctions();
             }
 
-
+            /// <summary>
+            /// Detail the given format.
+            /// </summary>
+            /// <param name="format">Format to get details of.</param>
             public ImageEngineFormatDetails(ImageEngineFormat format)
             {
                 Format = FormatInfos.First(n => n.Value.Name == format).Value;

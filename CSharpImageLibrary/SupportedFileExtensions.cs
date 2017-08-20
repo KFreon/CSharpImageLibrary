@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using CSharpImageLibrary.Headers;
 using UsefulThings;
+using System.Reflection;
+using System.ComponentModel;
 
 namespace CSharpImageLibrary
 {
@@ -50,12 +52,13 @@ namespace CSharpImageLibrary
             foreach (var name in names)
             {
                 var enumValue = (SupportedExtensions)Enum.Parse(typeof(SupportedExtensions), name);
-                var desc = UsefulThings.General.GetEnumDescription(enumValue);
+                var desc  = UsefulThings.General.GetEnumDescription(enumValue);
 
                 filters.Add($"{desc}|*.{name}");
             }
             return filters;
         }
+
 
         /// <summary>
         /// Gets list of filter strings for dialog boxes already formatted as string.

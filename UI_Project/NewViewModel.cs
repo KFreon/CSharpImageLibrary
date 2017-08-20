@@ -1445,5 +1445,10 @@ namespace UI_Project
             else
                 BulkStatus = $"Added {count} files.";
         }
+
+        public void CauseExternalUpdatePropertyEvent(string name)
+        {
+            OnPropertyChanged(name);
+        }
     }
 }
