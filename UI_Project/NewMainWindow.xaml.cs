@@ -1,24 +1,20 @@
-﻿using CSharpImageLibrary;
-using Microsoft.Win32;
-using Microsoft.WindowsAPICodePack.Dialogs;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using UsefulThings;
+using CSharpImageLibrary;
+using CSharpImageLibrary_NET;
+using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using UsefulThings.WPF.ValidationRules;
 
 namespace UI_Project
@@ -519,7 +515,7 @@ namespace UI_Project
 
         private void MergeRedSelector_Click(object sender, RoutedEventArgs e)
         {
-            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+            var item = (MergeChannelsImage<ImageEngineImage, MipMap>)((Button)e.OriginalSource).DataContext;
 
             // Set red on item exclusively
             item.IsRed = true;
@@ -539,7 +535,7 @@ namespace UI_Project
 
         private void MergeGreenSelector_Click(object sender, RoutedEventArgs e)
         {
-            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+            var item = (MergeChannelsImage<ImageEngineImage, MipMap>)((Button)e.OriginalSource).DataContext;
 
             // Set green on item exclusively
             item.IsRed = false;
@@ -559,7 +555,7 @@ namespace UI_Project
 
         private void MergeBlueSelector_Click(object sender, RoutedEventArgs e)
         {
-            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+            var item = (MergeChannelsImage<ImageEngineImage, MipMap>)((Button)e.OriginalSource).DataContext;
 
             // Set blue on item exclusively
             item.IsRed = false;
@@ -579,7 +575,7 @@ namespace UI_Project
 
         private void MergeAlphaSelector_Click(object sender, RoutedEventArgs e)
         {
-            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+            var item = (MergeChannelsImage<ImageEngineImage, MipMap>)((Button)e.OriginalSource).DataContext;
 
             // Set alpha on item exclusively
             item.IsRed = false;
@@ -620,7 +616,7 @@ namespace UI_Project
 
         private void MergeDeselector_Click(object sender, RoutedEventArgs e)
         {
-            var item = (MergeChannelsImage)((Button)e.OriginalSource).DataContext;
+            var item = (MergeChannelsImage<ImageEngineImage, MipMap>)((Button)e.OriginalSource).DataContext;
 
             // Clear everything
             item.IsRed = false;

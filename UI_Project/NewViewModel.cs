@@ -1,24 +1,21 @@
-﻿using CSharpImageLibrary;
-using CSharpImageLibrary.DDS;
-using CSharpImageLibrary.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using UsefulThings;
+using CSharpImageLibrary;
+using CSharpImageLibrary.DDS;
+using UsefulDotNetThings;
 using UsefulThings.WPF;
-using static CSharpImageLibrary.Headers.DDS_Header;
-using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 using static CSharpImageLibrary.ImageFormats;
+using ImageEngineImage = CSharpImageLibrary_NET.ImageEngineImage;
+using MipMap = CSharpImageLibrary_NET.MipMap;
 
 namespace UI_Project
 {
@@ -64,7 +61,7 @@ namespace UI_Project
             set => SetProperty(ref isWindowBlurred, value);
         }
 
-        public bool IsCancellationRequested => ImageEngine.IsCancellationRequested;
+        public bool IsCancellationRequested => CSharpImageLibrary.ImageEngine.IsCancellationRequested;
 
         bool useHighQualityScaling = true;
         public bool UseHighQualityScaling
@@ -156,10 +153,10 @@ namespace UI_Project
 
         public bool UseWindowsCodecs
         {
-            get => ImageEngine.WindowsWICCodecsAvailable;
+            get => CSharpImageLibrary_NET.ImageEngine.WindowsWICCodecsAvailable;
             set
             {
-                ImageEngine.WindowsWICCodecsAvailable = value;
+                CSharpImageLibrary_NET.ImageEngine.WindowsWICCodecsAvailable = value;
                 OnPropertyChanged(nameof(UseWindowsCodecs));
             }
         }
@@ -303,9 +300,9 @@ namespace UI_Project
                             Busy = true;
                             try
                             {
-                                if (SplitChannels)
+                                /*if (SplitChannels)
                                     LoadedImage.SplitChannels(SavePath);
-                                else
+                                else*/
                                     await LoadedImage.Save(SavePath, SaveFormat, SaveMipType, removeAlpha: GeneralRemovingAlpha);
                             }
                             catch (Exception e)
@@ -317,7 +314,7 @@ namespace UI_Project
                             SaveAttempted = true;
                             Busy = false;
                             SaveDuration = $"{operationElapsedTimer.ElapsedMilliseconds}ms";
-                            SavePath = UsefulThings.General.FindValidNewFileName(SavePath);  // Ensure save path is pointing to a new valid filepath
+                            SavePath = UsefulDotNetThings.General.IO.FindValidNewFileName(SavePath);  // Ensure save path is pointing to a new valid filepath
                         });
                     });
 
@@ -335,7 +332,7 @@ namespace UI_Project
             set => SetProperty(ref mergePanelOpen, value);
         }
 
-        public MTRangedObservableCollection<MergeChannelsImage> MergeChannelsImages { get; set; } = new MTRangedObservableCollection<MergeChannelsImage>();
+        public MTRangedObservableCollection<MergeChannelsImage<ImageEngineImage, MipMap>> MergeChannelsImages { get; set; } = new MTRangedObservableCollection<MergeChannelsImage<ImageEngineImage, MipMap>>();
 
         public bool MergeChannelsReady
         {
@@ -783,9 +780,9 @@ namespace UI_Project
                 if (LoadedImage?.FilePath == null)
                     name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat.SurfaceFormat}.{SaveFormat.Extension}");
                 else
-                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormat.Extension}";
+                    name = $"{UsefulDotNetThings.General.IO.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormat.Extension}";
 
-                return UsefulThings.General.FindValidNewFileName(name);
+                return UsefulDotNetThings.General.IO.FindValidNewFileName(name);
             }
         }
 
@@ -841,7 +838,7 @@ namespace UI_Project
             FixExtension();
 
             // Ensure SavePath doesn't already exist
-            SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
+            SavePath = UsefulDotNetThings.General.IO.FindValidNewFileName(SavePath);
 
             // Regenerate save preview
             return changed && SavePanelOpen;
@@ -907,10 +904,10 @@ namespace UI_Project
 
         public int JPG_CompressionSetting
         {
-            get => WIC_Codecs.JPGCompressionSetting;
+            get => CSharpImageLibrary_NET.WIC_Codecs.JPGCompressionSetting;
             set
             {
-                SetProperty(ref CSharpImageLibrary.WIC_Codecs.JPGCompressionSetting, value);
+                SetProperty(ref CSharpImageLibrary_NET.WIC_Codecs.JPGCompressionSetting, value);
 
                 // Update Save Preview - Not every change though (that could be a bunch in 1 second).
                 SliderTimer.Stop();
@@ -1120,9 +1117,9 @@ namespace UI_Project
             bool checkAlpha = !MergeChannelsImages.Any(t => t.IsAlpha);
 
             var newFiles = files.ToList();
-            var newImages = new MergeChannelsImage[newFiles.Count];
+            var newImages = new MergeChannelsImage<ImageEngineImage, MipMap>[newFiles.Count];
 
-            var action = new Action<int>(index => newImages[index] = new MergeChannelsImage(newFiles[index]));
+            var action = new Action<int>(index => newImages[index] = new MergeChannelsImage<ImageEngineImage, MipMap>(newFiles[index]));
 
             if (ImageEngine.EnableThreading)
                 Parallel.For(0, newFiles.Count, new ParallelOptions { MaxDegreeOfParallelism = ImageEngine.NumThreads }, action);
@@ -1193,7 +1190,7 @@ namespace UI_Project
 
             CloseImage(true);
 
-            LoadedImage = await Task.Run(() => ImageEngine.MergeChannels(blue, green, red, alpha));
+            LoadedImage = await Task.Run(() => ImageEngine.MergeChannels<ImageEngineImage, MipMap>(blue, green, red, alpha));
 
             LoadFailed = false;
             UpdateLoadedPreview(true);
@@ -1218,7 +1215,7 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
-            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert(BulkConvertFiles, SaveFormat, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
+            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert<ImageEngineImage, MipMap>(BulkConvertFiles, SaveFormat, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)
@@ -1248,7 +1245,7 @@ namespace UI_Project
             byte[] pixels = null;
             if (channelValue)
             {
-                MipMap current = LoadedImage.MipMaps[MipIndex];
+                MipMap current = LoadedImage.MipMaps[MipIndex] as MipMap;
                 pixels = ImageEngine.GetPixelsAsBGRA32(current.Width, current.Height, current.Pixels, current.LoadedFormatDetails);
 
                 for (int i = channel; i < pixels.Length; i += 4)
