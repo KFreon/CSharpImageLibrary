@@ -19,7 +19,6 @@ namespace UWP_UI_Project.Views
 
         private async void MaybeBulkConvertPage_Loaded(object sender, RoutedEventArgs e)
         {
-            await ViewModel.LoadDataAsync(MasterDetailsViewControl.ViewState);
         }
     }
 }

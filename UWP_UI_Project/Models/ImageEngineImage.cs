@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.Storage;
+using Windows.Storage.Streams;
 
 namespace UWP_UI_Project.Models
 {
@@ -43,22 +44,40 @@ namespace UWP_UI_Project.Models
         {
         }
 
-        public override void Initialise(string path, int maxDimension = 0)
+        private async Task Load(string path, int maxDimension = 0)
         {
             FilePath = path;
 
-            var task = StorageFile.GetFileFromPathAsync(path).AsTask();
-            task.Wait();
-            var fileTask = task.Result.OpenStreamForReadAsync();
-            fileTask.Wait();
+            var file = await StorageFile.GetFileFromPathAsync(path).AsTask();
+            await Load(file, maxDimension);
+            
+        }
 
-            using (var stream = fileTask.Result)
-                Load(stream, maxDimension);
+        public async Task Load(StorageFile file, int maxDimension = 0)
+        {
+            using (var stream = await file.OpenStreamForReadAsync())
+            {
+                using (var memoryStream = new MemoryStream((int)stream.Length))
+                {
+                    await stream.CopyToAsync(memoryStream);
+                    Load(memoryStream, maxDimension);
+                }
+            }
+        }
+
+        public override void Initialise(string path, int maxDimension = 0)
+        {
+            Load(path, maxDimension).Wait();
         }
 
         private async Task<Stream> InitialiseAsync(string path)
         {
             StorageFile file = await StorageFile.GetFileFromPathAsync(path);
+            return await InitialiseAsync(file);
+        }
+
+        private async Task<Stream> InitialiseAsync(StorageFile file)
+        {
             return await file.OpenStreamForReadAsync();
         }
 

@@ -6,7 +6,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ViewModels="using:UWP_UI_Project.ViewModels"
     Style="{StaticResource PageStyle}"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=ViewModels:MainViewModel, IsDesignTimeCreatable=True}">
     <Grid
         x:Name="ContentArea"
         Margin="{StaticResource MediumLeftRightMargin}">
@@ -25,11 +26,11 @@
             Grid.Row="1" 
             Background="{ThemeResource SystemControlPageBackgroundChromeLowBrush}">
 
-            <Image>
+            <Image Source="{x:Bind ViewModel.MainImage}">
                 
             </Image>
 
-            <Button>Load</Button>
+            <Button Click="Button_Click">Load</Button>
         </Grid>
     </Grid>
 </Page>
