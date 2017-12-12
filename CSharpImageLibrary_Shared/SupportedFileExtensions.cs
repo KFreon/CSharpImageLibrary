@@ -9,6 +9,9 @@ namespace CSharpImageLibrary
 {
     public class SupportedFileExtensions
     {
+        static List<string> SupportedExtensions_Dotted { get; set; }
+        static List<string> SupportedExtensions_Normal { get; set; }
+
         /// <summary>
         /// Get list of supported extensions in lower case.
         /// </summary>
@@ -17,9 +20,19 @@ namespace CSharpImageLibrary
         public static List<string> GetSupportedExtensions(bool addDot = false)
         {
             if (addDot)
-                return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").Select(g => "." + g).ToList();
+            {
+                if (SupportedExtensions_Dotted == null)
+                    SupportedExtensions_Dotted = Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").Select(g => "." + g).ToList();
+
+                return SupportedExtensions_Dotted;
+            }
             else
-                return Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").ToList();
+            {
+                if (SupportedExtensions_Normal == null)
+                    SupportedExtensions_Normal = Enum.GetNames(typeof(SupportedExtensions)).Where(t => t != "UNKNOWN").ToList();
+
+                return SupportedExtensions_Normal;
+            }
         }
 
 
