@@ -1,4 +1,6 @@
-﻿using static CSharpImageLibrary.ImageFormats;
+﻿using System;
+using System.Threading.Tasks;
+using static CSharpImageLibrary.ImageFormats;
 
 namespace CSharpImageLibrary
 {

@@ -9,6 +9,10 @@
     <DocumentationFile>bin\Debug\netstandard2.0\CSharpImageLibrary_Shared.xml</DocumentationFile>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Remove="ImageEngine.ico" />
   </ItemGroup>
@@ -24,7 +28,7 @@
 
   <ItemGroup>
     <Reference Include="UsefulDotNetThings">
-      <HintPath>..\..\Useful-C-Sharp-Collection\UsefulThings\bin\Debug\net471\UsefulDotNetThings.dll</HintPath>
+      <HintPath>..\..\UsefulThings\UsefulThings\bin\Release\net471\UsefulDotNetThings.dll</HintPath>
     </Reference>
   </ItemGroup>
 

@@ -19,9 +19,7 @@
     <ScrollViewer>
         <StackPanel>
             <TextBlock x:Uid="FirstRun_Body" TextWrapping="WrapWholeWords">
-                <Run>Replace the content of this dialog with whatever content is appropriate to your app.</Run><LineBreak/>
-                <Run>You might want to explain key features or functionality.</Run><LineBreak/>
-                <Run>Don't feel restricted to just text. You can also include images and animations if you wish too.</Run>
+                <Run>Nothing for now.</Run><LineBreak/>
             </TextBlock>
         </StackPanel>
     </ScrollViewer>

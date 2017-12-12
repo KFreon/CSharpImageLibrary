@@ -25,10 +25,11 @@
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
     <NoWarn>NU1603;2008;</NoWarn>
     <DebugType>full</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>x86</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\x86\Release\</OutputPath>
@@ -41,6 +42,7 @@
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
     <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
@@ -124,12 +126,15 @@
     <Compile Include="Helpers\RelayCommand.cs" />
     <Compile Include="Helpers\SettingsStorageExtensions.cs" />
     <Compile Include="Helpers\ShareOperationExtensions.cs" />
-    <Compile Include="Models\SampleOrder.cs" />
+    <Compile Include="Models\Extensions.cs" />
+    <Compile Include="Models\ImageEngine.cs" />
+    <Compile Include="Models\ImageEngineImage.cs" />
+    <Compile Include="Models\MipMap.cs" />
+    <Compile Include="Models\UWP_Codecs.cs" />
     <Compile Include="Services\ActivationService.cs" />
     <Compile Include="Activation\DefaultLaunchActivationHandler.cs" />
     <Compile Include="Services\FirstRunDisplayService.cs" />
     <Compile Include="Services\NavigationService.cs" />
-    <Compile Include="Services\SampleDataService.cs" />
     <Compile Include="Services\ThemeSelectorService.cs" />
     <Compile Include="TemplateSelectors\SharedContentTemplateSelector.cs" />
     <Compile Include="ViewModels\BulkConvertViewModel.cs" />
@@ -269,10 +274,22 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CSharpImageLibrary_Shared\CSharpImageLibrary_Shared.csproj">
+      <Project>{f013b3fb-0b35-4103-8a2f-22d6d54c2056}</Project>
+      <Name>CSharpImageLibrary_Shared</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CSharpImageLibrary_UWP\CSharpImageLibrary_UWP.csproj">
       <Project>{e7524f06-93b1-4ee8-ad8a-301e592d49dc}</Project>
       <Name>CSharpImageLibrary_UWP</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="UsefulDotNetThings">
+      <HintPath>..\..\UsefulThings\UsefulThings\bin\Release\net471\UsefulDotNetThings.dll</HintPath>
+    </Reference>
+    <Reference Include="UsefulUWPThings">
+      <HintPath>..\..\UsefulThings\UsefulUWPThings\bin\Release\UsefulUWPThings.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

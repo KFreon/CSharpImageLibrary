@@ -78,7 +78,7 @@
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
     <Reference Include="UsefulDotNetThings">
-      <HintPath>..\..\Useful-C-Sharp-Collection\UsefulThings\bin\Debug\net471\UsefulDotNetThings.dll</HintPath>
+      <HintPath>..\..\UsefulThings\UsefulThings\bin\Release\net471\UsefulDotNetThings.dll</HintPath>
     </Reference>
     <Reference Include="UsefulThings, Version=1.7.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

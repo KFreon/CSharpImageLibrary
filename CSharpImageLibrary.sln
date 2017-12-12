@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI_Project", "UI_Project\UI
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UWP_UI_Project", "UWP_UI_Project\UWP_UI_Project.csproj", "{5134BF31-FFC8-4818-8BB0-63B3A195298B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpImageLibrary_Shared", "CSharpImageLibrary_Shared\CSharpImageLibrary_Shared.csproj", "{F013B3FB-0B35-4103-8A2F-22D6D54C2056}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpImageLibrary_Shared", "CSharpImageLibrary_Shared\CSharpImageLibrary_Shared.csproj", "{F013B3FB-0B35-4103-8A2F-22D6D54C2056}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpImageLibrary_UWP", "CSharpImageLibrary_UWP\CSharpImageLibrary_UWP.csproj", "{E7524F06-93B1-4EE8-AD8A-301E592D49DC}"
 EndProject
@@ -41,7 +41,9 @@ Global
 		{1A00D478-287C-483F-BC07-EAB0C876598A}.Release|x64.Build.0 = Release|Any CPU
 		{1A00D478-287C-483F-BC07-EAB0C876598A}.Release|x86.ActiveCfg = Release|Any CPU
 		{1A00D478-287C-483F-BC07-EAB0C876598A}.Release|x86.Build.0 = Release|Any CPU
-		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|Any CPU.Build.0 = Debug|x64
+		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|Any CPU.Deploy.0 = Debug|x64
 		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|ARM.ActiveCfg = Debug|ARM
 		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|ARM.Build.0 = Debug|ARM
 		{5134BF31-FFC8-4818-8BB0-63B3A195298B}.Debug|ARM.Deploy.0 = Debug|ARM
