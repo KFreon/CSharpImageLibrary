@@ -1,16 +1,7 @@
-﻿using CSharpImageLibrary.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using UsefulThings;
 
 namespace CSharpImageLibrary.DDS
 {

@@ -1,14 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UsefulThings;
-using Microsoft.IO;
-using System.IO;
-using System.Windows.Media.Imaging;
-using System.Runtime.InteropServices;
-using System.Windows.Media;
+﻿using System.Windows.Media.Imaging;
 
 namespace CSharpImageLibrary
 {
