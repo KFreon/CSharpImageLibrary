@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
-using UsefulThings;
 using System.Numerics;
+using static CSharpImageLibrary.DDS.DDS_BlockHelpers;
 using static CSharpImageLibrary.DDS.DX10_Helpers;
 
 namespace CSharpImageLibrary.DDS

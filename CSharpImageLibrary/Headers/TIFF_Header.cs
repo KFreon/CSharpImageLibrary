@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UsefulThings;
+using UsefulDotNetThings;
 
 namespace CSharpImageLibrary.Headers
 {
@@ -29,7 +26,7 @@ namespace CSharpImageLibrary.Headers
         /// </summary>
         public const string IntelIdentifier = "II*";
 
-        MyBitConverter.Endianness endianness = MyBitConverter.Endianness.LittleEndian;
+        EndianBitConverter.Endianness endianness = EndianBitConverter.Endianness.LittleEndian;
 
         #region Sub-Headers
         /// <summary>
@@ -317,12 +314,12 @@ namespace CSharpImageLibrary.Headers
                 /// <param name="IDBlock">Block containing descriptor, but NOT it's data.</param>
                 /// <param name="endianness">Big or little endianness defined by TIFF header.</param>
                 /// <param name="dataStream">Full image stream to read descriptor data from.</param>
-                public FieldDescriptor(byte[] IDBlock, MyBitConverter.Endianness endianness, Stream dataStream)
+                public FieldDescriptor(byte[] IDBlock, EndianBitConverter.Endianness endianness, Stream dataStream)
                 {
-                    FieldTag = (FieldTags)MyBitConverter.ToInt16(IDBlock, 0, endianness);
-                    FieldType = (FieldTypes)MyBitConverter.ToInt16(IDBlock, 2, endianness);
-                    FieldLength = MyBitConverter.ToInt32(IDBlock, 4, endianness);
-                    DataOffset = MyBitConverter.ToInt32(IDBlock, 8, endianness);
+                    FieldTag = (FieldTags)EndianBitConverter.ToInt16(IDBlock, 0, endianness);
+                    FieldType = (FieldTypes)EndianBitConverter.ToInt16(IDBlock, 2, endianness);
+                    FieldLength = EndianBitConverter.ToInt32(IDBlock, 4, endianness);
+                    DataOffset = EndianBitConverter.ToInt32(IDBlock, 8, endianness);
 
                     // Read data indicated by descriptor
                     long oldOffset = dataStream.Position;
@@ -356,10 +353,10 @@ namespace CSharpImageLibrary.Headers
             /// </summary>
             /// <param name="stream">Stream to read local header from.</param>
             /// <param name="endianness">Big or little, as defined by TIFF header.</param>
-            public ImageFileDirectory(Stream stream, MyBitConverter.Endianness endianness) : this()
+            public ImageFileDirectory(Stream stream, EndianBitConverter.Endianness endianness) : this()
             {
                 var bytes = stream.ReadBytes(2);
-                NumberOfEntries = MyBitConverter.ToUInt16(bytes, 0, endianness);
+                NumberOfEntries = EndianBitConverter.ToUInt16(bytes, 0, endianness);
                 FieldDescriptors = new List<FieldDescriptor>();
 
                 
@@ -420,10 +417,10 @@ namespace CSharpImageLibrary.Headers
 
             // Change byte order if required.
             if (temp[0] == 'M')
-                endianness = MyBitConverter.Endianness.BigEndian;
+                endianness = EndianBitConverter.Endianness.BigEndian;
 
             // Header
-            FirstImageOffset = MyBitConverter.ToUInt32(temp, 4, endianness);
+            FirstImageOffset = EndianBitConverter.ToUInt32(temp, 4, endianness);
             stream.Seek(FirstImageOffset, SeekOrigin.Begin);
             var IFD = new ImageFileDirectory(stream, endianness);
             Pages = new List<ImageFileDirectory>() { IFD };

@@ -31,15 +31,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections;
-using System.Text;
-using System.IO;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
-using System.Diagnostics;
-using UsefulThings;
+using UsefulDotNetThings;
 using static CSharpImageLibrary.TargaImage;
 
 namespace CSharpImageLibrary

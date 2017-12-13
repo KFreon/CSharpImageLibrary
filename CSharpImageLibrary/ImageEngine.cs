@@ -1,19 +1,19 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using UsefulThings;
-using System.ComponentModel;
-using CSharpImageLibrary.Headers;
-using CSharpImageLibrary.DDS;
-using System.Collections.Concurrent;
-using System.Threading.Tasks.Dataflow;
 using System.Runtime;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using CSharpImageLibrary.DDS;
+using CSharpImageLibrary.Headers;
+using UsefulThings;
 
 namespace CSharpImageLibrary
 {
@@ -270,7 +270,7 @@ namespace CSharpImageLibrary
                     throw new InvalidDataException("Failed to save channel. Reason unknown.");
 
                 string tempPath = Path.GetFileNameWithoutExtension(savePath) + "_" + channels[i] + ".png";
-                string channelPath = Path.Combine(Path.GetDirectoryName(savePath), UsefulThings.General.FindValidNewFileName(tempPath));
+                string channelPath = Path.Combine(Path.GetDirectoryName(savePath), UsefulDotNetThings.General.IO.FindValidNewFileName(tempPath));
                 File.WriteAllBytes(channelPath, bytes);
             }
         }
@@ -309,7 +309,7 @@ namespace CSharpImageLibrary
             // KFreon: Resize if asked
             if (maxDimension != 0 && maxDimension < width && maxDimension < height) 
             {
-                if (!UsefulThings.General.IsPowerOfTwo(maxDimension))
+                if (!UsefulDotNetThings.General.Maths.IsPowerOfTwo(maxDimension))
                     throw new ArgumentException($"{nameof(maxDimension)} must be a power of 2. Got {nameof(maxDimension)} = {maxDimension}");
 
                 // KFreon: Check if there's a mipmap suitable, removes all larger mipmaps
@@ -363,7 +363,7 @@ namespace CSharpImageLibrary
         {
             fixXScale = 0;
             fixYScale = 0;
-            if (destFormatDetails.IsBlockCompressed && (!UsefulThings.General.IsPowerOfTwo(width) || !UsefulThings.General.IsPowerOfTwo(height)))
+            if (destFormatDetails.IsBlockCompressed && (!UsefulDotNetThings.General.Maths.IsPowerOfTwo(width) || !UsefulDotNetThings.General.Maths.IsPowerOfTwo(height)))
             {
                 // If only keeping top mip, and that mip is divisible by 4, it's ok.
                 if ((mipChoice == MipHandling.KeepTopOnly || mipChoice == MipHandling.KeepExisting) 
@@ -378,15 +378,15 @@ namespace CSharpImageLibrary
                 double aspect = width / height;
                 if (aspect > 1)
                 {
-                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo(width);
+                    newWidth = UsefulDotNetThings.General.Maths.RoundToNearestPowerOfTwo(width);
                     var tempScale = newWidth / width;
-                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo((int)(height * tempScale));
+                    newHeight = UsefulDotNetThings.General.Maths.RoundToNearestPowerOfTwo((int)(height * tempScale));
                 }
                 else
                 {
-                    newHeight = UsefulThings.General.RoundToNearestPowerOfTwo(height);
+                    newHeight = UsefulDotNetThings.General.Maths.RoundToNearestPowerOfTwo(height);
                     var tempScale = newHeight / height;
-                    newWidth = UsefulThings.General.RoundToNearestPowerOfTwo((int)(width * tempScale));
+                    newWidth = UsefulDotNetThings.General.Maths.RoundToNearestPowerOfTwo((int)(width * tempScale));
                 }
 
 
@@ -550,7 +550,7 @@ namespace CSharpImageLibrary
                         string filename = useSourceFormat ? Path.GetFileName(file) : Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;  // This can stay destFormatDetails instead of saveFormatDetails as it shouldn't be able to get here if destFormatDetails not set.
                         string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
 
-                        path = UsefulThings.General.FindValidNewFileName(path);
+                        path = UsefulDotNetThings.General.IO.FindValidNewFileName(path);
 
                         try
                         {
@@ -586,7 +586,7 @@ namespace CSharpImageLibrary
 
                 string filename = Path.GetFileNameWithoutExtension(file) + "." + destFormatDetails.Extension;
                 string path = Path.Combine(useSourceAsDestination ? Path.GetDirectoryName(file) : saveFolder, filename);
-                path = UsefulThings.General.FindValidNewFileName(path);
+                path = UsefulDotNetThings.General.IO.FindValidNewFileName(path);
 
 
                 using (ImageEngineImage img = new ImageEngineImage(file))
@@ -608,7 +608,7 @@ namespace CSharpImageLibrary
             // Define block to write converted data to disk
             var diskWriter = new ActionBlock<Tuple<byte[], string>>(tuple =>
             {
-                string path = UsefulThings.General.FindValidNewFileName(tuple.Item2);
+                string path = UsefulDotNetThings.General.IO.FindValidNewFileName(tuple.Item2);
 
                 try
                 {

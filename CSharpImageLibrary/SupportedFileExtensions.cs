@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CSharpImageLibrary.Headers;
-using UsefulThings;
-using System.Reflection;
-using System.ComponentModel;
+using UsefulDotNetThings;
 
 namespace CSharpImageLibrary
 {
@@ -52,7 +50,7 @@ namespace CSharpImageLibrary
             foreach (var name in names)
             {
                 var enumValue = (SupportedExtensions)Enum.Parse(typeof(SupportedExtensions), name);
-                var desc  = UsefulThings.General.GetEnumDescription(enumValue);
+                var desc  = UsefulDotNetThings.General.Misc.GetEnumDescription(enumValue);
 
                 filters.Add($"{desc}|*.{name}");
             }
@@ -80,7 +78,7 @@ namespace CSharpImageLibrary
             foreach (var name in names)
             {
                 var enumValue = (SupportedExtensions)Enum.Parse(typeof(SupportedExtensions), name);
-                descriptions.Add(UsefulThings.General.GetEnumDescription(enumValue));
+                descriptions.Add(UsefulDotNetThings.General.Misc.GetEnumDescription(enumValue));
             }
 
             return descriptions;

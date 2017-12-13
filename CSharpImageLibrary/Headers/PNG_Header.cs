@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UsefulThings;
+using UsefulDotNetThings;
 
 namespace CSharpImageLibrary.Headers
 {
@@ -49,11 +45,11 @@ namespace CSharpImageLibrary.Headers
             /// <param name="offset">Offset in data to begin header.</param>
             public PNGChunk(byte[] headerBlock, int offset = 8)
             {
-                Length = MyBitConverter.ToInt32(headerBlock, offset, MyBitConverter.Endianness.BigEndian);
-                ChunkType = MyBitConverter.ToInt32(headerBlock, offset + 4, MyBitConverter.Endianness.BigEndian);
+                Length = EndianBitConverter.ToInt32(headerBlock, offset, EndianBitConverter.Endianness.BigEndian);
+                ChunkType = EndianBitConverter.ToInt32(headerBlock, offset + 4, EndianBitConverter.Endianness.BigEndian);
                 ChunkData = new byte[Length];
                 Array.Copy(headerBlock, offset + 8, ChunkData, 0, Length);
-                CRC = MyBitConverter.ToInt32(headerBlock, offset + 8 + Length, MyBitConverter.Endianness.BigEndian);
+                CRC = EndianBitConverter.ToInt32(headerBlock, offset + 8 + Length, EndianBitConverter.Endianness.BigEndian);
             }
         }
 
@@ -151,8 +147,8 @@ namespace CSharpImageLibrary.Headers
                 throw new FormatException("Stream is not a PNG Image");
 
             PNGChunk header = new PNGChunk(temp);
-            Width = MyBitConverter.ToInt32(header.ChunkData, 0, MyBitConverter.Endianness.BigEndian);
-            Height = MyBitConverter.ToInt32(header.ChunkData, 4, MyBitConverter.Endianness.BigEndian);
+            Width = EndianBitConverter.ToInt32(header.ChunkData, 0, EndianBitConverter.Endianness.BigEndian);
+            Height = EndianBitConverter.ToInt32(header.ChunkData, 4, EndianBitConverter.Endianness.BigEndian);
             BitDepth = header.ChunkData[8];
             colourType = (ColourType)header.ChunkData[9];
             CompressionMethod = (CompressionMethods)header.ChunkData[10];

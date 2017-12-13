@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UsefulThings;
+using UsefulDotNetThings;
 
 namespace CSharpImageLibrary.Headers
 {

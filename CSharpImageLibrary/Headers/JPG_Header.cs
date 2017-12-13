@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UsefulDotNetThings;
 using UsefulThings;
 
 namespace CSharpImageLibrary.Headers
@@ -92,8 +93,8 @@ namespace CSharpImageLibrary.Headers
             Identifier = BitConverter.ToString(temp, 6, 5);
             Version = temp[11] + ".0" + temp[12];
             ResolutionUnits = (UnitsType)temp[13];
-            HorizontalResolution = MyBitConverter.ToInt16(temp, 14, MyBitConverter.Endianness.BigEndian);
-            VerticalResolution = MyBitConverter.ToInt16(temp, 16, MyBitConverter.Endianness.BigEndian);
+            HorizontalResolution = EndianBitConverter.ToInt16(temp, 14, EndianBitConverter.Endianness.BigEndian);
+            VerticalResolution = EndianBitConverter.ToInt16(temp, 16, EndianBitConverter.Endianness.BigEndian);
             XThumbnailPixelCount = temp[18];
             YThumbnailPixelCount = temp[19];
 

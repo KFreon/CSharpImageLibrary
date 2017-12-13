@@ -1,23 +1,18 @@
-﻿using CSharpImageLibrary;
-using CSharpImageLibrary.DDS;
-using CSharpImageLibrary.Headers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using UsefulThings;
+using CSharpImageLibrary;
+using CSharpImageLibrary.DDS;
+using UsefulDotNetThings;
 using UsefulThings.WPF;
-using static CSharpImageLibrary.Headers.DDS_Header;
-using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 using static CSharpImageLibrary.ImageFormats;
 
 namespace UI_Project
@@ -317,7 +312,7 @@ namespace UI_Project
                             SaveAttempted = true;
                             Busy = false;
                             SaveDuration = $"{operationElapsedTimer.ElapsedMilliseconds}ms";
-                            SavePath = UsefulThings.General.FindValidNewFileName(SavePath);  // Ensure save path is pointing to a new valid filepath
+                            SavePath = UsefulDotNetThings.General.IO.FindValidNewFileName(SavePath);  // Ensure save path is pointing to a new valid filepath
                         });
                     });
 
@@ -783,9 +778,9 @@ namespace UI_Project
                 if (LoadedImage?.FilePath == null)
                     name = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"ImageEngine_{SaveFormat.SurfaceFormat}.{SaveFormat.Extension}");
                 else
-                    name = $"{UsefulThings.General.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormat.Extension}";
+                    name = $"{UsefulDotNetThings.General.IO.GetFullPathWithoutExtension(LoadedImage.FilePath)}.{SaveFormat.Extension}";
 
-                return UsefulThings.General.FindValidNewFileName(name);
+                return UsefulDotNetThings.General.IO.FindValidNewFileName(name);
             }
         }
 
@@ -841,7 +836,7 @@ namespace UI_Project
             FixExtension();
 
             // Ensure SavePath doesn't already exist
-            SavePath = UsefulThings.General.FindValidNewFileName(SavePath);
+            SavePath = UsefulDotNetThings.General.IO.FindValidNewFileName(SavePath);
 
             // Regenerate save preview
             return changed && SavePanelOpen;
