@@ -5,32 +5,16 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ViewModels="using:UWP_UI_Project.ViewModels"
-    Style="{StaticResource PageStyle}"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance Type=ViewModels:MainViewModel, IsDesignTimeCreatable=True}">
     <Grid
+        Background="{ThemeResource SystemControlAcrylicWindowBrush}"
         x:Name="ContentArea"
         Margin="{StaticResource MediumLeftRightMargin}">
 
-        <Grid.RowDefinitions>
-            <RowDefinition x:Name="TitleRow" Height="48"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
 
-        <TextBlock
-            x:Name="TitlePage"
-            x:Uid="Main_Title"
-            Style="{StaticResource PageTitleStyle}" />
+        <Image Source="{x:Bind ViewModel.MainImage}">
 
-        <Grid
-            Grid.Row="1" 
-            Background="{ThemeResource SystemControlPageBackgroundChromeLowBrush}">
-
-            <Image Source="{x:Bind ViewModel.MainImage}">
-                
-            </Image>
-
-            <Button Click="Button_Click">Load</Button>
-        </Grid>
+        </Image>
     </Grid>
 </Page>

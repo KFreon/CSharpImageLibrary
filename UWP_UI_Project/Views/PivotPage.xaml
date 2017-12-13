@@ -8,10 +8,15 @@
     xmlns:views="using:UWP_UI_Project.Views"
     mc:Ignorable="d">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-        <Pivot x:Uid="PivotPage">
-            <PivotItem x:Uid="PivotItem_Main">
-                <Frame>
+    <Grid Background="{ThemeResource SystemControlAcrylicWindowBrush}">
+        <Pivot x:Uid="PivotPage" x:Name="ThePivot">
+            <PivotItem x:Uid="PivotItem_Start" Header="Start">
+                <Frame x:Name="StartPage">
+                    <views:StartPage/>
+                </Frame>
+            </PivotItem>
+            <PivotItem x:Uid="PivotItem_Main" x:Name="MainPage">
+                <Frame x:Name="MainPageFrame">
                     <views:MainPage/>
                 </Frame>
             </PivotItem>

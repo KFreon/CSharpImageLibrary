@@ -1,8 +1,7 @@
-﻿using System;
-
-using UWP_UI_Project.ViewModels;
-using Windows.Storage.Pickers;
+﻿using UWP_UI_Project.ViewModels;
+using Windows.Storage;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Navigation;
 
 namespace UWP_UI_Project.Views
 {
@@ -15,17 +14,12 @@ namespace UWP_UI_Project.Views
             InitializeComponent();
         }
 
-        private async void Button_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
-            FileOpenPicker picker = new FileOpenPicker();
-            picker.ViewMode = PickerViewMode.Thumbnail;
-            picker.SuggestedStartLocation = PickerLocationId.Desktop;
-            picker.FileTypeFilter.Add(".dds");
+            base.OnNavigatedTo(e);
 
-
-            var selectedFile = await picker.PickSingleFileAsync();
-            if (selectedFile != null)
-                ViewModel.Load(selectedFile);
+            var parameter = (StorageFile)e.Parameter;
+            await ViewModel.Load(parameter);
         }
     }
 }

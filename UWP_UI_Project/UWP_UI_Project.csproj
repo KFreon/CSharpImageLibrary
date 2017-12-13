@@ -171,6 +171,9 @@
     <Compile Include="Views\ShareTargetPage.xaml.cs">
       <DependentUpon>ShareTargetPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\StartPage.xaml.cs">
+      <DependentUpon>StartPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\UriSchemeExamplePage.xaml.cs">
       <DependentUpon>UriSchemeExamplePage.xaml</DependentUpon>
     </Compile>
@@ -237,6 +240,10 @@
     <Page Include="Views\ShareTargetPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\StartPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\UriSchemeExamplePage.xaml">
       <Generator>MSBuild:Compile</Generator>

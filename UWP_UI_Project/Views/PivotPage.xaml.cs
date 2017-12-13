@@ -1,7 +1,8 @@
 ﻿using System;
-
+using UWP_UI_Project.Services;
 using UWP_UI_Project.ViewModels;
-
+using Windows.Storage;
+using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 
@@ -19,6 +20,22 @@ namespace UWP_UI_Project.Views
             NavigationCacheMode = NavigationCacheMode.Required;
             DataContext = ViewModel;
             InitializeComponent();
+        }
+
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            if (e.Parameter is ValueTuple<Type, StorageFile>)
+            {
+                (Type pageType, StorageFile file) = (ValueTuple<Type, StorageFile>)e.Parameter;
+
+                if (pageType == typeof(MainPage))
+                    ThePivot.SelectedItem = MainPage;
+
+                var mainPage = (MainPage)MainPageFrame.Content;
+                await mainPage.ViewModel.Load(file);
+            }
         }
     }
 }
