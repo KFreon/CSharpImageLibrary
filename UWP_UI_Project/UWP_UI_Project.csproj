@@ -285,10 +285,10 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UsefulDotNetThings">
-      <HintPath>..\..\UsefulThings\UsefulThings\bin\Release\net471\UsefulDotNetThings.dll</HintPath>
+      <HintPath>..\..\Useful-C-Sharp-Collection\UsefulThings\bin\Debug\net471\UsefulDotNetThings.dll</HintPath>
     </Reference>
     <Reference Include="UsefulUWPThings">
-      <HintPath>..\..\UsefulThings\UsefulUWPThings\bin\Release\UsefulUWPThings.dll</HintPath>
+      <HintPath>..\..\Useful-C-Sharp-Collection\UsefulUWPThings\bin\Debug\UsefulUWPThings.dll</HintPath>
     </Reference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">

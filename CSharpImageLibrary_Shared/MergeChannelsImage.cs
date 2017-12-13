@@ -90,7 +90,7 @@ namespace CSharpImageLibrary
             FilePath = mainPath;
 
             var img = new IMG();
-            img.Initialise(mainPath);
+            //img.Initialise(mainPath);
             
             Width = img.Width;
             Height = img.Height;

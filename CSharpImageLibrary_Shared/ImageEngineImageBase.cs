@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using CSharpImageLibrary.DDS;
 using CSharpImageLibrary.Headers;
@@ -12,7 +11,7 @@ namespace CSharpImageLibrary
     /// <summary>
     /// Represents an image. Can use Windows codecs if available.
     /// </summary>
-    public abstract class ImageEngineImageBase<T> : IDisposable where T : MipMapBase, new()
+    public abstract class ImageEngineImageBase<T> where T : MipMapBase, new()
     {
         /// <summary>
         /// Original file data used to create this image.
@@ -67,13 +66,13 @@ namespace CSharpImageLibrary
         /// <summary>
         /// Contains details of the image format.
         /// </summary>
-        public ImageEngineFormatDetails FormatDetails { get; private set; }
+        public ImageEngineFormatDetails FormatDetails { get; protected set; }
 
         
         /// <summary>
         /// List of mipmaps. Single level images only have one mipmap.
         /// </summary>
-        public List<MipMapBase> MipMaps { get; private set; }
+        public List<MipMapBase> MipMaps { get; protected set; }
 
         /// <summary>
         /// Path to file. Null if no file e.g. thumbnail from memory.
@@ -130,115 +129,21 @@ namespace CSharpImageLibrary
         public SupportedExtensions FileExtension => FormatDetails.Extension;
         #endregion Properties
 
-
-        public ImageEngineImageBase()
-        {
-
-        }
-
-        /// <summary>
-        /// Creates an image supporting many formats including DDS.
-        /// </summary>
-        /// <param name="stream">Stream containing image.</param>
-        /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
-        public ImageEngineImageBase(MemoryStream stream, int maxDimension = 0)
-        {
-            Load(stream, maxDimension);
-        }
-
-
-        /// <summary>
-        /// Creates an image supporting many formats including DDS.
-        /// </summary>
-        /// <param name="path">Path to image.</param>
-        /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
-        public ImageEngineImageBase(string path, int maxDimension = 0) : this(File.ReadAllBytes(path), maxDimension)
-        {
-            FilePath = path;
-        }
-
-        /// <summary>
-        /// Creates an image supporting many formats including DDS.
-        /// </summary>
-        /// <param name="imageData">Fully formatted image data, not just pixels.</param>
-        /// <param name="maxDimension">Max dimension of created image. Useful for mipmapped images, otherwise resized.</param>
-        public ImageEngineImageBase(byte[] imageData, int maxDimension = 0)
-        {
-            using (MemoryStream ms = new MemoryStream(imageData, 0, imageData.Length, false, true))  // Need to be able to access underlying byte[] using <Stream>.GetBuffer()
-                Load(ms, maxDimension);
-        }
-
-        public abstract void Initialise(string path, int maxDimension = 0);
-
-        /// <summary>
-        /// Gets string representation of ImageEngineImage.
-        /// </summary>
-        /// <returns></returns>
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder();
-
-            sb.AppendLine($"File Path: {this.FilePath}");
-            sb.AppendLine($"Format: {this.Format.ToString()}");
-            sb.AppendLine($"Width x Height: {this.Width}x{this.Height}");
-            sb.AppendLine($"Num Mips: {this.NumMipMaps}");
-            sb.AppendLine($"Header: {this.Header.ToString()}");
-
-            return sb.ToString();
-        }
-
-        protected void Load(Stream stream, int maxDimension)
+        protected void LoadData(Stream stream)
         {
             CompressedSize = (int)stream.Length;
             Header = ImageEngine.LoadHeader(stream);
-
             FormatDetails = new ImageEngineFormatDetails(Header);
-            MipMaps = ImageEngine.LoadImage<T>(stream, Header, maxDimension, 0, FormatDetails);
-
-            // Read original data
-            OriginalData = new byte[CompressedSize];
-            stream.Position = 0;
-            stream.Read(OriginalData, 0, CompressedSize);
         }
 
         #region Savers
-        /// <summary>
-        /// Saves image in specified format to file. If file exists, it will be overwritten.
-        /// </summary>
-        /// <param name="destination">File to save to.</param>
-        /// <param name="destFormatDetails">Details of destination format.</param>
-        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
-        /// <param name="desiredMaxDimension">Maximum size for saved image. Resizes if required, but uses mipmaps if available.</param>
-        /// <param name="removeAlpha">True = Alpha removed. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
-        /// <param name="mipToSave">Index of mipmap to save as single image.</param>
-        public async Task Save(string destination, ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
-        {
-            var data = Save(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha);
+        public abstract Task Save(string destination, ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true);
 
-            using (FileStream fs = new FileStream(destination, FileMode.Create))
-                await fs.WriteAsync(data, 0, data.Length);
-        }
+        public abstract Task Save(Stream destination, ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true);
+        
+        public abstract Task<byte[]> Save(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true);
 
-
-        /// <summary>
-        /// Saves image in specified format to stream.
-        /// Stream position not reset before or after.
-        /// </summary>
-        /// <param name="destination">Stream to write to at current position.</param>
-        /// <param name="destFormatDetails">Details of destination format</param>
-        /// <param name="GenerateMips">Determines how mipmaps are handled during saving.</param>
-        /// <param name="desiredMaxDimension">Maximum dimension of saved image. Keeps aspect.</param>
-        /// <param name="mipToSave">Specifies a mipmap to save within the whole.</param>
-        /// <param name="removeAlpha">True = removes alpha. False = Uses threshold value and alpha values to mask RGB FOR DXT1 ONLY, otherwise removes completely.</param>
-        public void Save(Stream destination, ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true)
-        {
-            var data = Save(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, removeAlpha);
-            destination.Write(data, 0, data.Length);
-        }
-
-        public abstract byte[] Save(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension = 0, int mipToSave = 0, bool removeAlpha = true);
-
-        protected byte[] AttemptSaveUsingOriginalData(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension, int mipToSave, AlphaSettings alphaSetting)
+        protected async Task<byte[]> AttemptSaveUsingOriginalData(ImageEngineFormatDetails destFormatDetails, MipHandling GenerateMips, int desiredMaxDimension, int mipToSave, AlphaSettings alphaSetting)
         {
 
             // TODO This shouldb't be this complicated.
@@ -278,7 +183,7 @@ namespace CSharpImageLibrary
 
                     // If none found, do a proper save and see what happens.
                     if (index == -1)
-                        data = Save(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, alphaSetting == AlphaSettings.RemoveAlphaChannel);
+                        data = await Save(destFormatDetails, GenerateMips, desiredMaxDimension, mipToSave, alphaSetting == AlphaSettings.RemoveAlphaChannel);
 
                     mipCount -= index;
                     newWidth = MipMaps[index].Width;
@@ -394,14 +299,6 @@ namespace CSharpImageLibrary
             return data;
         }
         #endregion Savers
-
-        /// <summary>
-        /// Releases resources used by mipmap MemoryStreams.
-        /// </summary>
-        public void Dispose()
-        {
-            // Nothing for now I guess...
-        }
 
         /// <summary>
         /// Resizes image.

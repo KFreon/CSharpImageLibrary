@@ -10,7 +10,7 @@ namespace UWP_UI_Project.ViewModels
 {
     public class MainViewModel : Observable
     {
-        public BitmapImage MainImage { get; set; }
+        public BitmapImage MainImage { get; } = new BitmapImage();
 
         public MainViewModel()
         {
@@ -18,16 +18,8 @@ namespace UWP_UI_Project.ViewModels
 
         internal async void Load(StorageFile file)
         {
-            using (var image = new ImageEngineImage())
-            {
-                await image.Load(file);
-                MainImage = await image.ToBitmap();
-
-                St
-                BitmapEncoder encoder = BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, )
-
-                Console.WriteLine();
-            }
+            var image = await ImageEngineImage.CreateAsync(file);
+            await MainImage.SetSourceAsync(await image.ToBitmapStream());
         }
     }
 }

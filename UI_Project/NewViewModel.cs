@@ -809,12 +809,7 @@ namespace UI_Project
                 bool requiresUpdate = UpdateSaveFormat(value);
                 SetProperty(ref saveFormat, value);
 
-                if (value.IsDX10)
-                {
-                    savePreviewIMG.Dispose();
-                    SavePreview = null;
-                }
-                else if (requiresUpdate)
+                if (requiresUpdate)
                     UpdateSavePreview();
             }
         }
@@ -1021,7 +1016,7 @@ namespace UI_Project
             // Full image
             try
             {
-                LoadedImage = await Task.Run(() => new ImageEngineImage(data));
+                LoadedImage = await ImageEngineImage.CreateAsync(data);
                 //LoadedImage = await Task.Run(() => new ImageEngineImage(data, 1024));  // Testing
             }
             catch (Exception e)
@@ -1101,7 +1096,6 @@ namespace UI_Project
             previousAlphaSetting = AlphaDisplaySettings.PremultiplyAlpha;
             SavePanelOpen = false;
             SaveFormat = null;
-            savePreviewIMG?.Dispose();
 
             // Notify
             if (updateUI)
@@ -1190,7 +1184,7 @@ namespace UI_Project
 
             CloseImage(true);
 
-            LoadedImage = await Task.Run(() => ImageEngine.MergeChannels<ImageEngineImage, MipMap>(blue, green, red, alpha));
+            //LoadedImage = await Task.Run(() => ImageEngine.MergeChannels<ImageEngineImage, MipMap>(blue, green, red, alpha));
 
             LoadFailed = false;
             UpdateLoadedPreview(true);
@@ -1215,7 +1209,7 @@ namespace UI_Project
                 BulkStatus = $"Converting {BulkProgressValue}/{BulkProgressMax} images.";
             });
 
-            BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert<ImageEngineImage, MipMap>(BulkConvertFiles, SaveFormat, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
+            //BulkConvertFailed.AddRange(await Task.Run(() => ImageEngine.BulkConvert<ImageEngineImage, MipMap>(BulkConvertFiles, SaveFormat, UseSourceFormatForSaving, BulkSaveFolder, SaveMipType, BulkUseSourceDestination, GeneralRemovingAlpha, progressReporter)));
 
             BulkStatus = "Conversion complete! ";
             if (BulkConvertFailed.Count > 0)
@@ -1384,16 +1378,15 @@ namespace UI_Project
                     await Task.Run(() =>
                     {
                         // Save and reload to give accurate depiction of what it'll look like when saved.
-                        byte[] data = LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
+                        byte[] data = null;//LoadedImage.Save(SaveFormat, MipHandling.KeepTopOnly, removeAlpha: GeneralRemovingAlpha);
                         if (data == null)
                         {
                             SaveCompressedSize = -1;
-                            savePreviewIMG?.Dispose();
                             return;
                         }
 
                         SaveCompressedSize = data.Length;
-                        savePreviewIMG = new ImageEngineImage(data);
+                        //savePreviewIMG = new ImageEngineImage(data);
                     });
 
                 Trace.WriteLine($"Saving of {SaveFormat.SurfaceFormat} ({Width}x{Height}, No Mips) = {operationElapsedTimer.ElapsedMilliseconds}ms.");
