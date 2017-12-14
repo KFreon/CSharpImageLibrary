@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +74,8 @@ namespace CSharpImageLibrary
     /// </summary>
     public static class ImageEngine
     {
+        internal static int SIMDSize = Vector<int>.Count;
+        
         internal static CancellationTokenSource cts { get; set; } = new CancellationTokenSource();
 
         /// <summary>

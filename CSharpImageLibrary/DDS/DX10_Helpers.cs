@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,25 +32,31 @@ namespace CSharpImageLibrary.DDS
         #region Structs
         public struct LDRColour
         {
-            public int R;
-            public int G;
-            public int B;
-            public int A;
+            public Vector<int> Colours;
+            private int SIMDCount;
+
+            public int R => Colours[0];
+            public int G => Colours[1];
+            public int B => Colours[2];
+            public int A => Colours[3];
 
             public LDRColour(byte R, byte G, byte B, byte A)
             {
-                this.R = R;
-                this.B = B;
-                this.G = G;
-                this.A = A;
+                SIMDCount = Vector<int>.Count;
+                Colours = new Vector<int>(new[] { R, G, B, A, 0, 0, 0, 0 });
             }
 
             public LDRColour(float r, float g, float b, float a)
             {
-                R = (byte)(Clamp(r, 0f, 1f) * 255);
-                G = (byte)(Clamp(g, 0f, 1f) * 255);
-                B = (byte)(Clamp(b, 0f, 1f) * 255);
-                A = (byte)(Clamp(a, 0f, 1f) * 255);
+                SIMDCount = Vector<int>.Count;
+                Colours = new Vector<int>(new[]
+                {
+                    (int)(Clamp(r, 0f, 1f) * 255),
+                    (int)(Clamp(g, 0f, 1f) * 255),
+                    (int)(Clamp(b, 0f, 1f) * 255),
+                    (int)(Clamp(a, 0f, 1f) * 255),
+                    0,0,0,0
+                });
             }
 
             public override string ToString()
@@ -384,7 +391,7 @@ namespace CSharpImageLibrary.DDS
 
 
         #region Decompression Helpers
-        internal static int InterpolateA(LDRColour lDRColour1, LDRColour lDRColour2, int wa, int waPrec)
+        internal static LDRColour InterpolateA(LDRColour lDRColour1, LDRColour lDRColour2, int wa, int waPrec)
         {
             int[] weights = null;
             switch (waPrec)
@@ -399,9 +406,9 @@ namespace CSharpImageLibrary.DDS
                     weights = AWeights4;
                     break;
                 default:
-                    return 0;
+                    return new LDRColour(0,0,0,0);
             }
-            return (lDRColour1.A * (BC67_WEIGHT_MAX - weights[wa]) + lDRColour2.A * weights[wa] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+            return new LDRColour(0,0,0, (lDRColour1.A * (BC67_WEIGHT_MAX - weights[wa]) + lDRColour2.A * weights[wa] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT);
         }
 
         internal static LDRColour InterpolateRGB(LDRColour lDRColour1, LDRColour lDRColour2, int wc, int wcPrec)
@@ -422,9 +429,59 @@ namespace CSharpImageLibrary.DDS
                 default:
                     return temp;
             }
-            temp.R = (lDRColour1.R * (BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.R * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
-            temp.G = (lDRColour1.G * (BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.G * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
-            temp.B = (lDRColour1.B * (BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.B * weights[wc] + BC67_WEIGHT_ROUND) >> BC67_WEIGHT_SHIFT;
+            temp.Colours = lDRColour1.Colours * new Vector<int>(BC67_WEIGHT_MAX - weights[wc]) + lDRColour2.Colours * new Vector<int>(weights[wc]) + new Vector<int>(BC67_WEIGHT_ROUND);
+            temp.Colours = temp.Colours.ShiftRightAndZeroNonRGB(BC67_WEIGHT_SHIFT);
+            return temp;
+        }
+
+        internal static LDRColour InterpolateRGBA(LDRColour lDRColour1, LDRColour lDRColour2, int wc, int wcPrec, int alphaPrec)
+        {
+            LDRColour temp = new LDRColour();
+            int[] weights = null;
+            int[] aWeights = null;
+            switch (wcPrec)
+            {
+                case 2:
+                    weights = AWeights2;
+                    break;
+                case 3:
+                    weights = AWeights3;
+                    break;
+                case 4:
+                    weights = AWeights4;
+                    break;
+                default:
+                    return temp;
+            }
+
+            switch (alphaPrec)
+            {
+                case 2:
+                    aWeights = AWeights2;
+                    break;
+                case 3:
+                    aWeights = AWeights3;
+                    break;
+                case 4:
+                    aWeights = AWeights4;
+                    break;
+                default:
+                    return temp;
+            }
+            temp.Colours = lDRColour1.Colours * new Vector<int>(new[] {
+                BC67_WEIGHT_MAX - weights[wc],
+                BC67_WEIGHT_MAX - weights[wc],
+                BC67_WEIGHT_MAX - weights[wc],
+                BC67_WEIGHT_MAX - aWeights[wc],
+                0,0,0,0
+                }) + lDRColour2.Colours * new Vector<int>(new[] { 
+                    weights[wc],
+                    weights[wc],
+                    weights[wc],
+                    aWeights[wc],
+                    0,0,0,0
+                    }) + new Vector<int>(BC67_WEIGHT_ROUND);
+            temp.Colours = temp.Colours.ShiftRightAndZeroNonRGB(BC67_WEIGHT_SHIFT);
             return temp;
         }
 
@@ -441,13 +498,13 @@ namespace CSharpImageLibrary.DDS
 
         internal static LDRColour Unquantise(LDRColour colour, LDRColour rGBPrecisionWithP)
         {
-            LDRColour temp = new LDRColour()
-            {
-                R = Unquantise(colour.R, rGBPrecisionWithP.R),
-                G = Unquantise(colour.G, rGBPrecisionWithP.G),
-                B = Unquantise(colour.B, rGBPrecisionWithP.B),
-                A = rGBPrecisionWithP.A > 0 ? Unquantise(colour.A, rGBPrecisionWithP.A) : 255
-            };
+            LDRColour temp = new LDRColour
+            (
+                Unquantise(colour.R, rGBPrecisionWithP.R),
+                Unquantise(colour.G, rGBPrecisionWithP.G),
+                Unquantise(colour.B, rGBPrecisionWithP.B),
+                rGBPrecisionWithP.A > 0 ? Unquantise(colour.A, rGBPrecisionWithP.A) : 255
+            );
             return temp;
         }
 

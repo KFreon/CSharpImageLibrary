@@ -80,12 +80,12 @@ namespace CSharpImageLibrary.DDS
 
         internal static void CompressBC6Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
-            BC6.CompressBC6Block(imgData, sourcePosition, sourceLineLength, destination, destPosition);
+            //BC6.CompressBC6Block(imgData, sourcePosition, sourceLineLength, destination, destPosition);
         }
 
         internal static void CompressBC7Block(byte[] imgData, int sourcePosition, int sourceLineLength, byte[] destination, int destPosition, AlphaSettings alphaSetting, ImageFormats.ImageEngineFormatDetails formatDetails)
         {
-            BC7.CompressBC7Block(imgData, sourcePosition, sourceLineLength, destination, destPosition);
+            //BC7.CompressBC7Block(imgData, sourcePosition, sourceLineLength, destination, destPosition);
         }
         #endregion Compressed
 

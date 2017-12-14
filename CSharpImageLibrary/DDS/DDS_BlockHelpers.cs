@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static CSharpImageLibrary.DDS.DX10_Helpers;
@@ -23,14 +24,16 @@ namespace CSharpImageLibrary.DDS
         [DebuggerDisplay("R:{r}, G:{g}, B:{b}, A:{a}")]
         internal struct RGBColour
         {
-            public float r, g, b, a;
+            internal Vector<float> Colours;
+            public float r => Colours[0];
+            public float g => Colours[1];
+            public float b => Colours[2];
+            public float a => Colours[3];
+
 
             public RGBColour(float red, float green, float blue, float alpha)
             {
-                r = red;
-                g = green;
-                b = blue;
-                a = alpha;
+                Colours = new Vector<float>(new[] { red, green, blue, alpha, 0, 0, 0, 0 });
             }
 
             public override string ToString()
@@ -51,27 +54,31 @@ namespace CSharpImageLibrary.DDS
         static RGBColour Luminance = new RGBColour(0.2125f / 0.7154f, 1f, 0.0721f / 0.7154f, 1f);
         static RGBColour LuminanceInv = new RGBColour(0.7154f / 0.2125f, 1f, 0.7154f / 0.0721f, 1f);
 
+        static Vector<float> decodeAND = new Vector<float>(new float[] { 0x1F, 0x3F, 0x1F, 0,0,0,0,0 });
+        static Vector<float> decodeDivide = new Vector<float>(new float[] { 31f, 63f, 31f, 0,0,0,0,0 });
+
         static RGBColour Decode565(uint wColour)
         {
-            RGBColour colour = new RGBColour()
+            var test = new Vector<float>(new float[] { wColour >> 11, wColour >> 5, wColour, 1, 0, 0, 0, 0 });
+            test = Vector.ConditionalSelect(decodeAND, test, Vector<float>.Zero);
+            test /= decodeDivide;
+
+            RGBColour colour = new RGBColour
             {
-                r = ((wColour >> 11) & 0x1F) / 31f,
-                g = ((wColour >> 5) & 0x3F) / 63f,
-                b = ((wColour >> 0) & 0x1F) / 31f,
-                a = 1f
+                Colours = test
             };
             return colour;
         }
 
         static uint Encode565(RGBColour colour)
         {
-            RGBColour temp = new RGBColour()
-            {
-                r = (colour.r < 0f) ? 0f : (colour.r > 1f) ? 1f : colour.r,
-                g = (colour.g < 0f) ? 0f : (colour.g > 1f) ? 1f : colour.g,
-                b = (colour.b < 0f) ? 0f : (colour.b > 1f) ? 1f : colour.b
-            };
-            return (uint)(temp.r * 31f + 0.5f) << 11 | (uint)(temp.g * 63f + 0.5f) << 5 | (uint)(temp.b * 31f + 0.5f);
+            var colours = Vector.LessThan(colour.Colours, Vector<float>.Zero);
+            colours = Vector.GreaterThan(colours, Vector<int>.One);
+            var temp = Vector.ConditionalSelect(colours, colour.Colours, Vector<float>.Zero);
+            temp = temp * decodeDivide + new Vector<float>(0.5f);
+
+
+            return (uint)temp[0] << 11 | (uint)temp[1] << 5 | (uint)temp[2];
         }
 
 
@@ -79,117 +86,120 @@ namespace CSharpImageLibrary.DDS
         {
             // Pull out rgb from texel
             // Create current pixel colour
-            RGBColour current = new RGBColour();
 
             // Check that texel is big enough
             if (i + 3 >= texel.Length)
-                return current;  // Fully transparent colour
+                return new RGBColour();  // Fully transparent colour
 
 
-            current.a = formatDetails.ReadFloat(texel, i + 3 * formatDetails.ComponentSize);
-            current.r = formatDetails.ReadFloat(texel, i + 2 * formatDetails.ComponentSize) * (premultiply ? current.a : 1.0f);
-            current.g = formatDetails.ReadFloat(texel, i + formatDetails.ComponentSize) * (premultiply ? current.a : 1.0f);
-            current.b = formatDetails.ReadFloat(texel, i) * (premultiply ? current.a : 1.0f);
+            var a = formatDetails.ReadFloat(texel, i + 3 * formatDetails.ComponentSize);
+            var r = formatDetails.ReadFloat(texel, i + 2 * formatDetails.ComponentSize) * (premultiply ? a : 1.0f);
+            var g = formatDetails.ReadFloat(texel, i + formatDetails.ComponentSize) * (premultiply ? a : 1.0f);
+            var b = formatDetails.ReadFloat(texel, i) * (premultiply ? a : 1.0f);
             
-            return current;
+            return new RGBColour(r, g, b, a);
         }
 
-        internal static RGBColour[] OptimiseRGB(RGBColour[] Colour, int uSteps)
+
+        private static Vector<float> GetfDirRGB(RGBColour Dir, RGBColour Mid, int loopCount, Func<int, RGBColour> currentGetter)
+        {
+            Vector<float> fDir = new Vector<float>();
+            for (int i = 0; i < loopCount; i++)
+            {
+                var current = currentGetter(i);
+                RGBColour pt = new RGBColour()
+                {
+                    Colours = Dir.Colours * (current.Colours - Mid.Colours)
+                };
+
+                var ptr = new Vector<float>(pt.r);
+                var ptg = new Vector<float>(new[] { pt.g, pt.g, -pt.g, -pt.g, 0, 0, 0, 0 });
+                var ptb = new Vector<float>(new[] { pt.b, -pt.b, pt.b, -pt.b, 0, 0, 0, 0 });
+
+                var f = ptr + ptg + ptb;
+                fDir += f * f;
+            }
+
+            return fDir;
+        }
+
+        private static Vector<float> GetfDirWithA(RGBColour Dir, RGBColour Mid, int loopCount, Func<int, RGBColour> currentGetter)
+        {
+            Vector<float> fDir = new Vector<float>();
+            for (int i = 0; i < loopCount; i++)
+            {
+                var current = currentGetter(i);
+                RGBColour pt = new RGBColour()
+                {
+                    Colours = Dir.Colours * (current.Colours - Mid.Colours)
+                };
+
+                var ptr = new Vector<float>(pt.r);
+                var ptg = new Vector<float>(new[] { pt.g, pt.g, pt.g, pt.g, -pt.g, -pt.g, -pt.g, -pt.g});
+                var ptb = new Vector<float>(new[] { pt.b, pt.b, -pt.b, -pt.b, pt.b, pt.b, -pt.b, -pt.b });
+                var pta = new Vector<float>(new[] { pt.a, -pt.a, pt.a, -pt.a, pt.a, -pt.a, pt.a, -pt.a });
+
+                var f = ptr + ptg + ptb + pta;
+                fDir += f * f;
+            }
+
+            return fDir;
+        }
+
+        internal static RGBColour[] OptimiseGeneral(int uSteps, int loopCount, Func<int, RGBColour> currentGetter, bool useLuminance, bool useAlpha)
         {
             float[] pC = uSteps == 3 ? pC3 : pC4;
             float[] pD = uSteps == 3 ? pD3 : pD4;
 
+
+            // Need to wonder if RGB version has alpha, since the dot product in particular affects all elements.
+
             // Find min max
-            RGBColour X = Luminance;
+            RGBColour X = useLuminance ? (useAlpha ? Luminance : new RGBColour(Luminance.r, Luminance.g, Luminance.b, 0)) : new RGBColour(1,1,1, useAlpha ? 1 : 0);
             RGBColour Y = new RGBColour();
 
-            for (int i = 0; i < Colour.Length; i++)
+            for (int i = 0; i < loopCount; i++)
             {
-                RGBColour current = Colour[i];
-
+                var current = currentGetter(i);
                 // X = min, Y = max
-                if (current.r < X.r)
-                    X.r = current.r;
-
-                if (current.g < X.g)
-                    X.g = current.g;
-
-                if (current.b < X.b)
-                    X.b = current.b;
-
-
-                if (current.r > Y.r)
-                    Y.r = current.r;
-
-                if (current.g > Y.g)
-                    Y.g = current.g;
-
-                if (current.b > Y.b)
-                    Y.b = current.b;
+                X.Colours = Vector.Min(X.Colours, current.Colours);
+                Y.Colours = Vector.Max(Y.Colours, current.Colours);
             }
 
             // Diagonal axis - starts with difference between min and max
             RGBColour diag = new RGBColour()
             {
-                r = Y.r - X.r,
-                g = Y.g - X.g,
-                b = Y.b - X.b
+                Colours = Y.Colours - X.Colours
             };
-            float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b;
-            if (fDiag < 1.175494351e-38F)
+
+            float fDiag = 0;
+            if (useAlpha)
+                fDiag = Vector.Dot(diag.Colours, diag.Colours);
+            else
             {
-                RGBColour min1 = new RGBColour()
-                {
-                    r = X.r,
-                    g = X.g,
-                    b = X.b
-                };
-                RGBColour max1 = new RGBColour()
-                {
-                    r = Y.r,
-                    g = Y.g,
-                    b = Y.b
-                };
-                return new RGBColour[] { min1, max1 };
+                var temp = new Vector<float>(new[] { diag.r, diag.g, diag.b, 0, 0, 0, 0, 0 });
+                fDiag = Vector.Dot(temp, temp);
             }
+
+            if (fDiag < 1.175494351e-38F)
+                return new RGBColour[] { X, Y };
 
             float FdiagInv = 1f / fDiag;
 
             RGBColour Dir = new RGBColour()
             {
-                r = diag.r * FdiagInv,
-                g = diag.g * FdiagInv,
-                b = diag.b * FdiagInv
+                Colours = diag.Colours * new Vector<float>(FdiagInv)
             };
             RGBColour Mid = new RGBColour()
             {
-                r = (X.r + Y.r) * .5f,
-                g = (X.g + Y.g) * .5f,
-                b = (X.b + Y.b) * .5f
+                Colours = (X.Colours + Y.Colours) * new Vector<float>(0.5f)
             };
-            float[] fDir = new float[4];
 
-            for (int i = 0; i < Colour.Length; i++)
-            {
-                RGBColour pt = new RGBColour()
-                {
-                    r = Dir.r * (Colour[i].r - Mid.r),
-                    g = Dir.g * (Colour[i].g - Mid.g),
-                    b = Dir.b * (Colour[i].b - Mid.b)
-                };
-                float f = 0;
-                f = pt.r + pt.g + pt.b;
-                fDir[0] += f * f;
-
-                f = pt.r + pt.g - pt.b;
-                fDir[1] += f * f;
-
-                f = pt.r - pt.g + pt.b;
-                fDir[2] += f * f;
-
-                f = pt.r - pt.g - pt.b;
-                fDir[3] += f * f;
-            }
+            var fDir = new Vector<float>();
+            if (useAlpha)
+                fDir = GetfDirRGB(Dir, Mid, loopCount, currentGetter);
+            else
+                fDir = GetfDirWithA(Dir, Mid, loopCount, currentGetter);
 
             float fDirMax = fDir[0];
             int iDirMax = 0;
@@ -205,62 +215,54 @@ namespace CSharpImageLibrary.DDS
             if ((iDirMax & 2) != 0)
             {
                 float f = X.g;
-                X.g = Y.g;
-                Y.g = f;
+                X.Colours = new Vector<float>(new[] { X.r, Y.g, X.b, X.a, 0, 0, 0, 0 });
+                Y.Colours = new Vector<float>(new[] { Y.r, f, Y.b, Y.a, 0, 0, 0, 0 });
             }
 
             if ((iDirMax & 1) != 0)
             {
                 float f = X.b;
-                X.b = Y.b;
-                Y.b = f;
+                X.Colours = new Vector<float>(new[] { X.r, X.g, Y.b, X.a, 0, 0, 0, 0 });
+                Y.Colours = new Vector<float>(new[] { Y.r, Y.g, f, Y.a, 0, 0, 0, 0 });
+            }
+
+            if (useAlpha && (iDirMax & 1) != 0)
+            {
+                float f = X.a;
+                X.Colours = new Vector<float>(new[] { X.r, X.g, X.b, Y.a, 0, 0, 0, 0 });
+                Y.Colours = new Vector<float>(new[] { Y.r, Y.g, Y.b, f, 0, 0, 0, 0 });
             }
 
             if (fDiag < 1f / 4096f)
-            {
-                RGBColour min1 = new RGBColour()
-                {
-                    r = X.r,
-                    g = X.g,
-                    b = X.b
-                };
-                RGBColour max1 = new RGBColour()
-                {
-                    r = Y.r,
-                    g = Y.g,
-                    b = Y.b
-                };
-                return new RGBColour[] { min1, max1 };
-            }
+                return new RGBColour[] { X, Y };
 
             // newtons method for local min of sum of squares error.
             float fsteps = uSteps - 1;
             for (int iteration = 0; iteration < 8; iteration++)
             {
-                RGBColour[] pSteps = new RGBColour[4];
+                RGBColour[] pSteps = new RGBColour[uSteps];
 
                 for (int iStep = 0; iStep < uSteps; iStep++)
-                {
-                    pSteps[iStep].r = X.r * pC[iStep] + Y.r * pD[iStep];
-                    pSteps[iStep].g = X.g * pC[iStep] + Y.g * pD[iStep];
-                    pSteps[iStep].b = X.b * pC[iStep] + Y.b * pD[iStep];
-                }
+                    pSteps[iStep].Colours = X.Colours * new Vector<float>(pC[iStep]) + Y.Colours * new Vector<float>(pD[iStep]);
 
 
                 // colour direction
-                Dir.r = Y.r - X.r;
-                Dir.g = Y.g - X.g;
-                Dir.b = Y.b - X.b;
+                Dir.Colours = Y.Colours - X.Colours;
 
-                float fLen = Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b;
+                float fLen = 0;
+                if (useAlpha)
+                    fLen = Vector.Dot(Dir.Colours, Dir.Colours);
+                else
+                {
+                    var temp = new Vector<float>(new[] { Dir.r, Dir.g, Dir.b, 0, 0, 0, 0, 0 });
+                    fLen = Vector.Dot(temp, temp);
+                }
 
                 if (fLen < (1f / 4096f))
                     break;
 
                 float fScale = fsteps / fLen;
-                Dir.r *= fScale;
-                Dir.g *= fScale;
-                Dir.b *= fScale;
+                Dir.Colours *= new Vector<float>(fScale);
 
                 // Evaluate function and derivatives
                 float d2X = 0, d2Y = 0;
@@ -268,11 +270,12 @@ namespace CSharpImageLibrary.DDS
                 dX = new RGBColour();
                 dY = new RGBColour();
 
-                for (int i = 0; i < Colour.Length; i++)
+                for (int i = 0; i < loopCount; i++)
                 {
-                    RGBColour current = Colour[i];
+                    RGBColour current = currentGetter(i);
 
-                    float fDot = (current.r - X.r) * Dir.r + (current.g - X.g) * Dir.g + (current.b - X.b) * Dir.b;
+                    var temp = (current.Colours - X.Colours) * Dir.Colours;
+                    float fDot = temp[0] + temp[1] + temp[2] + (useAlpha ? temp[3] : 0);
 
                     int iStep = 0;
                     if (fDot <= 0)
@@ -284,525 +287,57 @@ namespace CSharpImageLibrary.DDS
 
                     RGBColour diff = new RGBColour()
                     {
-                        r = pSteps[iStep].r - current.r,
-                        g = pSteps[iStep].g - current.g,
-                        b = pSteps[iStep].b - current.b
+                        Colours = pSteps[iStep].Colours - current.Colours
                     };
                     float fC = pC[iStep] * 1f / 8f;
                     float fD = pD[iStep] * 1f / 8f;
 
                     d2X += fC * pC[iStep];
-                    dX.r += fC * diff.r;
-                    dX.g += fC * diff.g;
-                    dX.b += fC * diff.b;
+                    dX.Colours += new Vector<float>(fC) * diff.Colours;
 
                     d2Y += fD * pD[iStep];
-                    dY.r += fD * diff.r;
-                    dY.g += fD * diff.g;
-                    dY.b += fD * diff.b;
+                    dY.Colours += new Vector<float>(fD) * diff.Colours;
                 }
 
                 // Move endpoints
                 if (d2X > 0f)
                 {
                     float f = -1f / d2X;
-                    X.r += dX.r * f;
-                    X.g += dX.g * f;
-                    X.b += dX.b * f;
+                    X.Colours += dX.Colours * new Vector<float>(f);
                 }
 
                 if (d2Y > 0f)
                 {
                     float f = -1f / d2Y;
-                    Y.r += dY.r * f;
-                    Y.g += dY.g * f;
-                    Y.b += dY.b * f;
+                    Y.Colours += dY.Colours * new Vector<float>(f);
                 }
 
                 float fEpsilon = (0.25f / 64.0f) * (0.25f / 64.0f);
-                if ((dX.r * dX.r < fEpsilon) && (dX.g * dX.g < fEpsilon) && (dX.b * dX.b < fEpsilon) &&
-                    (dY.r * dY.r < fEpsilon) && (dY.g * dY.g < fEpsilon) && (dY.b * dY.b < fEpsilon))
-                {
+                var dx2 = dX.Colours * dX.Colours;
+                var dy2 = dY.Colours * dY.Colours;
+                var both = new Vector<float>(new[] { dx2[0], dx2[1], dx2[2], fEpsilon, dy2[0], dy2[1], dy2[2], fEpsilon });
+                if (Vector.LessThanAll(both, new Vector<float>(fEpsilon)))
                     break;
-                }
-            }
-
-            RGBColour min = new RGBColour()
-            {
-                r = X.r,
-                g = X.g,
-                b = X.b
-            };
-            RGBColour max = new RGBColour()
-            {
-                r = Y.r,
-                g = Y.g,
-                b = Y.b
-            };
-            return new RGBColour[] { min, max };
-        }
-
-
-        internal static RGBColour[] OptimiseRGB_BC67(RGBColour[] Colour, int uSteps, int np, int[] pixelIndicies)
-        {
-            float[] pC = uSteps == 3 ? pC3 : pC4;
-            float[] pD = uSteps == 3 ? pD3 : pD4;
-
-            // Find min max
-            RGBColour X = new RGBColour(1f, 1f, 1f, 0f);
-            RGBColour Y = new RGBColour(0f, 0f, 0f, 0f);
-
-            for (int i = 0; i < np; i++)
-            {
-                RGBColour current = Colour[pixelIndicies[i]];
-
-                // X = min, Y = max
-                if (current.r < X.r)
-                    X.r = current.r;
-
-                if (current.g < X.g)
-                    X.g = current.g;
-
-                if (current.b < X.b)
-                    X.b = current.b;
-
-
-                if (current.r > Y.r)
-                    Y.r = current.r;
-
-                if (current.g > Y.g)
-                    Y.g = current.g;
-
-                if (current.b > Y.b)
-                    Y.b = current.b;
-            }
-
-
-            // Diagonal axis - starts with difference between min and max
-            RGBColour diag = new RGBColour()
-            {
-                r = Y.r - X.r,
-                g = Y.g - X.g,
-                b = Y.b - X.b
-            };
-            float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b;
-            if (fDiag < 1.175494351e-38F)
-                return new RGBColour[] { X, Y };
-
-            float FdiagInv = 1f / fDiag;
-
-            RGBColour Dir = new RGBColour()
-            {
-                r = diag.r * FdiagInv,
-                g = diag.g * FdiagInv,
-                b = diag.b * FdiagInv
-            };
-
-            RGBColour Mid = new RGBColour()
-            {
-                r = (X.r + Y.r) * 0.5f,
-                g = (X.g + Y.g) * 0.5f,
-                b = (X.b + Y.b) * 0.5f
-            };
-            float[] fDir = new float[4];
-
-            for (int i = 0; i < np; i++)
-            {
-                var current = Colour[pixelIndicies[i]];
-
-                RGBColour pt = new RGBColour()
-                {
-                    r = Dir.r * (current.r - Mid.r),
-                    g = Dir.g * (current.g - Mid.g),
-                    b = Dir.b * (current.b - Mid.b)
-                };
-                float f = 0;
-                f = pt.r + pt.g + pt.b;
-                fDir[0] += f * f;
-
-                f = pt.r + pt.g - pt.b;
-                fDir[1] += f * f;
-
-                f = pt.r - pt.g + pt.b;
-                fDir[2] += f * f;
-
-                f = pt.r - pt.g - pt.b;
-                fDir[3] += f * f;
-            }
-
-            float fDirMax = fDir[0];
-            int iDirMax = 0;
-            for (int iDir = 1; iDir < 4; iDir++)
-            {
-                if (fDir[iDir] > fDirMax)
-                {
-                    fDirMax = fDir[iDir];
-                    iDirMax = iDir;
-                }
-            }
-
-            if ((iDirMax & 2) != 0)
-            {
-                float f = X.g;
-                X.g = Y.g;
-                Y.g = f;
-            }
-
-            if ((iDirMax & 1) != 0)
-            {
-                float f = X.b;
-                X.b = Y.b;
-                Y.b = f;
-            }
-
-            if (fDiag < 1f / 4096f)
-                return new RGBColour[] { X, Y };
-
-            // newtons method for local min of sum of squares error.
-            float fsteps = uSteps - 1;
-            for (int iteration = 0; iteration < 8; iteration++)
-            {
-                RGBColour[] pSteps = new RGBColour[4];
-
-                for (int iStep = 0; iStep < uSteps; iStep++)
-                {
-                    pSteps[iStep].r = X.r * pC[iStep] + Y.r * pD[iStep];
-                    pSteps[iStep].g = X.g * pC[iStep] + Y.g * pD[iStep];
-                    pSteps[iStep].b = X.b * pC[iStep] + Y.b * pD[iStep];
-                }
-
-
-                // colour direction
-                Dir.r = Y.r - X.r;
-                Dir.g = Y.g - X.g;
-                Dir.b = Y.b - X.b;
-
-                float fLen = Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b;
-
-                if (fLen < (1f / 4096f))
-                    break;
-
-                float fScale = fsteps / fLen;
-                Dir.r *= fScale;
-                Dir.g *= fScale;
-                Dir.b *= fScale;
-
-                // Evaluate function and derivatives
-                float d2X = 0, d2Y = 0;
-                RGBColour dX, dY;
-                dX = new RGBColour();
-                dY = new RGBColour();
-
-                for (int i = 0; i < np; i++)
-                {
-                    RGBColour current = Colour[pixelIndicies[i]];
-
-                    float fDot = 
-                        (current.r - X.r) * Dir.r + 
-                        (current.g - X.g) * Dir.g + 
-                        (current.b - X.b) * Dir.b;
-
-
-                    int iStep = 0;
-                    if (fDot <= 0f)
-                        iStep = 0;
-
-                    if (fDot >= fsteps)
-                        iStep = uSteps - 1;
-                    else
-                        iStep = (int)(fDot + .5f);
-
-
-                    RGBColour diff = new RGBColour()
-                    {
-                        r = pSteps[iStep].r - current.r,
-                        g = pSteps[iStep].g - current.g,
-                        b = pSteps[iStep].b - current.b
-                    };
-
-
-                    float fC = pC[iStep] * (1f / 8f);
-                    float fD = pD[iStep] * (1f / 8f);
-
-                    d2X += fC * pC[iStep];
-                    dX.r += fC * diff.r;
-                    dX.g += fC * diff.g;
-                    dX.b += fC * diff.b;
-
-                    d2Y += fD * pD[iStep];
-                    dY.r += fD * diff.r;
-                    dY.g += fD * diff.g;
-                    dY.b += fD * diff.b;
-                }
-
-                // Move endpoints
-                if (d2X > 0f)
-                {
-                    float f = -1f / d2X;
-                    X.r += dX.r * f;
-                    X.g += dX.g * f;
-                    X.b += dX.b * f;
-                }
-
-                if (d2Y > 0f)
-                {
-                    float f = -1f / d2Y;
-                    Y.r += dY.r * f;
-                    Y.g += dY.g * f;
-                    Y.b += dY.b * f;
-                }
-
-                float fEpsilon = (0.25f / 64.0f) * (0.25f / 64.0f);
-                if ((dX.r * dX.r < fEpsilon) && (dX.g * dX.g < fEpsilon) && (dX.b * dX.b < fEpsilon) &&
-                    (dY.r * dY.r < fEpsilon) && (dY.g * dY.g < fEpsilon) && (dY.b * dY.b < fEpsilon))
-                {
-                    break;
-                }
             }
 
             return new RGBColour[] { X, Y };
+        }
+
+        internal static RGBColour[] OptimiseRGB(RGBColour[] Colour, int uSteps)
+        {
+            return OptimiseGeneral(uSteps, Colour.Length, i => Colour[i], true, false);
+        }
+
+        internal static RGBColour[] OptimiseRGB_BC67(RGBColour[] Colour, int uSteps, int np, int[] pixelIndicies)
+        {
+            return OptimiseGeneral(uSteps, np, i => Colour[pixelIndicies[i]], false, false);
         }
 
 
         internal static RGBColour[] OptimiseRGBA_BC67(RGBColour[] Colour, int uSteps, int np, int[] pixelIndicies)
         {
-            float[] pC = uSteps == 3 ? pC3 : pC4;
-            float[] pD = uSteps == 3 ? pD3 : pD4;
-
-            // Find min max
-            RGBColour X = new RGBColour(1f, 1f, 1f, 1f);
-            RGBColour Y = new RGBColour();
-
-            for (int i = 0; i < np; i++)
-            {
-                RGBColour current = Colour[pixelIndicies[i]];
-
-                // X = min, Y = max
-                if (current.r < X.r)
-                    X.r = current.r;
-
-                if (current.g < X.g)
-                    X.g = current.g;
-
-                if (current.b < X.b)
-                    X.b = current.b;
-
-                if (current.a < X.a)
-                    X.a = current.a;
-
-
-                if (current.r > Y.r)
-                    Y.r = current.r;
-
-                if (current.g > Y.g)
-                    Y.g = current.g;
-
-                if (current.b > Y.b)
-                    Y.b = current.b;
-
-                if (current.a > Y.a)
-                    Y.a = current.a;
-            }
-
-            // Diagonal axis - starts with difference between min and max
-            RGBColour diag = new RGBColour()
-            {
-                r = Y.r - X.r,
-                g = Y.g - X.g,
-                b = Y.b - X.b,
-                a = Y.a - X.a
-            };
-            float fDiag = diag.r * diag.r + diag.g * diag.g + diag.b * diag.b + diag.a * diag.a;
-            if (fDiag < 1.175494351e-38F)
-                return new RGBColour[] { X, Y };
-
-            float FdiagInv = 1f / fDiag;
-
-            RGBColour Dir = new RGBColour()
-            {
-                r = diag.r * FdiagInv,
-                g = diag.g * FdiagInv,
-                b = diag.b * FdiagInv,
-                a = diag.a * FdiagInv
-            };
-            RGBColour Mid = new RGBColour()
-            {
-                r = (X.r + Y.r) * 0.5f,
-                g = (X.g + Y.g) * 0.5f,
-                b = (X.b + Y.b) * 0.5f,
-                a = (X.a + Y.a) * 0.5f
-            };
-            float[] fDir = new float[8];
-
-            for (int i = 0; i < np; i++)
-            {
-                var current = Colour[pixelIndicies[i]];
-
-                RGBColour pt = new RGBColour()
-                {
-                    r = Dir.r * (current.r - Mid.r),
-                    g = Dir.g * (current.g - Mid.g),
-                    b = Dir.b * (current.b - Mid.b),
-                    a = Dir.a * (current.a - Mid.a)
-                };
-                float f = 0;
-                f = pt.r + pt.g + pt.b + pt.a;   fDir[0] += f * f;
-                f = pt.r + pt.g + pt.b - pt.a;   fDir[1] += f * f;
-                f = pt.r + pt.g - pt.b + pt.a;   fDir[2] += f * f;
-                f = pt.r + pt.g - pt.b - pt.a;   fDir[3] += f * f;
-                f = pt.r - pt.g + pt.b + pt.a;   fDir[4] += f * f;
-                f = pt.r - pt.g + pt.b - pt.a;   fDir[5] += f * f;
-                f = pt.r - pt.g - pt.b + pt.a;   fDir[6] += f * f;
-                f = pt.r - pt.g - pt.b - pt.a;   fDir[7] += f * f;
-            }
-
-            float fDirMax = fDir[0];
-            int iDirMax = 0;
-            for (int iDir = 1; iDir < 8; iDir++)
-            {
-                if (fDir[iDir] > fDirMax)
-                {
-                    fDirMax = fDir[iDir];
-                    iDirMax = iDir;
-                }
-            }
-
-            if ((iDirMax & 4) != 0)
-            {
-                float f = X.g;
-                X.g = Y.g;
-                Y.g = f;
-            }
-
-            if ((iDirMax & 2) != 0)
-            {
-                float f = X.b;
-                X.b = Y.b;
-                Y.b = f;
-            }
-
-            if ((iDirMax & 1) != 0)
-            {
-                float f = X.a;
-                X.a = Y.a;
-                Y.a = f;
-            }
-
-            if (fDiag < 1f / 4096f)
-                return new RGBColour[] { X, Y };
-
-
-            // newtons method for local min of sum of squares error.
-            float fsteps = uSteps - 1;
-            float err = float.MaxValue;
-            for (int iteration = 0; iteration < 8 && err > 0f; iteration++)
-            {
-                RGBColour[] pSteps = new RGBColour[BC7_MAX_INDICIES];
-
-                for (int iStep = 0; iStep < uSteps; iStep++)
-                {
-                    pSteps[iStep].r = X.r * pC[iStep] + Y.r * pD[iStep];
-                    pSteps[iStep].g = X.g * pC[iStep] + Y.g * pD[iStep];
-                    pSteps[iStep].b = X.b * pC[iStep] + Y.b * pD[iStep];
-                    pSteps[iStep].a = X.a * pC[iStep] + Y.a * pD[iStep];
-                }
-
-
-                // colour direction
-                Dir.r = Y.r - X.r;
-                Dir.g = Y.g - X.g;
-                Dir.b = Y.b - X.b;
-                Dir.a = Y.a - X.a;
-
-                float fLen = Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b + Dir.a * Dir.a;
-
-                if (fLen < (1f / 4096f))
-                    break;
-
-                float fScale = fsteps / fLen;
-                Dir.r *= fScale;
-                Dir.g *= fScale;
-                Dir.b *= fScale;
-                Dir.a *= fScale;
-
-                // Evaluate function and derivatives
-                float d2X = 0, d2Y = 0;
-                RGBColour dX, dY;
-                dX = new RGBColour();
-                dY = new RGBColour();
-
-                for (int i = 0; i < np; i++)
-                {
-                    RGBColour current = Colour[pixelIndicies[i]];
-
-                    float fDot =
-                        (current.r - X.r) * Dir.r +
-                        (current.g - X.g) * Dir.g +
-                        (current.b - X.b) * Dir.b +
-                        (current.a - X.a) * Dir.a;
-
-                    int iStep = 0;
-                    if (fDot <= 0f)
-                        iStep = 0;
-                    else if (fDot >= fsteps)
-                        iStep = uSteps - 1;
-                    else
-                        iStep = (int)(fDot + .5f);
-
-                    RGBColour diff = new RGBColour()
-                    {
-                        r = pSteps[iStep].r - current.r,
-                        g = pSteps[iStep].g - current.g,
-                        b = pSteps[iStep].b - current.b,
-                        a = pSteps[iStep].a - current.a
-                    };
-                    float fC = pC[iStep] * 1f / 8f;
-                    float fD = pD[iStep] * 1f / 8f;
-
-                    d2X += fC * pC[iStep];
-                    dX.r += fC * diff.r;
-                    dX.g += fC * diff.g;
-                    dX.b += fC * diff.b;
-                    dX.a += fC * diff.a;
-
-                    d2Y += fD * pD[iStep];
-                    dY.r += fD * diff.r;
-                    dY.g += fD * diff.g;
-                    dY.b += fD * diff.b;
-                    dY.a += fD * diff.a;
-                }
-
-                // Move endpoints
-                if (d2X > 0f)
-                {
-                    float f = -1f / d2X;
-                    X.r += dX.r * f;
-                    X.g += dX.g * f;
-                    X.b += dX.b * f;
-                    X.a += dX.a * f;
-                }
-
-                if (d2Y > 0f)
-                {
-                    float f = -1f / d2Y;
-                    Y.r += dY.r * f;
-                    Y.g += dY.g * f;
-                    Y.b += dY.b * f;
-                    Y.a += dY.a * f;
-                }
-
-                float fEpsilon = (0.25f / 64.0f) * (0.25f / 64.0f);
-                if ((dX.r * dX.r < fEpsilon) && (dX.g * dX.g < fEpsilon) && (dX.b * dX.b < fEpsilon) && (dX.a * dX.a < fEpsilon) &&
-                    (dY.r * dY.r < fEpsilon) && (dY.g * dY.g < fEpsilon) && (dY.b * dY.b < fEpsilon) && (dY.a * dY.a < fEpsilon))
-                {
-                    break;
-                }
-            }
-
-            return new RGBColour[] { X, Y };
+            return OptimiseGeneral(uSteps, np, i => Colour[pixelIndicies[i]], false, true);
         }
-
-
 
         static int CheckDXT1TexelFullTransparency(RGBColour[] texel, byte[] destination, int destPosition, double alphaRef)
         {
@@ -834,31 +369,30 @@ namespace CSharpImageLibrary.DDS
         static void DoColourFixErrorCorrection(RGBColour[] Colour, RGBColour[] texel)
         {
             RGBColour[] Error = new RGBColour[16];
+            var ditherMultiplier = new Vector<float>(new[] { 31f, 63, 31, 1,0,0,0,0 });
+            var ditherAddition = new Vector<float>(new[] { 0.5f, 0.5f, 0.5f, 0, 0,0,0,0,0 });
+            var ditherDivideBit = new Vector<float>(new[] { 1f/31f, 1f/63f, 1f/31f, 1,0,0,0,0});
+
             for (int i = 0; i < 16; i++)
             {
-                RGBColour current = new RGBColour(texel[i].r, texel[i].g, texel[i].b, texel[i].a);
+                RGBColour current = new RGBColour
+                {
+                    Colours = texel[i].Colours
+                };
 
                 if (true)  // Dither
                 {
                     // Adjust for accumulated error
                     // This works by figuring out the error between the current pixel colour and the adjusted colour? Dunno what the adjustment is. Looks like a 5:6:5 range adaptation
                     // Then, this error is distributed across the "next" few pixels and not the previous.
-                    current.r += Error[i].r;
-                    current.g += Error[i].g;
-                    current.b += Error[i].b;
+                    current.Colours += Error[i].Colours;
                 }
 
 
                 // 5:6:5 range adaptation?
-                Colour[i].r = (int)(current.r * 31f + .5f) * (1f / 31f);
-                Colour[i].g = (int)(current.g * 63f + .5f) * (1f / 63f);
-                Colour[i].b = (int)(current.b * 31f + .5f) * (1f / 31f);
-
+                Colour[i].Colours = (current.Colours * ditherMultiplier + ditherAddition) * ditherDivideBit;
                 DoSomeDithering(current, i, Colour, i, Error);
-
-                Colour[i].r *= Luminance.r;
-                Colour[i].g *= Luminance.g;
-                Colour[i].b *= Luminance.b;
+                Colour[i].Colours *= Luminance.Colours;
             }
         }
 
@@ -880,21 +414,18 @@ namespace CSharpImageLibrary.DDS
 
 
             if (uSteps == 3)
-            {
-                step[2].r = step[0].r + (1f / 2f) * (step[1].r - step[0].r);
-                step[2].g = step[0].g + (1f / 2f) * (step[1].g - step[0].g);
-                step[2].b = step[0].b + (1f / 2f) * (step[1].b - step[0].b);
-            }
+                step[2].Colours = step[0].Colours + new Vector<float>(0.5f) * (step[1].Colours - step[0].Colours);
             else
             {
                 // "step" appears to be the palette as this is the interpolation
-                step[2].r = step[0].r + (1f / 3f) * (step[1].r - step[0].r);
-                step[2].g = step[0].g + (1f / 3f) * (step[1].g - step[0].g);
-                step[2].b = step[0].b + (1f / 3f) * (step[1].b - step[0].b);
+                step[2].Colours = step[0].Colours + new Vector<float>(1f/3f) * (step[1].Colours - step[0].Colours);
+                step[3].Colours = step[0].Colours + new Vector<float>(2f/3f) * (step[1].Colours - step[0].Colours);
+            }
 
-                step[3].r = step[0].r + (2f / 3f) * (step[1].r - step[0].r);
-                step[3].g = step[0].g + (2f / 3f) * (step[1].g - step[0].g);
-                step[3].b = step[0].b + (2f / 3f) * (step[1].b - step[0].b);
+            for (int i = 0; i < step.Length; i++)
+            {
+                var curr = step[i];
+                step[i] = new RGBColour(curr.r, curr.g, curr.b, 1);
             }
 
             return step;
@@ -909,24 +440,20 @@ namespace CSharpImageLibrary.DDS
             uint[] psteps = uSteps == 3 ? psteps3 : psteps4;
             for (int i = 0; i < 16; i++)
             {
-                RGBColour current = new RGBColour(texel[i].r, texel[i].g, texel[i].b, texel[i].a);
+                RGBColour current = new RGBColour();
+                current.Colours = texel[i].Colours;
 
                 if ((uSteps == 3) && (current.a < alphaRef))
                 {
                     dw = (uint)((3 << 30) | (dw >> 2));
                     continue;
                 }
-
-                current.r *= Luminance.r;
-                current.g *= Luminance.g;
-                current.b *= Luminance.b;
+                current.Colours *= Luminance.Colours;
 
                 if (true) // dither
                 {
                     // Error again
-                    current.r += Error[i].r;
-                    current.g += Error[i].g;
-                    current.b += Error[i].b;
+                    current.Colours += Error[i].Colours;
                 }
 
                 float fdot = (current.r - step[0].r) * Dir.r + (current.g - step[0].g) * Dir.g + (current.b - step[0].b) * Dir.b;
@@ -955,41 +482,25 @@ namespace CSharpImageLibrary.DDS
                 var inner = InnerColour[InnerIndex];
                 RGBColour diff = new RGBColour()
                 {
-                    r = current.a * (byte)(current.r - inner.r),
-                    g = current.a * (byte)(current.g - inner.g),
-                    b = current.a * (byte)(current.b - inner.b)
+                    Colours = current.a * (current.Colours - inner.Colours)
                 };
 
                 // If current pixel is not at the end of a row
                 if ((index & 3) != 3)
-                {
-                    Error[index + 1].r += diff.r * (7f / 16f);
-                    Error[index + 1].g += diff.g * (7f / 16f);
-                    Error[index + 1].b += diff.b * (7f / 16f);
-                }
+                    Error[index + 1].Colours += diff.Colours * (7f / 16f);
 
                 // If current pixel is not in bottom row
                 if (index < 12)
                 {
                     // If current pixel IS at end of row
                     if ((index & 3) != 0)
-                    {
-                        Error[index + 3].r += diff.r * (3f / 16f);
-                        Error[index + 3].g += diff.g * (3f / 16f);
-                        Error[index + 3].b += diff.b * (3f / 16f);
-                    }
+                        Error[index + 3].Colours += diff.Colours * (3f / 16f);
 
-                    Error[index + 4].r += diff.r * (5f / 16f);
-                    Error[index + 4].g += diff.g * (5f / 16f);
-                    Error[index + 4].b += diff.b * (5f / 16f);
+                    Error[index + 4].Colours += diff.Colours * (5f / 16f);
 
                     // If current pixel is not at end of row
                     if ((index & 3) != 3)
-                    {
-                        Error[index + 5].r += diff.r * (1f / 16f);
-                        Error[index + 5].g += diff.g * (1f / 16f);
-                        Error[index + 5].b += diff.b * (1f / 16f);
-                    }
+                        Error[index + 5].Colours += diff.Colours * (1f / 16f);
                 }
             }
         }
@@ -1045,14 +556,8 @@ namespace CSharpImageLibrary.DDS
             ColourB = minmax[1];
 
             // Create interstitial colours?
-            ColourC.r = ColourA.r * LuminanceInv.r;
-            ColourC.g = ColourA.g * LuminanceInv.g;
-            ColourC.b = ColourA.b * LuminanceInv.b;
-
-            ColourD.r = ColourB.r * LuminanceInv.r;
-            ColourD.g = ColourB.g * LuminanceInv.g;
-            ColourD.b = ColourB.b * LuminanceInv.b;
-
+            ColourC.Colours = ColourA.Colours * LuminanceInv.Colours;
+            ColourD.Colours = ColourB.Colours * LuminanceInv.Colours;
 
             // Yeah...dunno
             uint wColourA = Encode565(ColourC);
@@ -1076,28 +581,18 @@ namespace CSharpImageLibrary.DDS
             ColourC = Decode565(wColourA);
             ColourD = Decode565(wColourB);
 
-            ColourA.r = ColourC.r * Luminance.r;
-            ColourA.g = ColourC.g * Luminance.g;
-            ColourA.b = ColourC.b * Luminance.b;
-
-            ColourB.r = ColourD.r * Luminance.r;
-            ColourB.g = ColourD.g * Luminance.g;
-            ColourB.b = ColourD.b * Luminance.b;
-
+            ColourA.Colours = ColourC.Colours * Luminance.Colours;
+            ColourB.Colours = ColourD.Colours * Luminance.Colours;
 
             var step = DoSomethingWithPalette(uSteps, wColourA, wColourB, ColourA, ColourB);
 
             // Calculating colour direction apparently
             RGBColour Dir = new RGBColour()
             {
-                r = step[1].r - step[0].r,
-                g = step[1].g - step[0].g,
-                b = step[1].b - step[0].b
+                Colours = step[1].Colours - step[0].Colours
             };
             float fscale = (wColourA != wColourB) ? ((uSteps - 1) / (Dir.r * Dir.r + Dir.g * Dir.g + Dir.b * Dir.b)) : 0.0f;
-            Dir.r *= fscale;
-            Dir.g *= fscale;
-            Dir.b *= fscale;
+            Dir.Colours *= fscale;
 
             // Encoding colours apparently
             uint dw = DoOtherColourFixErrorCorrection(sourceTexel, uSteps, alphaRef, step, Dir);

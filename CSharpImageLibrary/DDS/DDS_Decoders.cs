@@ -96,16 +96,16 @@ namespace CSharpImageLibrary.DDS
         // BC6
         internal static void DecompressBC6Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            var colours = BC6.DecompressBC6(source, sourceStart, false);
-            SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
+            //var colours = BC6.DecompressBC6(source, sourceStart, false);
+            //SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
         }
 
 
         // BC7
         internal static void DecompressBC7Block(byte[] source, int sourceStart, byte[] destination, int decompressedStart, int decompressedLineLength, bool unused)
         {
-            var colours = BC7.DecompressBC7(source, sourceStart);
-            SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
+            //var colours = BC7.DecompressBC7(source, sourceStart);
+            //SetColoursFromDX10(colours, destination, decompressedStart, decompressedLineLength);
         }
 
         static void SetColoursFromDX10(DX10_Helpers.LDRColour[] block, byte[] destination, int decompressedStart, int decompressedLineLength)
