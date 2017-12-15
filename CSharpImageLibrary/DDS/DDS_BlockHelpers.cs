@@ -1221,12 +1221,11 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
-        internal static void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1, bool isPremultiplied)
+        internal static unsafe void DecompressRGBBlock(byte[] source, int sourcePosition, byte[] destination, int destinationStart, int destinationLineLength, bool isDXT1, bool isPremultiplied)
         {
             ushort colour0;
             ushort colour1;
-            int[] Colours = null;
-
+            Span<int> Colours = stackalloc int[4];
 
             // Build colour palette
             try
@@ -1234,7 +1233,7 @@ namespace CSharpImageLibrary.DDS
                 // Read min max colours
                 colour0 = (ushort)BitConverter.ToInt16(source, sourcePosition);
                 colour1 = (ushort)BitConverter.ToInt16(source, sourcePosition + 2);
-                Colours = BuildRGBPalette(colour0, colour1, isDXT1);
+                BuildRGBPalette(colour0, colour1, isDXT1, ref Colours);
             }
             catch (EndOfStreamException e)
             {
@@ -1369,10 +1368,8 @@ namespace CSharpImageLibrary.DDS
         /// <param name="Colour1">Second colour, usually the max.</param>
         /// <param name="isDXT1">True = for DXT1 texels. Changes how the internals are calculated.</param>
         /// <returns>Texel palette.</returns>
-        public static int[] BuildRGBPalette(int Colour0, int Colour1, bool isDXT1)
+        public static unsafe void BuildRGBPalette(int Colour0, int Colour1, bool isDXT1, ref Span<int> Colours)
         {
-            int[] Colours = new int[4];
-
             Colours[0] = Colour0;
             Colours[1] = Colour1;
 
@@ -1413,7 +1410,6 @@ namespace CSharpImageLibrary.DDS
                 Colours[2] = BuildDXTColour(r, g, b);
                 Colours[3] = 0;
             }
-            return Colours;
         }
         #endregion Palette/Colour
     }
