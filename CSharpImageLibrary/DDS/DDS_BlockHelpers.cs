@@ -12,8 +12,8 @@ namespace CSharpImageLibrary.DDS
 {
     internal static class DDS_BlockHelpers
     {
-        const double OneThird = 1f / 3f;
-        const double TwoThirds = 2f / 3f;
+        const float OneThird = 1f / 3f;
+        const float TwoThirds = 2f / 3f;
 
         #region Block Compression
         #region RGB DXT
@@ -782,6 +782,9 @@ namespace CSharpImageLibrary.DDS
             }
         }
 
+        static Vector<int> ReadDXTMask = new Vector<int>(new[] { 0xF800, 0x7E0, 0x1F, 0,0,0,0,0 });
+        static Vector<int> ReadDXTDivision = new Vector<int>(new[] { 256, 8, 1, 1,1,1,1,1 });
+
         /// <summary>
         /// Reads a packed DXT colour into RGB
         /// </summary>
@@ -789,15 +792,18 @@ namespace CSharpImageLibrary.DDS
         /// <param name="blue">Blue value of colour.</param>
         /// <param name="red">Red value of colour.</param>
         /// <param name="green">Green value of colour.</param>
-        private static void ReadDXTColour(int colour, ref byte red, ref byte blue, ref byte green)
+        private static Vector<float> ReadDXTColour(int colour)
         {
             // Read RGB 5:6:5 data
             // Expand to 8 bit data
-            red = (byte)((colour & 0xF800) >> 8);
-            blue = (byte)((colour & 0x7E0) >> 3);
-            green = (byte)((colour & 0x1F) << 3);
+
+            var temp = Vector.BitwiseAnd(new Vector<int>(colour), ReadDXTMask);
+            temp /= ReadDXTDivision;
+            return new Vector<float>(new float[] { temp[0], temp[1], (temp[2] << 3), 0, 0, 0, 0, 0 });
         }
 
+        static Vector<float> BuildDXTDivider = new Vector<float>(new float[] { 8,4,8,0,0,0,0,0 });
+        static Vector<float> BuildDXTMultiplier = new Vector<float>(new float[] { 2048,32,1,0,0,0,0,0 });
 
         /// <summary>
         /// Creates a packed DXT colour from RGB.
@@ -806,14 +812,12 @@ namespace CSharpImageLibrary.DDS
         /// <param name="g">Green byte.</param>
         /// <param name="b">Blue byte.</param>
         /// <returns>DXT Colour</returns>
-        private static int BuildDXTColour(byte r, byte g, byte b)
+        private static int BuildDXTColour(Vector<float> rgbs)
         {
             // Compress to 5:6:5
-            byte r1 = (byte)(r >> 3);
-            byte g1 = (byte)(g >> 2);
-            byte b1 = (byte)(b >> 3);
-
-            return (r1 << 11) | (g1 << 5) | (b1);
+            rgbs /= BuildDXTDivider;
+            rgbs *= BuildDXTMultiplier;
+            return (byte)rgbs[0] | (byte)rgbs[1] | (byte)rgbs[2];
         }
 
 
@@ -864,48 +868,33 @@ namespace CSharpImageLibrary.DDS
         /// <param name="Colour1">Second colour, usually the max.</param>
         /// <param name="isDXT1">True = for DXT1 texels. Changes how the internals are calculated.</param>
         /// <returns>Texel palette.</returns>
-        public static int[] BuildRGBPalette(int Colour0, int Colour1, bool isDXT1)
+        public static unsafe int[] BuildRGBPalette(int Colour0, int Colour1, bool isDXT1)
         {
-            int[] Colours = new int[4];
-
+            var Colours = new int[4];
             Colours[0] = Colour0;
             Colours[1] = Colour1;
 
-            byte Colour0_R = 0;
-            byte Colour0_G = 0;
-            byte Colour0_B = 0;
+            var colour0RGB = new Vector<float>();
+            var colour1RGB = new Vector<float>();
 
-            byte Colour1_R = 0;
-            byte Colour1_G = 0;
-            byte Colour1_B = 0;
-
-            ReadDXTColour(Colour0, ref Colour0_R, ref Colour0_G, ref Colour0_B);
-            ReadDXTColour(Colour1, ref Colour1_R, ref Colour1_G, ref Colour1_B);
-
-
+            colour0RGB = ReadDXTColour(Colour0);
+            colour1RGB = ReadDXTColour(Colour1);
 
             // Interpolate other 2 colours
             if (Colour0 > Colour1)
             {
-                var r1 = (byte)(TwoThirds * Colour0_R + OneThird * Colour1_R);
-                var g1 = (byte)(TwoThirds * Colour0_G + OneThird * Colour1_G);
-                var b1 = (byte)(TwoThirds * Colour0_B + OneThird * Colour1_B);
+                var c1 = TwoThirds * colour0RGB + OneThird * colour1RGB;
+                var c2 = OneThird * colour0RGB + TwoThirds * colour1RGB;
 
-                var r2 = (byte)(OneThird * Colour0_R + TwoThirds * Colour1_R);
-                var g2 = (byte)(OneThird * Colour0_G + TwoThirds * Colour1_G);
-                var b2 = (byte)(OneThird * Colour0_B + TwoThirds * Colour1_B);
-
-                Colours[2] = BuildDXTColour(r1, g1, b1);
-                Colours[3] = BuildDXTColour(r2, g2, b2);
+                Colours[2] = BuildDXTColour(c1);
+                Colours[3] = BuildDXTColour(c2);
             }
             else
             {
                 // KFreon: Only for dxt1
-                var r = (byte)(0.5 * Colour0_R + 0.5 * Colour1_R);
-                var g = (byte)(0.5 * Colour0_G + 0.5 * Colour1_G);
-                var b = (byte)(0.5 * Colour0_B + 0.5 * Colour1_B);
+                var rgbs = 0.5f * colour0RGB + 0.5f * colour1RGB;
 
-                Colours[2] = BuildDXTColour(r, g, b);
+                Colours[2] = BuildDXTColour(rgbs);
                 Colours[3] = 0;
             }
             return Colours;
