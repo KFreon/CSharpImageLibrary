@@ -1225,7 +1225,7 @@ namespace CSharpImageLibrary.DDS
         {
             ushort colour0;
             ushort colour1;
-            Span<int> Colours = stackalloc int[4];
+            Span<byte> Colours = stackalloc byte[12];
 
             // Build colour palette
             try
@@ -1252,7 +1252,10 @@ namespace CSharpImageLibrary.DDS
                 for (int j = 0; j < 4; j++)
                 {
                     int destPos = destinationStart + j * 4 + (i * destinationLineLength);
-                    UnpackDXTColour(Colours[bitmask >> (2 * j) & 0x03], destination, destPos, isPremultiplied);
+                    var coloursIndex = bitmask >> (2 * j) & 0x03;
+                    destination[destPos + 2] = Colours[coloursIndex];
+                    destination[destPos + 1] = Colours[coloursIndex + 1];
+                    destination[destPos] = Colours[coloursIndex + 2];
 
                     if (isDXT1)
                         destination[destPos + 3] = 255;
@@ -1293,13 +1296,13 @@ namespace CSharpImageLibrary.DDS
         /// <param name="blue">Blue value of colour.</param>
         /// <param name="red">Red value of colour.</param>
         /// <param name="green">Green value of colour.</param>
-        private static void ReadDXTColour(int colour, ref byte red, ref byte blue, ref byte green)
+        private static void ReadDXTColour(int colour, Span<byte> Colours, int start)
         {
             // Read RGB 5:6:5 data
             // Expand to 8 bit data
-            red = (byte)((colour & 0xF800) >> 8);
-            blue = (byte)((colour & 0x7E0) >> 3);
-            green = (byte)((colour & 0x1F) << 3);
+            Colours[start] = (byte)((colour & 0xF800) >> 8);
+            Colours[start + 1] = (byte)((colour & 0x7E0) >> 3);
+            Colours[start + 2] = (byte)((colour & 0x1F) << 3);
         }
 
 
@@ -1368,47 +1371,40 @@ namespace CSharpImageLibrary.DDS
         /// <param name="Colour1">Second colour, usually the max.</param>
         /// <param name="isDXT1">True = for DXT1 texels. Changes how the internals are calculated.</param>
         /// <returns>Texel palette.</returns>
-        public static unsafe void BuildRGBPalette(int Colour0, int Colour1, bool isDXT1, ref Span<int> Colours)
+        public static unsafe void BuildRGBPalette(int Colour0, int Colour1, bool isDXT1, ref Span<byte> Colours)
         {
-            Colours[0] = Colour0;
-            Colours[1] = Colour1;
-
-            byte Colour0_R = 0;
-            byte Colour0_G = 0;
-            byte Colour0_B = 0;
-
-            byte Colour1_R = 0;
-            byte Colour1_G = 0;
-            byte Colour1_B = 0;
-
-            ReadDXTColour(Colour0, ref Colour0_R, ref Colour0_G, ref Colour0_B);
-            ReadDXTColour(Colour1, ref Colour1_R, ref Colour1_G, ref Colour1_B);
-
-
+            ReadDXTColour(Colour0, Colours, 0);
+            ReadDXTColour(Colour1, Colours, 3);
 
             // Interpolate other 2 colours
             if (Colour0 > Colour1)
             {
-                var r1 = (byte)(TwoThirds * Colour0_R + OneThird * Colour1_R);
-                var g1 = (byte)(TwoThirds * Colour0_G + OneThird * Colour1_G);
-                var b1 = (byte)(TwoThirds * Colour0_B + OneThird * Colour1_B);
+                var r1 = (byte)(TwoThirds * Colours[0] + OneThird * Colours[3]);
+                var g1 = (byte)(TwoThirds * Colours[1] + OneThird * Colours[4]);
+                var b1 = (byte)(TwoThirds * Colours[2] + OneThird * Colours[5]);
 
-                var r2 = (byte)(OneThird * Colour0_R + TwoThirds * Colour1_R);
-                var g2 = (byte)(OneThird * Colour0_G + TwoThirds * Colour1_G);
-                var b2 = (byte)(OneThird * Colour0_B + TwoThirds * Colour1_B);
+                var r2 = (byte)(OneThird * Colours[0] + TwoThirds * Colours[3]);
+                var g2 = (byte)(OneThird * Colours[1] + TwoThirds * Colours[4]);
+                var b2 = (byte)(OneThird * Colours[2] + TwoThirds * Colours[5]);
 
-                Colours[2] = BuildDXTColour(r1, g1, b1);
-                Colours[3] = BuildDXTColour(r2, g2, b2);
+                Colours[6] = (byte)(r1 >> 3);
+                Colours[7] = (byte)(g1 >> 2);
+                Colours[8] = (byte)(b1 >> 3);
+
+                Colours[9] = (byte)(r2 >> 3);
+                Colours[10] = (byte)(g2 >> 2);
+                Colours[11] = (byte)(b2 >> 3);
             }
             else
             {
                 // KFreon: Only for dxt1
-                var r = (byte)(0.5 * Colour0_R + 0.5 * Colour1_R);
-                var g = (byte)(0.5 * Colour0_G + 0.5 * Colour1_G);
-                var b = (byte)(0.5 * Colour0_B + 0.5 * Colour1_B);
+                var r = (byte)(0.5 * Colours[0] + 0.5 * Colours[3]);
+                var g = (byte)(0.5 * Colours[1] + 0.5 * Colours[4]);
+                var b = (byte)(0.5 * Colours[2] + 0.5 * Colours[5]);
 
-                Colours[2] = BuildDXTColour(r, g, b);
-                Colours[3] = 0;
+                Colours[6] = (byte)(r >> 3);
+                Colours[7] = (byte)(g >> 2);
+                Colours[8] = (byte)(b >> 3);
             }
         }
         #endregion Palette/Colour
