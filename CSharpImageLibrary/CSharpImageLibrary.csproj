@@ -58,7 +58,8 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>ImageEngine.ico</ApplicationIcon>
+    <ApplicationIcon>
+    </ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -105,36 +106,6 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DDS\BC6.cs" />
-    <Compile Include="DDS\BC7.cs" />
-    <Compile Include="DDS\DDSGeneral.cs" />
-    <Compile Include="DDS\DDSLoading.cs" />
-    <Compile Include="DDS\DDSSaving.cs" />
-    <Compile Include="DDS\DDS_BlockHelpers.cs" />
-    <Compile Include="DDS\DDS_Decoders.cs" />
-    <Compile Include="DDS\DDS_Encoders.cs" />
-    <Compile Include="DDS\DX10_Helpers.cs" />
-    <Compile Include="Headers\AbstractHeader.cs" />
-    <Compile Include="Headers\BMP_Header.cs" />
-    <Compile Include="Headers\DDS_Header.cs" />
-    <Compile Include="Headers\GIF_Header.cs" />
-    <Compile Include="Headers\JPG_Header.cs" />
-    <Compile Include="Headers\PNG_Header.cs" />
-    <Compile Include="Headers\RawDDSHeaderStuff.cs" />
-    <Compile Include="Headers\TGA_Header.cs" />
-    <Compile Include="Headers\TIFF_Header.cs" />
-    <Compile Include="ImageEngineFormat.cs" />
-    <Compile Include="ImageEngineFormatDetails.cs" />
-    <Compile Include="ImageEngineImage.cs" />
-    <Compile Include="MergeChannelsImage.cs" />
-    <Compile Include="MipMap.cs" />
-    <Compile Include="SupportedExtensions.cs" />
-    <Compile Include="SupportedFileExtensions.cs" />
-    <Compile Include="Targa.cs" />
-    <Compile Include="WIC_Codecs.cs" />
-    <Compile Include="ImageEngine.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -163,9 +134,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\DXT1_CodecTest.dds" />
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.6 %28x86 and x64%29</ProductName>
@@ -179,9 +147,6 @@
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImageEngine.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

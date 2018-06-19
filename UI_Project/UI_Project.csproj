@@ -157,12 +157,6 @@
     <Resource Include="ImageEngine.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CSharpImageLibrary\CSharpImageLibrary.csproj">
-      <Project>{10e9f41a-45d2-4cc4-b625-76c295ffdf67}</Project>
-      <Name>CSharpImageLibrary</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\DXT1_CodecTest.dds" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

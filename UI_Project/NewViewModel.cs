@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Runtime;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -976,6 +977,10 @@ namespace UI_Project
                 UpdateSavePreview();
                 SliderTimer.Stop();
             };
+
+            var path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            ProfileOptimization.SetProfileRoot(path);
+            ProfileOptimization.StartProfile("Startup.Profile_ImageEngine");
 
             MergeChannelsImages.CollectionChanged += (sender, args) => OnPropertyChanged(nameof(MergeChannelsReady));
         }
