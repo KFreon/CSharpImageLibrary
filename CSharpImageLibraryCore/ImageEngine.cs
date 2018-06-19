@@ -1,69 +1,15 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using CSharpImageLibraryCore.DDS;
-using CSharpImageLibraryCore.Headers;
 
 namespace CSharpImageLibraryCore
 {
-    /// <summary>
-    /// Determines how alpha is handled.
-    /// </summary>
-    public enum AlphaSettings
-    {
-        /// <summary>
-        /// Keeps any existing alpha.
-        /// </summary>
-        KeepAlpha,
-
-        /// <summary>
-        /// Premultiplies RBG and Alpha channels. Alpha remains.
-        /// </summary>
-        Premultiply,
-
-        /// <summary>
-        /// Removes alpha channel.
-        /// </summary>
-        RemoveAlphaChannel,
-    }
-
-    /// <summary>
-    /// Determines how Mipmaps are handled.
-    /// </summary>
-    public enum MipHandling
-    {
-        /// <summary>
-        /// If mips are present, they are used, otherwise regenerated.
-        /// </summary>
-        [Description("If mips are present, they are used, otherwise regenerated.")]
-        Default,
-
-        /// <summary>
-        /// Keeps existing mips if existing. Doesn't generate new ones either way.
-        /// </summary>
-        [Description("Keeps existing mips if existing. Doesn't generate new ones either way.")]
-        KeepExisting,
-
-        /// <summary>
-        /// Removes old mips and generates new ones.
-        /// </summary>
-        [Description("Removes old mips and generates new ones.")]
-        GenerateNew,
-
-        /// <summary>
-        /// Removes all but the top mip. Used for single mip formats.
-        /// </summary>
-        [Description("Removes all but the top mip. Used for single mip formats.")]
-        KeepTopOnly
-    }
-
     /// <summary>
     /// Provides main image functions
     /// </summary>
@@ -343,91 +289,92 @@ namespace CSharpImageLibraryCore
 
         internal static MipMap Resize(MipMap mipMap, double xScale, double yScale)
         {
-            var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
-            baseBMP.Freeze();
-            //return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.LoadedFormatDetails);
+            throw new NotImplementedException("Dunno what to do.");
+            //var baseBMP = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
+            //baseBMP.Freeze();
+            ////return Resize(baseBMP, xScale, yScale, mipMap.Width, mipMap.Height, mipMap.LoadedFormatDetails);
 
-            #region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
-            // KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
-            bool alphaPresent = mipMap.IsAlphaPresent;
+            //#region Old code, but want to keep not only for posterity, but I'm not certain the above works in the context below.
+            //// KFreon: Only do the alpha bit if there is any alpha. Git #444 (https://github.com/ME3Explorer/ME3Explorer/issues/444) exposed the issue where if there isn't alpha, it overruns the buffer.
+            //bool alphaPresent = mipMap.IsAlphaPresent;
 
-            WriteableBitmap alpha = new WriteableBitmap(mipMap.Width, mipMap.Height, 96, 96, PixelFormats.Bgr32, null);
-            if (alphaPresent)// && !mergeAlpha)
-            {
-                // Pull out alpha since scaling with alpha doesn't work properly for some reason
-                try
-                {
-                    unsafe
-                    {
-                        alpha.Lock();
-                        int index = 3;
-                        byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
-                        for (int i = 0; i < mipMap.Width * mipMap.Height * 4; i += 4)
-                        {
-                            // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
-                            alphaPtr[i] = mipMap.Pixels[index];
-                            alphaPtr[i + 1] = mipMap.Pixels[index];
-                            alphaPtr[i + 2] = mipMap.Pixels[index];
-                            alphaPtr[i + 3] = mipMap.Pixels[index];
-                            index += 4;
-                        }
+            //WriteableBitmap alpha = new WriteableBitmap(mipMap.Width, mipMap.Height, 96, 96, PixelFormats.Bgr32, null);
+            //if (alphaPresent)// && !mergeAlpha)
+            //{
+            //    // Pull out alpha since scaling with alpha doesn't work properly for some reason
+            //    try
+            //    {
+            //        unsafe
+            //        {
+            //            alpha.Lock();
+            //            int index = 3;
+            //            byte* alphaPtr = (byte*)alpha.BackBuffer.ToPointer();
+            //            for (int i = 0; i < mipMap.Width * mipMap.Height * 4; i += 4)
+            //            {
+            //                // Set all pixels in alpha to value of alpha from original image - otherwise scaling will interpolate colours
+            //                alphaPtr[i] = mipMap.Pixels[index];
+            //                alphaPtr[i + 1] = mipMap.Pixels[index];
+            //                alphaPtr[i + 2] = mipMap.Pixels[index];
+            //                alphaPtr[i + 3] = mipMap.Pixels[index];
+            //                index += 4;
+            //            }
 
-                        alpha.Unlock();
-                    }
-                }
-                catch (Exception e)
-                {
-                    Trace.WriteLine(e.ToString());
-                    throw;
-                }
-            }
+            //            alpha.Unlock();
+            //        }
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        Trace.WriteLine(e.ToString());
+            //        throw;
+            //    }
+            //}
 
-            var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
-            FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
+            //var bmp = UsefulThings.WPF.Images.CreateWriteableBitmap(mipMap.Pixels, mipMap.Width, mipMap.Height);
+            //FormatConvertedBitmap main = new FormatConvertedBitmap(bmp, PixelFormats.Bgr32, null, 0);
 
             
 
-            // Scale RGB
-            ScaleTransform scaletransform = new ScaleTransform(xScale, yScale);
-            TransformedBitmap scaledMain = new TransformedBitmap(main, scaletransform);
+            //// Scale RGB
+            //ScaleTransform scaletransform = new ScaleTransform(xScale, yScale);
+            //TransformedBitmap scaledMain = new TransformedBitmap(main, scaletransform);
 
-            int newWidth = (int)(mipMap.Width * xScale);
-            int newHeight = (int)(mipMap.Height * yScale);
-            int newStride = (int)(newWidth * 4);
+            //int newWidth = (int)(mipMap.Width * xScale);
+            //int newHeight = (int)(mipMap.Height * yScale);
+            //int newStride = (int)(newWidth * 4);
 
-            // Put alpha back in
-            FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
-            WriteableBitmap resized = new WriteableBitmap(newConv);
+            //// Put alpha back in
+            //FormatConvertedBitmap newConv = new FormatConvertedBitmap(scaledMain, PixelFormats.Bgra32, null, 0);
+            //WriteableBitmap resized = new WriteableBitmap(newConv);
 
-            if (alphaPresent)// && !mergeAlpha)
-            {
-                TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
-                WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
+            //if (alphaPresent)// && !mergeAlpha)
+            //{
+            //    TransformedBitmap scaledAlpha = new TransformedBitmap(alpha, scaletransform);
+            //    WriteableBitmap newAlpha = new WriteableBitmap(scaledAlpha);
 
-                try
-                {
-                    unsafe
-                    {
-                        resized.Lock();
-                        newAlpha.Lock();
-                        byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
-                        byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
-                        for (int i = 3; i < newStride * newHeight; i += 4)
-                            resizedPtr[i] = alphaPtr[i];
+            //    try
+            //    {
+            //        unsafe
+            //        {
+            //            resized.Lock();
+            //            newAlpha.Lock();
+            //            byte* resizedPtr = (byte*)resized.BackBuffer.ToPointer();
+            //            byte* alphaPtr = (byte*)newAlpha.BackBuffer.ToPointer();
+            //            for (int i = 3; i < newStride * newHeight; i += 4)
+            //                resizedPtr[i] = alphaPtr[i];
 
-                        resized.Unlock();
-                        newAlpha.Unlock();
-                    }
-                }
-                catch (Exception e)
-                {
-                    Trace.WriteLine(e.ToString());
-                    throw;
-                }
-            }
+            //            resized.Unlock();
+            //            newAlpha.Unlock();
+            //        }
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        Trace.WriteLine(e.ToString());
+            //        throw;
+            //    }
+            //}
             
-            return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, mipMap.LoadedFormatDetails);
-            #endregion Old code
+            //return new MipMap(resized.GetPixelsAsBGRA32(), newWidth, newHeight, mipMap.LoadedFormatDetails);
+            //#endregion Old code
         }
 
         /// <summary>

@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using UsefulDotNetThings;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     /// <summary>
     /// Information about a TIFF image.

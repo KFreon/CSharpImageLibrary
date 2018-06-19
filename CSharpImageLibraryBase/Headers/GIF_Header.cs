@@ -2,7 +2,7 @@
 using System.IO;
 using UsefulDotNetThings;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     /// <summary>
     /// Provides information given by GIF file header.

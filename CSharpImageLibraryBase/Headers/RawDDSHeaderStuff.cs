@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     public partial class DDS_Header
     {

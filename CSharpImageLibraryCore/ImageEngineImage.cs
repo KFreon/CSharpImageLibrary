@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using UsefulThings;
 using static CSharpImageLibrary.ImageFormats;
+using static CSharpImageLibraryCore.ImageFormats;
 
 namespace CSharpImageLibraryCore
 {

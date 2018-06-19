@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using UsefulDotNetThings;
 using UsefulThings;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     /// <summary>
     /// Contains information about a JPG image.

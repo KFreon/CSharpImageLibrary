@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace CSharpImageLibraryCore
+namespace CSharpImageLibraryBase
 {
     /// <summary>
     /// File extensions supported. Used to get initial format.

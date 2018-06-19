@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 
-namespace CSharpImageLibraryCore
+namespace CSharpImageLibraryBase
 {
     /// <summary>
     /// Indicates image format.

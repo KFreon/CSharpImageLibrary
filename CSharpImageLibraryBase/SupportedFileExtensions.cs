@@ -5,7 +5,7 @@ using System.Linq;
 using CSharpImageLibrary.Headers;
 using UsefulDotNetThings;
 
-namespace CSharpImageLibraryCore
+namespace CSharpImageLibraryBase
 {
     public class SupportedFileExtensions
     {

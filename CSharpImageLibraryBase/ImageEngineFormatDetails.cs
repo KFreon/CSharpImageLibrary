@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
-using CSharpImageLibrary.DDS;
-using CSharpImageLibrary.Headers;
-using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 using System.Text;
+using CSharpImageLibraryBase.Headers;
+using static CSharpImageLibraryBase.Headers.DDS_Header.RawDDSHeaderStuff;
 
-namespace CSharpImageLibraryCore
+namespace CSharpImageLibraryBase
 {
     public class ImageFormats
     {
@@ -447,21 +445,6 @@ namespace CSharpImageLibraryCore
             {
                 return (int)(MaxNumberOfChannels * (topWidth * topHeight) * (inclMips ? 4d / 3d : 1d));
             }
-
-
-            /// <summary>
-            /// DDS ONLY.
-            /// Gets the compressed size of a DDS image.
-            /// </summary>
-            /// <param name="width">Width of top mipmap.</param>
-            /// <param name="height">Height of top mipmap.</param>
-            /// <param name="mipCount">Number of mipmaps present in image.</param>
-            /// <returns>Length of compressed image in bytes.</returns>
-            public int GetCompressedSize(int width, int height, int mipCount)
-            {
-                return DDS.DDSGeneral.GetCompressedSizeOfImage(mipCount, this, width, height);
-            }
-
 
 
             #region Bit Conversions

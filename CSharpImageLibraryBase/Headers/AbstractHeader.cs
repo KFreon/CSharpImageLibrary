@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using static CSharpImageLibrary.ImageFormats;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     /// <summary>
     /// Base header class for image headers.

@@ -5,7 +5,7 @@ using UsefulDotNetThings;
 using static CSharpImageLibrary.Headers.DDS_Header.RawDDSHeaderStuff;
 using static CSharpImageLibrary.ImageFormats;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     /// <summary>
     /// Contains header information about a DDS File.

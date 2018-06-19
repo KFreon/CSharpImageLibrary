@@ -2,7 +2,7 @@
 using System.IO;
 using UsefulDotNetThings;
 
-namespace CSharpImageLibraryCore.Headers
+namespace CSharpImageLibraryBase.Headers
 {
     /// <summary>
     /// Contains information about a PNG file header.
