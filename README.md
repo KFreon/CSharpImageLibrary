@@ -1,4 +1,12 @@
 # CSharpImageLibrary
+
+## NO longer maintained :( 
+
+
+
+
+
+
 Image processing library written entirely in C# and Nuget Packages.
 This library uses built in Windows codecs as much as possible. This includes the new fancy Windows 8.1+ codecs for DXT1, 3, and 5 loading.
 For those not on Windows 8.1+, manual codecs are used.
